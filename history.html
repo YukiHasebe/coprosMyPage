@@ -1,416 +1,169 @@
-
+<!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>実績登録 | 株式会社コプロス</title>
+    <title>実績登録 | CP My Page</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
             --sidebar-bg: #1a1a1a;
             --header-bg: #3c4b5a;
+            --accent-orange: #ff7e11;
             --primary-blue: #004098;
-            --accent-orange: #ff7e00;
-            --border-color: #ddd;
-            --text-gray: #555;
-            --required-red: #d9534f;
         }
+        body { font-family: "Meiryo", sans-serif; background-color: #f4f7f9; }
+        
+        /* サイドバー共通 */
+        .sidebar { background-color: var(--sidebar-bg); width: 200px; }
+        .nav-item { border-bottom: 1px solid #2d2d2d; transition: all 0.2s; color: #b8b8b8; }
+        .nav-item:hover { background-color: #333; color: white; }
+        .active-menu { background-color: #2d3748; border-left: 4px solid var(--accent-orange); color: white !important; }
 
-        body {
-            margin: 0;
-            font-family: "Meiryo", "Hiragino Kaku Gothic ProN", sans-serif;
-            display: flex;
-            background-color: #f5f5f5;
-            color: #333;
+        /* 入力エリアの質感 */
+        .form-table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
+        .form-table th { 
+            width: 220px; background-color: #fff; text-align: left; padding: 18px; 
+            font-size: 14px; color: #444; border-bottom: 1px solid #eee; vertical-align: top;
         }
-
-        /* サイドバー */
-        .sidebar {
-            width: 200px;
-            background-color: var(--sidebar-bg);
-            color: white;
-            min-height: 100vh;
-            position: fixed;
+        .form-table td { padding: 15px; border-bottom: 1px solid #eee; }
+        
+        .form-input { 
+            width: 100%; border: 1px solid #d1d5db; padding: 10px; border-radius: 6px; 
+            transition: all 0.2s; outline: none; font-size: 14px;
         }
-
-        .sidebar-menu {
-            list-style: none;
-            padding: 0;
-            margin-top: 50px;
-        }
-
-        .sidebar-menu li {
-            padding: 15px 20px;
-            border-bottom: 1px solid #333;
-            cursor: pointer;
-            font-size: 14px;
-        }
-
-        .sidebar-menu li:hover {
-            background-color: #333;
-        }
-
-        /* メインコンテンツ */
-        .main-content {
-            margin-left: 200px;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* ヘッダー */
-        header {
-            background-color: var(--header-bg);
-            color: white;
-            padding: 10px 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .logo {
-            font-size: 20px;
-            font-weight: bold;
-            color: #87ceeb;
-        }
-
-        .search-bar {
-            display: flex;
-            gap: 0;
-        }
-
-        .search-bar input {
-            width: 300px;
-            padding: 5px 10px;
-            border: none;
-            border-radius: 4px 0 0 4px;
-        }
-
-        .search-bar button {
-            background-color: #ddd;
-            border: none;
-            padding: 5px 20px;
-            border-radius: 0 4px 4px 0;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        /* フォームエリア */
-        .content-body {
-            padding: 20px 40px;
-        }
-
-        .page-title {
-            font-size: 24px;
-            margin-bottom: 20px;
-            border-bottom: 1px solid #ccc;
-            padding-bottom: 10px;
-        }
-
-        /* ボタン群 */
-        .action-buttons {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .btn {
-            padding: 10px 0;
-            width: 250px;
-            text-align: center;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .btn-orange { background-color: var(--accent-orange); }
-        .btn-blue { background-color: var(--primary-blue); }
-        .btn-select { background-color: var(--primary-blue); width: 120px; font-size: 12px; padding: 5px; }
-        .btn-gray { background-color: #eee; color: #333; border: 1px solid #ccc; width: 120px; padding: 5px; }
-
-        /* 入力テーブル */
-        .form-table {
-            width: 100%;
-            border-collapse: collapse;
-            background: white;
-        }
-
-        .form-table tr {
-            border-top: 1px solid var(--border-color);
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .form-table th {
-            width: 200px;
-            text-align: left;
-            padding: 15px;
-            background-color: #fff;
-            vertical-align: top;
-            font-size: 14px;
-        }
-
-        .form-table td {
-            padding: 15px;
-            vertical-align: middle;
-        }
+        .form-input:focus { border-color: var(--primary-blue); box-shadow: 0 0 0 3px rgba(0, 64, 152, 0.1); }
 
         .required-tag {
-            color: var(--required-red);
-            font-size: 11px;
-            margin-left: 5px;
+            background-color: #fff1f0; color: #d8514d; border: 1px solid #ffa39e;
+            font-size: 10px; padding: 1px 4px; border-radius: 2px; margin-left: 8px;
         }
 
-        /* 入力要素 */
-        input[type="text"], select, textarea {
-            width: 100%;
-            max-width: 600px;
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-
-        .datetime-group {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-
-        .datetime-group input[type="text"] { width: 150px; }
-        .datetime-group select { width: 80px; }
-
-        .note-text {
-            color: #00a0e9;
-            font-size: 12px;
-            margin-top: 5px;
-        }
-
-        /* 定性データエリア */
-        .qualitative-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-
-        .textarea-full {
-            width: 100%;
-            height: 100px;
-            margin-bottom: 10px;
-        }
-
-        .user-label {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            margin-top: 10px;
-        }
-
-        /* フッターボタン */
-        .footer-actions {
-            margin-top: 30px;
-            padding: 20px;
-            background: #fff;
-            border-top: 1px solid #ccc;
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        .calendar-icon { color: #888; cursor: pointer; }
-
+        .btn-blue { background-color: var(--primary-blue); color: white; padding: 6px 15px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        .btn-action { transition: transform 0.1s; cursor: pointer; }
+        .btn-action:active { transform: scale(0.98); }
     </style>
 </head>
-<body>
+<body class="flex h-screen overflow-hidden">
 
-    <div class="sidebar">
-        <ul class="sidebar-menu">
-            <li>お客様</li>
-            <li style="background-color: #333;">実績</li>
-            <li>カレンダー</li>
-            <li>回覧一覧</li>
-            <li>地図</li>
-            <li>アポイント</li>
-            <li>集計</li>
-            <li>マスタ管理</li>
-        </ul>
-    </div>
+    <!-- サイドバー -->
+    <aside class="sidebar flex-shrink-0 text-white flex flex-col">
+        <div class="p-4 text-xs font-bold text-gray-500 border-b border-gray-800 tracking-widest uppercase">Menu</div>
+        <nav class="flex-1 overflow-y-auto">
+            <a href="list.html" class="nav-item block px-5 py-4 text-sm flex items-center"><i class="fa-solid fa-users w-6"></i> お客様</a>
+            <a href="list_records.html" class="nav-item active-menu block px-5 py-4 text-sm flex items-center"><i class="fa-solid fa-file-invoice w-6"></i> 実績</a>
+            <a href="#" class="nav-item block px-5 py-4 text-sm flex items-center"><i class="fa-solid fa-calendar-days w-6"></i> カレンダー</a>
+            <a href="#" class="nav-item block px-5 py-4 text-sm flex items-center"><i class="fa-solid fa-envelope-open-text w-6"></i> 回覧一覧</a>
+            <a href="#" class="nav-item block px-5 py-4 text-sm flex items-center"><i class="fa-solid fa-map-location-dot w-6"></i> 地図</a>
+            <a href="#" class="nav-item block px-5 py-4 text-sm flex items-center"><i class="fa-solid fa-clock w-6"></i> アポイント</a>
+            <a href="#" class="nav-item block px-5 py-4 text-sm flex items-center"><i class="fa-solid fa-chart-line w-6"></i> 集計</a>
+            <a href="#" class="nav-item block px-5 py-4 text-sm flex items-center"><i class="fa-solid fa-gears w-6"></i> マスタ管理</a>
+        </nav>
+    </aside>
 
-    <div class="main-content">
-        <header>
-            <div class="logo">株式会社コプロス</div>
-            <div class="search-bar">
-                <input type="text" placeholder="お客様名を入力してください">
-                <button>検索</button>
-            </div>
-            <div style="font-size: 14px;">お知らせ ｜ 篠原 栄</div>
+    <!-- メインコンテンツ -->
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <header class="h-14 bg-[#3c4b5a] flex items-center justify-between px-6 text-white shadow-md">
+            <div class="flex items-center gap-4"><span class="text-xl font-bold text-[#87ceeb]">株式会社コプロス</span></div>
+            <div class="text-xs font-medium">篠原 栄 殿</div>
         </header>
 
-        <div class="content-body">
-            <h1 class="page-title">実績登録</h1>
-
-            <div class="action-buttons">
-                <button class="btn btn-orange">登　録</button>
-                <button class="btn btn-orange" style="background-color: #f39800;">下書き</button>
-                <button class="btn btn-blue">PDF出力</button>
-            </div>
-
-            <form id="recordForm">
-                <table class="form-table">
-                    <!-- お客様名 -->
-                    <tr>
-                        <th>お客様名<span class="required-tag">*必須</span></th>
-                        <td>
-                            <input type="text" placeholder="キーワードを入力" style="margin-bottom: 10px;">
-                            <select>
-                                <option>--</option>
-                            </select>
-                        </td>
-                    </tr>
-
-                    <!-- お客様先担当者 -->
-                    <tr>
-                        <th>お客様先担当者</th>
-                        <td>
-                            <button type="button" class="btn btn-select">選択</button>
-                            <textarea class="textarea-full" style="height: 60px; margin-top:10px;"></textarea>
-                            <div class="note-text">複数入力の場合はカンマ「,」または読点「、」をいれてください。例)鈴木,山田</div>
-                        </td>
-                    </tr>
-
-                    <!-- 訪問日時 -->
-                    <tr>
-                        <th>訪問日時<span class="required-tag">*必須</span></th>
-                        <td>
-                            <div class="datetime-group">
-                                <input type="text" value="2026/03/10"> <i class="fa-regular fa-calendar-days calendar-icon"></i>
-                                <select><option>--</option></select> 時 <select><option>--</option></select> 分
-                            </div>
-                            <div style="margin: 5px 0;">～</div>
-                            <div class="datetime-group">
-                                <input type="text" value="2026/03/10"> <i class="fa-regular fa-calendar-days calendar-icon"></i>
-                                <select><option>--</option></select> 時 <select><option>--</option></select> 分
-                            </div>
-                        </td>
-                    </tr>
-
-                    <!-- 次回訪問予定 -->
-                    <tr>
-                        <th>次回訪問予定日時</th>
-                        <td>
-                            <div class="datetime-group">
-                                <input type="text" placeholder=""> <i class="fa-regular fa-calendar-days calendar-icon"></i>
-                                <select><option>--</option></select> 時 <select><option>--</option></select> 分
-                            </div>
-                            <div style="margin: 5px 0;">～</div>
-                            <div class="datetime-group">
-                                <input type="text" placeholder=""> <i class="fa-regular fa-calendar-days calendar-icon"></i>
-                                <select><option>--</option></select> 時 <select><option>--</option></select> 分
-                            </div>
-                        </td>
-                    </tr>
-
-                    <!-- 訪問内容 -->
-                    <tr>
-                        <th>訪問内容</th>
-                        <td>
-                            <select style="max-width: 200px;"><option>--</option></select>
-                        </td>
-                    </tr>
-
-                    <!-- 訪問者 -->
-                    <tr>
-                        <th>訪問者<span class="required-tag">*必須</span></th>
-                        <td>
-                            <div class="user-label">
-                                <button type="button" class="btn btn-select">選択</button>
-                                <label><input type="radio" name="visit_type" checked> メイン</label>
-                                <label><input type="radio" name="visit_type"> サブ</label>
-                            </div>
-                            <div style="margin-top: 10px; font-size: 14px;">篠原 栄</div>
-                        </td>
-                    </tr>
-
-                    <!-- 同行者 -->
-                    <tr>
-                        <th>同行者</th>
-                        <td>
-                            <button type="button" class="btn btn-select">選択</button>
-                            <textarea class="textarea-full" style="height: 60px; margin-top:10px;"></textarea>
-                        </td>
-                    </tr>
-
-                    <!-- お客様からの情報 -->
-                    <tr>
-                        <th>お客様からの情報</th>
-                        <td>
-                            <div class="qualitative-grid">
-                                <select><option>(定性データ1)</option></select>
-                                <select><option>(定性データ2)</option></select>
-                                <select><option>(定性データ3)</option></select>
-                                <input type="text" placeholder="(自由入力)">
-                            </div>
-                            <textarea class="textarea-full" placeholder="様「 」"></textarea>
-                            <div style="display: flex; gap: 10px;">
-                                <button type="button" class="btn btn-gray">削除</button>
-                                <button type="button" class="btn btn-select" style="width: 120px;">追加</button>
-                            </div>
-                        </td>
-                    </tr>
-
-                    <!-- 自分・スタッフの考え -->
-                    <tr>
-                        <th>自分・スタッフの考え</th>
-                        <td>
-                            <textarea class="textarea-full" style="height: 120px;"></textarea>
-                        </td>
-                    </tr>
-
-                    <!-- 添付ファイル -->
-                    <tr>
-                        <th>添付ファイル</th>
-                        <td>
-                            <div style="display: flex; align-items: center; gap: 10px;">
-                                <input type="file" id="fileInput">
-                                <button type="button" class="btn btn-gray">削除</button>
-                            </div>
-                        </td>
-                    </tr>
-
-                    <!-- 回覧 -->
-                    <tr>
-                        <th>回覧</th>
-                        <td>
-                            <label><input type="checkbox" checked> メール回覧</label>
-                        </td>
-                    </tr>
-
-                    <!-- 回覧者 -->
-                    <tr>
-                        <th>回覧者</th>
-                        <td>
-                            <div style="display: flex; align-items: flex-start; gap: 20px;">
-                                <button type="button" class="btn btn-select">選択</button>
-                                <div style="font-size: 12px; color: #555; line-height: 1.6;">
-                                    今冨 弘, 岩本 猛, 金丸 卓朗, 上村 信二, 刈野 慶史, 篠原 栄, 原田 隆仁, 船場 勝信, 宮﨑 薫
-                                </div>
-                                <label style="font-size: 12px; white-space: nowrap;"><input type="checkbox"> 回覧者を保持する</label>
-                            </div>
-                        </td>
-                    </tr>
-                </table>
-
-                <div class="footer-actions">
-                    <button type="button" class="btn btn-orange">登　録</button>
-                    <button type="button" class="btn btn-orange" style="background-color: #f39800;">下書き</button>
-                    <button type="button" class="btn btn-blue">PDF出力</button>
+        <div class="flex-1 overflow-auto p-8">
+            <div class="max-w-5xl mx-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="text-2xl font-bold text-gray-700">実績登録</h1>
+                    <div class="flex gap-3">
+                        <button class="bg-[#ff7e11] text-white px-8 py-2 rounded font-bold text-sm shadow btn-action">登 録</button>
+                        <button class="bg-[#f39800] text-white px-8 py-2 rounded font-bold text-sm shadow btn-action">下書き</button>
+                        <button class="bg-[#004098] text-white px-8 py-2 rounded font-bold text-sm shadow btn-action">PDF出力</button>
+                    </div>
                 </div>
-            </form>
-        </div>
-    </div>
 
+                <form id="historyForm" class="bg-white shadow-xl rounded-xl border border-gray-200 overflow-hidden">
+                    <table class="form-table">
+                        <tr>
+                            <th>お客様名<span class="required-tag">必須</span></th>
+                            <td>
+                                <input type="text" placeholder="キーワードを入力" class="form-input mb-2 max-w-md">
+                                <select class="form-input max-w-md"><option>--</option></select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>お客様先担当者</th>
+                            <td>
+                                <button type="button" class="btn-blue mb-2">選択</button>
+                                <textarea class="form-input" rows="2" placeholder="複数入力の場合はカンマ「,」で区切ってください。"></textarea>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>訪問日時<span class="required-tag">必須</span></th>
+                            <td>
+                                <div class="flex items-center gap-4 mb-2">
+                                    <input type="date" class="form-input w-48" value="2026-03-10">
+                                    <input type="time" class="form-input w-32"> ～ <input type="time" class="form-input w-32">
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>訪問者<span class="required-tag">必須</span></th>
+                            <td>
+                                <div class="flex items-center gap-6">
+                                    <button type="button" class="btn-blue">選択</button>
+                                    <div class="flex gap-4 text-sm">
+                                        <label class="flex items-center"><input type="radio" name="v_type" checked class="mr-1 accent-[#ff7e11]"> メイン</label>
+                                        <label class="flex items-center"><input type="radio" name="v_type" class="mr-1 accent-[#ff7e11]"> サブ</label>
+                                    </div>
+                                    <span class="text-sm font-bold border-l pl-4">篠原 栄</span>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>同行者</th>
+                            <td>
+                                <button type="button" class="btn-blue mb-2">選択</button>
+                                <textarea class="form-input" rows="2"></textarea>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>お客様からの情報</th>
+                            <td>
+                                <div class="grid grid-cols-4 gap-2 mb-2">
+                                    <select class="form-input"><option>(定性データ1)</option></select>
+                                    <select class="form-input"><option>(定性データ2)</option></select>
+                                    <select class="form-input"><option>(定性データ3)</option></select>
+                                    <input type="text" class="form-input" placeholder="(自由入力)">
+                                </div>
+                                <textarea class="form-input" rows="4" placeholder="様「 」"></textarea>
+                                <div class="mt-2 flex gap-2">
+                                    <button type="button" class="bg-gray-100 border border-gray-300 px-4 py-1 text-xs rounded">削除</button>
+                                    <button type="button" class="btn-blue">追加</button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>自分・スタッフの考え</th>
+                            <td><textarea class="form-input" rows="4"></textarea></td>
+                        </tr>
+                        <tr>
+                            <th>回覧者</th>
+                            <td>
+                                <div class="flex items-start gap-4">
+                                    <button type="button" class="btn-blue">選択</button>
+                                    <div class="text-xs text-gray-500 leading-relaxed">
+                                        今冨 弘, 岩本 猛, 金丸 卓朗, 上村 信二, 刈野 慶史, 篠原 栄, 原田 隆仁, 船場 勝信, 宮﨑 薫
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <div class="p-8 bg-gray-50 flex justify-center gap-4">
+                        <button type="submit" class="bg-[#ff7e11] text-white px-20 py-3 rounded-lg font-bold shadow-lg btn-action hover:bg-[#e66f00]">実績を登録する</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
 </body>
 </html>
