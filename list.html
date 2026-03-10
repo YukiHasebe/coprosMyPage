@@ -1,55 +1,31 @@
-<!DOCTYPE html>
+
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CP My Page - お客様情報一覧</title>
+    <title>CP My Page - お客様一覧</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif; }
-        .sidebar-item:hover { background-color: #2d3748; }
+        body { font-family: sans-serif; }
         .active-menu { background-color: #2d3748; border-left: 4px solid #4299e1; }
-        .page-btn { background-color: #000; color: #fff; padding: 2px 8px; border: 1px solid #000; margin: 0 2px; font-size: 12px; }
-        .page-btn-active { background-color: #fff; color: #000; }
-        th { font-weight: normal; }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
-
     <div class="flex h-screen overflow-hidden">
-        <!-- サイドバー（全メニュー復活） -->
         <aside class="w-44 bg-gray-900 text-white flex-shrink-0">
             <div class="p-3 text-xs font-bold text-gray-500 border-b border-gray-800">メニュー</div>
             <nav class="mt-2 text-sm font-bold">
                 <a href="list.html" class="block px-4 py-3 active-menu">お客様</a>
-                <a href="#" class="block px-4 py-3 sidebar-item">実績</a>
-                <a href="#" class="block px-4 py-3 sidebar-item">カレンダー</a>
-                <a href="#" class="block px-4 py-3 sidebar-item">回覧一覧</a>
-                <a href="#" class="block px-4 py-3 sidebar-item">地図</a>
-                <a href="#" class="block px-4 py-3 sidebar-item">アポイント</a>
-                <a href="#" class="block px-4 py-3 sidebar-item text-gray-400">集計</a>
-                <a href="#" class="block px-4 py-3 sidebar-item text-gray-400 border-b border-gray-800">マスタ管理</a>
+                <a href="#" class="block px-4 py-3 hover:bg-gray-800">実績</a>
+                <a href="#" class="block px-4 py-3 hover:bg-gray-800 text-gray-500">カレンダー</a>
             </nav>
         </aside>
-
-        <!-- メイン -->
         <main class="flex-1 flex flex-col overflow-hidden">
-            <header class="bg-[#2c5282] h-14 flex items-center justify-between px-6 shadow-md text-white">
+            <header class="bg-[#2c5282] h-14 flex items-center justify-between px-6 text-white shadow-md">
                 <div class="text-2xl font-bold tracking-tighter">株式会社コプロス</div>
-                <div class="flex items-center space-x-6">
-                    <div class="relative flex items-center">
-                        <input type="text" placeholder="お客様名を入力してください" class="bg-white text-gray-800 rounded-sm pl-4 pr-4 py-1.5 w-64 text-sm focus:outline-none">
-                        <button class="bg-gray-700 text-white px-6 py-1.5 rounded-sm ml-1 text-sm font-bold border border-gray-500 hover:bg-gray-600">検 索</button>
-                    </div>
-                    <div class="text-sm font-bold">お知らせ</div>
-                    <div class="text-sm font-bold border-l border-gray-400 pl-4">篠原 栄 殿</div>
-                </div>
+                <div class="text-sm font-bold pl-4 border-l border-gray-400">篠原 栄 殿</div>
             </header>
-
             <div class="flex-1 overflow-auto p-8">
                 <h1 class="text-2xl font-bold mb-6 text-gray-700">お客様情報一覧</h1>
-
                 <div class="flex flex-col space-y-2 mb-6 w-full max-w-xl">
                     <button class="bg-[#004bb1] text-white w-full py-2.5 rounded-sm font-bold shadow-md text-sm">詳細検索</button>
                     <div class="flex space-x-2">
@@ -57,123 +33,49 @@
                         <button class="bg-gray-100 text-gray-400 flex-1 py-2 rounded-sm font-bold shadow-sm border border-gray-300 text-sm">削 除</button>
                     </div>
                 </div>
-
-                <!-- あいうえおフィルター -->
-                <div class="flex flex-wrap gap-2 mb-8">
-                    <button class="px-5 py-1.5 bg-[#14b8a6] text-white rounded-md font-bold text-sm">全件</button>
-                    <script>
-                        ['あ','か','さ','た','な','は','ま','や','ら','わ','その他'].forEach(k => 
-                            document.write(`<button class="px-5 py-1.5 bg-white border border-gray-300 rounded-md font-bold text-sm text-gray-600 hover:bg-gray-50">${k}行</button>`)
-                        );
-                    </script>
-                </div>
-
-                <!-- ページネーション上部 -->
-                <div id="paginationTop" class="flex items-center space-x-1 mb-2 text-xs"></div>
-
-                <!-- テーブル -->
                 <div class="bg-white shadow-xl overflow-hidden border border-gray-200">
                     <table class="w-full text-left border-collapse text-[12px]">
-                        <thead>
-                            <tr class="bg-[#1a202c] text-white">
-                                <th class="p-2 border border-gray-600 text-center w-12">No</th>
-                                <th class="p-2 border border-gray-600">お客様名</th>
-                                <th class="p-2 border border-gray-600 text-center w-24">実績</th>
-                                <th class="p-2 border border-gray-600 w-32">電話番号</th>
-                                <th class="p-2 border border-gray-600">住所</th>
-                                <th class="p-2 border border-gray-600 text-center w-12 text-blue-300">削除</th>
-                            </tr>
-                        </thead>
+                        <thead><tr class="bg-[#1a202c] text-white font-normal">
+                            <th class="p-2 border border-gray-600 font-normal w-12 text-center">No</th>
+                            <th class="p-2 border border-gray-600 font-normal">お客様名</th>
+                            <th class="p-2 border border-gray-600 font-normal text-center w-24">実績</th>
+                            <th class="p-2 border border-gray-600 font-normal w-32">電話番号</th>
+                            <th class="p-2 border border-gray-600 font-normal">住所</th>
+                        </tr></thead>
                         <tbody id="customerTable"></tbody>
                     </table>
                 </div>
-
-                <!-- ページネーション下部 -->
-                <div id="paginationBottom" class="flex items-center space-x-1 mt-4 text-xs"></div>
             </div>
         </main>
     </div>
-
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyDhOEZ7Jb1K2rTXlyTH6d8ob4Qzcrwf_XI",
-            authDomain: "copros-my-page.firebaseapp.com",
-            projectId: "copros-my-page",
-            storageBucket: "copros-my-page.firebasestorage.app",
-            messagingSenderId: "54419849010",
-            appId: "1:54419849010:web:a60015b9c6fcf60cd3e12b",
-            measurementId: "G-LJ2Z0ERV77"
-        };
-
+        const firebaseConfig = { apiKey: "AIzaSyDhOEZ7Jb1K2rTXlyTH6d8ob4Qzcrwf_XI", authDomain: "copros-my-page.firebaseapp.com", projectId: "copros-my-page", storageBucket: "copros-my-page.firebasestorage.app", messagingSenderId: "54419849010", appId: "1:54419849010:web:a60015b9c6fcf60cd3e12b" };
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-
-        let allData = [];
-        const itemsPerPage = 20;
-
         async function loadData() {
             const q = query(collection(db, "customers"), orderBy("createdAt", "desc"));
             const querySnapshot = await getDocs(q);
-            allData = [];
-            querySnapshot.forEach(doc => allData.push(doc.data()));
-            renderTable(1);
-        }
-
-        function renderTable(page) {
             const tbody = document.getElementById("customerTable");
             tbody.innerHTML = "";
-            const start = (page - 1) * itemsPerPage;
-            const end = start + itemsPerPage;
-            const pagedData = allData.slice(start, end);
-
-            pagedData.forEach((d, index) => {
+            let i = 1;
+            querySnapshot.forEach(doc => {
+                const d = doc.data();
                 tbody.innerHTML += `
                     <tr class="hover:bg-blue-50 border-b border-gray-200">
-                        <td class="p-2 border-r text-center">${start + index + 1}</td>
+                        <td class="p-2 border-r text-center">${i++}</td>
                         <td class="p-2 border-r font-bold text-[#2b6cb0] underline cursor-pointer">${d.name || ''}</td>
                         <td class="p-2 border-r text-center">
                             <button class="bg-[#2c5282] text-white px-2 py-0.5 rounded text-[10px] mr-1">履歴</button>
                             <button class="bg-[#2b6cb0] text-white px-2 py-0.5 rounded text-[10px]">登録</button>
                         </td>
                         <td class="p-2 border-r text-blue-500">${d.tel || ''}</td>
-                        <td class="p-2 border-r text-blue-500 text-[11px]">${d.pref || ''}${d.address || ''}</td>
-                        <td class="p-2 text-center"><input type="checkbox"></td>
+                        <td class="p-2 text-blue-500 text-[11px]">${d.pref || ''}${d.address || ''}</td>
                     </tr>`;
             });
-            renderPagination(page);
         }
-
-        function renderPagination(currentPage) {
-            const totalPages = Math.ceil(allData.length / itemsPerPage);
-            const startRange = allData.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
-            const endRange = Math.min(currentPage * itemsPerPage, allData.length);
-            
-            let html = `<div class="flex items-center space-x-0.5 mr-4">
-                <button class="page-btn">«</button>
-                <button class="page-btn">‹</button>`;
-            
-            for(let i=1; i<=totalPages; i++) {
-                html += `<button class="page-btn ${i===currentPage ? 'page-btn-active !text-black' : ''}" onclick="window.jumpToPage(${i})">${i}</button>`;
-            }
-            
-            html += `<button class="page-btn">›</button>
-                    <button class="page-btn">»</button></div>
-                    <span class="ml-2 text-gray-600">${startRange}〜${endRange}/${allData.length}件</span>`;
-
-            document.getElementById("paginationTop").innerHTML = html;
-            document.getElementById("paginationBottom").innerHTML = html;
-        }
-
-        window.jumpToPage = (page) => {
-            renderTable(page);
-            document.querySelector('main').scrollTop = 0; // 上に戻る
-        };
         window.onload = loadData;
     </script>
 </body>
-
 </html>
-
