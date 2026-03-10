@@ -1,0 +1,243 @@
+
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>実績一覧 | 株式会社コプロス</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --sidebar-bg: #1a1a1a;
+            --header-bg: #3c4b5a;
+            --primary-blue: #004098;
+            --table-header: #222;
+            --row-even: #f9f9f9;
+            --border-color: #ddd;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Meiryo", sans-serif;
+            display: flex;
+            background-color: #fff;
+            color: #333;
+        }
+
+        /* サイドバー（共通） */
+        .sidebar {
+            width: 200px;
+            background-color: var(--sidebar-bg);
+            color: white;
+            min-height: 100vh;
+            position: fixed;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin-top: 50px;
+        }
+
+        .sidebar-menu li {
+            padding: 15px 20px;
+            border-bottom: 1px solid #333;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        /* メインコンテンツ */
+        .main-content {
+            margin-left: 200px;
+            flex: 1;
+        }
+
+        header {
+            background-color: var(--header-bg);
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo { font-size: 20px; font-weight: bold; color: #87ceeb; }
+
+        .search-bar { display: flex; }
+        .search-bar input { width: 300px; padding: 5px; border: none; border-radius: 4px 0 0 4px; }
+        .search-bar button { background-color: #ddd; border: none; padding: 5px 20px; border-radius: 0 4px 4px 0; cursor: pointer; font-weight: bold; }
+
+        .content-body { padding: 20px 40px; }
+
+        .page-title { font-size: 24px; margin-bottom: 20px; }
+
+        /* 検索・表示設定エリア */
+        .list-controls { margin-bottom: 15px; }
+        .btn-detail-search {
+            background-color: var(--primary-blue);
+            color: white;
+            border: none;
+            padding: 8px 0;
+            width: 300px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .display-settings {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        .display-settings input { width: 80px; padding: 5px; border: 1px solid #ccc; text-align: right; }
+        .btn-display { background-color: var(--primary-blue); color: white; border: none; padding: 5px 25px; border-radius: 4px; cursor: pointer; }
+
+        /* ページネーション */
+        .pagination {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .pg-btn {
+            background-color: #000;
+            color: white;
+            padding: 4px 8px;
+            text-decoration: none;
+            font-size: 12px;
+            min-width: 20px;
+            text-align: center;
+        }
+
+        .pg-btn.active { background-color: #fff; color: #000; border: 1px solid #000; }
+        .pg-info { margin-left: 10px; font-size: 13px; }
+
+        /* テーブル */
+        .record-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .record-table th {
+            background-color: var(--table-header);
+            color: white;
+            padding: 10px;
+            font-weight: normal;
+            border: 1px solid #444;
+        }
+
+        .record-table td {
+            padding: 12px 10px;
+            border: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .record-table tr:nth-child(even) { background-color: var(--row-even); }
+        .record-table tr:hover { background-color: #ffffcc; }
+
+        .text-left { text-align: left !important; }
+        .link-text { color: #333; text-decoration: underline; cursor: pointer; }
+
+        /* ページ下部固定の戻るボタン用（必要であれば） */
+        .bottom-nav { margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <ul class="sidebar-menu">
+            <li>お客様</li>
+            <li style="background-color: #333;">実績</li>
+            <li>カレンダー</li>
+            <li>回覧一覧</li>
+            <li>地図</li>
+            <li>アポイント</li>
+            <li>集計</li>
+            <li>マスタ管理</li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <header>
+            <div class="logo">株式会社コプロス</div>
+            <div class="search-bar">
+                <input type="text" placeholder="お客様名を入力してください">
+                <button>検索</button>
+            </div>
+            <div style="font-size: 13px;">お知らせ ｜ 篠原 栄</div>
+        </header>
+
+        <div class="content-body">
+            <h1 class="page-title">実績一覧</h1>
+
+            <div class="list-controls">
+                <button class="btn-detail-search">詳細検索</button>
+                <div class="display-settings">
+                    <input type="text" value="20"> 件 
+                    <button class="btn-display">表示</button>
+                </div>
+            </div>
+
+            <!-- ページネーション -->
+            <div class="pagination">
+                <a href="#" class="pg-btn">«</a>
+                <a href="#" class="pg-btn"><</a>
+                <a href="#" class="pg-btn active">1</a>
+                <a href="#" class="pg-btn">2</a>
+                <a href="#" class="pg-btn">3</a>
+                <a href="#" class="pg-btn">></a>
+                <a href="#" class="pg-btn">»</a>
+                <span class="pg-info">1～20/2665件</span>
+            </div>
+
+            <table class="record-table">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;">No</th>
+                        <th>お客様名</th>
+                        <th>属性・区分</th>
+                        <th>顧客ランク</th>
+                        <th>訪問回数</th>
+                        <th>最終訪問日時</th>
+                        <th>最終訪問者</th>
+                        <th>次回訪問予定日時</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- サンプルデータ1 -->
+                    <tr>
+                        <td>1</td>
+                        <td class="text-left"><span class="link-text">株式会社大阪工営</span></td>
+                        <td>コンサル</td>
+                        <td>Bd</td>
+                        <td>14</td>
+                        <td>2026/03/10 10:00</td>
+                        <td>吉野 正則</td>
+                        <td></td>
+                    </tr>
+                    <!-- ループで20行表示される想定 -->
+                    <!-- ここではサンプルのため1行ですが、JSで複製可能です -->
+                </tbody>
+            </table>
+
+            <!-- 下部ページネーション -->
+            <div class="pagination" style="margin-top: 15px;">
+                <a href="#" class="pg-btn">«</a>
+                <a href="#" class="pg-btn"><</a>
+                <a href="#" class="pg-btn active">1</a>
+                <a href="#" class="pg-btn">2</a>
+                <a href="#" class="pg-btn">3</a>
+                <a href="#" class="pg-btn">></a>
+                <a href="#" class="pg-btn">»</a>
+                <span class="pg-info">1～20/2665件</span>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
