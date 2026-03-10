@@ -4,21 +4,25 @@
     <meta charset="UTF-8">
     <title>CP My Page - 新規登録</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: sans-serif; }
+        .required-tag { color: #e53e3e; font-size: 10px; margin-left: 4px; border: 1px solid #e53e3e; padding: 0 2px; border-radius: 2px; }
+    </style>
 </head>
-<body class="bg-white">
+<body class="bg-white text-gray-800">
     <header class="bg-[#2c5282] h-14 flex items-center justify-between px-6 text-white shadow-md">
         <div class="text-2xl font-bold tracking-tighter">株式会社コプロス</div>
     </header>
     <div class="max-w-4xl mx-auto p-6">
-        <h1 class="text-2xl font-bold mb-6">お客様情報登録</h1>
+        <h1 class="text-2xl font-bold mb-6 text-gray-700">お客様情報登録</h1>
         <div class="flex space-x-4 mb-8">
-            <a href="list.html" class="bg-[#554a44] text-white px-12 py-2 rounded-sm font-bold shadow text-center">戻 る</a>
+            <a href="list.html" class="bg-[#554a44] text-white px-12 py-2 rounded-sm font-bold shadow text-center hover:bg-black">戻 る</a>
             <button id="saveBtn" class="bg-[#ff7211] text-white px-12 py-2 rounded-sm font-bold shadow tracking-widest hover:bg-orange-600">登 録</button>
         </div>
-        <div class="border-t pt-6 space-y-6">
-            <div><label class="block font-bold">お客様名</label><input type="text" id="name" class="w-full border p-2"></div>
-            <div><label class="block font-bold">住所</label><input type="text" id="address" class="w-full border p-2"></div>
-            <div><label class="block font-bold">電話番号</label><input type="text" id="tel" class="w-full border p-2"></div>
+        <div class="border-t pt-6 space-y-6 text-sm">
+            <div><label class="block font-bold">お客様名<span class="required-tag">必須</span></label><input type="text" id="name" class="w-full border p-2 focus:bg-blue-50 outline-none"></div>
+            <div><label class="block font-bold">住所<span class="required-tag">必須</span></label><input type="text" id="address" class="w-full border p-2 focus:bg-blue-50 outline-none"></div>
+            <div><label class="block font-bold">電話番号<span class="required-tag">必須</span></label><input type="text" id="tel" class="w-full border p-2 focus:bg-blue-50 outline-none"></div>
         </div>
     </div>
     <script type="module">
@@ -31,11 +35,12 @@
             const name = document.getElementById('name').value;
             const address = document.getElementById('address').value;
             const tel = document.getElementById('tel').value;
-            if(!name) return alert('氏名は必須です');
+            if(!name || !address || !tel) return alert('必須項目を入力してください');
             try {
                 await addDoc(collection(db, "customers"), { name, address, tel, createdAt: serverTimestamp() });
-                alert("登録しました！"); window.location.href = "list.html";
-            } catch (e) { alert("エラー"); }
+                alert("登録しました！一覧に戻ります。");
+                window.location.href = "list.html";
+            } catch (e) { alert("保存に失敗しました。"); }
         };
     </script>
 </body>
