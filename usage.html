@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>組織員利用状況 | CP My Page</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --sidebar-bg: #1a1a1a;
+            --header-bg: #3c4b5a;
+            --accent-orange: #ff7e11;
+            --primary-blue: #004098;
+            --tab-active: #00a0e9;
+        }
+        body { font-family: "Meiryo", sans-serif; background-color: #f4f7f9; }
+        
+        /* サイドバー共通 */
+        .sidebar { background-color: var(--sidebar-bg); width: 200px; }
+        .nav-item { border-bottom: 1px solid #2d2d2d; transition: all 0.2s; color: #b8b8b8; cursor: pointer; }
+        .nav-item:hover { background-color: #333; color: white; }
+        .active-menu { background-color: #2d3748; border-left: 4px solid var(--accent-orange); color: white !important; }
+
+        /* 集計メニュー（サブメニュー風） */
+        .sub-menu { background-color: #000; font-size: 12px; }
+        .sub-menu-item { padding: 10px 20px; border-bottom: 1px solid #222; color: #ccc; display: block; }
+        .sub-menu-item:hover { color: white; background-color: #333; }
+
+        /* タブ切り替え */
+        .tab-btn { background-color: #000; color: white; padding: 6px 25px; font-size: 12px; font-weight: bold; border-right: 1px solid #333; }
+        .tab-btn.active { background-color: var(--tab-active); }
+
+        /* テーブル */
+        .summary-table thead th {
+            background-color: #222; color: #fff; font-weight: normal; font-size: 13px;
+            padding: 12px 10px; border: 1px solid #444; white-space: nowrap;
+        }
+        .summary-table tbody td {
+            font-size: 13px; border: 1px solid #e2e8f0; padding: 12px 10px; text-align: center;
+        }
+        .summary-table tr:nth-child(even) { background-color: #f9fafb; }
+        .summary-table tr:hover { background-color: #fff9e6; }
+
+        /* ページネーション */
+        .pg-btn { background-color: #000; color: white; padding: 2px 8px; font-size: 11px; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+    <!-- サイドバー -->
+    <aside class="sidebar flex-shrink-0 text-white flex flex-col">
+        <div class="p-4 text-xs font-bold text-gray-500 border-b border-gray-800 tracking-widest uppercase">Menu</div>
+        <nav class="flex-1 overflow-y-auto">
+            <a href="list.html" class="nav-item block px-5 py-4 text-sm flex items-center"><i class="fa-solid fa-users w-6"></i> お客様</a>
+            <a href="list_records.html" class="nav-item block px-5 py-4 text-sm flex items-center"><i class="fa-solid fa-file-invoice w-6"></i> 実績</a>
+            <a href="calendar.html" class="nav-item block px-5 py-4 text-sm flex items-center"><i class="fa-solid fa-calendar-days w-6"></i> カレンダー</a>
+            <a href="#" class="nav-item block px-5 py-4 text-sm flex items-center"><i class="fa-solid fa-map-location-dot w-6"></i> 地図</a>
+            <!-- 集計メニュー -->
+            <div class="nav-item active-menu block px-5 py-4 text-sm flex items-center"><i class="fa-solid fa-chart-line w-6"></i> 集計</div>
+            <div class="sub-menu">
+                <a href="#" class="sub-menu-item text-white bg-gray-800">組織員利用状況</a>
+                <a href="#" class="sub-menu-item">月別一覧</a>
+                <a href="#" class="sub-menu-item">お客様別滞在時間一覧</a>
+                <a href="#" class="sub-menu-item">お客様別月別滞在時間一覧</a>
+                <a href="#" class="sub-menu-item">実績グラフ出力</a>
+            </div>
+            <a href="#" class="nav-item block px-5 py-4 text-sm flex items-center"><i class="fa-solid fa-gears w-6"></i> マスタ管理</a>
+        </nav>
+    </aside>
+
+    <!-- メインコンテンツ -->
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <header class="h-14 bg-[#3c4b5a] flex items-center justify-between px-6 text-white shadow-md z-10">
+            <div class="flex items-center gap-4"><span class="text-xl font-bold text-[#87ceeb]">株式会社コプロス</span></div>
+            <div class="text-xs font-medium">篠原 栄 殿</div>
+        </header>
+
+        <div class="flex-1 overflow-auto p-8">
+            <div class="max-w-7xl mx-auto">
+                <h1 class="text-2xl font-bold text-gray-700 mb-6">組織員利用状況</h1>
+
+                <!-- 操作ボタン -->
+                <div class="mb-6 space-y-2">
+                    <button class="bg-[#004098] text-white px-12 py-2 rounded text-sm font-bold shadow-md block w-64 hover:bg-blue-900 transition-colors">詳細検索</button>
+                    <button class="bg-[#004098] text-white px-12 py-2 rounded text-sm font-bold shadow-md block w-64 hover:bg-blue-900 transition-colors">CSV出力</button>
+                </div>
+
+                <!-- タブ切り替え -->
+                <div class="flex mb-0">
+                    <button id="tabUsage" onclick="switchTab('usage')" class="tab-btn active transition-all">利用状況</button>
+                    <button id="tabVisit" onclick="switchTab('visit')" class="tab-btn transition-all">訪問状況</button>
+                </div>
+
+                <!-- コンテンツ外枠 -->
+                <div class="bg-white p-4 border border-gray-300 shadow-lg">
+                    <!-- ページネーション（上） -->
+                    <div class="flex items-center gap-1 mb-3">
+                        <button class="pg-btn">«</button><button class="pg-btn"><</button>
+                        <button class="bg-white text-black border border-black px-2 py-0.5 text-xs font-bold">1</button>
+                        <button class="pg-btn">></button><button class="pg-btn">»</button>
+                        <span class="ml-4 text-xs font-bold text-gray-500">1～19/19件</span>
+                    </div>
+
+                    <!-- テーブル（利用状況） -->
+                    <table id="tableUsage" class="summary-table w-full mb-4">
+                        <thead>
+                            <tr>
+                                <th>組織員コード</th><th>組織員名</th><th>ログイン回数</th><th>アポイント登録回数</th><th>実績登録回数</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usageBody">
+                            <!-- 20行サンプルデータ -->
+                        </tbody>
+                    </table>
+
+                    <!-- テーブル（訪問状況 - 初期非表示） -->
+                    <table id="tableVisit" class="summary-table w-full mb-4 hidden">
+                        <thead>
+                            <tr>
+                                <th>組織員コード</th><th>組織員名</th><th class="text-[#00a0e9]">お客様訪問件数</th><th class="text-[#00a0e9]">訪問平均時間 (分)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="visitBody">
+                            <!-- 訪問状況のサンプルデータ -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 下部CSVボタン -->
+                <button class="mt-4 bg-[#004098] text-white px-12 py-2 rounded text-sm font-bold shadow hover:bg-blue-900">CSV出力</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // サンプルデータの生成（20行）
+        const staffList = [
+            { code: "08101", name: "宮﨑 薫", login: 130, appoint: 0, record: 137, visit: 0, avgTime: 0 },
+            { code: "10", name: "上村 信二", login: 3739, appoint: 1, record: 2479, visit: 0, avgTime: 0 },
+            { code: "1302", name: "宮﨑 隆司", login: 91, appoint: 0, record: 1, visit: 0, avgTime: 0 },
+            { code: "2015", name: "船津 伸夫", login: 195, appoint: 0, record: 109, visit: 19, avgTime: 1 },
+            { code: "2112", name: "金丸 卓朗", login: 3073, appoint: 2, record: 1831, visit: 1848, avgTime: 10 },
+            { code: "2201", name: "苅野 慶史", login: 1824, appoint: 10, record: 1846, visit: 0, avgTime: 0 },
+            { code: "2211", name: "多井 達也", login: 2846, appoint: 0, record: 2479, visit: 2031, avgTime: 16 }
+            // ...以下20行まで同様の形式
+        ];
+
+        function loadTables() {
+            const usageBody = document.getElementById('usageBody');
+            const visitBody = document.getElementById('visitBody');
+            
+            staffList.forEach(s => {
+                // 利用状況テーブル
+                usageBody.innerHTML += `<tr><td>${s.code}</td><td>${s.name}</td><td>${s.login}</td><td>${s.appoint}</td><td>${s.record}</td></tr>`;
+                // 訪問状況テーブル
+                visitBody.innerHTML += `<tr><td>${s.code}</td><td>${s.name}</td><td>${s.visit}</td><td>${s.avgTime}</td></tr>`;
+            });
+        }
+
+        function switchTab(type) {
+            const tabUsage = document.getElementById('tabUsage');
+            const tabVisit = document.getElementById('tabVisit');
+            const tableUsage = document.getElementById('tableUsage');
+            const tableVisit = document.getElementById('tableVisit');
+
+            if(type === 'usage') {
+                tabUsage.classList.add('active'); tabVisit.classList.remove('active');
+                tableUsage.classList.remove('hidden'); tableVisit.classList.add('hidden');
+            } else {
+                tabUsage.classList.remove('active'); tabVisit.classList.add('active');
+                tableUsage.classList.add('hidden'); tableVisit.classList.remove('hidden');
+            }
+        }
+
+        window.onload = loadTables;
+    </script>
+</body>
+</html>
