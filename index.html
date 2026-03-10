@@ -1,20 +1,87 @@
-<!DOCTYPE html>
+
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CP My Page - ログイン</title>
+    <title>ログイン | CP My Page (株式会社コプロス)</title>
+    <!-- Tailwind CSS を使用しつつ、カスタムカラーを定義 -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            /* 背景を少しグラデーションにして深みを出します */
+            background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+        }
+        .login-card {
+            backdrop-filter: blur(10px);
+            background-color: rgba(255, 255, 255, 0.95);
+            border-top: 5px solid #ff7e11; /* コプロス・オレンジをアクセントに */
+        }
+        .input-focus:focus {
+            border-color: #2c5282;
+            box-shadow: 0 0 0 3px rgba(44, 82, 130, 0.2);
+        }
+    </style>
 </head>
-<body class="bg-[#1a202c] flex items-center justify-center h-screen">
-    <div class="bg-white p-10 rounded shadow-2xl w-full max-w-md text-center">
-        <h1 class="text-3xl font-bold text-[#2c5282] mb-2">株式会社コプロス</h1>
-        <p class="text-[#4299e1] text-lg font-bold tracking-widest mb-10">CP My Page</p>
+<body class="flex items-center justify-center h-screen">
+
+    <div class="login-card p-10 rounded-xl shadow-2xl w-full max-w-md">
+        <!-- ロゴエリア -->
+        <div class="text-center mb-10">
+            <h1 class="text-3xl font-extrabold text-[#2c5282] tracking-tight">
+                株式会社コプロス
+            </h1>
+            <p class="text-[#4299e1] text-sm font-bold tracking-[0.2em] mt-2">
+                CP My Page - 営業支援システム
+            </p>
+        </div>
+
+        <!-- ログインフォーム -->
         <form onsubmit="event.preventDefault(); window.location.href='list.html';" class="space-y-6">
-            <input type="text" class="w-full border p-3 rounded outline-none" placeholder="ユーザーID" required>
-            <input type="password" class="w-full border p-3 rounded outline-none" placeholder="パスワード" required>
-            <button type="submit" class="w-full bg-[#ff7211] text-white py-3 rounded font-bold shadow-lg text-lg">ログイン</button>
+            <div>
+                <label class="block text-xs font-bold text-gray-600 mb-1 ml-1">ユーザーID</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                        <i class="fa-solid fa-user"></i>
+                    </span>
+                    <input type="text" 
+                           class="w-full border border-gray-300 pl-10 p-3 rounded-lg outline-none input-focus transition-all" 
+                           placeholder="UserID" required>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-gray-600 mb-1 ml-1">パスワード</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                        <i class="fa-solid fa-lock"></i>
+                    </span>
+                    <input type="password" 
+                           class="w-full border border-gray-300 pl-10 p-3 rounded-lg outline-none input-focus transition-all" 
+                           placeholder="Password" required>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between text-xs text-gray-500">
+                <label class="flex items-center cursor-pointer">
+                    <input type="checkbox" class="mr-1"> ログイン状態を保持
+                </label>
+                <a href="#" class="hover:text-[#2c5282]">パスワードを忘れた場合</a>
+            </div>
+
+            <button type="submit" 
+                    class="w-full bg-[#ff7e11] hover:bg-[#e66f00] text-white py-4 rounded-lg font-bold shadow-lg text-lg transition-transform active:scale-95">
+                ログイン <i class="fa-solid fa-right-to-bracket ml-2"></i>
+            </button>
         </form>
+
+        <!-- フッター情報 -->
+        <div class="mt-8 text-center">
+            <p class="text-gray-400 text-[10px]">
+                © 2026 COPROS Co., Ltd. All Rights Reserved.
+            </p>
+        </div>
     </div>
+
 </body>
 </html>
