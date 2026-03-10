@@ -1,0 +1,162 @@
+
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>地図情報 | CP My Page</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- 地図ライブラリ Leaflet (無料・APIキー不要でまずは枠組み作成に最適) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        :root {
+            --sidebar-bg: #1a1a1a;
+            --map-header-bg: #333;
+        }
+        body { font-family: "Meiryo", sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; }
+        
+        /* サイドバー共通 */
+        .sidebar { background-color: var(--sidebar-bg); width: 200px; flex-shrink: 0; }
+        .nav-item { border-bottom: 1px solid #2d2d2d; transition: all 0.2s; color: #b8b8b8; }
+        .nav-item:hover { background-color: #333; color: white; }
+        .active-menu { background-color: #2d3748; border-left: 4px solid #ff7e11; color: white !important; }
+
+        /* 地図専用ヘッダー */
+        .map-toolbar {
+            background-color: var(--map-header-bg);
+            color: white;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            text-align: center;
+            border-bottom: 1px solid #444;
+        }
+        .toolbar-btn {
+            padding: 12px;
+            border-right: 1px solid #444;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .toolbar-btn:hover { background-color: #444; }
+        .toolbar-btn i { display: block; font-size: 18px; margin-bottom: 4px; }
+
+        #map { flex: 1; width: 100%; }
+
+        /* 地図上のカスタム操作UI */
+        .map-overlay-top {
+            position: absolute;
+            top: 70px;
+            left: 220px;
+            z-index: 1000;
+            display: flex;
+            gap: 10px;
+        }
+        .back-btn {
+            background: #000;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- サイドバー -->
+    <aside class="sidebar text-white flex flex-col">
+        <div class="p-4 text-xs font-bold text-gray-500 border-b border-gray-800 tracking-widest uppercase">Menu</div>
+        <nav class="flex-1 overflow-y-auto">
+            <a href="list.html" class="nav-item block px-5 py-4 text-sm flex items-center"><i class="fa-solid fa-users w-6"></i> お客様</a>
+            <a href="list_records.html" class="nav-item block px-5 py-4 text-sm flex items-center"><i class="fa-solid fa-file-invoice w-6"></i> 実績</a>
+            <a href="calendar.html" class="nav-item block px-5 py-4 text-sm flex items-center"><i class="fa-solid fa-calendar-days w-6"></i> カレンダー</a>
+            <a href="#" class="nav-item block px-5 py-4 text-sm flex items-center"><i class="fa-solid fa-envelope-open-text w-6"></i> 回覧一覧</a>
+            <a href="map.html" class="nav-item active-menu block px-5 py-4 text-sm flex items-center"><i class="fa-solid fa-map-location-dot w-6"></i> 地図</a>
+            <a href="#" class="nav-item block px-5 py-4 text-sm flex items-center"><i class="fa-solid fa-clock w-6"></i> アポイント</a>
+            <a href="#" class="nav-item block px-5 py-4 text-sm flex items-center"><i class="fa-solid fa-chart-line w-6"></i> 集計</a>
+            <a href="#" class="nav-item block px-5 py-4 text-sm flex items-center"><i class="fa-solid fa-gears w-6"></i> マスタ管理</a>
+        </nav>
+    </aside>
+
+    <!-- メインコンテンツ -->
+    <main class="flex-1 flex flex-col relative">
+        <!-- 地図上部ツールバー（スクリーンショットの黒いバーを再現） -->
+        <div class="h-14 bg-[#3c4b5a] flex items-center justify-between px-4 text-white">
+            <div class="flex items-center gap-2">
+                <button onclick="history.back()" class="bg-black px-3 py-1 text-xs rounded font-bold"><i class="fa-solid fa-chevron-left mr-1"></i> 戻る</button>
+                <select class="bg-white text-gray-800 text-xs px-2 py-1 rounded border-none outline-none font-bold">
+                    <option>担当</option>
+                </select>
+            </div>
+            <div class="font-bold">地図情報</div>
+            <div class="text-xs flex items-center gap-2">
+                <i class="fa-solid fa-gear"></i> 設定
+            </div>
+        </div>
+
+        <!-- アクションバー -->
+        <div class="map-toolbar">
+            <div class="toolbar-btn" onclick="getCurrentLocation()">
+                <i class="fa-solid fa-location-arrow text-gray-300"></i>
+                現在地周辺
+            </div>
+            <div class="toolbar-btn">
+                <i class="fa-solid fa-route text-gray-300"></i>
+                経路表示
+            </div>
+            <div class="toolbar-btn">
+                <i class="fa-solid fa-map text-gray-300"></i>
+                MAPアプリ表示
+            </div>
+        </div>
+
+        <!-- 地図表示エリア -->
+        <div id="map"></div>
+    </main>
+
+    <script>
+        // 地図の初期化 (東京を中心に設定)
+        const map = L.map('map').setView([35.681236, 139.767125], 13);
+
+        // 地図タイルの読み込み (OpenStreetMap)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // 現在地を取得する関数
+        function getCurrentLocation() {
+            if (!navigator.geolocation) {
+                alert("お使いのブラウザは位置情報に対応していません。");
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition((position) => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+
+                // 現在地に移動してピン（マーカー）を打つ
+                map.setView([lat, lng], 15);
+                L.marker([lat, lng]).addTo(map)
+                    .bindPopup("<b>現在地</b>").openPopup();
+                
+                alert("現在地を取得しました！");
+            }, () => {
+                alert("位置情報の取得に失敗しました。設定を確認してください。");
+            });
+        }
+
+        // サンプルのピン（顧客情報の代わり）
+        const sampleLocations = [
+            { name: "株式会社大阪工営", lat: 35.685, lng: 139.770 },
+            { name: "中央コンサルタンツ", lat: 35.675, lng: 139.760 }
+        ];
+
+        sampleLocations.forEach(loc => {
+            L.marker([loc.lat, loc.lng]).addTo(map)
+                .bindPopup(loc.name);
+        });
+    </script>
+</body>
+</html>
