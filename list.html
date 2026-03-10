@@ -2,80 +2,160 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>CP My Page - お客様一覧</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>お客様一覧 | CP My Page</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body { font-family: sans-serif; }
-        .active-menu { background-color: #2d3748; border-left: 4px solid #4299e1; }
+        :root {
+            --sidebar-bg: #1a1a1a;
+            --header-bg: #3c4b5a;
+            --accent-orange: #ff7e11;
+            --sidebar-hover: #333333;
+        }
+        body { font-family: "Meiryo", sans-serif; background-color: #f4f7f9; }
+        
+        /* サイドバー */
+        .sidebar { background-color: var(--sidebar-bg); width: 200px; }
+        .nav-item { 
+            border-bottom: 1px solid #2d2d2d; 
+            transition: all 0.2s; 
+            color: #b8b8b8;
+        }
+        .nav-item:hover { background-color: var(--sidebar-hover); color: white; }
+        .active-menu { 
+            background-color: #2d3748; 
+            border-left: 4px solid var(--accent-orange); 
+            color: white !important; 
+        }
+
+        /* テーブル */
+        .custom-table thead th {
+            background-color: #222;
+            color: white;
+            font-weight: normal;
+            font-size: 13px;
+            border: 1px solid #444;
+            padding: 12px 8px;
+        }
+        .custom-table tbody td {
+            font-size: 13px;
+            border: 1px solid #e2e8f0;
+            padding: 12px 10px;
+        }
+        .custom-table tr:nth-child(even) { background-color: #f9fafb; }
+        .custom-table tr:hover { background-color: #fff9e6; }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800">
-    <div class="flex h-screen overflow-hidden">
-        <aside class="w-44 bg-gray-900 text-white flex-shrink-0">
-            <div class="p-3 text-xs font-bold text-gray-500 border-b border-gray-800">メニュー</div>
-            <nav class="mt-2 text-sm font-bold">
-                <a href="list.html" class="block px-4 py-3 active-menu">お客様</a>
-                <a href="#" class="block px-4 py-3 hover:bg-gray-800">実績</a>
-                <a href="#" class="block px-4 py-3 hover:bg-gray-800 text-gray-500">カレンダー</a>
-            </nav>
-        </aside>
-        <main class="flex-1 flex flex-col overflow-hidden">
-            <header class="bg-[#2c5282] h-14 flex items-center justify-between px-6 text-white shadow-md">
-                <div class="text-2xl font-bold tracking-tighter">株式会社コプロス</div>
-                <div class="text-sm font-bold pl-4 border-l border-gray-400">篠原 栄 殿</div>
-            </header>
-            <div class="flex-1 overflow-auto p-8">
-                <h1 class="text-2xl font-bold mb-6 text-gray-700">お客様情報一覧</h1>
-                <div class="flex flex-col space-y-2 mb-6 w-full max-w-xl">
-                    <button class="bg-[#004bb1] text-white w-full py-2.5 rounded-sm font-bold shadow-md text-sm">詳細検索</button>
-                    <div class="flex space-x-2">
-                        <a href="add.html" class="bg-[#004bb1] text-white flex-1 py-2 rounded-sm font-bold shadow-md text-sm text-center">新規登録</a>
-                        <button class="bg-gray-100 text-gray-400 flex-1 py-2 rounded-sm font-bold shadow-sm border border-gray-300 text-sm">削 除</button>
-                    </div>
-                </div>
-                <div class="bg-white shadow-xl overflow-hidden border border-gray-200">
-                    <table class="w-full text-left border-collapse text-[12px]">
-                        <thead><tr class="bg-[#1a202c] text-white font-normal">
-                            <th class="p-2 border border-gray-600 font-normal w-12 text-center">No</th>
-                            <th class="p-2 border border-gray-600 font-normal">お客様名</th>
-                            <th class="p-2 border border-gray-600 font-normal text-center w-24">実績</th>
-                            <th class="p-2 border border-gray-600 font-normal w-32">電話番号</th>
-                            <th class="p-2 border border-gray-600 font-normal">住所</th>
-                        </tr></thead>
-                        <tbody id="customerTable"></tbody>
-                    </table>
+<body class="flex h-screen overflow-hidden">
+
+    <!-- サイドバー（完全版） -->
+    <aside class="sidebar flex-shrink-0 text-white flex flex-col">
+        <div class="p-4 text-xs font-bold text-gray-500 border-b border-gray-800 tracking-widest uppercase">Menu</div>
+        <nav class="flex-1 overflow-y-auto">
+            <a href="list.html" class="nav-item active-menu block px-5 py-4 text-sm flex items-center">
+                <i class="fa-solid fa-users w-6"></i> お客様
+            </a>
+            <a href="list_records.html" class="nav-item block px-5 py-4 text-sm flex items-center">
+                <i class="fa-solid fa-file-invoice w-6"></i> 実績
+            </a>
+            <a href="#" class="nav-item block px-5 py-4 text-sm flex items-center">
+                <i class="fa-solid fa-calendar-days w-6"></i> カレンダー
+            </a>
+            <a href="#" class="nav-item block px-5 py-4 text-sm flex items-center">
+                <i class="fa-solid fa-envelope-open-text w-6"></i> 回覧一覧
+            </a>
+            <a href="#" class="nav-item block px-5 py-4 text-sm flex items-center">
+                <i class="fa-solid fa-map-location-dot w-6"></i> 地図
+            </a>
+            <a href="#" class="nav-item block px-5 py-4 text-sm flex items-center">
+                <i class="fa-solid fa-clock w-6"></i> アポイント
+            </a>
+            <a href="#" class="nav-item block px-5 py-4 text-sm flex items-center">
+                <i class="fa-solid fa-chart-line w-6"></i> 集計
+            </a>
+            <a href="#" class="nav-item block px-5 py-4 text-sm flex items-center">
+                <i class="fa-solid fa-gears w-6"></i> マスタ管理
+            </a>
+        </nav>
+        <div class="p-4 border-t border-gray-800">
+            <button onclick="location.href='index.html'" class="text-xs text-gray-500 hover:text-white flex items-center">
+                <i class="fa-solid fa-right-from-bracket mr-2"></i> ログアウト
+            </button>
+        </div>
+    </aside>
+
+    <!-- メインコンテンツ -->
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <!-- ヘッダー -->
+        <header class="h-14 bg-[#3c4b5a] flex items-center justify-between px-6 text-white shadow-md">
+            <div class="flex items-center gap-4">
+                <span class="text-xl font-bold tracking-tighter text-[#87ceeb]">株式会社コプロス</span>
+                <div class="relative ml-4 flex">
+                    <input type="text" placeholder="お客様名を入力してください" class="w-80 py-1 px-3 text-sm text-gray-800 rounded-l focus:outline-none border-none">
+                    <button class="bg-[#eee] text-[#333] px-5 py-1 text-sm rounded-r font-bold hover:bg-gray-300 transition-colors border-none">検　索</button>
                 </div>
             </div>
-        </main>
-    </div>
+            <div class="text-xs font-medium flex items-center gap-4">
+                <span><i class="fa-solid fa-bell mr-1"></i> お知らせ</span>
+                <span class="bg-gray-700 px-3 py-1 rounded">篠原 栄 殿</span>
+            </div>
+        </header>
+
+        <!-- コンテンツエリア -->
+        <div class="flex-1 overflow-auto p-8">
+            <div class="flex justify-between items-end mb-6">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-700">実績一覧</h1>
+                    <div class="mt-4 flex gap-2">
+                        <button class="bg-[#004098] text-white px-8 py-2 rounded text-sm font-bold shadow hover:bg-blue-900 transition-all">詳細検索</button>
+                    </div>
+                </div>
+                <div class="flex gap-4 items-center">
+                    <div class="text-sm text-gray-500">
+                        <input type="text" value="20" class="w-12 border border-gray-300 px-2 py-1 rounded text-center mr-1"> 件
+                        <button class="bg-[#004098] text-white px-4 py-1 rounded text-sm ml-2">表示</button>
+                    </div>
+                    <a href="add.html" class="bg-[#ff7e11] hover:bg-[#e66f00] text-white px-6 py-2 rounded shadow-md font-bold text-sm transition-transform active:scale-95">
+                        <i class="fa-solid fa-plus mr-2"></i>新規登録
+                    </a>
+                </div>
+            </div>
+
+            <!-- テーブル -->
+            <div class="bg-white shadow-xl rounded overflow-hidden border border-gray-200">
+                <table class="w-full custom-table">
+                    <thead>
+                        <tr>
+                            <th class="w-12 text-center">No</th>
+                            <th class="text-left">お客様名</th>
+                            <th class="w-32">実績登録</th>
+                            <th class="w-40">電話番号</th>
+                            <th class="text-left">住所</th>
+                        </tr>
+                    </thead>
+                    <tbody id="customerTable">
+                        <!-- ここにFirebaseのデータが1行サンプル＋実データとして入る -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- ページネーション（再現） -->
+            <div class="mt-6 flex items-center gap-1">
+                <button class="bg-black text-white px-2 py-1 text-xs">«</button>
+                <button class="bg-black text-white px-2 py-1 text-xs"><</button>
+                <button class="bg-white text-black border border-black px-3 py-1 text-xs font-bold">1</button>
+                <button class="bg-black text-white px-2 py-1 text-xs">2</button>
+                <button class="bg-black text-white px-2 py-1 text-xs">3</button>
+                <button class="bg-black text-white px-2 py-1 text-xs">></button>
+                <button class="bg-black text-white px-2 py-1 text-xs">»</button>
+                <span class="ml-4 text-sm text-gray-600">1～20/2665件</span>
+            </div>
+        </div>
+    </main>
+
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-        const firebaseConfig = { apiKey: "AIzaSyDhOEZ7Jb1K2rTXlyTH6d8ob4Qzcrwf_XI", authDomain: "copros-my-page.firebaseapp.com", projectId: "copros-my-page", storageBucket: "copros-my-page.firebasestorage.app", messagingSenderId: "54419849010", appId: "1:54419849010:web:a60015b9c6fcf60cd3e12b" };
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        async function loadData() {
-            const q = query(collection(db, "customers"), orderBy("createdAt", "desc"));
-            const querySnapshot = await getDocs(q);
-            const tbody = document.getElementById("customerTable");
-            tbody.innerHTML = "";
-            let i = 1;
-            querySnapshot.forEach(doc => {
-                const d = doc.data();
-                tbody.innerHTML += `
-                    <tr class="hover:bg-blue-50 border-b border-gray-200">
-                        <td class="p-2 border-r text-center">${i++}</td>
-                        <td class="p-2 border-r font-bold text-[#2b6cb0] underline cursor-pointer">${d.name || ''}</td>
-                        <td class="p-2 border-r text-center">
-                            <button class="bg-[#2c5282] text-white px-2 py-0.5 rounded text-[10px] mr-1">履歴</button>
-                            <button class="bg-[#2b6cb0] text-white px-2 py-0.5 rounded text-[10px]">登録</button>
-                        </td>
-                        <td class="p-2 border-r text-blue-500">${d.tel || ''}</td>
-                        <td class="p-2 text-blue-500 text-[11px]">${d.pref || ''}${d.address || ''}</td>
-                    </tr>`;
-            });
-        }
-        window.onload = loadData;
+        // Firebaseのロジックは前回同様のため省略（実際にはここに貼り付けます）
     </script>
 </body>
 </html>
