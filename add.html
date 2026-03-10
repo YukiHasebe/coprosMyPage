@@ -2,180 +2,41 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CP My Page - 株式会社コプロス</title>
+    <title>CP My Page - 新規登録</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif; }
-        .required-tag { color: #e53e3e; font-size: 10px; margin-left: 4px; border: 1px solid #e53e3e; padding: 0 2px; border-radius: 2px; vertical-align: middle; }
-    </style>
 </head>
-<body class="bg-white text-gray-800 pb-20">
-
-    <!-- ヘッダー -->
+<body class="bg-white">
     <header class="bg-[#2c5282] h-14 flex items-center justify-between px-6 text-white shadow-md">
         <div class="text-2xl font-bold tracking-tighter">株式会社コプロス</div>
-        <div class="text-2xl cursor-pointer">☰</div>
     </header>
-
     <div class="max-w-4xl mx-auto p-6">
-        <h1 class="text-2xl font-bold mb-6 text-gray-700">お客様情報登録</h1>
-
-        <!-- 操作ボタン -->
+        <h1 class="text-2xl font-bold mb-6">お客様情報登録</h1>
         <div class="flex space-x-4 mb-8">
-            <a href="index.html" class="bg-[#554a44] text-white px-12 py-2 rounded-sm font-bold shadow text-center hover:bg-black transition">戻 る</a>
-            <button id="saveBtn" class="bg-[#ff7211] text-white px-12 py-2 rounded-sm font-bold shadow tracking-widest hover:bg-orange-600 transition">登 録</button>
+            <a href="list.html" class="bg-[#554a44] text-white px-12 py-2 rounded-sm font-bold shadow text-center">戻 る</a>
+            <button id="saveBtn" class="bg-[#ff7211] text-white px-12 py-2 rounded-sm font-bold shadow tracking-widest hover:bg-orange-600">登 録</button>
         </div>
-
-        <!-- 入力フォームエリア -->
-        <div class="border-t border-gray-200 space-y-6 pt-6 text-[14px]">
-            
-            <!-- 法人・個人・日報 -->
-            <div class="flex items-center space-x-6">
-                <span class="font-bold">法人・個人・日報<span class="required-tag">必須</span></span>
-                <label class="flex items-center space-x-2 cursor-pointer">
-                    <input type="radio" name="type" value="法人" checked class="w-5 h-5 accent-orange-600"><span>法人</span>
-                </label>
-                <label class="flex items-center space-x-2 cursor-pointer">
-                    <input type="radio" name="type" value="個人" class="w-5 h-5 accent-orange-600"><span>個人</span>
-                </label>
-                <label class="flex items-center space-x-2 cursor-pointer">
-                    <input type="radio" name="type" value="日報" class="w-5 h-5 accent-orange-600"><span>日報</span>
-                </label>
-            </div>
-
-            <!-- お客様名 -->
-            <div>
-                <label class="block font-bold mb-1">お客様名<span class="required-tag">必須</span></label>
-                <input type="text" id="inputName" class="w-full border border-gray-300 p-2 rounded-sm focus:bg-blue-50 outline-none">
-            </div>
-
-            <!-- お客様名カナ -->
-            <div>
-                <label class="block font-bold mb-1">お客様名カナ<span class="required-tag">必須</span></label>
-                <input type="text" id="inputNameKana" class="w-full border border-gray-300 p-2 rounded-sm focus:bg-blue-50 outline-none">
-            </div>
-
-            <!-- ランク・区分 -->
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block font-bold mb-1">顧客ランク</label>
-                    <select id="inputRank" class="w-full border border-gray-300 p-2 rounded-sm focus:bg-blue-50 outline-none text-gray-600">
-                        <option value="選択無し">選択無し</option>
-                        <option value="Aa">Aa</option><option value="Ab">Ab</option><option value="Ac">Ac</option><option value="Ad">Ad</option>
-                        <option value="Ba">Ba</option><option value="Bb">Bb</option><option value="Bc">Bc</option><option value="Bd">Bd</option>
-                        <option value="Ca">Ca</option><option value="Cb">Cb</option><option value="Cc">Cc</option><option value="Cd">Cd</option>
-                        <option value="取引先">取引先</option><option value="合併">合併</option><option value="廃業">廃業</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block font-bold mb-1">属性・区分</label>
-                    <select id="inputCategory" class="w-full border border-gray-300 p-2 rounded-sm focus:bg-blue-50 outline-none text-gray-600">
-                        <option value="カテゴリ未設定">カテゴリ未設定</option>
-                        <option value="宮崎産商">宮崎産商</option><option value="ケコム">ケコム</option>
-                        <option value="技術開発部">技術開発部</option><option value="建築部">建築部</option>
-                        <option value="コンサル">コンサル</option><option value="官庁">官庁</option><option value="取引先">取引先</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- 郵便番号 -->
-            <div>
-                <label class="block font-bold mb-1">郵便番号</label>
-                <input type="text" id="inputZip" placeholder="XXXXXXX" class="w-full border border-gray-300 p-2 rounded-sm focus:bg-blue-50 outline-none">
-                <p class="text-cyan-600 text-[11px] mt-1">数字のみで入力してください。</p>
-            </div>
-
-            <!-- 都道府県 -->
-            <div>
-                <label class="block font-bold mb-1">都道府県<span class="required-tag">必須</span></label>
-                <select id="inputPref" class="w-full border border-gray-300 p-2 rounded-sm focus:bg-blue-50 outline-none text-gray-600">
-                    <option value="">選択無し</option>
-                    <script>
-                        const prefs = ["北海道","青森県","岩手県","宮城県","秋田県","山形県","福島県","茨城県","栃木県","群馬県","埼玉県","千葉県","東京都","神奈川県","新潟県","富山県","石川県","福井県","山梨県","長野県","岐阜県","静岡県","愛知県","三重県","滋賀県","京都府","大阪府","兵庫県","奈良県","和歌山県","鳥取県","島根県","岡山県","広島県","山口県","徳島県","香川県","愛媛県","高知県","福岡県","佐賀県","長崎県","熊本県","大分県","宮崎県","鹿児島県","沖縄県"];
-                        prefs.forEach(p => document.write(`<option value="${p}">${p}</option>`));
-                    </script>
-                </select>
-            </div>
-
-            <!-- 住所 -->
-            <div>
-                <label class="block font-bold mb-1">住所<span class="required-tag">必須</span></label>
-                <input type="text" id="inputAddress" class="w-full border border-gray-300 p-2 rounded-sm focus:bg-blue-50 outline-none">
-                <p class="text-red-500 text-[11px] mt-2 leading-relaxed">
-                    ※ご登録された住所より緯度経度情報の取得を行います。<br>
-                    緯度経度情報が取得できる場合、自動で地図にピンが表示されます。<br>
-                    ご登録された住所によっては緯度経度情報が取得できない場合もあります。
-                </p>
-            </div>
-
-            <!-- ビル名 -->
-            <div>
-                <label class="block font-bold mb-1">ビル・建物名</label>
-                <input type="text" id="inputBuilding" class="w-full border border-gray-300 p-2 rounded-sm focus:bg-blue-50 outline-none">
-            </div>
-
-            <!-- 電話番号 -->
-            <div>
-                <label class="block font-bold mb-1">電話番号<span class="required-tag">必須</span></label>
-                <input type="text" id="inputTel" placeholder="XXXXXXXXXXXX" class="w-full border border-gray-300 p-2 rounded-sm focus:bg-blue-50 outline-none">
-                <p class="text-cyan-600 text-[11px] mt-1">数字のみで入力してください。</p>
-            </div>
-        </div>
-
-        <!-- 下部ボタン -->
-        <div class="flex space-x-4 mt-10">
-            <a href="index.html" class="bg-[#554a44] text-white px-12 py-2 rounded-sm font-bold shadow text-center">戻 る</a>
-            <button id="saveBtn2" class="bg-[#ff7211] text-white px-12 py-2 rounded-sm font-bold shadow tracking-widest hover:bg-orange-600 transition">登 録</button>
+        <div class="border-t pt-6 space-y-6">
+            <div><label class="block font-bold">お客様名</label><input type="text" id="name" class="w-full border p-2"></div>
+            <div><label class="block font-bold">住所</label><input type="text" id="address" class="w-full border p-2"></div>
+            <div><label class="block font-bold">電話番号</label><input type="text" id="tel" class="w-full border p-2"></div>
         </div>
     </div>
-
-    <!-- Firebase 処理 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyDhOEZ7Jb1K2rTXlyTH6d8ob4Qzcrwf_XI",
-            authDomain: "copros-my-page.firebaseapp.com",
-            projectId: "copros-my-page",
-            storageBucket: "copros-my-page.firebasestorage.app",
-            messagingSenderId: "54419849010",
-            appId: "1:54419849010:web:a60015b9c6fcf60cd3e12b",
-            measurementId: "G-LJ2Z0ERV77"
-        };
-
+        const firebaseConfig = { apiKey: "AIzaSyDhOEZ7Jb1K2rTXlyTH6d8ob4Qzcrwf_XI", authDomain: "copros-my-page.firebaseapp.com", projectId: "copros-my-page", storageBucket: "copros-my-page.firebasestorage.app", messagingSenderId: "54419849010", appId: "1:54419849010:web:a60015b9c6fcf60cd3e12b" };
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-
-        async function saveData() {
-            const name = document.getElementById('inputName').value;
-            const rank = document.getElementById('inputRank').value;
-            const category = document.getElementById('inputCategory').value;
-            const pref = document.getElementById('inputPref').value;
-            const address = document.getElementById('inputAddress').value;
-            const tel = document.getElementById('inputTel').value;
-
-            if(!name || !pref || !address || !tel) {
-                alert('必須項目（お客様名、都道府県、住所、電話番号）をすべて入力してください。');
-                return;
-            }
-
+        document.getElementById('saveBtn').onclick = async () => {
+            const name = document.getElementById('name').value;
+            const address = document.getElementById('address').value;
+            const tel = document.getElementById('tel').value;
+            if(!name) return alert('氏名は必須です');
             try {
-                await addDoc(collection(db, "customers"), {
-                    name, rank, category, pref, address, tel,
-                    createdAt: serverTimestamp()
-                });
-                alert("登録しました！一覧に戻ります。");
-                window.location.href = "list.html";
-            } catch (e) {
-                alert("保存に失敗しました。");
-                console.error(e);
-            }
-        }
-
-        document.getElementById('saveBtn').onclick = saveData;
-        document.getElementById('saveBtn2').onclick = saveData;
+                await addDoc(collection(db, "customers"), { name, address, tel, createdAt: serverTimestamp() });
+                alert("登録しました！"); window.location.href = "list.html";
+            } catch (e) { alert("エラー"); }
+        };
     </script>
 </body>
 </html>
