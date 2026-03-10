@@ -1,243 +1,181 @@
-
+<!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>実績一覧 | 株式会社コプロス</title>
+    <title>実績一覧 | CP My Page</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
             --sidebar-bg: #1a1a1a;
             --header-bg: #3c4b5a;
+            --accent-orange: #ff7e11;
             --primary-blue: #004098;
-            --table-header: #222;
-            --row-even: #f9f9f9;
-            --border-color: #ddd;
         }
+        body { font-family: "Meiryo", sans-serif; background-color: #f4f7f9; }
+        
+        .sidebar { background-color: var(--sidebar-bg); width: 200px; }
+        .nav-item { border-bottom: 1px solid #2d2d2d; transition: all 0.2s; color: #b8b8b8; }
+        .nav-item:hover { background-color: #333; color: white; }
+        .active-menu { background-color: #2d3748; border-left: 4px solid var(--accent-orange); color: white !important; }
 
-        body {
-            margin: 0;
-            font-family: "Meiryo", sans-serif;
-            display: flex;
-            background-color: #fff;
-            color: #333;
-        }
-
-        /* サイドバー（共通） */
-        .sidebar {
-            width: 200px;
-            background-color: var(--sidebar-bg);
+        /* テーブルスタイル */
+        .record-table thead th {
+            background-color: #222;
             color: white;
-            min-height: 100vh;
-            position: fixed;
+            font-weight: normal;
+            font-size: 13px;
+            border: 1px solid #444;
+            padding: 12px 8px;
+            white-space: nowrap;
         }
-
-        .sidebar-menu {
-            list-style: none;
-            padding: 0;
-            margin-top: 50px;
+        .record-table tbody td {
+            font-size: 13px;
+            border: 1px solid #e2e8f0;
+            padding: 12px 10px;
         }
+        .record-table tr:nth-child(even) { background-color: #f9fafb; }
+        .record-table tr:hover { background-color: #fff9e6; }
 
-        .sidebar-menu li {
-            padding: 15px 20px;
-            border-bottom: 1px solid #333;
-            cursor: pointer;
-            font-size: 14px;
-        }
-
-        /* メインコンテンツ */
-        .main-content {
-            margin-left: 200px;
-            flex: 1;
-        }
-
-        header {
-            background-color: var(--header-bg);
-            color: white;
-            padding: 10px 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .logo { font-size: 20px; font-weight: bold; color: #87ceeb; }
-
-        .search-bar { display: flex; }
-        .search-bar input { width: 300px; padding: 5px; border: none; border-radius: 4px 0 0 4px; }
-        .search-bar button { background-color: #ddd; border: none; padding: 5px 20px; border-radius: 0 4px 4px 0; cursor: pointer; font-weight: bold; }
-
-        .content-body { padding: 20px 40px; }
-
-        .page-title { font-size: 24px; margin-bottom: 20px; }
-
-        /* 検索・表示設定エリア */
-        .list-controls { margin-bottom: 15px; }
-        .btn-detail-search {
-            background-color: var(--primary-blue);
-            color: white;
-            border: none;
-            padding: 8px 0;
-            width: 300px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            margin-bottom: 15px;
-        }
-
-        .display-settings {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 14px;
-            margin-bottom: 15px;
-        }
-        .display-settings input { width: 80px; padding: 5px; border: 1px solid #ccc; text-align: right; }
-        .btn-display { background-color: var(--primary-blue); color: white; border: none; padding: 5px 25px; border-radius: 4px; cursor: pointer; }
-
-        /* ページネーション */
-        .pagination {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            margin-bottom: 10px;
-            font-size: 14px;
-        }
-
+        /* ページネーションボタン */
         .pg-btn {
             background-color: #000;
             color: white;
-            padding: 4px 8px;
-            text-decoration: none;
+            padding: 4px 10px;
             font-size: 12px;
-            min-width: 20px;
-            text-align: center;
+            font-weight: bold;
+            transition: all 0.2s;
         }
-
-        .pg-btn.active { background-color: #fff; color: #000; border: 1px solid #000; }
-        .pg-info { margin-left: 10px; font-size: 13px; }
-
-        /* テーブル */
-        .record-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
+        .pg-btn:hover { background-color: #444; }
+        .pg-btn-active {
+            background-color: #fff;
+            color: #000;
+            border: 1px solid #000;
         }
-
-        .record-table th {
-            background-color: var(--table-header);
-            color: white;
-            padding: 10px;
-            font-weight: normal;
-            border: 1px solid #444;
-        }
-
-        .record-table td {
-            padding: 12px 10px;
-            border: 1px solid var(--border-color);
-            text-align: center;
-        }
-
-        .record-table tr:nth-child(even) { background-color: var(--row-even); }
-        .record-table tr:hover { background-color: #ffffcc; }
-
-        .text-left { text-align: left !important; }
-        .link-text { color: #333; text-decoration: underline; cursor: pointer; }
-
-        /* ページ下部固定の戻るボタン用（必要であれば） */
-        .bottom-nav { margin-top: 20px; }
     </style>
 </head>
-<body>
+<body class="flex h-screen overflow-hidden">
 
-    <div class="sidebar">
-        <ul class="sidebar-menu">
-            <li>お客様</li>
-            <li style="background-color: #333;">実績</li>
-            <li>カレンダー</li>
-            <li>回覧一覧</li>
-            <li>地図</li>
-            <li>アポイント</li>
-            <li>集計</li>
-            <li>マスタ管理</li>
-        </ul>
-    </div>
+    <!-- サイドバー（完全版） -->
+    <aside class="sidebar flex-shrink-0 text-white flex flex-col shadow-2xl">
+        <div class="p-4 text-xs font-bold text-gray-500 border-b border-gray-800 tracking-widest uppercase">Menu</div>
+        <nav class="flex-1 overflow-y-auto">
+            <a href="list.html" class="nav-item block px-5 py-4 text-sm flex items-center"><i class="fa-solid fa-users w-6"></i> お客様</a>
+            <a href="list_records.html" class="nav-item active-menu block px-5 py-4 text-sm flex items-center"><i class="fa-solid fa-file-invoice w-6"></i> 実績</a>
+            <a href="#" class="nav-item block px-5 py-4 text-sm flex items-center"><i class="fa-solid fa-calendar-days w-6"></i> カレンダー</a>
+            <a href="#" class="nav-item block px-5 py-4 text-sm flex items-center"><i class="fa-solid fa-envelope-open-text w-6"></i> 回覧一覧</a>
+            <a href="#" class="nav-item block px-5 py-4 text-sm flex items-center"><i class="fa-solid fa-map-location-dot w-6"></i> 地図</a>
+            <a href="#" class="nav-item block px-5 py-4 text-sm flex items-center"><i class="fa-solid fa-clock w-6"></i> アポイント</a>
+            <a href="#" class="nav-item block px-5 py-4 text-sm flex items-center"><i class="fa-solid fa-chart-line w-6"></i> 集計</a>
+            <a href="#" class="nav-item block px-5 py-4 text-sm flex items-center"><i class="fa-solid fa-gears w-6"></i> マスタ管理</a>
+        </nav>
+    </aside>
 
-    <div class="main-content">
-        <header>
-            <div class="logo">株式会社コプロス</div>
-            <div class="search-bar">
-                <input type="text" placeholder="お客様名を入力してください">
-                <button>検索</button>
-            </div>
-            <div style="font-size: 13px;">お知らせ ｜ 篠原 栄</div>
-        </header>
-
-        <div class="content-body">
-            <h1 class="page-title">実績一覧</h1>
-
-            <div class="list-controls">
-                <button class="btn-detail-search">詳細検索</button>
-                <div class="display-settings">
-                    <input type="text" value="20"> 件 
-                    <button class="btn-display">表示</button>
+    <!-- メインコンテンツ -->
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <!-- ヘッダー -->
+        <header class="h-14 bg-[#3c4b5a] flex items-center justify-between px-6 text-white shadow-md z-10">
+            <div class="flex items-center gap-4">
+                <span class="text-xl font-bold tracking-tighter text-[#87ceeb]">株式会社コプロス</span>
+                <div class="relative ml-4 flex">
+                    <input type="text" placeholder="お客様名を入力してください" class="w-80 py-1 px-3 text-sm text-gray-800 rounded-l focus:outline-none border-none">
+                    <button class="bg-[#eee] text-[#333] px-5 py-1 text-sm rounded-r font-bold hover:bg-gray-300 transition-colors border-none">検　索</button>
                 </div>
             </div>
-
-            <!-- ページネーション -->
-            <div class="pagination">
-                <a href="#" class="pg-btn">«</a>
-                <a href="#" class="pg-btn"><</a>
-                <a href="#" class="pg-btn active">1</a>
-                <a href="#" class="pg-btn">2</a>
-                <a href="#" class="pg-btn">3</a>
-                <a href="#" class="pg-btn">></a>
-                <a href="#" class="pg-btn">»</a>
-                <span class="pg-info">1～20/2665件</span>
+            <div class="text-xs font-medium flex items-center gap-4">
+                <span class="bg-gray-700 px-3 py-1 rounded">篠原 栄 殿</span>
             </div>
+        </header>
 
-            <table class="record-table">
-                <thead>
-                    <tr>
-                        <th style="width: 40px;">No</th>
-                        <th>お客様名</th>
-                        <th>属性・区分</th>
-                        <th>顧客ランク</th>
-                        <th>訪問回数</th>
-                        <th>最終訪問日時</th>
-                        <th>最終訪問者</th>
-                        <th>次回訪問予定日時</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- サンプルデータ1 -->
-                    <tr>
-                        <td>1</td>
-                        <td class="text-left"><span class="link-text">株式会社大阪工営</span></td>
-                        <td>コンサル</td>
-                        <td>Bd</td>
-                        <td>14</td>
-                        <td>2026/03/10 10:00</td>
-                        <td>吉野 正則</td>
-                        <td></td>
-                    </tr>
-                    <!-- ループで20行表示される想定 -->
-                    <!-- ここではサンプルのため1行ですが、JSで複製可能です -->
-                </tbody>
-            </table>
+        <!-- コンテンツエリア -->
+        <div class="flex-1 overflow-auto p-8">
+            <div class="max-w-7xl mx-auto">
+                <div class="flex justify-between items-end mb-6">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-700 flex items-center">
+                            <i class="fa-solid fa-file-lines mr-3 text-gray-400"></i>実績一覧
+                        </h1>
+                        <button class="mt-4 bg-[#004098] hover:bg-blue-900 text-white px-8 py-2 rounded text-sm font-bold shadow-md transition-transform active:scale-95">詳細検索</button>
+                    </div>
+                    <div class="flex gap-4 items-center">
+                        <div class="text-sm text-gray-500 bg-white p-2 rounded shadow-sm border border-gray-100">
+                            <input type="text" value="20" class="w-10 border-b border-gray-300 text-center focus:outline-none font-bold text-gray-700"> 件 
+                            <button class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded text-xs ml-2 font-bold border border-gray-300 transition-colors">表示</button>
+                        </div>
+                        <a href="history.html" class="bg-[#ff7e11] hover:bg-[#e66f00] text-white px-6 py-2 rounded shadow-md font-bold text-sm transition-transform active:scale-95">
+                            <i class="fa-solid fa-pen-to-square mr-2"></i>実績を新規作成
+                        </a>
+                    </div>
+                </div>
 
-            <!-- 下部ページネーション -->
-            <div class="pagination" style="margin-top: 15px;">
-                <a href="#" class="pg-btn">«</a>
-                <a href="#" class="pg-btn"><</a>
-                <a href="#" class="pg-btn active">1</a>
-                <a href="#" class="pg-btn">2</a>
-                <a href="#" class="pg-btn">3</a>
-                <a href="#" class="pg-btn">></a>
-                <a href="#" class="pg-btn">»</a>
-                <span class="pg-info">1～20/2665件</span>
+                <!-- ページネーション（上） -->
+                <div class="flex items-center gap-1 mb-3">
+                    <button class="pg-btn">«</button>
+                    <button class="pg-btn"><</button>
+                    <button class="pg-btn pg-btn-active">1</button>
+                    <button class="pg-btn">2</button>
+                    <button class="pg-btn">3</button>
+                    <button class="pg-btn">></button>
+                    <button class="pg-btn">»</button>
+                    <span class="ml-4 text-xs font-bold text-gray-500 tracking-wider">1～20 / 2,665件</span>
+                </div>
+
+                <!-- 実績テーブル -->
+                <div class="bg-white shadow-2xl rounded-lg overflow-hidden border border-gray-200">
+                    <table class="w-full record-table">
+                        <thead>
+                            <tr>
+                                <th class="w-12 text-center">No</th>
+                                <th class="text-left">お客様名</th>
+                                <th class="w-32">属性・区分</th>
+                                <th class="w-24">顧客ランク</th>
+                                <th class="w-24">訪問回数</th>
+                                <th class="w-44 text-left">最終訪問日時</th>
+                                <th class="w-32 text-left">最終訪問者</th>
+                                <th class="w-44 text-left">次回訪問予定日時</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- サンプル行 1 -->
+                            <tr>
+                                <td class="text-center text-gray-400 font-mono">1</td>
+                                <td class="text-left font-bold text-[#004098] hover:underline cursor-pointer">株式会社大阪工営</td>
+                                <td class="text-center text-gray-600">コンサル</td>
+                                <td class="text-center"><span class="bg-blue-50 px-2 py-0.5 rounded text-blue-700 font-bold border border-blue-100 text-[11px]">Bd</span></td>
+                                <td class="text-center font-mono font-bold text-gray-700">14</td>
+                                <td class="text-gray-600">2026/03/10 10:00</td>
+                                <td class="text-gray-800 font-medium">吉野 正則</td>
+                                <td class="text-gray-400 italic text-[11px]">--</td>
+                            </tr>
+                            <!-- サンプル行 2 -->
+                            <tr>
+                                <td class="text-center text-gray-400 font-mono">2</td>
+                                <td class="text-left font-bold text-[#004098] hover:underline cursor-pointer">中央コンサルタンツ株式会社</td>
+                                <td class="text-center text-gray-600">コンサル</td>
+                                <td class="text-center"><span class="bg-gray-50 px-2 py-0.5 rounded text-gray-700 font-bold border border-gray-200 text-[11px]">Cd</span></td>
+                                <td class="text-center font-mono font-bold text-gray-700">38</td>
+                                <td class="text-gray-600">2026/03/10 09:00</td>
+                                <td class="text-gray-800 font-medium">吉野 正則</td>
+                                <td class="text-gray-400 italic text-[11px]">--</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- ページネーション（下） -->
+                <div class="mt-4 flex items-center gap-1">
+                    <button class="pg-btn">«</button>
+                    <button class="pg-btn"><</button>
+                    <button class="pg-btn pg-btn-active">1</button>
+                    <button class="pg-btn">2</button>
+                    <button class="pg-btn">3</button>
+                    <button class="pg-btn">></button>
+                    <button class="pg-btn">»</button>
+                </div>
             </div>
         </div>
-    </div>
+    </main>
 
 </body>
 </html>
