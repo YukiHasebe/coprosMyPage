@@ -1,53 +1,20 @@
-
+<!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- ここがブラウザのタブに表示される名前です -->
     <title>CP My Page - ログイン</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; }
-    </style>
 </head>
 <body class="bg-[#1a202c] flex items-center justify-center h-screen">
-
-    <div class="bg-white p-10 rounded shadow-2xl w-full max-w-md">
-        <div class="text-center mb-10">
-            <h1 class="text-3xl font-bold text-[#2c5282] tracking-tighter mb-2">株式会社コプロス</h1>
-            <!-- ここをご要望通り変更しました -->
-            <p class="text-[#4299e1] text-lg font-bold tracking-widest">CP My Page</p>
-        </div>
-
-        <form onsubmit="handleLogin(event)" class="space-y-6">
-            <div>
-                <label class="block text-sm font-bold text-gray-700 mb-1 font-bold">ユーザーID</label>
-                <input type="text" id="userId" class="w-full border border-gray-300 p-3 rounded outline-none focus:border-blue-500" placeholder="IDを入力してください">
-            </div>
-
-            <div>
-                <label class="block text-sm font-bold text-gray-700 mb-1 font-bold">パスワード</label>
-                <input type="password" id="password" class="w-full border border-gray-300 p-3 rounded outline-none focus:border-blue-500" placeholder="パスワードを入力してください">
-            </div>
-
-            <button type="submit" class="w-full bg-[#ff7211] text-white py-3 rounded font-bold shadow-lg hover:bg-orange-600 transition tracking-widest text-lg">
-                ログイン
-            </button>
+    <div class="bg-white p-10 rounded shadow-2xl w-full max-w-md text-center">
+        <h1 class="text-3xl font-bold text-[#2c5282] mb-2">株式会社コプロス</h1>
+        <p class="text-[#4299e1] text-lg font-bold tracking-widest mb-10">CP My Page</p>
+        <form onsubmit="event.preventDefault(); window.location.href='list.html';" class="space-y-6">
+            <input type="text" class="w-full border p-3 rounded outline-none" placeholder="ユーザーID" required>
+            <input type="password" class="w-full border p-3 rounded outline-none" placeholder="パスワード" required>
+            <button type="submit" class="w-full bg-[#ff7211] text-white py-3 rounded font-bold shadow-lg text-lg">ログイン</button>
         </form>
     </div>
-
-    <script>
-        function handleLogin(event) {
-            event.preventDefault();
-            const id = document.getElementById('userId').value;
-            const pass = document.getElementById('password').value;
-
-            if(id && pass) {
-                window.location.href = "list.html";
-            } else {
-                alert("IDとパスワードを入力してください");
-            }
-        }
-    </script>
 </body>
 </html>
