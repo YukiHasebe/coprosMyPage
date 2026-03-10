@@ -3,45 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>営業管理アプリ</title>
+    <title>営業管理アプリ - お客様情報一覧</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif; }
+        .sidebar-item:hover { background-color: #2d3748; }
+        .active-menu { background-color: #2d3748; border-left: 4px solid #4299e1; }
+    </style>
 </head>
-<body class="bg-gray-100">
+<body class="bg-gray-100 text-gray-800">
 
     <div class="flex h-screen overflow-hidden">
+        
         <!-- サイドバー -->
-        <aside class="w-48 bg-gray-900 text-white flex-shrink-0">
-            <div class="p-4 text-sm font-bold border-b border-gray-700 text-blue-400">メニュー</div>
-            <nav class="mt-2 text-sm">
-                <a href="#" class="block px-4 py-3 bg-blue-600">お客様</a>
-                <a href="#" class="block px-4 py-3 hover:bg-gray-800">実績</a>
+        <aside class="w-44 bg-gray-900 text-white flex-shrink-0">
+            <div class="p-3 text-xs font-bold text-gray-500 border-b border-gray-800">メニュー</div>
+            <nav class="mt-2 text-sm font-bold">
+                <a href="#" class="block px-4 py-3 active-menu">お客様</a>
+                <a href="#" class="block px-4 py-3 sidebar-item">実績</a>
+                <a href="#" class="block px-4 py-3 sidebar-item">カレンダー</a>
+                <a href="#" class="block px-4 py-3 sidebar-item">回覧一覧</a>
+                <a href="#" class="block px-4 py-3 sidebar-item">地図</a>
+                <a href="#" class="block px-4 py-3 sidebar-item">アポイント</a>
+                <a href="#" class="block px-4 py-3 sidebar-item">集計</a>
+                <a href="#" class="block px-4 py-3 sidebar-item border-b border-gray-800">マスタ管理</a>
             </nav>
         </aside>
 
+        <!-- メインコンテンツ -->
         <main class="flex-1 flex flex-col overflow-hidden">
-            <header class="bg-white border-b h-14 flex items-center justify-between px-6 shadow-sm">
-                <div class="text-xl font-bold text-blue-800">株式会社コプロス</div>
+            
+            <!-- ヘッダー -->
+            <header class="bg-[#2c5282] h-14 flex items-center justify-between px-6 shadow-md text-white">
+                <div class="text-2xl font-bold tracking-tighter">株式会社コプロス</div>
+                <div class="flex items-center space-x-6">
+                    <div class="relative flex items-center">
+                        <span class="absolute left-3 text-gray-400"><i class="fas fa-search"></i></span>
+                        <input type="text" placeholder="お客様名を入力してください" class="bg-white text-gray-800 rounded-sm pl-10 pr-4 py-1.5 w-80 text-sm focus:outline-none">
+                        <button class="bg-gray-700 text-white px-6 py-1.5 rounded-sm ml-1 text-sm font-bold hover:bg-gray-600 border border-gray-500">検 索</button>
+                    </div>
+                    <div class="text-sm font-bold cursor-pointer">お知らせ</div>
+                    <div class="text-sm font-bold border-l border-gray-400 pl-4">由紀 殿</div>
+                </div>
             </header>
 
-            <div class="flex-1 overflow-auto p-6">
-                <h1 class="text-2xl font-bold mb-4">お客様情報一覧</h1>
-                
-                <div class="flex space-x-2 mb-6">
-                    <button id="addBtn" class="bg-blue-800 text-white px-10 py-2 rounded shadow hover:bg-blue-900">テストデータを追加登録</button>
+            <!-- コンテンツエリア -->
+            <div class="flex-1 overflow-auto p-8">
+                <h1 class="text-2xl font-bold mb-6 text-gray-700">お客様情報一覧</h1>
+
+                <!-- アクションボタン -->
+                <div class="flex flex-col space-y-2 mb-6 w-full max-w-xl">
+                    <button class="bg-[#004bb1] text-white w-full py-2.5 rounded-sm font-bold shadow-md hover:bg-blue-800 tracking-widest text-sm">詳細検索</button>
+                    <div class="flex space-x-2">
+                        <button id="addBtn" class="bg-[#004bb1] text-white flex-1 py-2 rounded-sm font-bold shadow-md hover:bg-blue-800 text-sm">新規登録</button>
+                        <button class="bg-gray-100 text-gray-400 flex-1 py-2 rounded-sm font-bold shadow-sm border border-gray-300 text-sm">削 除</button>
+                    </div>
                 </div>
 
-                <div class="bg-white shadow rounded-lg overflow-hidden">
+                <!-- フィルター（あいうえお） -->
+                <div class="flex flex-wrap gap-2 mb-8">
+                    <button class="px-5 py-1.5 bg-[#14b8a6] text-white rounded-md font-bold text-sm">全件</button>
+                    <!-- 各行のボタン -->
+                    <script>
+                        const rows = ['あ行','か行','さ行','た行','な行','は行','ま行','や行','ら行','わ行','その他'];
+                        rows.forEach(row => {
+                            document.write(`<button class="px-5 py-1.5 bg-white border border-gray-300 rounded-md font-bold text-sm hover:bg-gray-50 text-gray-600">${row}</button>`);
+                        });
+                    </script>
+                </div>
+
+                <!-- テーブル -->
+                <div class="bg-white shadow-xl rounded-sm overflow-hidden border border-gray-200">
                     <table class="w-full text-left border-collapse">
                         <thead>
-                            <tr class="bg-gray-800 text-white text-sm">
-                                <th class="p-3 border">お客様名</th>
-                                <th class="p-3 border">電話番号</th>
-                                <th class="p-3 border">住所</th>
-                                <th class="p-3 border">最終訪問日</th>
+                            <tr class="bg-[#1a202c] text-white text-sm">
+                                <th class="p-3 border border-gray-600 font-normal w-12 text-center">No</th>
+                                <th class="p-3 border border-gray-600 font-normal text-center">お客様名</th>
+                                <th class="p-3 border border-gray-600 font-normal text-center w-28">実績</th>
+                                <th class="p-3 border border-gray-600 font-normal text-center w-32">電話番号</th>
+                                <th class="p-3 border border-gray-600 font-normal text-center">住所</th>
+                                <th class="p-3 border border-gray-600 font-normal text-center w-24">訪問回数</th>
+                                <th class="p-3 border border-gray-600 font-normal text-center w-32">最終訪問日</th>
+                                <th class="p-3 border border-gray-600 font-normal text-center w-16">訪問</th>
+                                <th class="p-3 border border-gray-600 font-normal text-center w-12 text-blue-300">削除</th>
                             </tr>
                         </thead>
-                        <tbody id="customerTable" class="text-xs">
-                            <!-- ここにデータが入ります -->
+                        <tbody id="customerTable" class="text-[13px] text-[#2d3748]">
+                            <!-- ここにFirebaseから取得したデータが入ります -->
                         </tbody>
                     </table>
                 </div>
@@ -49,12 +98,12 @@
         </main>
     </div>
 
-    <!-- Firebase SDK の設定 -->
+    <!-- Firebase 設定とプログラム -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, addDoc, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // あなたのFirebase設定（スクリーンショットから反映済み）
+        // あなたの設定値をそのまま使います
         const firebaseConfig = {
             apiKey: "AIzaSyDhOEZ7Jb1K2rTXlyTH6d8ob4Qzcrwf_XI",
             authDomain: "copros-my-page.firebaseapp.com",
@@ -68,50 +117,58 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // データを取得して表示する関数
+        // データを取得して表示
         async function loadData() {
             const tbody = document.getElementById("customerTable");
-            tbody.innerHTML = "<tr><td colspan='4' class='p-3 text-center'>読み込み中...</td></tr>";
+            tbody.innerHTML = "<tr><td colspan='9' class='p-10 text-center text-gray-400'>データを読み込み中...</td></tr>";
             
             try {
                 const querySnapshot = await getDocs(collection(db, "customers"));
                 tbody.innerHTML = ""; 
+                let count = 1;
                 querySnapshot.forEach((doc) => {
                     const data = doc.data();
                     const row = `
-                        <tr class="hover:bg-blue-50 border-b">
-                            <td class="p-3 font-bold text-blue-600 underline">${data.name || ''}</td>
-                            <td class="p-3">${data.tel || ''}</td>
-                            <td class="p-3">${data.address || ''}</td>
-                            <td class="p-3">${data.lastVisit || '未訪問'}</td>
+                        <tr class="hover:bg-[#ebf8ff] border-b border-gray-200">
+                            <td class="p-3 border-r text-center">${count++}</td>
+                            <td class="p-3 border-r font-bold text-[#2b6cb0] underline cursor-pointer">${data.name || ''}</td>
+                            <td class="p-3 border-r text-center">
+                                <button class="bg-[#2c5282] text-white px-2 py-0.5 rounded text-[10px] mr-1">履歴</button>
+                                <button class="bg-[#2b6cb0] text-white px-2 py-0.5 rounded text-[10px]">登録</button>
+                            </td>
+                            <td class="p-3 border-r text-[#3182ce]">${data.tel || ''}</td>
+                            <td class="p-3 border-r text-[#3182ce] text-xs">${data.address || ''}</td>
+                            <td class="p-3 border-r text-right font-bold">${data.visitCount || '0'}回</td>
+                            <td class="p-3 border-r text-center">${data.lastVisit || '-'}</td>
+                            <td class="p-3 border-r text-center text-xs">訪問済</td>
+                            <td class="p-3 text-center"><input type="checkbox" class="w-4 h-4"></td>
                         </tr>`;
                     tbody.innerHTML += row;
                 });
             } catch (e) {
                 console.error("エラー: ", e);
-                tbody.innerHTML = "<tr><td colspan='4' class='p-3 text-red-500'>エラーが発生しました。Firestoreの「ルール」を確認してください。</td></tr>";
+                tbody.innerHTML = "<tr><td colspan='9' class='p-10 text-center text-red-500 font-bold'>データの取得に失敗しました。</td></tr>";
             }
         }
 
-        // テストデータを追加する関数
-        async function addSampleData() {
+        // 新規登録ボタン（今回はテストデータ登録）
+        document.getElementById("addBtn").onclick = async () => {
             try {
                 await addDoc(collection(db, "customers"), {
                     name: "株式会社 木村設計",
-                    tel: "098-894-8448",
-                    address: "沖縄県宜野湾市...",
+                    tel: "0988948448",
+                    address: "沖縄県宜野湾市我如古1-56-8蔵ホーム2-D",
+                    visitCount: 7,
                     lastVisit: "2025/12/24",
                     createdAt: serverTimestamp()
                 });
-                alert("データを追加しました！");
+                alert("新しいお客様を登録しました！");
                 loadData();
             } catch (e) {
-                alert("保存に失敗しました。Firestoreのルールを確認してください。");
-                console.error(e);
+                alert("エラーが発生しました。");
             }
-        }
+        };
 
-        document.getElementById("addBtn").onclick = addSampleData;
         window.onload = loadData;
     </script>
 </body>
