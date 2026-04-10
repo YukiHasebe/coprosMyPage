@@ -266,15 +266,16 @@
         }
     }
 
-    // 3. ボタンの設定（上下のボタン両方を「登 録」にし、イベントを設定）
+        // 3. ボタンの設定（上下すべてのボタンをスキャンして「登録」機能をつける）
     document.addEventListener('DOMContentLoaded', () => {
         const btns = document.querySelectorAll('button');
         btns.forEach(btn => {
-            // 文字を「登 録」に統一（スペースありに合わせる）
-            if (btn.innerText.includes('登録') || btn.innerText.includes('実績を登録する')) {
-                btn.innerText = "登 録"; 
-                btn.type = "button"; // 画面リロード防止
-                btn.onclick = saveHistory; // 保存機能を紐付け
+            // ボタンの文字に「登録」が含まれているかチェック（スペースなどは無視します）
+            if (btn.innerText.replace(/\s+/g, '').includes('登録')) {
+                btn.innerText = "登 録"; // 表示を統一
+                btn.type = "button";    // 画面リロードを防止
+                btn.onclick = saveHistory; // 保存機能を「直接」紐付け
+                console.log("登録ボタンを有効化しました:", btn.innerText); 
             }
         });
     });
