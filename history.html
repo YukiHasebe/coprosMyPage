@@ -220,4 +220,63 @@
         </div>
     </main>
 </body>
+ <!-- ここから追加 -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // 1. Firebase設定
+    const firebaseConfig = {
+        apiKey: "AIzaSyDhOEZ7Jb1K2RTxlyTH6d8ob4Qzcrwf_XI", 
+        authDomain: "copros-my-page.firebaseapp.com",
+        projectId: "copros-my-page",
+        storageBucket: "copros-my-page.appspot.com",
+        messagingSenderId: "54419849010",
+        appId: "1:54419849010:web:a60015b9c6fcf60cd3e12b"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // 2. 保存処理の関数
+    async function saveHistory(e) {
+        e.preventDefault(); 
+
+        // 今ある画面の入力項目から値を取得
+        const historyData = {
+            customerName: document.querySelector('input[placeholder="キーワードを入力"]')?.value || "",
+            visitDate: document.querySelector('input[type="date"]')?.value || "",
+            customerFeedback: document.querySelectorAll('textarea')[2]?.value || "", // 3番目のテキストエリア
+            staffOpinion: document.querySelectorAll('textarea')[3]?.value || "",     // 4番目のテキストエリア
+            visitor: "篠原 栄", 
+            createdAt: serverTimestamp()
+        };
+
+        if (!historyData.customerName || !historyData.visitDate) {
+            alert("「お客様名」と「訪問日」を入力してください。");
+            return;
+        }
+
+        try {
+            await addDoc(collection(db, "visit_records"), historyData);
+            alert("実績を登録しました！実績一覧へ戻ります。");
+            window.location.href = "list_records.html"; 
+        } catch (error) {
+            console.error("Error:", error);
+            alert("保存に失敗しました。設定を確認してください。");
+        }
+    }
+
+    // 3. 今ある「登録」ボタンをクリックした時に動くように設定
+    document.addEventListener('DOMContentLoaded', () => {
+        const btns = document.querySelectorAll('button');
+        btns.forEach(btn => {
+            if (btn.innerText.includes('登 録')) {
+                btn.type = "button"; // 画面リロードを防ぐ
+                btn.addEventListener('click', saveHistory);
+            }
+        });
+    });
+</script>
+<!-- ここまで追加 -->   
 </html>
