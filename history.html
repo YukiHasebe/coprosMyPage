@@ -268,6 +268,16 @@
 
         // 3. ボタンの設定（上下すべてのボタンをスキャンして「登録」機能をつける）
     document.addEventListener('DOMContentLoaded', () => {
+                // 右上の名前をログインした人に書き換える処理
+        const savedName = sessionStorage.getItem('userName');
+        if (savedName) {
+            const allElements = document.querySelectorAll('header div, header span, .user-name-class, header p');
+            allElements.forEach(el => {
+                if (el.innerText.includes('篠原 栄')) {
+                    el.innerText = savedName; // ログイン画面で保存した名前に書き換え
+                }
+            });
+        }
         const btns = document.querySelectorAll('button');
         btns.forEach(btn => {
             // ボタンの文字に「登録」が含まれているかチェック（スペースなどは無視します）
