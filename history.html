@@ -227,10 +227,10 @@
 
     // 1. Firebase設定
     const firebaseConfig = {
-        apiKey: "AIzaSyDhOEZ7Jb1K2rTXlyTH6d8ob4Qzcrwf_XI", 
+        apiKey: "AIzaSyDhOEZ7Jb1K2rTxLyTH6d8ob4Qzcrwf_XI",
         authDomain: "copros-my-page.firebaseapp.com",
         projectId: "copros-my-page",
-        storageBucket: "copros-my-page.appspot.com",
+        storageBucket: "copros-my-page.firebasestorage.app",
         messagingSenderId: "54419849010",
         appId: "1:54419849010:web:a60015b9c6fcf60cd3e12b"
     };
@@ -238,16 +238,15 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // 2. 保存処理の関数
+    // 2. 保存処理
     async function saveHistory(e) {
         e.preventDefault(); 
 
-        // 今ある画面の入力項目から値を取得
         const historyData = {
             customerName: document.querySelector('input[placeholder="キーワードを入力"]')?.value || "",
             visitDate: document.querySelector('input[type="date"]')?.value || "",
-            customerFeedback: document.querySelectorAll('textarea')[2]?.value || "", // 3番目のテキストエリア
-            staffOpinion: document.querySelectorAll('textarea')[3]?.value || "",     // 4番目のテキストエリア
+            customerFeedback: document.querySelectorAll('textarea')[2]?.value || "",
+            staffOpinion: document.querySelectorAll('textarea')[3]?.value || "",
             visitor: "篠原 栄", 
             createdAt: serverTimestamp()
         };
@@ -267,13 +266,15 @@
         }
     }
 
-    // 3. 今ある「登録」ボタンをクリックした時に動くように設定
+    // 3. ボタンの設定（上下のボタン両方を「登 録」にし、イベントを設定）
     document.addEventListener('DOMContentLoaded', () => {
         const btns = document.querySelectorAll('button');
         btns.forEach(btn => {
-            if (btn.innerText.includes('登 録')) {
-                btn.type = "button"; // 画面リロードを防ぐ
-                btn.addEventListener('click', saveHistory);
+            // 文字を「登 録」に統一（スペースありに合わせる）
+            if (btn.innerText.includes('登録') || btn.innerText.includes('実績を登録する')) {
+                btn.innerText = "登 録"; 
+                btn.type = "button"; // 画面リロード防止
+                btn.onclick = saveHistory; // 保存機能を紐付け
             }
         });
     });
