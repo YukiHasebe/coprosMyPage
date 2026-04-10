@@ -232,4 +232,62 @@
     </main>
 
 </body>
+    <!-- ここから追加 -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, query, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // Firebase設定
+    const firebaseConfig = {
+        apiKey: "AIzaSyDhOEZ7Jb1K2rTxLyTH6d8ob4Qzcrwf_XI",
+        authDomain: "copros-my-page.firebaseapp.com",
+        projectId: "copros-my-page",
+        storageBucket: "copros-my-page.firebasestorage.app", // ここを最新のSDKに合わせました
+        messagingSenderId: "54419849010",
+        appId: "1:54419849010:web:a60015b9c6fcf60cd3e12b"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    async function loadRecords() {
+        // 表の本体（データを入れる場所）を探します
+        const tbody = document.querySelector('table tbody');
+        if (!tbody) return;
+
+        try {
+            // Firebaseからデータを新しい順に取得
+            const q = query(collection(db, "visit_records"), orderBy("createdAt", "desc"));
+            const querySnapshot = await getDocs(q);
+            
+            // 今あるサンプルの行を一旦消す
+            tbody.innerHTML = "";
+
+            let count = 1;
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                // 新しい行を作成
+                const row = `
+                    <tr class="hover:bg-gray-50">
+                        <td class="p-4 border-b text-center">${count++}</td>
+                        <td class="p-4 border-b text-blue-600 font-bold">${data.customerName || "-"}</td>
+                        <td class="p-4 border-b text-center text-xs">実績</td>
+                        <td class="p-4 border-b text-center">-</td>
+                        <td class="p-4 border-b text-center">-</td>
+                        <td class="p-4 border-b text-center">${data.visitDate || "-"}</td>
+                        <td class="p-4 border-b text-center">${data.visitor || "篠原 栄"}</td>
+                        <td class="p-4 border-b text-center">-</td>
+                    </tr>
+                `;
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+        } catch (e) {
+            console.error("読み込みエラー:", e);
+        }
+    }
+
+    // 画面が開いたら実行
+    loadRecords();
+</script>
+<!-- ここまで追加 -->
 </html>
