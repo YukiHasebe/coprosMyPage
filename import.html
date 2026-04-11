@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>データ一括登録ツール</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="p-10 bg-gray-100">
+    <div class="max-w-2xl mx-auto bg-white p-6 rounded shadow">
+        <h1 class="text-xl font-bold mb-4">Firebaseデータ一括登録</h1>
+        <p class="text-sm text-gray-600 mb-4">Excelのデータをコピーして、下の枠に貼り付けてください。</p>
+        
+        <textarea id="dataInput" class="w-full h-64 p-2 border rounded mb-4" placeholder="id	name	password の順で貼り付け"></textarea>
+        
+        <button id="importBtn" class="bg-blue-600 text-white px-6 py-2 rounded font-bold hover:bg-blue-700">Firebaseに登録開始</button>
+        
+        <div id="status" class="mt-4 text-sm font-mono text-blue-600"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDhOEZ7Jb1K2rTxLyTH6d8ob4Qzcrwf_XI",
+            authDomain: "copros-my-page.firebaseapp.com",
+            projectId: "copros-my-page",
+            storageBucket: "copros-my-page.firebasestorage.app",
+            messagingSenderId: "54419849010",
+            appId: "1:54419849010:web:a60015b9c6fcf60cd3e12b"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        document.getElementById('importBtn').addEventListener('click', async () => {
+            const rawData = document.getElementById('dataInput').value;
+            const status = document.getElementById('status');
+            const lines = rawData.trim().split('\n');
+            
+            status.innerText = "登録中...";
+
+            for (let line of lines) {
+                // タブ区切り（Excelからの貼り付け）を分割
+                const [id, name, password] = line.split('\t');
+                
+                // 見出し行を飛ばす
+                if (id === "id") continue;
+
+                try {
+                    await addDoc(collection(db, "staffs"), {
+                        id: id.trim(),
+                        name: name.trim(),
+                        password: password.trim(),
+                        createdAt: serverTimestamp()
+                    });
+                    status.innerText += `\n成功: ${name}`;
+                } catch (e) {
+                    status.innerText += `\n失敗: ${name} (${e.message})`;
+                }
+            }
+            alert("すべての登録が完了しました！");
+        });
+    </script>
+</body>
+</html>
