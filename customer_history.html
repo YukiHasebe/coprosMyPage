@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>訪問実績履歴 | CP My Page</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif; background-color: #f8fafc; }
+        .sidebar { width: 220px; background-color: #1a1a1a; z-index: 100; overflow-y: auto; }
+        .nav-item { border-bottom: 1px solid #2d2d2d; color: #b8b8b8; cursor: pointer; padding: 16px; }
+        .nav-item.open { background-color: #2d3748; color: white; border-left: 4px solid #ff7e11; }
+        .submenu { background-color: #0f0f0f; }
+        .submenu-item { padding: 12px 20px 12px 45px; font-size: 12px; color: #888; cursor: pointer; }
+        .history-card { background-color: #3c4b5a; color: white; padding: 15px 25px; margin-bottom: 8px; border-radius: 4px; font-weight: bold; transition: all 0.2s; }
+        .history-card:hover { background-color: #4a5a6a; transform: translateX(5px); }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden text-slate-700">
+
+    <!-- サイドバー（list.htmlと同じ決定版デザイン） -->
+    <aside class="sidebar flex flex-col shrink-0 text-sm">
+        <div class="h-16 flex items-center px-6 text-gray-500 font-black tracking-widest text-xs border-b border-gray-800 uppercase">Menu</div>
+        <nav class="flex-1">
+            <div class="nav-item open flex items-center justify-between"><div class="flex items-center gap-3"><i class="fa-solid fa-users w-5"></i><span>お客様</span></div><i class="fa-solid fa-chevron-down text-[10px]"></i></div>
+            <div class="submenu">
+                <div class="submenu-item font-bold text-white" onclick="location.href='list.html'">お客様情報一覧</div>
+                <div class="submenu-item" onclick="location.href='add.html'">お客様情報登録</div>
+            </div>
+            <!-- 他のメニューは省略（必要に応じてlist.htmlからコピーしてください） -->
+        </nav>
+    </aside>
+
+    <main class="flex-1 flex flex-col overflow-hidden bg-white">
+        <!-- ヘッダー -->
+        <header class="h-16 bg-[#3c4b5a] flex items-center justify-between px-8 text-white shrink-0">
+            <span class="text-xl font-bold tracking-tighter text-[#87ceeb]">株式会社コプロス</span>
+            <div id="userNameDisplay" class="text-sm font-bold bg-gray-700 px-3 py-1 rounded">-- --</div>
+        </header>
+
+        <div class="flex-1 overflow-auto p-10">
+            <div class="max-w-4xl mx-auto">
+                <h1 class="text-3xl font-black mb-8">訪問実績履歴</h1>
+
+                <!-- 上部ボタン -->
+                <div class="flex gap-3 mb-6">
+                    <button onclick="location.href='list.html'" class="bg-gray-600 text-white px-8 py-2 rounded font-bold shadow hover:bg-gray-700 transition-all">戻る</button>
+                    <button class="bg-[#004098] text-white px-8 py-2 rounded font-bold shadow hover:bg-blue-800 transition-all">CSV出力</button>
+                    <button id="newRegBtn" class="bg-[#004098] text-white px-8 py-2 rounded font-bold shadow hover:bg-blue-800 transition-all">新規登録</button>
+                </div>
+
+                <div class="mb-8">
+                    <p class="text-sm text-gray-500 font-bold mb-1">お客様名：</p>
+                    <p id="targetCustomerName" class="text-2xl font-black text-slate-800">-- --</p>
+                </div>
+
+                <div id="historyPagination" class="mb-4 text-xs font-black text-slate-400 tracking-widest uppercase"></div>
+
+                <!-- 履歴リスト本体 -->
+                <div id="historyListContainer">
+                    <div class="p-10 text-center text-slate-300">読み込み中...</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDhOEZ7Jb1K2rTxLyTH6d8ob4Qzcrwf_XI",
+            authDomain: "copros-my-page.firebaseapp.com",
+            projectId: "copros-my-page",
+            storageBucket: "copros-my-page.firebasestorage.app",
+            messagingSenderId: "54419849010",
+            appId: "1:54419849010:web:a60015b9c6fcf60cd3e12b"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // URLからお客様名を取得
+        const params = new URLSearchParams(window.location.search);
+        const customerName = params.get('name');
+
+        async function loadHistory() {
+            if (!customerName) return;
+            document.getElementById('targetCustomerName').innerText = customerName;
+            document.getElementById('newRegBtn').onclick = () => location.href = `history.html?name=${encodeURIComponent(customerName)}`;
+
+            // 名前反映
+            const savedName = sessionStorage.getItem('userName');
+            if (savedName) document.getElementById('userNameDisplay').innerText = savedName;
+
+            try {
+                // visit_records コレクションから、このお客様の名前のデータを取得
+                const q = query(collection(db, "visit_records"), where("customerName", "==", customerName), orderBy("visitDate", "desc"));
+                const snap = await getDocs(q);
+                
+                const container = document.getElementById('historyListContainer');
+                container.innerHTML = "";
+
+                if (snap.empty) {
+                    container.innerHTML = "<div class='p-10 text-center text-slate-400'>訪問実績はまだありません。</div>";
+                    return;
+                }
+
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    const html = `
+                        <div class="history-card flex justify-between items-center">
+                            <span>${data.visitDate || "日付なし"}　${data.visitor || "担当者なし"}</span>
+                            <i class="fa-solid fa-chevron-right text-xs opacity-50"></i>
+                        </div>
+                    `;
+                    container.insertAdjacentHTML('beforeend', html);
+                });
+
+                document.getElementById('historyPagination').innerText = `1～${snap.size}/${snap.size}件`;
+
+            } catch (e) {
+                console.error(e);
+                document.getElementById('historyListContainer').innerHTML = "エラーが発生しました。";
+            }
+        }
+
+        loadHistory();
+    </script>
+</body>
+</html>
