@@ -9,17 +9,19 @@
     <style>
         body { font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif; background-color: #f8fafc; }
         
-        /* サイドバー：画像1枚目の仕様（下展開） */
-        .sidebar { width: 220px; background-color: #1a1a1a; z-index: 100; overflow-y: auto; }
-        .nav-item { border-bottom: 1px solid #2d2d2d; color: #b8b8b8; cursor: pointer; transition: all 0.3s; }
-        .nav-item:hover { background-color: #262626; color: white; }
-        .nav-item.open { background-color: #2d3748; color: white; border-left: 4px solid #ff7e11; }
-        .submenu { max-height: 0; overflow: hidden; background-color: #0f0f0f; transition: max-height 0.3s ease-out; }
-        .nav-item.open + .submenu { max-height: 500px; }
-        .submenu-item { padding: 12px 20px 12px 45px; font-size: 12px; color: #888; border-bottom: 1px solid #1a1a1a; cursor: pointer; }
-        .submenu-item:hover { color: #ff7e11; background-color: #1a1a1a; }
-        .badge { background-color: #e53e3e; color: white; border-radius: 50%; padding: 2px 6px; font-size: 10px; }
+       /* サイドバー：決定版スタイル（水色アクセント） */
+　　.sidebar { width: 220px; background-color: #1a1a1a; z-index: 100; overflow-y: auto; }
+　　.nav-item { border-bottom: 1px solid #2d2d2d; color: #b8b8b8; cursor: pointer; transition: all 0.3s; padding: 16px; display: flex; align-items: center; justify-content: space-between; }
+　　.nav-item:hover { background-color: #262626; color: white; }
+　　.nav-item.open { background-color: #2d3748; color: white; border-left: 4px solid #87ceeb; }
+　　.nav-item.open i.fa-solid { color: #87ceeb; } /* アイコンを水色に */
 
+　　.submenu { max-height: 0; overflow: hidden; background-color: #0f0f0f; transition: max-height 0.3s ease-out; }
+　　.nav-item.open + .submenu { max-height: 800px; }
+　　.submenu-item { padding: 12px 20px 12px 45px; font-size: 12px; color: #888; border-bottom: 1px solid #1a1a1a; cursor: pointer; }
+　　.submenu-item:hover { color: #87ceeb; background-color: #1a1a1a; }
+　　.submenu-item.active-child { color: #87ceeb; font-weight: bold; }
+        
         /* コンテンツ：画像2枚目の洗練デザイン */
         .active-page { background-color: #ff7e11 !important; color: white !important; transform: scale(1.1); box-shadow: 0 4px 10px rgba(255,126,17,0.3); }
         .filter-btn.active { background-color: #10b981 !important; color: white !important; }
@@ -33,57 +35,63 @@
 <body class="flex h-screen overflow-hidden text-slate-700">
 
     <!-- サイドバー (画像1枚目決定版) -->
-    <aside class="sidebar flex flex-col shrink-0 text-sm">
-        <div class="h-16 flex items-center px-6 text-gray-500 font-black tracking-widest text-xs border-b border-gray-800 uppercase">Menu</div>
-        <nav class="flex-1">
-            <div class="nav-item open p-4 flex items-center justify-between" onclick="this.classList.toggle('open')">
-                <div class="flex items-center gap-3"><i class="fa-solid fa-users w-5"></i><span>お客様</span></div>
-                <i class="fa-solid fa-chevron-down text-[10px]"></i>
-            </div>
-            <div class="submenu">
-                <div class="submenu-item font-bold text-white" onclick="location.href='list.html'">お客様情報一覧</div>
-                <div class="submenu-item" onclick="location.href='add.html'">お客様情報登録</div>
-            </div>
-            <div class="nav-item p-4 flex items-center justify-between" onclick="this.classList.toggle('open')">
-                <div class="flex items-center gap-3"><i class="fa-solid fa-file-invoice w-5"></i><span>実 績</span></div>
-                <i class="fa-solid fa-chevron-down text-[10px]"></i>
-            </div>
-            <div class="submenu">
-                <div class="submenu-item" onclick="location.href='history.html'">実績登録</div>
-                <div class="submenu-item" onclick="location.href='list_records.html'">実績一覧</div>
-                <div class="submenu-item">実績CSV出力</div>
-            </div>
-            <div class="nav-item p-4" onclick="location.href='calendar.html'"><div class="flex items-center gap-3"><i class="fa-solid fa-calendar-days w-5"></i><span>カレンダー</span></div></div>
-            <div class="nav-item p-4 flex items-center justify-between" onclick="location.href='kairan.html'"><div class="flex items-center gap-3"><i class="fa-solid fa-envelope-open-text w-5"></i><span>回覧一覧</span></div><span class="badge">2</span></div>
-            <div class="nav-item p-4" onclick="location.href='map.html'"><div class="flex items-center gap-3"><i class="fa-solid fa-map-location-dot w-5"></i><span>地 図</span></div></div>
-            <div class="nav-item p-4" onclick="location.href='appoint.html'"><div class="flex items-center gap-3"><i class="fa-solid fa-clock w-5"></i><span>アポイント</span></div></div>
-            <div class="nav-item p-4 flex items-center justify-between" onclick="this.classList.toggle('open')">
-                <div class="flex items-center gap-3"><i class="fa-solid fa-chart-line w-5"></i><span>集 計</span></div>
-                <i class="fa-solid fa-chevron-down text-[10px]"></i>
-            </div>
-            <div class="submenu">
-                <div class="submenu-item" onclick="location.href='usage.html'">組織員利用状況</div>
-                <div class="submenu-item" onclick="location.href='monthly_list.html'">月別一覧</div>
-                <div class="submenu-item">滞在時間一覧</div>
-                <div class="submenu-item">月別滞在時間</div>
-                <div class="submenu-item">実績グラフ</div>
-            </div>
-            <div class="nav-item p-4 flex items-center justify-between" onclick="this.classList.toggle('open')">
-                <div class="flex items-center gap-3"><i class="fa-solid fa-gear w-5"></i><span>マスタ管理</span></div>
-                <i class="fa-solid fa-chevron-down text-[10px]"></i>
-            </div>
-            <div class="submenu">
-                <div class="submenu-item" onclick="location.href='import.html'">インポート</div>
-                <div class="submenu-item">お知らせ登録</div>
-                <div class="submenu-item">組織員登録</div>
-                <div class="submenu-item">実績マスタ</div>
-                <div class="submenu-item">顧客マスタ</div>
-            </div>
-        </nav>
-        <div class="p-6 border-t border-gray-800">
-            <a href="index.html" class="flex items-center gap-3 text-gray-500 hover:text-rose-400 transition-colors"><i class="fa-solid fa-power-off"></i><span class="font-bold">ログアウト</span></a>
+   <aside class="sidebar flex flex-col shrink-0 text-sm shadow-2xl">
+    <div class="h-16 flex items-center px-6 text-gray-500 font-black tracking-widest text-xs border-b border-gray-800 uppercase">Menu</div>
+    <nav class="flex-1">
+        <!-- お客様 -->
+        <div class="nav-item open" onclick="this.classList.toggle('open')">
+            <div class="flex items-center gap-3"><i class="fa-solid fa-users w-5"></i><span>お客様</span></div>
+            <i class="fa-solid fa-chevron-down text-[10px]"></i>
         </div>
-    </aside>
+        <div class="submenu">
+            <div class="submenu-item active-child" onclick="location.href='list.html'">お客様情報一覧</div>
+            <div class="submenu-item" onclick="location.href='add.html'">お客様情報登録</div>
+        </div>
+
+        <!-- 実績 -->
+        <div class="nav-item" onclick="this.classList.toggle('open')">
+            <div class="flex items-center gap-3"><i class="fa-solid fa-file-invoice w-5"></i><span>実 績</span></div>
+            <i class="fa-solid fa-chevron-down text-[10px]"></i>
+        </div>
+        <div class="submenu">
+            <div class="submenu-item" onclick="location.href='history.html'">実績登録</div>
+            <div class="submenu-item" onclick="location.href='list_records.html'">実績一覧</div>
+            <div class="submenu-item">実績CSV出力</div>
+        </div>
+
+        <div class="nav-item" onclick="location.href='calendar.html'"><div class="flex items-center gap-3"><i class="fa-solid fa-calendar-days w-5"></i><span>カレンダー</span></div></div>
+        <div class="nav-item flex items-center justify-between" onclick="location.href='kairan.html'"><div class="flex items-center gap-3"><i class="fa-solid fa-envelope-open-text w-5"></i><span>回覧一覧</span></div><span class="badge bg-rose-600 text-white rounded-full px-2 py-0.5 text-[10px]">2</span></div>
+        <div class="nav-item" onclick="location.href='map.html'"><div class="flex items-center gap-3"><i class="fa-solid fa-map-location-dot w-5"></i><span>地 図</span></div></div>
+        <div class="nav-item" onclick="location.href='appoint.html'"><div class="flex items-center gap-3"><i class="fa-solid fa-clock w-5"></i><span>アポイント</span></div></div>
+
+        <!-- 集計 -->
+        <div class="nav-item" onclick="this.classList.toggle('open')">
+            <div class="flex items-center gap-3"><i class="fa-solid fa-chart-line w-5"></i><span>集 計</span></div>
+            <i class="fa-solid fa-chevron-down text-[10px]"></i>
+        </div>
+        <div class="submenu">
+            <div class="submenu-item" onclick="location.href='usage.html'">組織員利用状況</div>
+            <div class="submenu-item" onclick="location.href='monthly_list.html'">月別一覧</div>
+            <div class="submenu-item">滞在時間一覧</div>
+            <div class="submenu-item">実績グラフ出力</div>
+        </div>
+
+        <!-- マスタ管理 -->
+        <div class="nav-item" onclick="this.classList.toggle('open')">
+            <div class="flex items-center gap-3"><i class="fa-solid fa-gear w-5"></i><span>マスタ管理</span></div>
+            <i class="fa-solid fa-chevron-down text-[10px]"></i>
+        </div>
+        <div class="submenu">
+            <div class="submenu-item" onclick="location.href='import.html'">インポート</div>
+            <div class="submenu-item">お知らせ登録</div>
+            <div class="submenu-item">組織員登録</div>
+            <div class="submenu-item">実績マスタ</div>
+        </div>
+    </nav>
+    <div class="p-6 border-t border-gray-800">
+        <a href="index.html" class="flex items-center gap-3 text-gray-500 hover:text-rose-400 transition-colors"><i class="fa-solid fa-power-off"></i><span class="font-bold">ログアウト</span></a>
+    </div>
+</aside>
 
     <!-- メインコンテンツ (画像2枚目デザイン) -->
     <main class="flex-1 flex flex-col overflow-hidden bg-slate-50">
