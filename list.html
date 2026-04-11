@@ -186,11 +186,10 @@
         </div>
     </main>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+   <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, query, orderBy, limit, getDocs, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // 1. Firebase設定
     const firebaseConfig = {
         apiKey: "AIzaSyDhOEZ7Jb1K2rTxLyTH6d8ob4Qzcrwf_XI",
         authDomain: "copros-my-page.firebaseapp.com",
@@ -203,13 +202,25 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // 2. 画面読み込み時の処理
+    // 削除機能の関数
+    window.deleteCustomer = async function(customerId, customerName) {
+        if (confirm(`「${customerName}」様を削除してもよろしいですか？`)) {
+            try {
+                await deleteDoc(doc(db, "customers", customerId));
+                alert("削除しました。");
+                location.reload(); // 画面を更新して一覧から消す
+            } catch (e) {
+                alert("削除に失敗しました。");
+            }
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', async () => {
-        // 名前反映（右上のバナー）
+        // 名前反映
         const savedName = sessionStorage.getItem('userName');
         if (savedName) {
             document.querySelectorAll('header span').forEach(el => {
-                if (el.innerText.includes('篠原 栄')) el.innerText = savedName;
+                if (el.innerText.includes('篠原 栄') || el.innerText.includes('長谷部由紀')) el.innerText = savedName;
             });
         }
 
@@ -217,36 +228,43 @@
         if (!tbody) return;
 
         try {
-            // Firebaseの "customers" から 50件取得（名前順）
             const q = query(collection(db, "customers"), orderBy("name"), limit(50));
             const querySnapshot = await getDocs(q);
             
-            tbody.innerHTML = ""; // サンプル行をクリア
+            tbody.innerHTML = "";
 
             let count = 1;
-            querySnapshot.forEach((doc) => {
-                const data = doc.data();
+            querySnapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                const customerId = docSnap.id;
+                
+                // 「4回回」にならないよう、数字だけを取り出す（または「回」を除去）
+                let visitCount = String(data.visitCount || "0").replace('回', '');
+
                 const row = `
-                    <tr class="hover:bg-gray-50 border-b">
-                        <td class="p-4 text-center">${count++}</td>
+                    <tr class="hover:bg-gray-50 border-b text-sm">
+                        <td class="p-4 text-center text-gray-500">${count++}</td>
                         <td class="p-4 text-blue-600 font-bold">${data.name}</td>
                         <td class="p-4 text-center">
-                           <button class="bg-blue-600 text-white px-4 py-1 rounded text-xs hover:bg-blue-700" 
-                                   onclick="location.href='history.html?name=${encodeURIComponent(data.name)}'">実績登録</button>
+                           <button class="bg-blue-600 text-white px-3 py-1 rounded text-xs" 
+                                   onclick="location.href='history.html?name=${encodeURIComponent(data.name)}'">登録</button>
                         </td>
-                        <td class="p-4 text-center text-sm">${data.tel || "-"}</td>
-                        <td class="p-4 text-sm">${data.address || "-"}</td>
-                        <td class="p-4 text-center">${data.visitCount || "0"}回</td>
-                        <td class="p-4 text-center text-xs">${data.lastVisit || "-"}</td>
+                        <td class="p-4 text-center">${data.tel || "-"}</td>
+                        <td class="p-4 text-gray-600">${data.address || "-"}</td>
+                        <td class="p-4 text-center font-bold">${visitCount}回</td>
+                        <td class="p-4 text-center text-gray-500">${data.lastVisit || "-"}</td>
+                        <td class="p-4 text-center">
+                           <input type="checkbox" onclick="deleteCustomer('${customerId}', '${data.name}')" class="cursor-pointer">
+                        </td>
                     </tr>
                 `;
                 tbody.insertAdjacentHTML('beforeend', row);
             });
         } catch (e) {
-            console.error("データ取得エラー:", e);
+            console.error(e);
         }
     });
-    </script>    
+</script>
 </body>   
 </html>
 
