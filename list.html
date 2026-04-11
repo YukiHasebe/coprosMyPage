@@ -117,18 +117,53 @@
                 </div>
 
                 <!-- 詳細検索 -->
-                <div id="detailSearchSection" class="mb-8 p-8 bg-white rounded-3xl shadow-xl border border-blue-100 animate-in fade-in duration-300">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-xs">
-                        <div class="space-y-2"><label class="font-black text-slate-400 uppercase">お客様名</label><input type="text" class="w-full p-3 bg-slate-50 border-none rounded-xl outline-none"></div>
-                        <div class="space-y-2"><label class="font-black text-slate-400 uppercase">住所</label><input type="text" class="w-full p-3 bg-slate-50 border-none rounded-xl outline-none"></div>
-                        <div class="space-y-2"><label class="font-black text-slate-400 uppercase">顧客ランク</label><select class="w-full p-3 bg-slate-50 border-none rounded-xl"><option>選択なし</option></select></div>
-                        <div class="space-y-2"><label class="font-black text-slate-400 uppercase">属性・区分</label><select class="w-full p-3 bg-slate-50 border-none rounded-xl"><option>選択なし</option></select></div>
-                    </div>
-                    <div class="flex justify-center gap-4 mt-8">
-                        <button class="bg-blue-600 text-white px-12 py-3 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition-all">検 索</button>
-                        <button class="bg-slate-100 text-slate-500 px-12 py-3 rounded-xl font-bold hover:bg-slate-200 transition-all">クリア</button>
-                    </div>
-                </div>
+               <!-- 詳細検索セクション（画像2・3枚目の内容を反映） -->
+<div id="detailSearchSection" class="mb-8 p-8 bg-white rounded-3xl shadow-xl border border-blue-100 animate-in fade-in duration-300">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-xs">
+        <!-- 1列目 -->
+        <div class="space-y-2">
+            <label class="font-black text-slate-400 uppercase">お客様名</label>
+            <input type="text" id="detailName" class="w-full p-3 bg-slate-50 border-none rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div class="space-y-2">
+            <label class="font-black text-slate-400 uppercase">住所</label>
+            <input type="text" id="detailAddress" class="w-full p-3 bg-slate-50 border-none rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <!-- 2列目 -->
+        <div class="space-y-2">
+            <label class="font-black text-slate-400 uppercase">顧客ランク</label>
+            <select id="detailRank" class="w-full p-3 bg-slate-50 border-none rounded-xl outline-none">
+                <option value="">選択無し</option>
+                <option>Aa</option><option>Ab</option><option>Ac</option><option>Ad</option>
+                <option>Ba</option><option>Bb</option><option>Bc</option><option>Bd</option>
+                <option>Ca</option><option>Cb</option><option>Cc</option><option>Cd</option>
+                <option>取引先</option><option>合併</option><option>廃業</option>
+            </select>
+        </div>
+        <div class="space-y-2">
+            <label class="font-black text-slate-400 uppercase">属性・区分</label>
+            <select id="detailType" class="w-full p-3 bg-slate-50 border-none rounded-xl outline-none">
+                <option value="">選択無し</option>
+                <option>宮崎産商</option><option>ケコム</option><option>技術開発部</option>
+                <option>建築部</option><option>コンサル</option><option>官庁</option><option>取引先</option>
+            </select>
+        </div>
+        <!-- 3列目：訪問期間（新規追加） -->
+        <div class="space-y-2 lg:col-span-1">
+            <label class="font-black text-slate-400 uppercase">訪問期間</label>
+            <div class="flex items-center gap-2">
+                <input type="date" id="dateStart" class="w-full p-3 bg-slate-50 border-none rounded-xl outline-none text-[10px]">
+                <span class="text-slate-400">～</span>
+                <input type="date" id="dateEnd" class="w-full p-3 bg-slate-50 border-none rounded-xl outline-none text-[10px]">
+            </div>
+        </div>
+    </div>
+    <!-- 検索・クリアボタン -->
+    <div class="flex justify-center gap-4 mt-8">
+        <button id="execDetailSearch" class="bg-blue-600 text-white px-12 py-3 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition-all">検 索</button>
+        <button id="clearDetailSearch" class="bg-slate-100 text-slate-500 px-12 py-3 rounded-xl font-bold hover:bg-slate-200 transition-all">クリア</button>
+    </div>
+</div>
 
                 <!-- あかさたな -->
                 <div class="flex flex-wrap gap-1.5 mb-8 p-1.5 bg-slate-200/50 rounded-2xl w-fit">
