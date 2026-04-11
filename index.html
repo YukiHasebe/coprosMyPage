@@ -82,32 +82,61 @@
             </p>
         </div>
     </div>
-        <script>
-        // ログイン処理
-        const loginForm = document.querySelector('form');
-        loginForm.addEventListener('submit', function(e) {
-            e.preventDefault(); // 画面リロードを防止
-            
-            // 入力されたユーザーIDを取得
-            const userId = document.querySelector('input[placeholder="UserID"]').value;
-            
-            if (userId) {
-                // 名前を判別するロジック（後で社員マスタと連携できます）
-                // 今はテストとして、特定の番号で名前が変わるようにしてみます
-                let userName = "コプロス 太郎"; 
-                if (userId === "123") userName = "篠原 栄";
-                if (userId === "456") userName = "コプロス 次郎";
+       <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-                // ブラウザに名前を一時保存（殿をつけずに保存します）
-                sessionStorage.setItem('userName', userName);
+    // Firebase設定（いつものAPIキー）
+    const firebaseConfig = {
+        apiKey: "AIzaSyDhOEZ7Jb1K2rTxLyTH6d8ob4Qzcrwf_XI",
+        authDomain: "copros-my-page.firebaseapp.com",
+        projectId: "copros-my-page",
+        storageBucket: "copros-my-page.firebasestorage.app",
+        messagingSenderId: "54419849010",
+        appId: "1:54419849010:web:a60015b9c6fcf60cd3e12b"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // ログインフォームの動作設定
+    const loginForm = document.querySelector('form');
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault(); // 画面リロードを防止
+        
+        // 入力されたIDとパスワードを取得
+        const inputId = document.querySelector('input[placeholder="UserID"]').value;
+        const inputPw = document.querySelector('input[placeholder="Password"]').value;
+        
+        try {
+            // 1. Firebaseの "staffs" から、入力された「社員番号(id)」が一致する人を探す
+            const q = query(collection(db, "staffs"), where("id", "==", inputId));
+            const querySnapshot = await getDocs(q);
+
+            if (!querySnapshot.empty) {
+                // 社員番号が見つかった場合
+                const staffData = querySnapshot.docs[0].data();
                 
-                alert(userName + " としてログインしました。");
-                
-                // 次の画面へ移動
-                window.location.href = 'list.html';
+                // 2. パスワードが一致するかチェック
+                if (staffData.password === inputPw) {
+                    // 【成功】名前を保存して、次の一覧画面へ移動
+                    sessionStorage.setItem('userName', staffData.name);
+                    alert(staffData.name + " さん、お疲れ様です！");
+                    window.location.href = 'list.html';
+                } else {
+                    // 【失敗】パスワードが違う
+                    alert("パスワードが正しくありません。");
+                }
+            } else {
+                // 【失敗】社員番号そのものがない
+                alert("社員番号が見つかりません。");
             }
-        });
-    </script>
+        } catch (error) {
+            console.error("Login Error:", error);
+            alert("ログイン処理中にエラーが発生しました。");
+        }
+    });
+</script>
 </body>
     
 </html>
