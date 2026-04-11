@@ -322,7 +322,42 @@
                 await batch.commit(); location.reload();
             }
         };
+　　　　        // 詳細検索の実行ロジック
+        document.getElementById('execDetailSearch').onclick = () => {
+            const nameK = document.getElementById('detailName').value.toLowerCase();
+            const addrK = document.getElementById('detailAddress').value.toLowerCase();
+            const rankK = document.getElementById('detailRank').value;
+            const typeK = document.getElementById('detailType').value;
+            const startK = document.getElementById('dateStart').value;
+            const endK = document.getElementById('dateEnd').value;
 
+            filteredData = allData.filter(d => {
+                const matchName = !nameK || (d.name && d.name.toLowerCase().includes(nameK));
+                const matchAddr = !addrK || (d.address && d.address.toLowerCase().includes(addrK));
+                const matchRank = !rankK || (d.rank === rankK);
+                const matchType = !typeK || (d.type === typeK);
+                
+                let matchDate = true;
+                if (startK || endK) {
+                    const visitDate = d.lastVisit || "";
+                    if (startK && visitDate < startK) matchDate = false;
+                    if (endK && visitDate > endK) matchDate = false;
+                }
+                return matchName && matchAddr && matchRank && matchType && matchDate;
+            });
+
+            currentPage = 1;
+            updateView();
+        };
+
+        // クリアボタンの動作
+        document.getElementById('clearDetailSearch').onclick = () => {
+            document.querySelectorAll('#detailSearchSection input, #detailSearchSection select').forEach(el => el.value = "");
+            filteredData = [...allData];
+            currentPage = 1;
+            updateView();
+        };
+        
         document.getElementById('headerSearchInput').addEventListener('input', (e) => {
             const k = e.target.value.toLowerCase();
             filteredData = allData.filter(d => d.name.toLowerCase().includes(k));
