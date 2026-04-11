@@ -199,7 +199,7 @@
                 <button class="bg-black text-white px-2 py-1 text-xs">3</button>
                 <button class="bg-black text-white px-2 py-1 text-xs">></button>
                 <button class="bg-black text-white px-2 py-1 text-xs">»</button>
-                <span class="ml-4 text-sm text-gray-600">1～20/2665件</span>
+               <span id="resultCount" class="ml-4 text-sm text-gray-600">1～20/2665件</span>
             </div>
         </div>
     </main>
@@ -220,7 +220,7 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    let allCustomers = []; // 全データをここに一度溜めます
+    let allCustomers = [];
 
     // 1. データを画面に描画する関数
     function renderTable(dataList) {
@@ -248,9 +248,12 @@
             `;
             tbody.insertAdjacentHTML('beforeend', row);
         });
-        // 件数表示の更新
-        const countSpan = document.querySelector('.text-sm.text-gray-600');
-        if (countSpan) countSpan.innerText = `1～${dataList.length}/${allCustomers.length}件`;
+
+        // 件数表示を更新（202行目の id="resultCount" を狙い撃ち）
+        const countDisplay = document.getElementById('resultCount');
+        if (countDisplay) {
+            countDisplay.innerText = `1～${dataList.length}/${allCustomers.length}件`;
+        }
     }
 
     // 2. データの初期読み込み
@@ -269,17 +272,16 @@
         }
     }
 
-    // 3. 検索機能
+    // 3. 検索機能（お客様名のみを対象にするよう修正）
     function searchData() {
         const keyword = document.getElementById('searchInput').value.toLowerCase();
         const filtered = allCustomers.filter(customer => 
-            (customer.name && customer.name.toLowerCase().includes(keyword)) ||
-            (customer.address && customer.address.toLowerCase().includes(keyword))
+            (customer.name && customer.name.toLowerCase().includes(keyword))
         );
         renderTable(filtered);
     }
 
-    // 4. あいうえおボタン機能
+    // 4. あいうえおボタン機能（カタカナ対応版）
     function filterByKana(range) {
         if (range === 'all') {
             renderTable(allCustomers);
@@ -301,34 +303,31 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         init();
-
-        // 検索ボタンイベント
         document.getElementById('searchBtn').addEventListener('click', searchData);
-        // エンターキーでも検索できるようにする
         document.getElementById('searchInput').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') searchData();
         });
 
-        // 絞り込みボタンイベント
         document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('bg-green-600', 'text-white'));
+                document.querySelectorAll('.filter-btn').forEach(b => {
+                    b.classList.remove('bg-green-600', 'text-white');
+                    b.classList.add('bg-white', 'text-gray-700');
+                });
                 btn.classList.add('bg-green-600', 'text-white');
+                btn.classList.remove('bg-white');
                 filterByKana(btn.dataset.range);
             });
         });
 
-        // 名前反映
         const savedName = sessionStorage.getItem('userName');
         if (savedName) {
             document.querySelectorAll('header span').forEach(el => {
-                if (el.innerText.includes('篠原 栄') || el.innerText.includes('長谷部由紀')) el.innerText = savedName;
+                if (el.innerText.includes('篠原 栄')) el.innerText = savedName;
             });
         }
     });
 </script>
-  
-
 </body>   
 </html>
 
