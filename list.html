@@ -187,8 +187,66 @@
     </main>
 
     <script type="module">
-        // Firebaseのロジックは前回同様のため省略（実際にはここに貼り付けます）
-    </script>
-</body>
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // 1. Firebase設定
+    const firebaseConfig = {
+        apiKey: "AIzaSyDhOEZ7Jb1K2rTxLyTH6d8ob4Qzcrwf_XI",
+        authDomain: "copros-my-page.firebaseapp.com",
+        projectId: "copros-my-page",
+        storageBucket: "copros-my-page.firebasestorage.app",
+        messagingSenderId: "54419849010",
+        appId: "1:54419849010:web:a60015b9c6fcf60cd3e12b"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // 2. 画面読み込み時の処理
+    document.addEventListener('DOMContentLoaded', async () => {
+        // 名前反映（右上のバナー）
+        const savedName = sessionStorage.getItem('userName');
+        if (savedName) {
+            document.querySelectorAll('header span').forEach(el => {
+                if (el.innerText.includes('篠原 栄')) el.innerText = savedName;
+            });
+        }
+
+        const tbody = document.getElementById('customerTable');
+        if (!tbody) return;
+
+        try {
+            // Firebaseの "customers" から 50件取得（名前順）
+            const q = query(collection(db, "customers"), orderBy("name"), limit(50));
+            const querySnapshot = await getDocs(q);
+            
+            tbody.innerHTML = ""; // サンプル行をクリア
+
+            let count = 1;
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                const row = `
+                    <tr class="hover:bg-gray-50 border-b">
+                        <td class="p-4 text-center">${count++}</td>
+                        <td class="p-4 text-blue-600 font-bold">${data.name}</td>
+                        <td class="p-4 text-center">
+                           <button class="bg-blue-600 text-white px-4 py-1 rounded text-xs hover:bg-blue-700" 
+                                   onclick="location.href='history.html?name=${encodeURIComponent(data.name)}'">実績登録</button>
+                        </td>
+                        <td class="p-4 text-center text-sm">${data.tel || "-"}</td>
+                        <td class="p-4 text-sm">${data.address || "-"}</td>
+                        <td class="p-4 text-center">${data.visitCount || "0"}回</td>
+                        <td class="p-4 text-center text-xs">${data.lastVisit || "-"}</td>
+                    </tr>
+                `;
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+        } catch (e) {
+            console.error("データ取得エラー:", e);
+        }
+    });
+    </script>    
+</body>   
 </html>
 
