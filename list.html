@@ -149,10 +149,10 @@
                             <tr class="bg-slate-800 text-white text-[10px] font-black uppercase tracking-widest">
                                 <th class="p-6 text-center w-20">No</th>
                                 <th class="p-6">お客様情報</th>
-                                <th class="p-6 text-center w-48 font-bold text-blue-300">実 績</th>
+                                <th class="p-6 text-center w-48">実 績</th>
                                 <th class="p-6 text-center w-40">連絡先</th>
                                 <th class="p-6">住所</th>
-                                <th class="p-6 text-center w-28 text-orange-400">訪問数</th>
+                                <th class="p-6 text-center w-28">訪問数</th>
                                 <th class="p-6 text-center w-40">最終訪問</th>
                                 <th class="p-6 text-center w-16"><i class="fa-solid fa-check-double"></i></th>
                             </tr>
@@ -265,8 +265,7 @@
                         ${generatePageBtns()}
                         <button onclick="changePage(${totalPages})" class="w-10 h-10 flex items-center justify-center bg-slate-800 text-white rounded-xl disabled:opacity-20" ${currentPage===totalPages?'disabled':''}>»</button>
                     </div>
-                    <div class="text-slate-400 text-[10px] font-black tracking-widest uppercase">Showing ${startIdx} - ${endIdx} of ${filteredData.length} Customers</div>
-                </div>
+                    <div class="text-slate-400 text-xs font-black tracking-widest">${startIdx}-${endIdx}/${filteredData.length}</div>
             `;
             document.getElementById('paginationTop').innerHTML = html;
             document.getElementById('paginationBottom').innerHTML = html;
