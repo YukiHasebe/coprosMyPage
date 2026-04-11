@@ -2,19 +2,37 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>データ一括登録ツール</title>
+    <title>データ一括登録ツール | CP My Page</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="p-10 bg-gray-100">
-    <div class="max-w-2xl mx-auto bg-white p-6 rounded shadow">
-        <h1 class="text-xl font-bold mb-4">Firebaseデータ一括登録</h1>
-        <p class="text-sm text-gray-600 mb-4">Excelのデータをコピーして、下の枠に貼り付けてください。</p>
+    <div class="max-w-3xl mx-auto bg-white p-8 rounded-lg shadow-xl border-t-4 border-[#ff7e11]">
+        <h1 class="text-2xl font-bold mb-6 text-gray-800">一括データ登録（管理者用）</h1>
         
-        <textarea id="dataInput" class="w-full h-64 p-2 border rounded mb-4" placeholder="id	name	password の順で貼り付け"></textarea>
+        <!-- 切り替えスイッチ -->
+        <div class="mb-6 flex gap-4">
+            <label class="flex items-center p-3 border rounded cursor-pointer hover:bg-orange-50 transition">
+                <input type="radio" name="target" value="staffs" checked class="mr-2">
+                <span class="font-bold text-gray-700">社員名簿 (staffs)</span>
+            </label>
+            <label class="flex items-center p-3 border rounded cursor-pointer hover:bg-blue-50 transition">
+                <input type="radio" name="target" value="customers" class="mr-2">
+                <span class="font-bold text-gray-700">お客様名簿 (customers)</span>
+            </label>
+        </div>
+
+        <p class="text-sm text-gray-500 mb-2">Excelから対象の列をコピーして貼り付けてください：</p>
+        <p id="helpText" class="text-xs text-orange-600 mb-4 font-bold">【社員】社員番号(id) | 氏名(name) | パスワード(password) の順</p>
         
-        <button id="importBtn" class="bg-blue-600 text-white px-6 py-2 rounded font-bold hover:bg-blue-700">Firebaseに登録開始</button>
+        <textarea id="dataInput" class="w-full h-64 p-3 border-2 border-gray-200 rounded-lg mb-4 font-mono text-sm focus:border-orange-500 outline-none" placeholder="ここに貼り付け"></textarea>
         
-        <div id="status" class="mt-4 text-sm font-mono text-blue-600"></div>
+        <button id="importBtn" class="w-full bg-[#ff7e11] text-white py-4 rounded-lg font-bold shadow-lg hover:bg-orange-600 transition-transform active:scale-95 text-lg">
+            Firebaseへ一括登録を開始
+        </button>
+        
+        <div id="status" class="mt-6 p-4 bg-gray-50 rounded border border-gray-200 h-40 overflow-y-auto text-sm font-mono text-gray-600">
+            待機中...
+        </div>
     </div>
 
     <script type="module">
@@ -33,33 +51,60 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
+        // ラジオボタンによってヘルプ文字を変える
+        const radios = document.querySelectorAll('input[name="target"]');
+        radios.forEach(r => r.addEventListener('change', () => {
+            const help = document.getElementById('helpText');
+            help.innerText = r.value === 'staffs' 
+                ? "【社員】社員番号(id) | 氏名(name) | パスワード(password) の順" 
+                : "【お客様】No | お客様名 | 電話番号 | 住所 | 訪問回数 | 最終訪問日 の順";
+        }));
+
         document.getElementById('importBtn').addEventListener('click', async () => {
+            const target = document.querySelector('input[name="target"]:checked').value;
             const rawData = document.getElementById('dataInput').value;
             const status = document.getElementById('status');
             const lines = rawData.trim().split('\n');
             
-            status.innerText = "登録中...";
+            status.innerText = "登録処理を開始しました...";
 
             for (let line of lines) {
-                // タブ区切り（Excelからの貼り付け）を分割
-                const [id, name, password] = line.split('\t');
-                
-                // 見出し行を飛ばす
-                if (id === "id") continue;
+                const cols = line.split('\t');
+                let data = {};
+
+                if (target === 'staffs') {
+                    // 社員名簿の処理
+                    if (cols[0] === "id") continue;
+                    data = {
+                        id: cols[0]?.trim() || "",
+                        name: cols[1]?.trim() || "",
+                        password: cols[2]?.trim() || "",
+                        createdAt: serverTimestamp()
+                    };
+                } else {
+                    // お客様名簿の処理 (Excelの並び: A:No, B:名, C:電話, D:住所, E:回数, F:日)
+                    if (cols[1] === "お客様名") continue;
+                    data = {
+                        name: cols[1]?.trim() || "",
+                        tel: cols[2]?.trim() || "",
+                        address: cols[3]?.trim() || "",
+                        visitCount: cols[4]?.trim() || "0",
+                        lastVisit: cols[5]?.trim() || "",
+                        createdAt: serverTimestamp()
+                    };
+                }
+
+                if (!data.name && !data.id) continue;
 
                 try {
-                    await addDoc(collection(db, "staffs"), {
-                        id: id.trim(),
-                        name: name.trim(),
-                        password: password.trim(),
-                        createdAt: serverTimestamp()
-                    });
-                    status.innerText += `\n成功: ${name}`;
+                    await addDoc(collection(db, target), data);
+                    status.innerHTML += `<div class="text-green-600">✔ 成功: ${data.name || data.id}</div>`;
+                    status.scrollTop = status.scrollHeight;
                 } catch (e) {
-                    status.innerText += `\n失敗: ${name} (${e.message})`;
+                    status.innerHTML += `<div class="text-red-600">✘ 失敗: ${data.name || data.id} (${e.message})</div>`;
                 }
             }
-            alert("すべての登録が完了しました！");
+            alert("一括登録が完了しました！");
         });
     </script>
 </body>
