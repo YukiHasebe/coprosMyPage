@@ -124,8 +124,8 @@
             <div class="flex items-center gap-4">
                 <span class="text-xl font-bold tracking-tighter text-[#87ceeb]">株式会社コプロス</span>
                 <div class="relative ml-4 flex">
-                    <input type="text" placeholder="お客様名を入力してください" class="w-80 py-1 px-3 text-sm text-gray-800 rounded-l focus:outline-none border-none">
-                    <button class="bg-[#eee] text-[#333] px-5 py-1 text-sm rounded-r font-bold hover:bg-gray-300 transition-colors border-none">検　索</button>
+                    <input type="text" id="searchInput" placeholder="お客様名を入力してください" class="w-80 py-1 px-3 text-sm text-gray-800 rounded-l focus:outline-none border-none">
+                    <button id="searchBtn" class="bg-[#eee] text-[#333] px-5 py-1 text-sm rounded-r font-bold hover:bg-gray-300 transition-colors border-none">検 索</button>
                 </div>
             </div>
             <div class="text-xs font-medium flex items-center gap-4">
@@ -206,7 +206,7 @@
     
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, query, orderBy, where, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, orderBy, query } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyDhOEZ7Jb1K2rTxLyTH6d8ob4Qzcrwf_XI",
@@ -220,62 +220,104 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const kanaRange = {
-        'あ': { start: 'あ', end: 'か' }, 'か': { start: 'か', end: 'さ' },
-        'さ': { start: 'さ', end: 'た' }, 'た': { start: 'た', end: 'な' },
-        'な': { start: 'な', end: 'は' }, 'は': { start: 'は', end: 'ま' },
-        'ま': { start: 'ま', end: 'や' }, 'や': { start: 'や', end: 'ら' },
-        'ら': { start: 'ら', end: 'わ' }, 'わ': { start: 'わ', end: 'ん' }
-    };
+    let allCustomers = []; // 全データをここに一度溜めます
 
-    async function loadCustomers(filter = 'all') {
+    // 1. データを画面に描画する関数
+    function renderTable(dataList) {
         const tbody = document.getElementById('customerTable');
         if (!tbody) return;
-        tbody.innerHTML = "<tr><td colspan='8' class='text-center p-10'>読み込み中...</td></tr>";
+        tbody.innerHTML = "";
+
+        let count = 1;
+        dataList.forEach((data) => {
+            const visitCount = String(data.visitCount || "0").replace('回', '');
+            const row = `
+                <tr class="hover:bg-gray-50 border-b">
+                    <td class="p-4 text-center text-gray-500">${count++}</td>
+                    <td class="p-4 text-blue-600 font-bold">${data.name || "名前なし"}</td>
+                    <td class="p-4 text-center">
+                       <button class="bg-blue-600 text-white px-3 py-1 rounded text-xs" 
+                               onclick="location.href='history.html?name=${encodeURIComponent(data.name || '')}'">登録</button>
+                    </td>
+                    <td class="p-4 text-center text-sm">${data.tel || "-"}</td>
+                    <td class="p-4 text-sm text-gray-600">${data.address || "-"}</td>
+                    <td class="p-4 text-center font-bold">${visitCount}回</td>
+                    <td class="p-4 text-center text-xs text-gray-500">${data.lastVisit || "-"}</td>
+                    <td class="p-4 text-center"><input type="checkbox" class="cursor-pointer"></td>
+                </tr>
+            `;
+            tbody.insertAdjacentHTML('beforeend', row);
+        });
+        // 件数表示の更新
+        const countSpan = document.querySelector('.text-sm.text-gray-600');
+        if (countSpan) countSpan.innerText = `1～${dataList.length}/${allCustomers.length}件`;
+    }
+
+    // 2. データの初期読み込み
+    async function init() {
+        const tbody = document.getElementById('customerTable');
+        tbody.innerHTML = "<tr><td colspan='8' class='text-center p-10 text-blue-600 font-bold'>2,700件のデータを読み込み中...</td></tr>";
 
         try {
-            let q;
-            const ref = collection(db, "customers");
-
-            if (filter === 'all') {
-                q = query(ref, orderBy("name"), limit(100));
-            } else if (kanaRange[filter]) {
-                q = query(ref, where("name", ">=", kanaRange[filter].start), where("name", "<", kanaRange[filter].end), orderBy("name"));
-            } else if (filter === 'others') {
-                q = query(ref, where("name", ">=", "ん"), orderBy("name"));
-            }
-
-            const querySnapshot = await getDocs(q);
-            tbody.innerHTML = "";
-            let count = 1;
-
-            querySnapshot.forEach((docSnap) => {
-                const data = docSnap.data();
-                const visitCount = String(data.visitCount || "0").replace('回', '');
-                const row = `
-                    <tr class="hover:bg-gray-50 border-b">
-                        <td class="p-4 text-center text-gray-500">${count++}</td>
-                        <td class="p-4 text-blue-600 font-bold">${data.name || "名前なし"}</td>
-                        <td class="p-4 text-center">
-                           <button class="bg-blue-600 text-white px-3 py-1 rounded text-xs" 
-                                   onclick="location.href='history.html?name=${encodeURIComponent(data.name || '')}'">登録</button>
-                        </td>
-                        <td class="p-4 text-center text-sm">${data.tel || "-"}</td>
-                        <td class="p-4 text-sm text-gray-600">${data.address || "-"}</td>
-                        <td class="p-4 text-center font-bold">${visitCount}回</td>
-                        <td class="p-4 text-center text-xs text-gray-500">${data.lastVisit || "-"}</td>
-                        <td class="p-4 text-center"><input type="checkbox" class="cursor-pointer"></td>
-                    </tr>
-                `;
-                tbody.insertAdjacentHTML('beforeend', row);
-            });
+            const querySnapshot = await getDocs(query(collection(db, "customers"), orderBy("name")));
+            allCustomers = [];
+            querySnapshot.forEach(doc => allCustomers.push(doc.data()));
+            renderTable(allCustomers);
         } catch (e) {
             console.error(e);
-            tbody.innerHTML = "<tr><td colspan='8' class='p-10 text-center text-red-500'>読み込みに失敗しました。</td></tr>";
+            tbody.innerHTML = "<tr><td colspan='8' class='text-center p-10 text-red-500'>読み込みに失敗しました</td></tr>";
         }
     }
 
+    // 3. 検索機能
+    function searchData() {
+        const keyword = document.getElementById('searchInput').value.toLowerCase();
+        const filtered = allCustomers.filter(customer => 
+            (customer.name && customer.name.toLowerCase().includes(keyword)) ||
+            (customer.address && customer.address.toLowerCase().includes(keyword))
+        );
+        renderTable(filtered);
+    }
+
+    // 4. あいうえおボタン機能
+    function filterByKana(range) {
+        if (range === 'all') {
+            renderTable(allCustomers);
+            return;
+        }
+        const kanaRange = {
+            'あ': /^[あ-おア-オ]/, 'か': /^[か-こカ-コ]/, 'さ': /^[さ-そサ-ソ]/,
+            'た': /^[た-とタ-ト]/, 'な': /^[な-のナ-ノ]/, 'は': /^[は-ほハ-ホ]/,
+            'ま': /^[ま-もマ-モ]/, 'や': /^[や-よヤ-ヨ]/, 'ら': /^[ら-ろラ-ロ]/,
+            'わ': /^[わ-んワ-ン]/
+        };
+        const filtered = allCustomers.filter(customer => {
+            if (!customer.name) return false;
+            if (range === 'others') return !Object.values(kanaRange).some(regex => regex.test(customer.name));
+            return kanaRange[range].test(customer.name);
+        });
+        renderTable(filtered);
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
+        init();
+
+        // 検索ボタンイベント
+        document.getElementById('searchBtn').addEventListener('click', searchData);
+        // エンターキーでも検索できるようにする
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') searchData();
+        });
+
+        // 絞り込みボタンイベント
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('bg-green-600', 'text-white'));
+                btn.classList.add('bg-green-600', 'text-white');
+                filterByKana(btn.dataset.range);
+            });
+        });
+
         // 名前反映
         const savedName = sessionStorage.getItem('userName');
         if (savedName) {
@@ -283,21 +325,6 @@
                 if (el.innerText.includes('篠原 栄') || el.innerText.includes('長谷部由紀')) el.innerText = savedName;
             });
         }
-
-        // ボタンイベント
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.filter-btn').forEach(b => {
-                    b.classList.remove('bg-green-600', 'text-white');
-                    b.classList.add('bg-white', 'text-gray-700');
-                });
-                btn.classList.add('bg-green-600', 'text-white');
-                btn.classList.remove('bg-white');
-                loadCustomers(btn.dataset.range);
-            });
-        });
-
-        loadCustomers('all');
     });
 </script>
   
