@@ -153,7 +153,22 @@
                     </a>
                 </div>
             </div>
-
+　　　　　　　<!-- 絞り込みボタンエリア -->
+<div class="flex flex-wrap gap-2 mb-6">
+    <button class="filter-btn bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700 font-bold" data-range="all">全件</button>
+    <button class="filter-btn bg-white border border-gray-300 px-4 py-2 rounded shadow hover:bg-gray-100" data-range="あ">あ行</button>
+    <button class="filter-btn bg-white border border-gray-300 px-4 py-2 rounded shadow hover:bg-gray-100" data-range="か">か行</button>
+    <button class="filter-btn bg-white border border-gray-300 px-4 py-2 rounded shadow hover:bg-gray-100" data-range="さ">さ行</button>
+    <button class="filter-btn bg-white border border-gray-300 px-4 py-2 rounded shadow hover:bg-gray-100" data-range="た">た行</button>
+    <button class="filter-btn bg-white border border-gray-300 px-4 py-2 rounded shadow hover:bg-gray-100" data-range="な">な行</button>
+    <button class="filter-btn bg-white border border-gray-300 px-4 py-2 rounded shadow hover:bg-gray-100" data-range="は">は行</button>
+    <button class="filter-btn bg-white border border-gray-300 px-4 py-2 rounded shadow hover:bg-gray-100" data-range="ま">ま行</button>
+    <button class="filter-btn bg-white border border-gray-300 px-4 py-2 rounded shadow hover:bg-gray-100" data-range="や">や行</button>
+    <button class="filter-btn bg-white border border-gray-300 px-4 py-2 rounded shadow hover:bg-gray-100" data-range="ら">ら行</button>
+    <button class="filter-btn bg-white border border-gray-300 px-4 py-2 rounded shadow hover:bg-gray-100" data-range="わ">わ行</button>
+    <button class="filter-btn bg-white border border-gray-300 px-4 py-2 rounded shadow hover:bg-gray-100" data-range="others">その他</button>
+</div>
+          
             <!-- テーブル -->
             <div class="bg-white shadow-xl rounded overflow-hidden border border-gray-200">
                 <table class="w-full custom-table">
@@ -191,7 +206,7 @@
     
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, getDocs, limit, query } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, query, orderBy, where, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyDhOEZ7Jb1K2rTxLyTH6d8ob4Qzcrwf_XI",
@@ -205,29 +220,38 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    async function loadCustomers() {
-        // 名前反映
-        const savedName = sessionStorage.getItem('userName');
-        if (savedName) {
-            document.querySelectorAll('header span').forEach(el => {
-                if (el.innerText.includes('篠原 栄')) el.innerText = savedName;
-            });
-        }
+    const kanaRange = {
+        'あ': { start: 'あ', end: 'か' }, 'か': { start: 'か', end: 'さ' },
+        'さ': { start: 'さ', end: 'た' }, 'た': { start: 'た', end: 'な' },
+        'な': { start: 'な', end: 'は' }, 'は': { start: 'は', end: 'ま' },
+        'ま': { start: 'ま', end: 'や' }, 'や': { start: 'や', end: 'ら' },
+        'ら': { start: 'ら', end: 'わ' }, 'わ': { start: 'わ', end: 'ん' }
+    };
 
+    async function loadCustomers(filter = 'all') {
         const tbody = document.getElementById('customerTable');
         if (!tbody) return;
+        tbody.innerHTML = "<tr><td colspan='8' class='text-center p-10'>読み込み中...</td></tr>";
 
         try {
-            // 最もシンプルな取得方法（並び替えを一旦外して、確実にデータを出す）
-            const querySnapshot = await getDocs(query(collection(db, "customers"), limit(50)));
-            
-            tbody.innerHTML = ""; 
+            let q;
+            const ref = collection(db, "customers");
 
+            if (filter === 'all') {
+                q = query(ref, orderBy("name"), limit(100));
+            } else if (kanaRange[filter]) {
+                q = query(ref, where("name", ">=", kanaRange[filter].start), where("name", "<", kanaRange[filter].end), orderBy("name"));
+            } else if (filter === 'others') {
+                q = query(ref, where("name", ">=", "ん"), orderBy("name"));
+            }
+
+            const querySnapshot = await getDocs(q);
+            tbody.innerHTML = "";
             let count = 1;
+
             querySnapshot.forEach((docSnap) => {
                 const data = docSnap.data();
                 const visitCount = String(data.visitCount || "0").replace('回', '');
-                
                 const row = `
                     <tr class="hover:bg-gray-50 border-b">
                         <td class="p-4 text-center text-gray-500">${count++}</td>
@@ -240,20 +264,41 @@
                         <td class="p-4 text-sm text-gray-600">${data.address || "-"}</td>
                         <td class="p-4 text-center font-bold">${visitCount}回</td>
                         <td class="p-4 text-center text-xs text-gray-500">${data.lastVisit || "-"}</td>
-                        <td class="p-4 text-center">
-                           <input type="checkbox" class="cursor-pointer">
-                        </td>
+                        <td class="p-4 text-center"><input type="checkbox" class="cursor-pointer"></td>
                     </tr>
                 `;
                 tbody.insertAdjacentHTML('beforeend', row);
             });
         } catch (e) {
-            console.error("Firebase読み込みエラー:", e);
-            tbody.innerHTML = `<tr><td colspan="8" class="text-center p-10 text-red-500">読み込みエラー: ${e.message}</td></tr>`;
+            console.error(e);
+            tbody.innerHTML = "<tr><td colspan='8' class='p-10 text-center text-red-500'>読み込みに失敗しました。</td></tr>";
         }
     }
 
-    loadCustomers();
+    document.addEventListener('DOMContentLoaded', () => {
+        // 名前反映
+        const savedName = sessionStorage.getItem('userName');
+        if (savedName) {
+            document.querySelectorAll('header span').forEach(el => {
+                if (el.innerText.includes('篠原 栄') || el.innerText.includes('長谷部由紀')) el.innerText = savedName;
+            });
+        }
+
+        // ボタンイベント
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => {
+                    b.classList.remove('bg-green-600', 'text-white');
+                    b.classList.add('bg-white', 'text-gray-700');
+                });
+                btn.classList.add('bg-green-600', 'text-white');
+                btn.classList.remove('bg-white');
+                loadCustomers(btn.dataset.range);
+            });
+        });
+
+        loadCustomers('all');
+    });
 </script>
   
 
