@@ -188,7 +188,7 @@
 
    <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, query, orderBy, limit, getDocs, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, query, orderBy, limit, getDocs, doc, deleteDoc, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyDhOEZ7Jb1K2rTxLyTH6d8ob4Qzcrwf_XI",
@@ -202,43 +202,58 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // 削除機能の関数
+    // 1. 列名の修正（表の見出しを自動で書き換える）
+    function updateTableHeaders() {
+        const headers = document.querySelectorAll('table thead th');
+        if (headers.length >= 7) {
+            headers[5].innerText = "訪問回数";
+            headers[6].innerText = "最終訪問日";
+            // 削除列が既にある場合はそれも修正
+            const lastHeader = headers[headers.length - 1];
+            if (lastHeader) lastHeader.innerText = "削除";
+        }
+    }
+
+    // 2. 削除機能
     window.deleteCustomer = async function(customerId, customerName) {
         if (confirm(`「${customerName}」様を削除してもよろしいですか？`)) {
             try {
                 await deleteDoc(doc(db, "customers", customerId));
                 alert("削除しました。");
-                location.reload(); // 画面を更新して一覧から消す
+                location.reload();
             } catch (e) {
                 alert("削除に失敗しました。");
             }
         }
     }
 
-    document.addEventListener('DOMContentLoaded', async () => {
-        // 名前反映
-        const savedName = sessionStorage.getItem('userName');
-        if (savedName) {
-            document.querySelectorAll('header span').forEach(el => {
-                if (el.innerText.includes('篠原 栄') || el.innerText.includes('長谷部由紀')) el.innerText = savedName;
-            });
-        }
-
+    // 3. データ読み込み（絞り込み対応）
+    async function loadCustomers(filterRange = null) {
         const tbody = document.getElementById('customerTable');
         if (!tbody) return;
+        tbody.innerHTML = "<tr><td colspan='8' class='text-center p-10'>読み込み中...</td></tr>";
 
         try {
-            const q = query(collection(db, "customers"), orderBy("name"), limit(50));
+            let q;
+            const customersRef = collection(db, "customers");
+
+            if (filterRange) {
+                // あいうえお順の絞り込み（例：あ行なら「あ」以上「か」未満）
+                q = query(customersRef, 
+                    where("name", ">=", filterRange.start), 
+                    where("name", "<", filterRange.end),
+                    orderBy("name"), limit(100));
+            } else {
+                q = query(customersRef, orderBy("name"), limit(50));
+            }
+
             const querySnapshot = await getDocs(q);
-            
             tbody.innerHTML = "";
 
             let count = 1;
             querySnapshot.forEach((docSnap) => {
                 const data = docSnap.data();
                 const customerId = docSnap.id;
-                
-                // 「4回回」にならないよう、数字だけを取り出す（または「回」を除去）
                 let visitCount = String(data.visitCount || "0").replace('回', '');
 
                 const row = `
@@ -252,16 +267,56 @@
                         <td class="p-4 text-center">${data.tel || "-"}</td>
                         <td class="p-4 text-gray-600">${data.address || "-"}</td>
                         <td class="p-4 text-center font-bold">${visitCount}回</td>
-                        <td class="p-4 text-center text-gray-500">${data.lastVisit || "-"}</td>
-                        <td class="p-4 text-center">
-                           <input type="checkbox" onclick="deleteCustomer('${customerId}', '${data.name}')" class="cursor-pointer">
-                        </td>
+                        <td class="p-4 text-center text-gray-500 text-xs">${data.lastVisit || "-"}</td>
+                        <td class="p-4 text-center"><input type="checkbox" onclick="deleteCustomer('${customerId}', '${data.name}')"></td>
                     </tr>
                 `;
                 tbody.insertAdjacentHTML('beforeend', row);
             });
         } catch (e) {
             console.error(e);
+            tbody.innerHTML = "<tr><td colspan='8' class='text-center text-red-500 p-10'>エラーが発生しました</td></tr>";
+        }
+    }
+
+    // 4. あいうえおボタンのイベント設定
+    const kanaMap = {
+        'あ行': {start: 'あ', end: 'か'},
+        'か行': {start: 'か', end: 'さ'},
+        'さ行': {start: 'さ', end: 'た'},
+        'た行': {start: 'た', end: 'な'},
+        'な行': {start: 'な', end: 'は'},
+        'は行': {start: 'は', end: 'ま'},
+        'ま行': {start: 'ま', end: 'や'},
+        'や行': {start: 'や', end: 'ら'},
+        'ら行': {start: 'ら', end: 'わ'},
+        'わ行': {start: 'わ', end: 'ん'},
+        '全件': null
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        updateTableHeaders();
+        loadCustomers();
+
+        // 既存のボタンを探してイベントをつける
+        document.querySelectorAll('button').forEach(btn => {
+            const label = btn.innerText.trim();
+            if (kanaMap[label] !== undefined) {
+                btn.addEventListener('click', () => {
+                    // 全ボタンの背景色をリセットしてクリックしたのだけ色を変える
+                    document.querySelectorAll('button').forEach(b => b.classList.remove('bg-green-500', 'text-white'));
+                    if(label !== '全件') btn.classList.add('bg-green-500', 'text-white');
+                    loadCustomers(kanaMap[label]);
+                });
+            }
+        });
+
+        // 名前反映
+        const savedName = sessionStorage.getItem('userName');
+        if (savedName) {
+            document.querySelectorAll('header span').forEach(el => {
+                if (el.innerText.includes('篠原 栄') || el.innerText.includes('長谷部由紀')) el.innerText = savedName;
+            });
         }
     });
 </script>
