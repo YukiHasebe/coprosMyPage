@@ -164,6 +164,9 @@
                             <th class="w-32">実績登録</th>
                             <th class="w-40">電話番号</th>
                             <th class="text-left">住所</th>
+　　　　　　　　　　　　　　　 <th class="w-24 text-center">訪問回数</th>
+                            <th class="w-32 text-center">最終訪問日</th>
+                            <th class="w-16 text-center">削除</th>
                         </tr>
                     </thead>
                     <tbody id="customerTable">
@@ -317,7 +320,120 @@
             document.querySelectorAll('header span').forEach(el => {
                 if (el.innerText.includes('篠原 栄') || el.innerText.includes('長谷部由紀')) el.innerText = savedName;
             });
+        }<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, query, orderBy, limit, getDocs, doc, deleteDoc, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyDhOEZ7Jb1K2rTxLyTH6d8ob4Qzcrwf_XI",
+        authDomain: "copros-my-page.firebaseapp.com",
+        projectId: "copros-my-page",
+        storageBucket: "copros-my-page.firebasestorage.app",
+        messagingSenderId: "54419849010",
+        appId: "1:54419849010:web:a60015b9c6fcf60cd3e12b"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // 1. データ読み込み機能
+    async function loadCustomers(filterRange = null) {
+        const tbody = document.getElementById('customerTable');
+        if (!tbody) return;
+        tbody.innerHTML = "<tr><td colspan='8' class='text-center p-10'>読み込み中...</td></tr>";
+
+        try {
+            let q;
+            const customersRef = collection(db, "customers");
+
+            if (filterRange) {
+                // あいうえお順の絞り込み（漢字は「あ」より前として扱うなど調整が必要な場合があります）
+                q = query(customersRef, 
+                    where("name", ">=", filterRange.start), 
+                    where("name", "<", filterRange.end),
+                    orderBy("name"), limit(100));
+            } else {
+                q = query(customersRef, orderBy("name"), limit(50));
+            }
+
+            const querySnapshot = await getDocs(q);
+            tbody.innerHTML = "";
+
+            let count = 1;
+            querySnapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                const customerId = docSnap.id;
+                let visitCount = String(data.visitCount || "0").replace('回', '');
+
+                const row = `
+                    <tr class="hover:bg-gray-50 border-b text-sm">
+                        <td class="p-4 text-center text-gray-500">${count++}</td>
+                        <td class="p-4 text-blue-600 font-bold">${data.name}</td>
+                        <td class="p-4 text-center">
+                           <button class="bg-blue-600 text-white px-3 py-1 rounded text-xs" 
+                                   onclick="location.href='history.html?name=${encodeURIComponent(data.name)}'">登録</button>
+                        </td>
+                        <td class="p-4 text-center">${data.tel || "-"}</td>
+                        <td class="p-4 text-gray-600">${data.address || "-"}</td>
+                        <td class="p-4 text-center font-bold">${visitCount}回</td>
+                        <td class="p-4 text-center text-gray-500 text-xs">${data.lastVisit || "-"}</td>
+                        <td class="p-4 text-center">
+                           <button onclick="if(confirm('削除しますか？')) deleteCustomer('${customerId}')" class="text-red-500 hover:text-red-700">
+                               <i class="fa-solid fa-trash-can"></i>
+                           </button>
+                        </td>
+                    </tr>
+                `;
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+        } catch (e) {
+            console.error(e);
+            tbody.innerHTML = "<tr><td colspan='8' class='text-center text-red-500 p-10'>データが見つかりませんでした</td></tr>";
         }
+    }
+
+    // 2. 削除機能
+    window.deleteCustomer = async function(id) {
+        await deleteDoc(doc(db, "customers", id));
+        alert("削除しました。");
+        loadCustomers();
+    };
+
+    // 3. ボタンとイベントの紐付け
+    document.addEventListener('DOMContentLoaded', () => {
+        loadCustomers();
+
+        // ログイン名の反映
+        const savedName = sessionStorage.getItem('userName');
+        if (savedName) {
+            document.querySelectorAll('header span').forEach(el => {
+                if (el.innerText.includes('篠原 栄') || el.innerText.includes('長谷部由紀')) el.innerText = savedName;
+            });
+        }
+
+        // あいうえおボタン全てにイベントをつける
+        const kanaMap = {
+            'あ行': {start: 'あ', end: 'か'}, 'か行': {start: 'か', end: 'さ'},
+            'さ行': {start: 'さ', end: 'た'}, 'た行': {start: 'た', end: 'な'},
+            'な行': {start: 'な', end: 'は'}, 'は行': {start: 'は', end: 'ま'},
+            'ま行': {start: 'ま', end: 'や'}, 'や行': {start: 'や', end: 'ら'},
+            'ら行': {start: 'ら', end: 'わ'}, 'わ行': {start: 'わ', end: 'ん'},
+            '全件': null
+        };
+
+        document.querySelectorAll('button').forEach(btn => {
+            const label = btn.innerText.trim();
+            if (kanaMap[label] !== undefined) {
+                btn.onclick = () => {
+                    // 全ボタンを白くして、押したのだけ緑にする
+                    document.querySelectorAll('button').forEach(b => b.classList.remove('bg-green-500', 'text-white'));
+                    if(label !== '全件') btn.classList.add('bg-green-500', 'text-white');
+                    loadCustomers(kanaMap[label]);
+                };
+            }
+        });
+    });
+</script>
     });
 </script>
 </body>   
