@@ -285,7 +285,14 @@
             console.error("読み込みエラー:", e);
         }
     }
-
+// 右上の名前をログイン名に書き換える
+    const savedName = sessionStorage.getItem('userName');
+    if (savedName) {
+        const userSpan = document.querySelector('header span.bg-gray-700');
+        if (userSpan) {
+            userSpan.innerText = savedName; // 名前を上書き
+        }
+    }
     // 画面が開いたら実行
     loadRecords();
 </script>
