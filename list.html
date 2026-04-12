@@ -318,9 +318,14 @@
                 btn.classList.add('active', 'bg-green-600', 'text-white');
                 if(r === 'all') filteredData = [...allData];
                 else {
-                    const range = {'あ':/^[あ-おア-オ]/,'か':/^[か-こカ-コ]/,'さ':/^[さ-そサ-ソ]/,'た':/^[た-とタ-ト]/,'な':/^[な-のナ-ノ]/,'は':/^[は-ほハ-ホ]/,'ま':/^[ま-もマ-モ]/,'や':/^[や-よヤ-ヨ]/,'ら':/^[ら-ろラ-ロ]/,'わ':/^[わ-んワ-ン]/};
-                    filteredData = allData.filter(d => r === 'others' ? !Object.values(range).some(reg => reg.test(d.name)) : range[r].test(d.name));
-                }
+                                    // 50音の判定基準（ひらがな・カタカナ両対応）
+                const range = {'あ':/^[あ-おア-オ]/,'か':/^[か-こカ-コ]/,'さ':/^[さ-そサ-ソ]/,'た':/^[た-とタ-ト]/,'な':/^[な-のナ-ノ]/,'は':/^[は-ほハ-ホ]/,'ま':/^[ま-もマ-モ]/,'や':/^[や-よヤ-ヨ]/,'ら':/^[ら-ろラ-ロ]/,'わ':/^[わ-んワ-ン]/};
+                filteredData = allData.filter(d => {
+                    // 【ここがポイント】カナがあればカナを、なければ名前を使って判定します
+                    const searchBase = d.kana || d.name || "";
+                    return r === 'others' ? !Object.values(range).some(reg => reg.test(searchBase)) : range[r].test(searchBase);
+               　　　　　 });
+                    }
                 currentPage = 1; updateView();
             };
         });
