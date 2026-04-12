@@ -305,9 +305,12 @@
             currentPage = 1; updateView();
         };
 
-        document.getElementById('headerSearchInput').addEventListener('input', (e) => {
+              document.getElementById('headerSearchInput').addEventListener('input', (e) => {
             const k = e.target.value.toLowerCase();
-            filteredData = allData.filter(d => d.name.toLowerCase().includes(k));
+            filteredData = allData.filter(d => 
+                (d.name && d.name.toLowerCase().includes(k)) || 
+                (d.kana && d.kana.toLowerCase().includes(k))
+            );
             currentPage = 1; updateView();
         });
 
@@ -319,7 +322,18 @@
                 if(r === 'all') filteredData = [...allData];
                 else {
                                     // 50音の判定基準（ひらがな・カタカナ両対応）
-                const range = {'あ':/^[あ-おア-オ]/,'か':/^[か-こカ-コ]/,'さ':/^[さ-そサ-ソ]/,'た':/^[た-とタ-ト]/,'な':/^[な-のナ-ノ]/,'は':/^[は-ほハ-ホ]/,'ま':/^[ま-もマ-モ]/,'や':/^[や-よヤ-ヨ]/,'ら':/^[ら-ろラ-ロ]/,'わ':/^[わ-んワ-ン]/};
+         const range = {
+                    'あ':/^[あ-おア-オ]/,
+                    'か':/^[か-こが-ごカ-コガ-ゴ]/,
+                    'さ':/^[さ-そざ-ぞサ-ソザ-ゾ]/,
+                    'た':/^[た-とだ-どタ-トダ-ド]/,
+                    'な':/^[な-のナ-ノ]/,
+                    'は':/^[は-ほば-ぼぱ-ぽハ-ホバ-ボパ-ポ]/,
+                    'ま':/^[ま-もマ-モ]/,
+                    'や':/^[や-よヤ-ヨ]/,
+                    'ら':/^[ら-ろラ-ロ]/,
+                    'わ':/^[わ-んワ-ン]/
+                };
                 filteredData = allData.filter(d => {
                     // 【ここがポイント】カナがあればカナを、なければ名前を使って判定します
                     const searchBase = d.kana || d.name || "";
