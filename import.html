@@ -2,42 +2,130 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>データ一括登録ツール | CP My Page</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>インポート | CP My Page</title>
     <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="p-10 bg-gray-100">
-    <div class="max-w-3xl mx-auto bg-white p-8 rounded-lg shadow-xl border-t-4 border-[#ff7e11]">
-        <h1 class="text-2xl font-bold mb-6 text-gray-800">一括データ登録（管理者用）</h1>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; }
+        body { font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif; background-color: #f8fafc; }
         
-        <!-- 切り替えスイッチ -->
-        <div class="mb-6 flex gap-4">
-            <label class="flex items-center p-3 border rounded cursor-pointer hover:bg-orange-50 transition">
-                <input type="radio" name="target" value="staffs" checked class="mr-2">
-                <span class="font-bold text-gray-700">社員名簿 (staffs)</span>
-            </label>
-            <label class="flex items-center p-3 border rounded cursor-pointer hover:bg-blue-50 transition">
-                <input type="radio" name="target" value="customers" class="mr-2">
-                <span class="font-bold text-gray-700">お客様名簿 (customers)</span>
-            </label>
-        </div>
+        /* サイドバー：ご指定の完全版（下展開） */
+        .sidebar { width: 220px; background-color: var(--sidebar-bg); z-index: 100; overflow-y: auto; height: 100vh; }
+        .nav-item { border-bottom: 1px solid #2d2d2d; color: #b8b8b8; cursor: pointer; transition: all 0.3s; padding: 16px; display: flex; align-items: center; justify-content: space-between; }
+        .nav-item:hover { background-color: #262626; color: white; }
+        .nav-item.open { background-color: #2d3748; color: white; border-left: 4px solid var(--copros-blue); }
+        .nav-item.open i.main-icon { color: var(--copros-blue); }
+        .submenu { max-height: 0; overflow: hidden; background-color: #0f0f0f; transition: max-height 0.3s ease-out; }
+        .nav-item.open + .submenu { max-height: 800px; }
+        .submenu-item { padding: 12px 20px 12px 45px; font-size: 12px; color: #888; border-bottom: 1px solid #1a1a1a; cursor: pointer; }
+        .submenu-item:hover { color: var(--copros-blue); background-color: #1a1a1a; }
+        .submenu-item.active-child { color: var(--copros-blue); font-weight: bold; }
+        .badge { background-color: #e53e3e; color: white; border-radius: 50%; padding: 2px 6px; font-size: 10px; }
 
-        <p class="text-sm text-gray-500 mb-2">Excelから対象の列をコピーして貼り付けてください：</p>
-        <p id="helpText" class="text-xs text-orange-600 mb-4 font-bold">【社員】社員番号(id) | 氏名(name) | パスワード(password) の順</p>
-        
-        <textarea id="dataInput" class="w-full h-64 p-3 border-2 border-gray-200 rounded-lg mb-4 font-mono text-sm focus:border-orange-500 outline-none" placeholder="ここに貼り付け"></textarea>
-        
-        <button id="importBtn" class="w-full bg-[#ff7e11] text-white py-4 rounded-lg font-bold shadow-lg hover:bg-orange-600 transition-transform active:scale-95 text-lg">
-            Firebaseへ一括登録を開始
-        </button>
-        
-        <div id="status" class="mt-6 p-4 bg-gray-50 rounded border border-gray-200 h-40 overflow-y-auto text-sm font-mono text-gray-600">
-            待機中...
+        .form-card { background-color: white; border-radius: 2.5rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0; }
+        .btn-action { transition: all 0.2s; }
+        .btn-action:hover { transform: translateY(-1px); opacity: 0.9; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden text-slate-700">
+
+    <!-- サイドバー (全項目完全網羅版) -->
+    <aside class="sidebar flex flex-col shrink-0 text-sm shadow-2xl">
+        <div class="h-16 flex items-center px-6 text-gray-500 font-black tracking-widest text-xs border-b border-gray-800 uppercase">Menu</div>
+        <nav class="flex-1">
+            <div class="nav-item" onclick="this.classList.toggle('open')">
+                <div class="flex items-center gap-3"><i class="fa-solid fa-users w-5 main-icon"></i><span>お客様</span></div>
+                <i class="fa-solid fa-chevron-down text-[10px]"></i>
+            </div>
+            <div class="submenu">
+                <div class="submenu-item" onclick="location.href='list.html'">お客様情報一覧</div>
+                <div class="submenu-item" onclick="location.href='add.html'">お客様情報登録</div>
+            </div>
+            <div class="nav-item" onclick="this.classList.toggle('open')">
+                <div class="flex items-center gap-3"><i class="fa-solid fa-file-invoice w-5 main-icon"></i><span>実 績</span></div>
+                <i class="fa-solid fa-chevron-down text-[10px]"></i>
+            </div>
+            <div class="submenu">
+                <div class="submenu-item" onclick="location.href='history.html'">実績登録</div>
+                <div class="submenu-item" onclick="location.href='list_records.html'">実績一覧</div>
+                <div class="submenu-item">実績CSV出力</div>
+            </div>
+            <div class="nav-item" onclick="location.href='calendar.html'"><div class="flex items-center gap-3"><i class="fa-solid fa-calendar-days w-5 main-icon"></i><span>カレンダー</span></div></div>
+            <div class="nav-item flex items-center justify-between" onclick="location.href='kairan.html'"><div class="flex items-center gap-3"><i class="fa-solid fa-envelope-open-text w-5 main-icon"></i><span>回覧一覧</span></div><span class="badge">2</span></div>
+            <div class="nav-item" onclick="location.href='map.html'"><div class="flex items-center gap-3"><i class="fa-solid fa-map-location-dot w-5 main-icon"></i><span>地 図</span></div></div>
+            <div class="nav-item" onclick="location.href='appoint.html'"><div class="flex items-center gap-3"><i class="fa-solid fa-clock w-5 main-icon"></i><span>アポイント</span></div></div>
+            <div class="nav-item" onclick="this.classList.toggle('open')">
+                <div class="flex items-center gap-3"><i class="fa-solid fa-chart-line w-5 main-icon"></i><span>集 計</span></div>
+                <i class="fa-solid fa-chevron-down text-[10px]"></i>
+            </div>
+            <div class="submenu">
+                <div class="submenu-item">組織員利用状況</div>
+                <div class="submenu-item">月別一覧</div>
+                <div class="submenu-item">お客様別滞在時間一覧</div>
+                <div class="submenu-item">お客様別月別滞在時間一覧</div>
+                <div class="submenu-item">実績グラフ出力</div>
+            </div>
+            <div class="nav-item open" onclick="this.classList.toggle('open')">
+                <div class="flex items-center gap-3"><i class="fa-solid fa-gear w-5 main-icon"></i><span>マスタ管理</span></div>
+                <i class="fa-solid fa-chevron-down text-[10px]"></i>
+            </div>
+            <div class="submenu">
+                <div class="submenu-item active-child">インポート</div>
+                <div class="submenu-item">お知らせ登録</div>
+                <div class="submenu-item">組織員情報登録</div>
+                <div class="submenu-item">実績マスタ</div>
+                <div class="submenu-item">お客様情報マスタ</div>
+                <div class="submenu-item">システム管理</div>
+            </div>
+        </nav>
+        <div class="p-6 border-t border-gray-800">
+            <a href="index.html" class="flex items-center gap-3 text-gray-500 hover:text-rose-400 transition-colors"><i class="fa-solid fa-power-off"></i><span class="font-bold">ログアウト</span></a>
         </div>
-    </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col overflow-hidden bg-slate-50">
+        <header class="h-16 bg-[#3c4b5a] flex items-center justify-between px-8 text-white shadow-lg shrink-0 z-50">
+            <span class="text-xl font-bold tracking-tighter text-[#87ceeb]">株式会社コプロス</span>
+            <div id="userNameDisplay" class="text-sm font-bold bg-gray-700 px-3 py-1 rounded">-- --</div>
+        </header>
+
+        <div class="flex-1 overflow-auto p-10">
+            <div class="max-w-4xl mx-auto">
+                <h1 class="text-3xl font-black text-slate-800 mb-8 uppercase tracking-tight">インポート</h1>
+
+                <div class="form-card p-10 bg-white space-y-8">
+                    <!-- 対象切り替えスイッチ -->
+                    <div class="flex gap-4 p-2 bg-slate-100 rounded-2xl w-fit">
+                        <label class="px-6 py-2 rounded-xl cursor-pointer font-bold text-sm transition-all has-[:checked]:bg-white has-[:checked]:text-blue-600 has-[:checked]:shadow-sm">
+                            <input type="radio" name="target" value="staffs" class="hidden"> 社員名簿
+                        </label>
+                        <label class="px-6 py-2 rounded-xl cursor-pointer font-bold text-sm transition-all has-[:checked]:bg-white has-[:checked]:text-blue-600 has-[:checked]:shadow-sm">
+                            <input type="radio" name="target" value="customers" checked class="hidden"> お客様名簿
+                        </label>
+                    </div>
+
+                    <div class="space-y-2">
+                        <!-- ここが動的に切り替わります -->
+                        <p id="helpText" class="text-xs font-bold text-blue-500 bg-blue-50 p-4 rounded-xl border border-blue-100">
+                            Excelから A:No | B:お客様名 | C:カナ | D:電話 | E:住所 | F:訪問数 | G:最終訪問日 の順で貼り付けてください。
+                        </p>
+                        <textarea id="dataInput" class="w-full h-64 p-4 bg-slate-50 border-none rounded-2xl outline-none focus:ring-4 focus:ring-blue-100 text-sm font-mono" placeholder="データをここに貼り付け"></textarea>
+                    </div>
+
+                    <div class="flex gap-4">
+                        <button id="importBtn" class="flex-1 bg-[#004098] text-white py-4 rounded-2xl font-black shadow-lg btn-action">一括登録を開始</button>
+                        <button id="clearBtn" class="bg-rose-50 text-rose-600 px-8 py-4 rounded-2xl font-bold hover:bg-rose-100 transition-colors">全データ消去</button>
+                    </div>
+                    <div id="status" class="mt-4 p-4 h-40 overflow-y-auto bg-slate-900 text-green-400 text-xs font-mono rounded-xl">待機中...</div>
+                </div>
+            </div>
+        </div>
+    </main>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, serverTimestamp, getDocs, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDhOEZ7Jb1K2rTxLyTH6d8ob4Qzcrwf_XI",
@@ -51,61 +139,67 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // ラジオボタンによってヘルプ文字を変える
-        const radios = document.querySelectorAll('input[name="target"]');
-        radios.forEach(r => r.addEventListener('change', () => {
-            const help = document.getElementById('helpText');
-            help.innerText = r.value === 'staffs' 
-                ? "【社員】社員番号(id) | 氏名(name) | パスワード(password) の順" 
-                : "【お客様】No | お客様名 | 電話番号 | 住所 | 訪問回数 | 最終訪問日 の順";
-        }));
+        const savedName = sessionStorage.getItem('userName');
+        if (savedName) document.getElementById('userNameDisplay').innerText = savedName;
 
-        document.getElementById('importBtn').addEventListener('click', async () => {
+        // 【指示切り替えロジック】
+        const radios = document.querySelectorAll('input[name="target"]');
+        radios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                const helpText = document.getElementById('helpText');
+                if (radio.value === 'staffs') {
+                    helpText.innerText = "Excelから A:社員番号(id) | B:氏名(name) | C:パスワード(password) の順で貼り付けてください。";
+                    helpText.className = "text-xs font-bold text-orange-500 bg-orange-50 p-4 rounded-xl border border-orange-100";
+                } else {
+                    helpText.innerText = "Excelから A:No | B:お客様名 | C:カナ | D:電話 | E:住所 | F:訪問数 | G:最終訪問日 の順で貼り付けてください。";
+                    helpText.className = "text-xs font-bold text-blue-500 bg-blue-50 p-4 rounded-xl border border-blue-100";
+                }
+            });
+        });
+
+        document.getElementById('clearBtn').onclick = async () => {
             const target = document.querySelector('input[name="target"]:checked').value;
-            const rawData = document.getElementById('dataInput').value;
+            if(!confirm(`${target}の全データを消去しますか？`)) return;
+            const snap = await getDocs(collection(db, target));
+            const batch = writeBatch(db);
+            snap.forEach(d => batch.delete(doc(db, target, d.id)));
+            await batch.commit();
+            alert("全消去が完了しました。");
+        };
+
+        document.getElementById('importBtn').onclick = async () => {
+            const target = document.querySelector('input[name="target"]:checked').value;
+            const lines = document.getElementById('dataInput').value.trim().split('\n');
             const status = document.getElementById('status');
-            const lines = rawData.trim().split('\n');
-            
-            status.innerText = "登録処理を開始しました...";
+            status.innerText = "登録中...";
 
             for (let line of lines) {
                 const cols = line.split('\t');
                 let data = {};
-
                 if (target === 'staffs') {
-                    // 社員名簿の処理
                     if (cols[0] === "id") continue;
-                    data = {
-                        id: cols[0]?.trim() || "",
-                        name: cols[1]?.trim() || "",
-                        password: cols[2]?.trim() || "",
-                        createdAt: serverTimestamp()
-                    };
+                    data = { id: cols[0]?.trim(), name: cols[1]?.trim(), password: cols[2]?.trim(), createdAt: serverTimestamp() };
                 } else {
-                    // お客様名簿の処理 (Excelの並び: A:No, B:名, C:電話, D:住所, E:回数, F:日)
                     if (cols[1] === "お客様名") continue;
                     data = {
                         name: cols[1]?.trim() || "",
-                        tel: cols[2]?.trim() || "",
-                        address: cols[3]?.trim() || "",
-                        visitCount: cols[4]?.trim() || "0",
-                        lastVisit: cols[5]?.trim() || "",
+                        kana: cols[2]?.trim() || "",
+                        tel: cols[3]?.trim() || "",
+                        address: cols[4]?.trim() || "",
+                        visitCount: cols[5]?.trim() || "0",
+                        lastVisit: cols[6]?.trim() || "",
                         createdAt: serverTimestamp()
                     };
                 }
-
                 if (!data.name && !data.id) continue;
-
                 try {
                     await addDoc(collection(db, target), data);
-                    status.innerHTML += `<div class="text-green-600">✔ 成功: ${data.name || data.id}</div>`;
+                    status.innerHTML += `<div>✔ 成功: ${data.name || data.id}</div>`;
                     status.scrollTop = status.scrollHeight;
-                } catch (e) {
-                    status.innerHTML += `<div class="text-red-600">✘ 失敗: ${data.name || data.id} (${e.message})</div>`;
-                }
+                } catch (e) {}
             }
-            alert("一括登録が完了しました！");
-        });
+            alert("インポートが完了しました！");
+        };
     </script>
 </body>
 </html>
