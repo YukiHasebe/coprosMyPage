@@ -3,217 +3,199 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>お客様新規登録 | CP My Page</title>
+    <title>お客様情報登録 | CP My Page</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root {
-            --sidebar-bg: #1a1a1a;
-            --header-bg: #3c4b5a;
-            --accent-orange: #ff7e11;
-            --primary-blue: #004098;
-        }
-        body { font-family: "Meiryo", sans-serif; background-color: #f4f7f9; }
+        :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; }
+        body { font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif; background-color: #f8fafc; }
         
-        .sidebar { background-color: var(--sidebar-bg); width: 200px; }
-        .nav-item { border-bottom: 1px solid #2d2d2d; transition: all 0.2s; color: #b8b8b8; }
-        .nav-item:hover { background-color: #333; color: white; }
-        .active-menu { background-color: #2d3748; border-left: 4px solid var(--accent-orange); color: white !important; }
+        /* サイドバー：フルメニュー版 */
+        .sidebar { width: 220px; background-color: var(--sidebar-bg); z-index: 100; overflow-y: auto; height: 100vh; }
+        .nav-item { border-bottom: 1px solid #2d2d2d; color: #b8b8b8; cursor: pointer; transition: all 0.3s; padding: 16px; display: flex; align-items: center; justify-content: space-between; }
+        .nav-item:hover { background-color: #262626; color: white; }
+        .nav-item.open { background-color: #2d3748; color: white; border-left: 4px solid var(--copros-blue); }
+        .nav-item.open i.main-icon { color: var(--copros-blue); }
+        
+        .submenu { max-height: 0; overflow: hidden; background-color: #0f0f0f; transition: max-height 0.3s ease-out; }
+        .nav-item.open + .submenu { max-height: 800px; }
+        .submenu-item { padding: 12px 20px 12px 45px; font-size: 12px; color: #888; border-bottom: 1px solid #1a1a1a; cursor: pointer; }
+        .submenu-item:hover { color: var(--copros-blue); background-color: #1a1a1a; }
+        .submenu-item.active-child { color: var(--copros-blue); font-weight: bold; }
+        .badge { background-color: #e53e3e; color: white; border-radius: 50%; padding: 2px 6px; font-size: 10px; }
 
-        .required-tag {
-            background-color: #fff1f0;
-            color: #d8514d;
-            border: 1px solid #ffa39e;
-            font-size: 10px;
-            padding: 1px 4px;
-            border-radius: 2px;
-            margin-left: 8px;
-            vertical-align: middle;
-        }
-
-        .form-input {
-            width: 100%;
-            border: 1px solid #d1d5db;
-            padding: 10px;
-            border-radius: 6px;
-            transition: all 0.2s;
-            outline: none;
-        }
-        .form-input:focus {
-            border-color: var(--primary-blue);
-            box-shadow: 0 0 0 3px rgba(0, 64, 152, 0.1);
-        }
-
-        .btn-action { transition: transform 0.1s; cursor: pointer; }
-        .btn-action:active { transform: scale(0.98); }
+        /* フォーム：2.5rem角丸デザイン */
+        .form-card { background-color: white; border-radius: 2.5rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0; }
+        .form-input { width: 100%; padding: 12px 16px; background-color: #f1f5f9; border: none; border-radius: 12px; outline: none; transition: all 0.3s; font-size: 14px; }
+        .form-input:focus { background-color: #fff; box-shadow: 0 0 0 4px rgba(135, 206, 235, 0.3); }
+        .label-text { font-size: 10px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; margin-left: 4px; display: block; }
+        .btn-action { transition: all 0.2s; }
+        .btn-action:hover { transform: translateY(-1px); opacity: 0.9; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
-<body class="flex h-screen overflow-hidden">
+<body class="flex h-screen overflow-hidden text-slate-700">
 
-   <!-- サイドバー（共通リンク設定済） -->
-<aside class="sidebar flex-shrink-0 text-white flex flex-col shadow-2xl">
-    <div class="p-4 text-xs font-bold text-gray-500 border-b border-gray-800 tracking-widest uppercase">Menu</div>
-    <nav class="flex-1 overflow-y-auto">
-        <!-- お客様 -->
-        <a href="list.html" class="nav-item block px-5 py-4 text-sm flex items-center hover:text-white">
-            <i class="fa-solid fa-users w-6"></i> お客様
-        </a>
+    <!-- サイドバー (フルメニュー決定版) -->
+    <aside class="sidebar flex flex-col shrink-0 text-sm shadow-2xl">
+        <div class="h-16 flex items-center px-6 text-gray-500 font-black tracking-widest text-xs border-b border-gray-800 uppercase">Menu</div>
+        <nav class="flex-1">
+            <!-- お客様 -->
+            <div class="nav-item open" onclick="this.classList.toggle('open')">
+                <div class="flex items-center gap-3"><i class="fa-solid fa-users w-5 main-icon"></i><span>お客様</span></div>
+                <i class="fa-solid fa-chevron-down text-[10px]"></i>
+            </div>
+            <div class="submenu">
+                <div class="submenu-item" onclick="location.href='list.html'">お客様情報一覧</div>
+                <div class="submenu-item active-child">お客様情報登録</div>
+            </div>
 
-        <!-- 実績（サブメニュー付き） -->
-        <div class="nav-group">
-            <div class="nav-item block px-5 py-4 text-sm flex items-center cursor-pointer">
-                <i class="fa-solid fa-file-invoice w-6"></i> 実績
+            <!-- 実績 -->
+            <div class="nav-item" onclick="this.classList.toggle('open')">
+                <div class="flex items-center gap-3"><i class="fa-solid fa-file-invoice w-5 main-icon"></i><span>実 績</span></div>
+                <i class="fa-solid fa-chevron-down text-[10px]"></i>
             </div>
-            <div class="bg-black text-[11px]">
-                <a href="history.html" class="block px-10 py-3 text-gray-400 hover:text-white border-b border-gray-900">実績登録</a>
-                <a href="list_records.html" class="block px-10 py-3 text-gray-400 hover:text-white border-b border-gray-900">実績一覧</a>
-                <a href="#" class="block px-10 py-3 text-gray-400 hover:text-white border-b border-gray-900">実績CSV出力</a>
+            <div class="submenu">
+                <div class="submenu-item" onclick="location.href='history.html'">実績登録</div>
+                <div class="submenu-item" onclick="location.href='list_records.html'">実績一覧</div>
+                <div class="submenu-item">実績CSV出力</div>
             </div>
+
+            <!-- カレンダー・回覧・地図・アポ -->
+            <div class="nav-item" onclick="location.href='calendar.html'"><div class="flex items-center gap-3"><i class="fa-solid fa-calendar-days w-5 main-icon"></i><span>カレンダー</span></div></div>
+            <div class="nav-item flex items-center justify-between" onclick="location.href='kairan.html'"><div class="flex items-center gap-3"><i class="fa-solid fa-envelope-open-text w-5 main-icon"></i><span>回覧一覧</span></div><span class="badge">2</span></div>
+            <div class="nav-item" onclick="location.href='map.html'"><div class="flex items-center gap-3"><i class="fa-solid fa-map-location-dot w-5 main-icon"></i><span>地 図</span></div></div>
+            <div class="nav-item" onclick="location.href='appoint.html'"><div class="flex items-center gap-3"><i class="fa-solid fa-clock w-5 main-icon"></i><span>アポイント</span></div></div>
+
+            <!-- 集計 -->
+            <div class="nav-item" onclick="this.classList.toggle('open')">
+                <div class="flex items-center gap-3"><i class="fa-solid fa-chart-line w-5 main-icon"></i><span>集 計</span></div>
+                <i class="fa-solid fa-chevron-down text-[10px]"></i>
+            </div>
+            <div class="submenu">
+                <div class="submenu-item" onclick="location.href='usage.html'">組織員利用状況</div>
+                <div class="submenu-item" onclick="location.href='monthly_list.html'">月別一覧</div>
+                <div class="submenu-item">滞在時間一覧</div>
+                <div class="submenu-item">実績グラフ出力</div>
+            </div>
+
+            <!-- マスタ管理 -->
+            <div class="nav-item" onclick="this.classList.toggle('open')">
+                <div class="flex items-center gap-3"><i class="fa-solid fa-gear w-5 main-icon"></i><span>マスタ管理</span></div>
+                <i class="fa-solid fa-chevron-down text-[10px]"></i>
+            </div>
+            <div class="submenu">
+                <div class="submenu-item" onclick="location.href='import.html'">インポート</div>
+                <div class="submenu-item">お知らせ登録</div>
+                <div class="submenu-item">組織員登録</div>
+                <div class="submenu-item">実績マスタ</div>
+            </div>
+        </nav>
+        <div class="p-6 border-t border-gray-800">
+            <a href="index.html" class="flex items-center gap-3 text-gray-500 hover:text-rose-400 transition-colors"><i class="fa-solid fa-power-off"></i><span class="font-bold">ログアウト</span></a>
         </div>
-
-        <!-- カレンダー -->
-        <a href="calendar.html" class="nav-item block px-5 py-4 text-sm flex items-center hover:text-white">
-            <i class="fa-solid fa-calendar-days w-6"></i> カレンダー
-        </a>
-
-        <!-- 回覧一覧 -->
-        <a href="#" class="nav-item block px-5 py-4 text-sm flex items-center hover:text-white">
-            <i class="fa-solid fa-envelope-open-text w-6"></i> 回覧一覧
-            <span class="ml-auto bg-red-600 text-white text-[10px] px-2 py-0.5 rounded-full">1</span>
-        </a>
-
-        <!-- 地図 -->
-        <a href="map.html" class="nav-item block px-5 py-4 text-sm flex items-center hover:text-white">
-            <i class="fa-solid fa-map-location-dot w-6"></i> 地図
-        </a>
-
-        <!-- アポイント -->
-        <a href="appoint.html" class="nav-item block px-5 py-4 text-sm flex items-center hover:text-white">
-            <i class="fa-solid fa-clock w-6"></i> アポイント
-        </a>
-
-        <!-- 集計（サブメニュー付き） -->
-        <div class="nav-group">
-            <div class="nav-item block px-5 py-4 text-sm flex items-center cursor-pointer">
-                <i class="fa-solid fa-chart-line w-6"></i> 集計
-            </div>
-            <div class="bg-black text-[11px]">
-                <a href="usage.html" class="block px-10 py-3 text-gray-400 hover:text-white border-b border-gray-900">組織員利用状況</a>
-                <a href="monthly_list.html" class="block px-10 py-3 text-gray-400 hover:text-white border-b border-gray-900">月別一覧</a>
-                <a href="#" class="block px-10 py-3 text-gray-400 hover:text-white border-b border-gray-900">お客様別滞在時間一覧</a>
-                <a href="#" class="block px-10 py-3 text-gray-400 hover:text-white border-b border-gray-900">実績グラフ出力</a>
-            </div>
-        </div>
-
-        <!-- マスタ管理 -->
-        <a href="#" class="nav-item block px-5 py-4 text-sm flex items-center hover:text-white">
-            <i class="fa-solid fa-gears w-6"></i> マスタ管理
-        </a>
-    </nav>
-
-    <!-- ログアウト -->
-    <div class="p-4 border-t border-gray-800">
-        <a href="index.html" class="text-xs text-gray-500 hover:text-white flex items-center">
-            <i class="fa-solid fa-right-from-bracket mr-2"></i> ログアウト
-        </a>
-    </div>
-</aside>
+    </aside>
 
     <!-- メインコンテンツ -->
-    <main class="flex-1 flex flex-col overflow-hidden">
+    <main class="flex-1 flex flex-col overflow-hidden bg-slate-50">
         <!-- ヘッダー -->
-        <header class="h-14 bg-[#3c4b5a] flex items-center justify-between px-6 text-white shadow-md">
-            <div class="flex items-center gap-4">
-                <span class="text-xl font-bold tracking-tighter text-[#87ceeb]">株式会社コプロス</span>
+        <header class="h-16 bg-[#3c4b5a] flex items-center justify-between px-8 text-white shadow-lg shrink-0 z-50">
+            <span class="text-xl font-bold tracking-tighter text-[#87ceeb]">株式会社コプロス</span>
+            <div class="flex items-center gap-3">
+                <div class="text-right font-bold"><p id="userNameDisplay" class="text-sm">-- --</p></div>
+                <div class="w-10 h-10 bg-slate-500 rounded-full flex items-center justify-center border-2 border-white/20"><i class="fa-solid fa-user"></i></div>
             </div>
-            <div class="text-xs font-medium">篠原 栄 殿</div>
         </header>
 
-        <!-- フォームエリア -->
-        <div class="flex-1 overflow-auto p-8">
+        <div class="flex-1 overflow-auto p-8 lg:p-12">
             <div class="max-w-4xl mx-auto">
-                <div class="flex justify-between items-center mb-6">
-                    <h1 class="text-2xl font-bold text-gray-700">お客様情報登録</h1>
+                <div class="flex justify-between items-end mb-10">
+                    <div>
+                        <h1 class="text-4xl font-black text-slate-800 mb-2 tracking-tight">お客様情報登録</h1>
+                        <p class="text-slate-400 font-bold text-[10px] uppercase tracking-[0.2em]">Create New Customer Identity</p>
+                    </div>
                     <div class="flex gap-3">
-                        <a href="list.html" class="bg-gray-500 text-white px-8 py-2 rounded font-bold text-sm shadow btn-action hover:bg-gray-600">戻る</a>
-                        <button id="saveBtn" class="bg-[#ff7e11] text-white px-10 py-2 rounded font-bold text-sm shadow-md btn-action hover:bg-[#e66f00]">登 録</button>
+                        <button onclick="location.href='list.html'" class="btn-action bg-white border border-slate-300 text-slate-600 px-8 py-2.5 rounded-xl font-bold text-sm shadow-sm flex items-center gap-2"><i class="fa-solid fa-arrow-left"></i> 戻る</button>
+                        <button id="saveBtn" class="btn-action bg-[#004098] text-white px-12 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-blue-200 flex items-center gap-2"><i class="fa-solid fa-cloud-arrow-up"></i> 登 録</button>
                     </div>
                 </div>
 
-                <div class="bg-white rounded-xl shadow-lg p-8 space-y-8 border border-gray-100">
-                    
-                    <!-- 種別選択 -->
-                    <div class="flex items-center space-x-8 pb-6 border-bottom border-gray-100">
-                        <span class="font-bold text-gray-700">区分<span class="required-tag">必須</span></span>
-                        <div class="flex space-x-6">
-                            <label class="flex items-center cursor-pointer"><input type="radio" name="type" value="法人" checked class="w-4 h-4 accent-[#ff7e11] mr-2"> 法人</label>
-                            <label class="flex items-center cursor-pointer"><input type="radio" name="type" value="個人" class="w-4 h-4 accent-[#ff7e11] mr-2"> 個人</label>
-                            <label class="flex items-center cursor-pointer"><input type="radio" name="type" value="日報" class="w-4 h-4 accent-[#ff7e11] mr-2"> 日報</label>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <!-- お客様名 -->
-                        <div class="col-span-2 md:col-span-1">
-                            <label class="block font-bold text-gray-700 mb-2">お客様名<span class="required-tag">必須</span></label>
-                            <input type="text" id="inputName" class="form-input" placeholder="株式会社〇〇">
-                        </div>
-                        <div class="col-span-2 md:col-span-1">
-                            <label class="block font-bold text-gray-700 mb-2">お客様名カナ</label>
-                            <input type="text" id="inputNameKana" class="form-input" placeholder="カブシキガイシャ〇〇">
+                <!-- スタイリッシュフォームカード -->
+                <div class="form-card bg-white p-10 lg:p-16">
+                    <form id="customerForm" class="space-y-10">
+                        <div class="flex items-center gap-10 p-5 bg-slate-50 rounded-2xl border border-slate-100">
+                            <span class="text-xs font-black text-slate-400 uppercase tracking-widest">区分</span>
+                            <div class="flex gap-8">
+                                <label class="flex items-center gap-2 cursor-pointer font-bold text-sm"><input type="radio" name="category" value="法人" checked class="w-4 h-4 accent-blue-600"> 法人</label>
+                                <label class="flex items-center gap-2 cursor-pointer font-bold text-sm"><input type="radio" name="category" value="個人" class="w-4 h-4 accent-blue-600"> 個人</label>
+                                <label class="flex items-center gap-2 cursor-pointer font-bold text-sm"><input type="radio" name="category" value="日報" class="w-4 h-4 accent-blue-600"> 日報</label>
+                            </div>
                         </div>
 
-                        <!-- ランク・区分 -->
-                        <div>
-                            <label class="block font-bold text-gray-700 mb-2">顧客ランク</label>
-                            <select id="inputRank" class="form-input">
-                                <option value="未選択">選択無し</option>
-                                <option value="Aa">Aa</option><option value="Ab">Ab</option><option value="Ac">Ac</option><option value="Ad">Ad</option>
-                                <option value="Ba">Ba</option><option value="Bb">Bb</option><option value="Bc">Bc</option><option value="Bd">Bd</option>
-                                <option value="取引先">取引先</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block font-bold text-gray-700 mb-2">属性・区分</label>
-                            <select id="inputCategory" class="form-input">
-                                <option value="カテゴリ未設定">未設定</option>
-                                <option value="ケコム">ケコム</option>
-                                <option value="コンサル">コンサル</option>
-                            </select>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                            <div class="space-y-1">
+                                <label class="label-text">お客様名 <span class="text-rose-500">*</span></label>
+                                <input type="text" id="name" class="form-input" placeholder="例：株式会社コプロス" required>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="label-text">お客様名カナ <span class="text-rose-500">*</span></label>
+                                <input type="text" id="kana" class="form-input" placeholder="例：カブシキガイシャコプロス" required>
+                            </div>
                         </div>
 
-                        <!-- 連絡先 -->
-                        <div>
-                            <label class="block font-bold text-gray-700 mb-2">郵便番号</label>
-                            <input type="text" id="inputZip" class="form-input" placeholder="0000000">
-                        </div>
-                        <div>
-                            <label class="block font-bold text-gray-700 mb-2">都道府県<span class="required-tag">必須</span></label>
-                            <select id="inputPref" class="form-input">
-                                <option value="">選択してください</option>
-                            </select>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                            <div class="space-y-1">
+                                <label class="label-text">顧客ランク</label>
+                                <select id="rank" class="form-input">
+                                    <option value="">選択無し</option>
+                                    <option>Aa</option><option>Ab</option><option>Ac</option><option>Ad</option>
+                                    <option>Ba</option><option>Bb</option><option>Bc</option><option>Bd</option>
+                                    <option>Ca</option><option>Cb</option><option>Cc</option><option>Cd</option>
+                                </select>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="label-text">属性・区分</label>
+                                <select id="type" class="form-input">
+                                    <option value="">カテゴリ未設定</option>
+                                    <option>宮崎産商</option><option>ケコム</option><option>技術開発部</option>
+                                    <option>建築部</option><option>コンサル</option><option>官庁</option>
+                                </select>
+                            </div>
                         </div>
 
-                        <div class="col-span-2">
-                            <label class="block font-bold text-gray-700 mb-2">住所<span class="required-tag">必須</span></label>
-                            <input type="text" id="inputAddress" class="form-input" placeholder="市区町村・番地">
-                            <p class="text-[10px] text-gray-400 mt-1 italic">※ご登録された住所より緯度経度情報の取得を行います。</p>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
+                            <div class="space-y-1">
+                                <label class="label-text">郵便番号</label>
+                                <input type="text" id="zip" class="form-input" placeholder="0000000">
+                            </div>
+                            <div class="md:col-span-2 space-y-1">
+                                <label class="label-text">都道府県</label>
+                                <select id="pref" class="form-input">
+                                    <option value="">選択無し</option>
+                                    <option>山口県</option><option>広島県</option><option>福岡県</option>
+                                    <option>島根県</option><option>岡山県</option>
+                                </select>
+                            </div>
                         </div>
 
-                        <div class="col-span-2 md:col-span-1">
-                            <label class="block font-bold text-gray-700 mb-2">ビル・建物名</label>
-                            <input type="text" id="inputBuilding" class="form-input">
+                        <div class="space-y-1">
+                            <label class="label-text">住所 <span class="text-rose-500">*</span></label>
+                            <input type="text" id="address" class="form-input" placeholder="市区町村・番地" required>
                         </div>
-                        <div class="col-span-2 md:col-span-1">
-                            <label class="block font-bold text-gray-700 mb-2">電話番号<span class="required-tag">必須</span></label>
-                            <input type="text" id="inputTel" class="form-input" placeholder="09012345678">
-                        </div>
-                    </div>
 
-                    <!-- 下部保存ボタン（予備） -->
-                    <div class="pt-10 flex justify-center">
-                        <button id="saveBtn2" class="bg-[#ff7e11] text-white px-20 py-3 rounded-lg font-bold shadow-lg btn-action hover:bg-[#e66f00]">登録する</button>
-                    </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                            <div class="space-y-1">
+                                <label class="label-text">ビル・建物名</label>
+                                <input type="text" id="building" class="form-input">
+                            </div>
+                            <div class="space-y-1">
+                                <label class="label-text">電話番号 <span class="text-rose-500">*</span></label>
+                                <input type="text" id="tel" class="form-input" placeholder="09012345678" required>
+                            </div>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -223,49 +205,55 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // 都道府県の自動生成
-        const prefs = ["北海道","青森県","岩手県","宮城県","秋田県","山形県","福島県","茨城県","栃木県","群馬県","埼玉県","千葉県","東京都","神奈川県","新潟県","富山県","石川県","福井県","山梨県","長野県","岐阜県","静岡県","愛知県","三重県","滋賀県","京都府","大阪府","兵庫県","奈良県","和歌山県","鳥取県","島根県","岡山県","広島県","山口県","徳島県","香川県","愛媛県","高知県","福岡県","佐賀県","長崎県","熊本県","大分県","宮崎県","鹿児島県","沖縄県"];
-        const prefSelect = document.getElementById('inputPref');
-        prefs.forEach(p => prefSelect.innerHTML += `<option value="${p}">${p}</option>`);
-
-        // Firebase設定
         const firebaseConfig = {
-            apiKey: "AIzaSyDhOEZ7Jb1K2RTxlyTH6d8ob4Qzcrwf_XI",
+            apiKey: "AIzaSyDhOEZ7Jb1K2rTxLyTH6d8ob4Qzcrwf_XI",
             authDomain: "copros-my-page.firebaseapp.com",
             projectId: "copros-my-page",
-            storageBucket: "copros-my-page.appspot.com",
+            storageBucket: "copros-my-page.firebasestorage.app",
             messagingSenderId: "54419849010",
             appId: "1:54419849010:web:a60015b9c6fcf60cd3e12b"
         };
+
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        async function saveData() {
-            const name = document.getElementById('inputName').value;
-            const rank = document.getElementById('inputRank').value;
-            const pref = document.getElementById('inputPref').value;
-            const address = document.getElementById('inputAddress').value;
-            const tel = document.getElementById('inputTel').value;
+        // ログイン名の反映（殿なし）
+        const savedName = sessionStorage.getItem('userName');
+        if (savedName) document.getElementById('userNameDisplay').innerText = savedName;
 
-            if(!name || !pref || !address || !tel) {
-                alert('必須項目をすべて入力してください。');
+        // 保存処理
+        document.getElementById('saveBtn').onclick = async () => {
+            const form = document.getElementById('customerForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
                 return;
             }
 
-            try {
-                await addDoc(collection(db, "customers"), {
-                    name, rank, pref, address, tel,
-                    createdAt: serverTimestamp()
-                });
-                alert("登録しました！一覧に戻ります。");
-                window.location.href = "list.html";
-            } catch (e) {
-                alert("保存エラーが発生しました。");
-            }
-        }
+            const data = {
+                category: document.querySelector('input[name="category"]:checked').value,
+                name: document.getElementById('name').value,
+                kana: document.getElementById('kana').value,
+                rank: document.getElementById('rank').value,
+                type: document.getElementById('type').value,
+                zip: document.getElementById('zip').value,
+                pref: document.getElementById('pref').value,
+                address: document.getElementById('address').value,
+                building: document.getElementById('building').value,
+                tel: document.getElementById('tel').value,
+                visitCount: 0,
+                lastVisit: "未訪問",
+                createdAt: serverTimestamp()
+            };
 
-        document.getElementById('saveBtn').onclick = saveData;
-        document.getElementById('saveBtn2').onclick = saveData;
+            try {
+                await addDoc(collection(db, "customers"), data);
+                alert("新しいお客様を登録しました！");
+                location.href = 'list.html';
+            } catch (e) {
+                alert("保存に失敗しました。設定を確認してください。");
+                console.error(e);
+            }
+        };
     </script>
 </body>
 </html>
