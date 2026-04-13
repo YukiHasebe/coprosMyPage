@@ -7,294 +7,264 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root {
-            --sidebar-bg: #1a1a1a;
-            --header-bg: #3c4b5a;
-            --accent-orange: #ff7e11;
-            --primary-blue: #004098;
-        }
-        body { font-family: "Meiryo", sans-serif; background-color: #f4f7f9; }
+        :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; }
+        body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
         
-        .sidebar { background-color: var(--sidebar-bg); width: 200px; }
-        .nav-item { border-bottom: 1px solid #2d2d2d; transition: all 0.2s; color: #b8b8b8; }
-        .nav-item:hover { background-color: #333; color: white; }
-        .active-menu { background-color: #2d3748; border-left: 4px solid var(--accent-orange); color: white !important; }
-
-        /* テーブルスタイル */
-        .record-table thead th {
-            background-color: #222;
-            color: white;
-            font-weight: normal;
-            font-size: 13px;
-            border: 1px solid #444;
-            padding: 12px 8px;
-            white-space: nowrap;
+        /* ページ切替：右寄せプロ仕様 */
+        .modern-page-btn {
+            width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+            border-radius: 8px; font-weight: 800; font-size: 12px; transition: all 0.3s;
+            color: #94a3b8; cursor: pointer; border: 1px solid transparent;
         }
-        .record-table tbody td {
-            font-size: 13px;
-            border: 1px solid #e2e8f0;
-            padding: 12px 10px;
+        .modern-page-btn.active {
+            background: #334155; color: white; border-color: #334155;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-        .record-table tr:nth-child(even) { background-color: #f9fafb; }
-        .record-table tr:hover { background-color: #fff9e6; }
-
-        /* ページネーションボタン */
-        .pg-btn {
-            background-color: #000;
-            color: white;
-            padding: 4px 10px;
-            font-size: 12px;
-            font-weight: bold;
+        .nav-arrow {
+            width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+            border-radius: 8px; background: white; color: var(--copros-orange); border: 1px solid #e2e8f0;
             transition: all 0.2s;
         }
-        .pg-btn:hover { background-color: #444; }
-        .pg-btn-active {
-            background-color: #fff;
-            color: #000;
-            border: 1px solid #000;
-        }
+        .nav-arrow:hover:not(.disabled) { border-color: var(--copros-orange); background: var(--copros-orange); color: white; }
+        .nav-arrow.disabled { opacity: 0.3; cursor: default; }
+
+        .table-container { border-radius: 1.5rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
+        thead tr { background-color: #3c4b5a; }
+        
+        #detailSearchSection { display: none; animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
-<body class="flex h-screen overflow-hidden">
+<body class="flex h-screen overflow-hidden text-slate-700">
 
-   <!-- サイドバー（共通リンク設定済） -->
-<aside class="sidebar flex-shrink-0 text-white flex flex-col shadow-2xl">
-    <div class="p-4 text-xs font-bold text-gray-500 border-b border-gray-800 tracking-widest uppercase">Menu</div>
-    <nav class="flex-1 overflow-y-auto">
-        <!-- お客様 -->
-        <a href="list.html" class="nav-item block px-5 py-4 text-sm flex items-center hover:text-white">
-            <i class="fa-solid fa-users w-6"></i> お客様
-        </a>
+    <div id="sidebar-placeholder"></div>
 
-        <!-- 実績（サブメニュー付き） -->
-        <div class="nav-group">
-            <div class="nav-item block px-5 py-4 text-sm flex items-center cursor-pointer">
-                <i class="fa-solid fa-file-invoice w-6"></i> 実績
-            </div>
-            <div class="bg-black text-[11px]">
-                <a href="history.html" class="block px-10 py-3 text-gray-400 hover:text-white border-b border-gray-900">実績登録</a>
-                <a href="list_records.html" class="block px-10 py-3 text-gray-400 hover:text-white border-b border-gray-900">実績一覧</a>
-                <a href="#" class="block px-10 py-3 text-gray-400 hover:text-white border-b border-gray-900">実績CSV出力</a>
-            </div>
-        </div>
-
-        <!-- カレンダー -->
-        <a href="calendar.html" class="nav-item block px-5 py-4 text-sm flex items-center hover:text-white">
-            <i class="fa-solid fa-calendar-days w-6"></i> カレンダー
-        </a>
-
-        <!-- 回覧一覧 -->
-        <a href="#" class="nav-item block px-5 py-4 text-sm flex items-center hover:text-white">
-            <i class="fa-solid fa-envelope-open-text w-6"></i> 回覧一覧
-            <span class="ml-auto bg-red-600 text-white text-[10px] px-2 py-0.5 rounded-full">1</span>
-        </a>
-
-        <!-- 地図 -->
-        <a href="map.html" class="nav-item block px-5 py-4 text-sm flex items-center hover:text-white">
-            <i class="fa-solid fa-map-location-dot w-6"></i> 地図
-        </a>
-
-        <!-- アポイント -->
-        <a href="appoint.html" class="nav-item block px-5 py-4 text-sm flex items-center hover:text-white">
-            <i class="fa-solid fa-clock w-6"></i> アポイント
-        </a>
-
-        <!-- 集計（サブメニュー付き） -->
-        <div class="nav-group">
-            <div class="nav-item block px-5 py-4 text-sm flex items-center cursor-pointer">
-                <i class="fa-solid fa-chart-line w-6"></i> 集計
-            </div>
-            <div class="bg-black text-[11px]">
-                <a href="usage.html" class="block px-10 py-3 text-gray-400 hover:text-white border-b border-gray-900">組織員利用状況</a>
-                <a href="monthly_list.html" class="block px-10 py-3 text-gray-400 hover:text-white border-b border-gray-900">月別一覧</a>
-                <a href="#" class="block px-10 py-3 text-gray-400 hover:text-white border-b border-gray-900">お客様別滞在時間一覧</a>
-                <a href="#" class="block px-10 py-3 text-gray-400 hover:text-white border-b border-gray-900">実績グラフ出力</a>
-            </div>
-        </div>
-
-        <!-- マスタ管理 -->
-        <a href="#" class="nav-item block px-5 py-4 text-sm flex items-center hover:text-white">
-            <i class="fa-solid fa-gears w-6"></i> マスタ管理
-        </a>
-    </nav>
-
-    <!-- ログアウト -->
-    <div class="p-4 border-t border-gray-800">
-        <a href="index.html" class="text-xs text-gray-500 hover:text-white flex items-center">
-            <i class="fa-solid fa-right-from-bracket mr-2"></i> ログアウト
-        </a>
-    </div>
-</aside>
-
-    <!-- メインコンテンツ -->
     <main class="flex-1 flex flex-col overflow-hidden">
-        <!-- ヘッダー -->
-        <header class="h-14 bg-[#3c4b5a] flex items-center justify-between px-6 text-white shadow-md z-10">
-            <div class="flex items-center gap-4">
-                <span class="text-xl font-bold tracking-tighter text-[#87ceeb]">株式会社コプロス</span>
-                <div class="relative ml-4 flex">
-                    <input type="text" placeholder="お客様名を入力してください" class="w-80 py-1 px-3 text-sm text-gray-800 rounded-l focus:outline-none border-none">
-                    <button class="bg-[#eee] text-[#333] px-5 py-1 text-sm rounded-r font-bold hover:bg-gray-300 transition-colors border-none">検　索</button>
-                </div>
-            </div>
-            <div class="text-xs font-medium flex items-center gap-4">
-                <span class="bg-gray-700 px-3 py-1 rounded">篠原 栄 殿</span>
-            </div>
-        </header>
+        <div id="header-placeholder"></div>
 
-        <!-- コンテンツエリア -->
-        <div class="flex-1 overflow-auto p-8">
-            <div class="max-w-7xl mx-auto">
-                <div class="flex justify-between items-end mb-6">
+        <div class="flex-1 overflow-auto p-8 custom-scrollbar">
+            <div class="max-w-[1400px] mx-auto">
+                
+                <!-- ヘッドエリア -->
+                <div class="flex justify-between items-end mb-10">
                     <div>
-                        <h1 class="text-2xl font-bold text-gray-700 flex items-center">
-                            <i class="fa-solid fa-file-lines mr-3 text-gray-400"></i>実績一覧
-                        </h1>
-                        <button class="mt-4 bg-[#004098] hover:bg-blue-900 text-white px-8 py-2 rounded text-sm font-bold shadow-md transition-transform active:scale-95">詳細検索</button>
+                        <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">実績一覧</h1>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Activity History Log</p>
                     </div>
-                    <div class="flex gap-4 items-center">
-                        <div class="text-sm text-gray-500 bg-white p-2 rounded shadow-sm border border-gray-100">
-                            <input type="text" value="20" class="w-10 border-b border-gray-300 text-center focus:outline-none font-bold text-gray-700"> 件 
-                            <button class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded text-xs ml-2 font-bold border border-gray-300 transition-colors">表示</button>
-                        </div>
-                        <a href="history.html" class="bg-[#ff7e11] hover:bg-[#e66f00] text-white px-6 py-2 rounded shadow-md font-bold text-sm transition-transform active:scale-95">
-                            <i class="fa-solid fa-pen-to-square mr-2"></i>実績を新規作成
-                        </a>
+                    <div class="flex gap-3 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100">
+                        <button id="detailSearchToggle" class="px-5 py-2.5 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all flex items-center gap-2">
+                            <i class="fa-solid fa-sliders text-blue-400"></i>詳細絞り込み
+                        </button>
+                        <div class="w-px h-6 bg-slate-100 my-auto"></div>
+                        <!-- 新規登録ボタンを「青」に統一 -->
+                        <button onclick="location.href='history.html'" class="px-6 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-sm hover:shadow-lg hover:shadow-blue-900/20 transition-all flex items-center gap-2">
+                            <i class="fa-solid fa-plus-circle"></i>実績を新規作成
+                        </button>
                     </div>
                 </div>
 
-                <!-- ページネーション（上） -->
-                <div class="flex items-center gap-1 mb-3">
-                    <button class="pg-btn">«</button>
-                    <button class="pg-btn"><</button>
-                    <button class="pg-btn pg-btn-active">1</button>
-                    <button class="pg-btn">2</button>
-                    <button class="pg-btn">3</button>
-                    <button class="pg-btn">></button>
-                    <button class="pg-btn">»</button>
-                    <span class="ml-4 text-xs font-bold text-gray-500 tracking-wider">1～20 / 2,665件</span>
+                <!-- 詳細検索パネル -->
+                <div id="detailSearchSection" class="mb-8 p-8 bg-white rounded-3xl shadow-xl border border-blue-50">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 text-xs font-bold">
+                        <div class="space-y-2"><label class="text-slate-400">お客様名</label><input type="text" id="filterCustomer" class="form-input" placeholder="キーワード"></div>
+                        <div class="space-y-2"><label class="text-slate-400">訪問者</label><input type="text" id="filterVisitor" class="form-input" placeholder="氏名検索"></div>
+                        <div class="space-y-2"><label class="text-slate-400">期間（開始）</label><input type="date" id="startDate" class="form-input"></div>
+                        <div class="space-y-2"><label class="text-slate-400">期間（終了）</label><input type="date" id="endDate" class="form-input"></div>
+                    </div>
+                    <div class="flex justify-center gap-4 mt-8">
+                        <button id="execSearch" class="bg-[#334155] text-white px-12 py-3 rounded-xl font-bold shadow-lg hover:bg-black transition-all">検索を実行</button>
+                        <button id="clearSearch" class="text-slate-400 px-8 py-3 rounded-xl font-bold hover:text-slate-600 transition-all">リセット</button>
+                    </div>
+                </div>
+
+                <!-- プロ仕様ナビゲーション（上部） -->
+                <div class="flex justify-between items-center mb-6 px-2">
+                    <div class="flex items-center gap-2 h-8">
+                        <span id="pageRange" class="text-xl font-black text-slate-800 tracking-tighter">0-0</span>
+                        <span class="text-slate-300 font-bold">/</span>
+                        <span id="totalCount" class="text-sm font-bold text-slate-400">0</span>
+                        <span class="text-[9px] font-black text-slate-300 uppercase tracking-widest ml-1">件の実績</span>
+                    </div>
+                    <div id="paginationTop" class="flex items-center gap-1.5"></div>
                 </div>
 
                 <!-- 実績テーブル -->
-                <div class="bg-white shadow-2xl rounded-lg overflow-hidden border border-gray-200">
-                    <table class="w-full record-table">
+                <div class="table-container">
+                    <table class="w-full text-left border-collapse">
                         <thead>
-                            <tr>
-                                <th class="w-12 text-center">No</th>
-                                <th class="text-left">お客様名</th>
-                                <th class="w-32">属性・区分</th>
-                                <th class="w-24">顧客ランク</th>
-                                <th class="w-24">訪問回数</th>
-                                <th class="w-44 text-left">最終訪問日時</th>
-                                <th class="w-32 text-left">最終訪問者</th>
-                                <th class="w-44 text-left">次回訪問予定日時</th>
+                            <tr class="text-white text-[10px] font-black uppercase tracking-widest">
+                                <th class="p-6 text-center w-16 opacity-50">No</th>
+                                <th class="p-6">お客様名</th>
+                                <th class="p-6 text-center w-24">訪問回数</th>
+                                <th class="p-6">訪問日時 / 滞在時間</th>
+                                <th class="p-6">訪問者</th>
+                                <th class="p-6">次回訪問予定</th>
+                                <th class="p-6 text-center w-16"><i class="fa-solid fa-eye opacity-30"></i></th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <!-- サンプル行 1 -->
-                            <tr>
-                                <td class="text-center text-gray-400 font-mono">1</td>
-                                <td class="text-left font-bold text-[#004098] hover:underline cursor-pointer">株式会社大阪工営</td>
-                                <td class="text-center text-gray-600">コンサル</td>
-                                <td class="text-center"><span class="bg-blue-50 px-2 py-0.5 rounded text-blue-700 font-bold border border-blue-100 text-[11px]">Bd</span></td>
-                                <td class="text-center font-mono font-bold text-gray-700">14</td>
-                                <td class="text-gray-600">2026/03/10 10:00</td>
-                                <td class="text-gray-800 font-medium">吉野 正則</td>
-                                <td class="text-gray-400 italic text-[11px]">--</td>
-                            </tr>
-                            <!-- サンプル行 2 -->
-                            <tr>
-                                <td class="text-center text-gray-400 font-mono">2</td>
-                                <td class="text-left font-bold text-[#004098] hover:underline cursor-pointer">中央コンサルタンツ株式会社</td>
-                                <td class="text-center text-gray-600">コンサル</td>
-                                <td class="text-center"><span class="bg-gray-50 px-2 py-0.5 rounded text-gray-700 font-bold border border-gray-200 text-[11px]">Cd</span></td>
-                                <td class="text-center font-mono font-bold text-gray-700">38</td>
-                                <td class="text-gray-600">2026/03/10 09:00</td>
-                                <td class="text-gray-800 font-medium">吉野 正則</td>
-                                <td class="text-gray-400 italic text-[11px]">--</td>
-                            </tr>
+                        <tbody id="recordTable" class="divide-y divide-slate-100 text-sm font-bold">
+                            <!-- JSで挿入 -->
                         </tbody>
                     </table>
                 </div>
 
-                <!-- ページネーション（下） -->
-                <div class="mt-4 flex items-center gap-1">
-                    <button class="pg-btn">«</button>
-                    <button class="pg-btn"><</button>
-                    <button class="pg-btn pg-btn-active">1</button>
-                    <button class="pg-btn">2</button>
-                    <button class="pg-btn">3</button>
-                    <button class="pg-btn">></button>
-                    <button class="pg-btn">»</button>
-                </div>
+                <!-- ページネーション（下部） -->
+                <div id="paginationBottom" class="mt-12 mb-24 flex justify-center items-center gap-1.5"></div>
             </div>
         </div>
     </main>
 
-</body>
-    <!-- ここから追加 -->
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, query, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    <script src="common.js"></script>
 
-    // Firebase設定
-    const firebaseConfig = {
-        apiKey: "AIzaSyDhOEZ7Jb1K2rTxLyTH6d8ob4Qzcrwf_XI",
-        authDomain: "copros-my-page.firebaseapp.com",
-        projectId: "copros-my-page",
-        storageBucket: "copros-my-page.firebasestorage.app", // ここを最新のSDKに合わせました
-        messagingSenderId: "54419849010",
-        appId: "1:54419849010:web:a60015b9c6fcf60cd3e12b"
-    };
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, orderBy, query } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+        // Firebase設定
+        const firebaseConfig = {
+            apiKey: "AiZaSyDh00EZ7Jb1K2rTxLyTH6d80b4Qzcrwf_XI",
+            authDomain: "copros-my-page.firebaseapp.com",
+            projectId: "copros-my-page",
+            storageBucket: "copros-my-page.firebasestorage.app",
+            messagingSenderId: "54419849010",
+            appId: "1:54419849010:web:a60015b9c6fcf60cd3e12b"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
-    async function loadRecords() {
-        // 表の本体（データを入れる場所）を探します
-        const tbody = document.querySelector('table tbody');
-        if (!tbody) return;
+        let allRecords = [];
+        let filteredData = [];
+        let currentPage = 1;
+        const perPage = 20;
 
-        try {
-            // Firebaseからデータを新しい順に取得
-            const q = query(collection(db, "visit_records"), orderBy("createdAt", "desc"));
-            const querySnapshot = await getDocs(q);
-            
-            // 今あるサンプルの行を一旦消す
+        async function init() {
+            try {
+                const snap = await getDocs(query(collection(db, "activity_records"), orderBy("visitDate", "desc")));
+                allRecords = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                filteredData = [...allRecords];
+                updateView();
+            } catch (e) { console.error(e); }
+        }
+
+        function calculateDuration(start, end) {
+            if (!start || !end) return "";
+            const s = start.split(':');
+            const e = end.split(':');
+            const diff = (parseInt(e[0]) * 60 + parseInt(e[1])) - (parseInt(s[0]) * 60 + parseInt(s[1]));
+            return diff > 0 ? `${diff}分` : "";
+        }
+
+        function getCustomerVisitCount(customerName) {
+            return allRecords.filter(r => r.customerName === customerName).length;
+        }
+
+        function updateView() {
+            const start = (currentPage - 1) * perPage;
+            const end = start + perPage;
+            const pagedData = filteredData.slice(start, end);
+            renderTable(pagedData, start);
+            renderPagination();
+            document.getElementById('totalCount').innerText = filteredData.length;
+            document.getElementById('pageRange').innerText = filteredData.length > 0 ? `${start + 1}-${Math.min(end, filteredData.length)}` : "0-0";
+        }
+
+        function renderTable(dataList, startIndex) {
+            const tbody = document.getElementById('recordTable');
             tbody.innerHTML = "";
-
-            let count = 1;
-            querySnapshot.forEach((doc) => {
-                const data = doc.data();
-                // 新しい行を作成
+            dataList.forEach((data, index) => {
+                const duration = calculateDuration(data.startTime, data.endTime);
+                const visitCount = getCustomerVisitCount(data.customerName);
+                
                 const row = `
-                    <tr class="hover:bg-gray-50">
-                        <td class="p-4 border-b text-center">${count++}</td>
-                        <td class="p-4 border-b text-blue-600 font-bold">${data.customerName || "-"}</td>
-                        <td class="p-4 border-b text-center text-xs">実績</td>
-                        <td class="p-4 border-b text-center">-</td>
-                        <td class="p-4 border-b text-center">-</td>
-                        <td class="p-4 border-b text-center">${data.visitDate || "-"}</td>
-                        <td class="p-4 border-b text-center">${data.visitor || "篠原 栄"}</td>
-                        <td class="p-4 border-b text-center">-</td>
+                    <tr class="hover:bg-blue-50/40 transition-all border-b border-slate-50">
+                        <td class="p-6 text-center text-slate-300 font-mono text-xs">${startIndex + index + 1}</td>
+                        <td class="p-6"><div class="text-base text-slate-800 leading-tight">${data.customerName}</div></td>
+                        <td class="p-6 text-center"><span class="bg-slate-100 text-slate-500 px-3 py-1 rounded-full text-xs">${visitCount}回</span></td>
+                        <td class="p-6">
+                            <div class="text-slate-800 font-mono">${data.visitDate.replace(/-/g, '/')}</div>
+                            <div class="text-[10px] text-slate-400 mt-1">
+                                ${data.startTime || '--:--'} 〜 ${data.endTime || '--:--'} 
+                                <span class="text-blue-500 font-black ml-2">${duration ? '滞在: '+duration : ''}</span>
+                            </div>
+                        </td>
+                        <td class="p-6">
+                            <div class="text-slate-700">${data.visitorName}</div>
+                            <div class="text-[9px] text-slate-400 font-black uppercase mt-0.5">${data.visitorRole || 'メイン'}</div>
+                        </td>
+                        <td class="p-6">
+                            <div class="text-orange-500 text-xs">${data.nextVisitDate ? data.nextVisitDate.replace(/-/g, '/') : '--'}</div>
+                        </td>
+                        <td class="p-6 text-center">
+                            <button class="text-slate-300 hover:text-blue-500 transition-colors">
+                                <i class="fa-solid fa-circle-chevron-right text-lg"></i>
+                            </button>
+                        </td>
                     </tr>
                 `;
                 tbody.insertAdjacentHTML('beforeend', row);
             });
-        } catch (e) {
-            console.error("読み込みエラー:", e);
         }
-    }
-// 右上の名前をログイン名に書き換える
-    const savedName = sessionStorage.getItem('userName');
-    if (savedName) {
-        const userSpan = document.querySelector('header span.bg-gray-700');
-        if (userSpan) {
-            userSpan.innerText = savedName; // 名前を上書き
+
+        function renderPagination() {
+            const totalPages = Math.ceil(filteredData.length / perPage);
+            const containers = [document.getElementById('paginationTop'), document.getElementById('paginationBottom')];
+            
+            containers.forEach(container => {
+                container.innerHTML = "";
+                if (totalPages <= 1) return;
+
+                const prev = document.createElement('div');
+                prev.innerHTML = '<i class="fa-solid fa-arrow-left"></i>';
+                prev.className = `nav-arrow prev ${currentPage === 1 ? 'disabled' : ''}`;
+                prev.onclick = () => { if(currentPage > 1) { currentPage--; updateView(); window.scrollTo({top: 0, behavior: 'smooth'}); } };
+                container.appendChild(prev);
+
+                const startPage = Math.max(1, currentPage - 1);
+                const endPage = Math.min(totalPages, startPage + 3);
+                
+                for (let i = startPage; i <= endPage; i++) {
+                    const btn = document.createElement('div');
+                    btn.innerText = i;
+                    btn.className = `modern-page-btn ${currentPage === i ? 'active' : ''}`;
+                    btn.onclick = () => { currentPage = i; updateView(); window.scrollTo({top: 0, behavior: 'smooth'}); };
+                    container.appendChild(btn);
+                }
+
+                const next = document.createElement('div');
+                next.innerHTML = '<i class="fa-solid fa-arrow-right"></i>';
+                next.className = `nav-arrow next ${currentPage === totalPages ? 'disabled' : ''}`;
+                next.onclick = () => { if(currentPage < totalPages) { currentPage++; updateView(); window.scrollTo({top: 0, behavior: 'smooth'}); } };
+                container.appendChild(next);
+            });
         }
-    }
-    // 画面が開いたら実行
-    loadRecords();
-</script>
-<!-- ここまで追加 -->
+
+        document.getElementById('detailSearchToggle').onclick = () => {
+            const sec = document.getElementById('detailSearchSection');
+            sec.style.display = (sec.style.display === 'block') ? 'none' : 'block';
+        };
+
+        document.getElementById('execSearch').onclick = () => {
+            const custK = document.getElementById('filterCustomer').value.toLowerCase();
+            const visiK = document.getElementById('filterVisitor').value.toLowerCase();
+            const startK = document.getElementById('startDate').value;
+            const endK = document.getElementById('endDate').value;
+            filteredData = allRecords.filter(d => {
+                const mCust = !custK || d.customerName.toLowerCase().includes(custK);
+                const mVisi = !visiK || d.visitorName.toLowerCase().includes(visiK);
+                let mDate = true;
+                if (startK && d.visitDate < startK) mDate = false;
+                if (endK && d.visitDate > endK) mDate = false;
+                return mCust && mVisi && mDate;
+            });
+            currentPage = 1; updateView();
+        };
+
+        document.getElementById('clearSearch').onclick = () => {
+            document.querySelectorAll('#detailSearchSection input').forEach(i => i.value = "");
+            filteredData = [...allRecords]; currentPage = 1; updateView();
+        };
+
+        init();
+    </script>
+</body>
 </html>
