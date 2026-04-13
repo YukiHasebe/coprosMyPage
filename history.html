@@ -19,12 +19,7 @@
         .label-text { font-size: 0.8rem; font-weight: 800; color: #475569; margin-bottom: 0.4rem; display: block; }
         .section-card { background: white; border-radius: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04); padding: 2rem; margin-bottom: 2rem; }
         .section-title { font-size: 0.75rem; font-weight: 900; color: #94a3b8; letter-spacing: 0.1em; border-bottom: 2px solid #f1f5f9; padding-bottom: 0.5rem; margin-bottom: 1.5rem; text-transform: uppercase; }
-        
-        .suggestion-box {
-            position: absolute; width: 100%; top: 100%; left: 0; z-index: 50;
-            background: white; border-radius: 0.75rem; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            border: 1px solid #e2e8f0; max-height: 200px; overflow-y: auto; display: none;
-        }
+        .suggestion-box { position: absolute; width: 100%; top: 100%; left: 0; z-index: 50; background: white; border-radius: 0.75rem; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; max-height: 200px; overflow-y: auto; display: none; }
         .suggestion-item { padding: 0.7rem 1rem; cursor: pointer; font-weight: 600; font-size: 0.85rem; border-bottom: 1px solid #f8fafc; }
         .suggestion-item:hover { background-color: #f1f5f9; color: var(--copros-orange); }
     </style>
@@ -45,9 +40,7 @@
                         <nav class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Activity Report Registration</nav>
                     </div>
                     <div class="flex gap-3">
-                        <button id="saveDraftBtn" class="px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all shadow-sm">
-                            <i class="fa-solid fa-file-pen mr-1"></i> 下書き
-                        </button>
+                        <button id="saveDraftBtn" class="px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all shadow-sm">下書き</button>
                         <button id="submitBtn" class="px-10 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-sm hover:shadow-lg hover:shadow-blue-900/20 transition-all flex items-center gap-2">
                             <i class="fa-solid fa-paper-plane"></i> 登録を実行
                         </button>
@@ -55,29 +48,20 @@
                 </div>
 
                 <form id="historyForm">
-                    
                     <!-- 基本報告情報 -->
                     <div class="section-card">
                         <p class="section-title">基本報告情報</p>
                         <div class="space-y-6">
-                            <!-- 1列目：お客様名（自動取得項目） -->
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <div class="relative md:col-span-1">
                                     <label class="label-text">お客様名 <span class="text-rose-500">*</span></label>
                                     <input type="text" id="customerSearch" placeholder="お客様名を検索..." class="form-input" autocomplete="off" required>
                                     <div id="customerSuggestions" class="suggestion-box"></div>
                                 </div>
-                                <div>
-                                    <label class="label-text text-slate-400">顧客ランク（自動反映）</label>
-                                    <input type="text" id="autoRank" class="form-input readonly-input" placeholder="--" readonly>
-                                </div>
-                                <div>
-                                    <label class="label-text text-slate-400">属性・区分（自動反映）</label>
-                                    <input type="text" id="autoType" class="form-input readonly-input" placeholder="--" readonly>
-                                </div>
+                                <div><label class="label-text text-slate-400">顧客ランク</label><input type="text" id="autoRank" class="form-input readonly-input" placeholder="--" readonly></div>
+                                <div><label class="label-text text-slate-400">属性・区分</label><input type="text" id="autoType" class="form-input readonly-input" placeholder="--" readonly></div>
                             </div>
 
-                            <!-- 2列目：訪問日時 -->
                             <div>
                                 <label class="label-text">訪問日時 <span class="text-rose-500">*</span></label>
                                 <div class="flex flex-wrap items-center gap-3">
@@ -90,24 +74,17 @@
                                 </div>
                             </div>
 
-                            <!-- 3列目：訪問者 ＋ 同行者 -->
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div class="relative">
                                     <div class="flex items-center gap-4 mb-1">
                                         <label class="label-text mb-0">訪問者 <span class="text-rose-500">*</span></label>
                                         <div class="flex items-center gap-3 ml-2">
-                                            <label class="flex items-center gap-1.5 cursor-pointer text-xs font-black text-slate-400">
-                                                <input type="radio" name="visitorRole" value="メイン" checked class="w-4 h-4 accent-[#ff7e11]"> メイン
-                                            </label>
-                                            <label class="flex items-center gap-1.5 cursor-pointer text-xs font-black text-slate-400">
-                                                <input type="radio" name="visitorRole" value="サブ" class="w-4 h-4 accent-[#ff7e11]"> サブ
-                                            </label>
+                                            <label class="flex items-center gap-1.5 cursor-pointer text-xs font-black text-slate-400"><input type="radio" name="visitorRole" value="メイン" checked class="w-4 h-4 accent-[#ff7e11]"> メイン</label>
+                                            <label class="flex items-center gap-1.5 cursor-pointer text-xs font-black text-slate-400"><input type="radio" name="visitorRole" value="サブ" class="w-4 h-4 accent-[#ff7e11]"> サブ</label>
                                         </div>
                                     </div>
-                                    <div class="relative">
-                                        <input type="text" id="visitorSearch" placeholder="訪問者を検索..." class="form-input" autocomplete="off" required>
-                                        <div id="visitorSuggestions" class="suggestion-box"></div>
-                                    </div>
+                                    <input type="text" id="visitorSearch" placeholder="訪問者を検索..." class="form-input" autocomplete="off" required>
+                                    <div id="visitorSuggestions" class="suggestion-box"></div>
                                 </div>
                                 <div class="relative">
                                     <label class="label-text">同行者</label>
@@ -115,12 +92,7 @@
                                     <div id="companionSuggestions" class="suggestion-box"></div>
                                 </div>
                             </div>
-
-                            <!-- 4列目：次回予定 -->
-                            <div class="max-w-xs">
-                                <label class="label-text">次回訪問予定日</label>
-                                <input type="date" id="nextVisitDate" class="form-input">
-                            </div>
+                            <div class="max-w-xs"><label class="label-text">次回訪問予定日</label><input type="date" id="nextVisitDate" class="form-input"></div>
                         </div>
                     </div>
 
@@ -129,16 +101,14 @@
                         <p class="section-title">お客様からの情報</p>
                         <div class="space-y-6">
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <select id="qualData1" class="form-input text-xs font-bold">
-                                    <option value="">（定性データ1）</option>
+                                <select id="qualData1" class="form-input text-xs font-bold"><option value="">（定性データ1）</option>
                                     <option>01.リサーチ情報</option><option>02.ニーズ</option><option>03.問合せ</option><option>04.調査検討要請</option>
                                     <option>05.見積要請</option><option>06.個別説明・協議</option><option>07.受注</option><option>08.失注</option>
                                     <option>お喜びの声</option><option>お叱りの声</option><option>改善要望</option><option>ライバル情報</option>
                                     <option>仕入先・協力業者情報</option><option>決定経路</option><option>購買（受注）要因</option>
                                     <option>08-1.失注（お客様失注）</option><option>08-2.失注（お客様受託後）</option><option>発注の見通し</option><option>発注予定</option>
                                 </select>
-                                <select id="qualData2" class="form-input text-xs font-bold">
-                                    <option value="">（定性データ2）</option>
+                                <select id="qualData2" class="form-input text-xs font-bold"><option value="">（定性データ2）</option>
                                     <option>ケコム大口径</option><option>ケコム中口径</option><option>ケコム小口径</option><option>ケコム特殊</option>
                                     <option>ケコム工法</option><option>生コン・セメント</option><option>新築工事(建築)</option><option>改築工事(建築)</option>
                                     <option>雑工事(建築)</option><option>バイオガスプラント新設</option><option>バイオガスメンテナンス</option>
@@ -149,16 +119,12 @@
                                     <option>イン①業況</option><option>イン②今後の受注/設計計画</option><option>イン③年間の受注目標</option>
                                     <option>イン④委託先/問合せ先の有無</option><option>イン⑤難解な施工での工法選定</option><option>シールド工事</option><option>推進工事</option><option>基礎工事・その他</option>
                                 </select>
-                                <select id="qualData3" class="form-input text-xs font-bold">
-                                    <option value="">（定性データ3）</option>
+                                <select id="qualData3" class="form-input text-xs font-bold"><option value="">（定性データ3）</option>
                                     <option>東北</option><option>北陸</option><option>関東</option><option>甲信越</option><option>東海(中部)</option>
                                     <option>近畿</option><option>中国</option><option>四国</option><option>九州(沖縄)</option>
                                 </select>
                             </div>
-                            <div>
-                                <label class="label-text">お客様先担当者</label>
-                                <input type="text" id="customerStaff" placeholder="担当者名を入力してください" class="form-input">
-                            </div>
+                            <div><label class="label-text">お客様先担当者</label><input type="text" id="customerStaff" placeholder="担当者名を入力" class="form-input"></div>
                             <textarea id="customerReport" rows="6" placeholder="お客様の要望、状況などを詳しく入力してください..." class="form-input h-48 resize-none"></textarea>
                         </div>
                     </div>
@@ -166,23 +132,31 @@
                     <!-- 自分・スタッフの考え -->
                     <div class="section-card">
                         <p class="section-title">自分・スタッフの考え</p>
-                        <textarea id="staffThoughts" rows="6" placeholder="次回の提案予定や、自分が感じた課題などを入力してください..." class="form-input h-48 resize-none"></textarea>
+                        <textarea id="staffThoughts" rows="6" placeholder="次回の提案予定や課題..." class="form-input h-48 resize-none"></textarea>
                     </div>
 
-                    <!-- 添付ファイル -->
+                    <!-- ファイル添付 -->
+                    <div class="section-card">
+                        <p class="section-title">添付ファイル</p>
+                        <input type="file" class="form-input bg-white border-dashed">
+                    </div>
+
+                    <!-- 回覧設定 -->
                     <div class="section-card mb-20">
-                        <p class="section-title">関連資料・画像</p>
-                        <div class="flex items-center justify-center w-full">
-                            <label class="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-200 border-dashed rounded-2xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition-all">
-                                <div class="flex flex-col items-center justify-center pt-5 pb-6 text-slate-400">
-                                    <i class="fa-solid fa-cloud-arrow-up text-3xl mb-2"></i>
-                                    <p class="text-xs font-black uppercase">Click or Drag & Drop to Upload</p>
-                                </div>
-                                <input type="file" class="hidden" />
+                        <p class="section-title">回覧設定</p>
+                        <div class="flex flex-col gap-4">
+                            <label class="flex items-center gap-2 cursor-pointer w-fit bg-rose-50 px-4 py-2 rounded-xl border border-rose-100">
+                                <input type="checkbox" id="emailCircular" class="w-4 h-4 accent-rose-500" checked>
+                                <span class="text-xs font-black text-rose-600 uppercase">メール回覧を行う</span>
                             </label>
+                            <div class="relative">
+                                <label class="label-text">回覧者選択</label>
+                                <input type="text" id="circularSearch" placeholder="回覧者を追加（社員名を検索）..." class="form-input" autocomplete="off">
+                                <div id="circularSuggestions" class="suggestion-box"></div>
+                                <div id="selectedCircularList" class="flex flex-wrap gap-2 mt-3"></div>
+                            </div>
                         </div>
                     </div>
-
                 </form>
             </div>
         </div>
@@ -194,7 +168,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, getDocs, addDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // Firebase設定（あなたの設定を維持）
+        // Firebase設定
         const firebaseConfig = {
             apiKey: "AiZaSyDh00EZ7Jb1K2rTxLyTH6d80b4Qzcrwf_XI",
             authDomain: "copros-my-page.firebaseapp.com",
@@ -208,31 +182,27 @@
 
         let allCustomers = [];
         let allStaffs = [];
+        let selectedCirculars = [];
 
         async function init() {
-            // ログイン名デフォセット
             const myName = sessionStorage.getItem('userName') || '未ログイン';
             document.getElementById('visitorSearch').value = myName;
             document.getElementById('visitDate').valueAsDate = new Date();
 
-            // URL名引き継ぎ
-            const params = new URLSearchParams(window.location.search);
-            const nameParam = params.get('name');
-            
-            // データの取得
             const cSnap = await getDocs(query(collection(db, "customers"), orderBy("name")));
             allCustomers = cSnap.docs.map(doc => ({ name: doc.data().name, kana: doc.data().kana, rank: doc.data().rank, type: doc.data().type }));
             
             const sSnap = await getDocs(collection(db, "staffs"));
             allStaffs = sSnap.docs.map(doc => ({ name: doc.data().name }));
 
+            const params = new URLSearchParams(window.location.search);
+            const nameParam = params.get('name');
             if (nameParam) {
                 document.getElementById('customerSearch').value = nameParam;
                 fetchCustomerDetails(nameParam);
             }
         }
 
-        // お客様詳細の自動セット
         function fetchCustomerDetails(name) {
             const customer = allCustomers.find(c => c.name === name);
             if (customer) {
@@ -241,8 +211,7 @@
             }
         }
 
-        // オートコンプリート
-        function setupAutocomplete(inputId, suggestionId, dataList, isCustomer = false) {
+        function setupAutocomplete(inputId, suggestionId, dataList, isCustomer = false, isCircular = false) {
             const input = document.getElementById(inputId);
             const box = document.getElementById(suggestionId);
             input.addEventListener('input', (e) => {
@@ -257,45 +226,64 @@
             box.addEventListener('click', (e) => {
                 if (e.target.classList.contains('suggestion-item')) {
                     const name = e.target.innerText;
-                    input.value = name;
+                    if (isCircular) {
+                        addCircular(name);
+                        input.value = "";
+                    } else {
+                        input.value = name;
+                        if (isCustomer) fetchCustomerDetails(name);
+                    }
                     box.style.display = 'none';
-                    if (isCustomer) fetchCustomerDetails(name);
                 }
             });
         }
 
+        function addCircular(name) {
+            if (!selectedCirculars.includes(name)) {
+                selectedCirculars.push(name);
+                renderCirculars();
+            }
+        }
+
+        function renderCirculars() {
+            const list = document.getElementById('selectedCircularList');
+            list.innerHTML = selectedCirculars.map(name => `
+                <span class="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2">
+                    ${name} <i class="fa-solid fa-circle-xmark cursor-pointer" onclick="removeCircular('${name}')"></i>
+                </span>
+            `).join('');
+        }
+
+        window.removeCircular = (name) => {
+            selectedCirculars = selectedCirculars.filter(n => n !== name);
+            renderCirculars();
+        };
+
         setupAutocomplete('customerSearch', 'customerSuggestions', allCustomers, true);
         setupAutocomplete('visitorSearch', 'visitorSuggestions', allStaffs);
         setupAutocomplete('companionSearch', 'companionSuggestions', allStaffs);
+        setupAutocomplete('circularSearch', 'circularSuggestions', allStaffs, false, true);
 
-        // 登録
         document.getElementById('submitBtn').onclick = async () => {
-            const form = document.getElementById('historyForm');
-            if (!form.checkValidity()) { form.reportValidity(); return; }
-
             const data = {
                 customerName: document.getElementById('customerSearch').value,
-                customerRank: document.getElementById('autoRank').value,
-                customerType: document.getElementById('autoType').value,
                 visitDate: document.getElementById('visitDate').value,
                 startTime: document.getElementById('startTime').value,
                 endTime: document.getElementById('endTime').value,
                 visitorName: document.getElementById('visitorSearch').value,
                 visitorRole: document.querySelector('input[name="visitorRole"]:checked').value,
                 companion: document.getElementById('companionSearch').value,
-                nextVisitDate: document.getElementById('nextVisitDate').value,
                 qualData1: document.getElementById('qualData1').value,
                 qualData2: document.getElementById('qualData2').value,
                 qualData3: document.getElementById('qualData3').value,
-                customerStaff: document.getElementById('customerStaff').value,
                 customerReport: document.getElementById('customerReport').value,
-                staffThoughts: document.getElementById('staffThoughts').value,
+                circularUsers: selectedCirculars,
+                emailCircular: document.getElementById('emailCircular').checked,
                 createdAt: serverTimestamp()
             };
-
             try {
                 await addDoc(collection(db, "activity_records"), data);
-                alert("実績を登録しました！");
+                alert("登録しました！");
                 location.href = 'list_records.html';
             } catch (e) { alert("エラーが発生しました。"); }
         };
