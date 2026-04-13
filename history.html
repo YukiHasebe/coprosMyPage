@@ -7,288 +7,300 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root {
-            --sidebar-bg: #1a1a1a;
-            --header-bg: #3c4b5a;
-            --accent-orange: #ff7e11;
-            --primary-blue: #004098;
+        :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; }
+        body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
+        .form-input {
+            width: 100%; padding: 0.75rem 1rem; background-color: #f8fafc;
+            border: 1px solid #e2e8f0; border-radius: 0.75rem; font-weight: 600;
+            transition: all 0.2s; font-size: 0.9rem;
         }
-        body { font-family: "Meiryo", sans-serif; background-color: #f4f7f9; }
+        .form-input:focus { outline: none; border-color: var(--copros-orange); background-color: white; box-shadow: 0 0 0 4px rgba(255, 126, 17, 0.1); }
+        .readonly-input { background-color: #f1f5f9; color: #64748b; cursor: not-allowed; border-style: dashed; }
+        .label-text { font-size: 0.8rem; font-weight: 800; color: #475569; margin-bottom: 0.4rem; display: block; }
+        .section-card { background: white; border-radius: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04); padding: 2rem; margin-bottom: 2rem; }
+        .section-title { font-size: 0.75rem; font-weight: 900; color: #94a3b8; letter-spacing: 0.1em; border-bottom: 2px solid #f1f5f9; padding-bottom: 0.5rem; margin-bottom: 1.5rem; text-transform: uppercase; }
         
-        /* サイドバー共通 */
-        .sidebar { background-color: var(--sidebar-bg); width: 200px; }
-        .nav-item { border-bottom: 1px solid #2d2d2d; transition: all 0.2s; color: #b8b8b8; }
-        .nav-item:hover { background-color: #333; color: white; }
-        .active-menu { background-color: #2d3748; border-left: 4px solid var(--accent-orange); color: white !important; }
-
-        /* 入力エリアの質感 */
-        .form-table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
-        .form-table th { 
-            width: 220px; background-color: #fff; text-align: left; padding: 18px; 
-            font-size: 14px; color: #444; border-bottom: 1px solid #eee; vertical-align: top;
+        .suggestion-box {
+            position: absolute; width: 100%; top: 100%; left: 0; z-index: 50;
+            background: white; border-radius: 0.75rem; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border: 1px solid #e2e8f0; max-height: 200px; overflow-y: auto; display: none;
         }
-        .form-table td { padding: 15px; border-bottom: 1px solid #eee; }
-        
-        .form-input { 
-            width: 100%; border: 1px solid #d1d5db; padding: 10px; border-radius: 6px; 
-            transition: all 0.2s; outline: none; font-size: 14px;
-        }
-        .form-input:focus { border-color: var(--primary-blue); box-shadow: 0 0 0 3px rgba(0, 64, 152, 0.1); }
-
-        .required-tag {
-            background-color: #fff1f0; color: #d8514d; border: 1px solid #ffa39e;
-            font-size: 10px; padding: 1px 4px; border-radius: 2px; margin-left: 8px;
-        }
-
-        .btn-blue { background-color: var(--primary-blue); color: white; padding: 6px 15px; border-radius: 4px; font-size: 12px; font-weight: bold; }
-        .btn-action { transition: transform 0.1s; cursor: pointer; }
-        .btn-action:active { transform: scale(0.98); }
+        .suggestion-item { padding: 0.7rem 1rem; cursor: pointer; font-weight: 600; font-size: 0.85rem; border-bottom: 1px solid #f8fafc; }
+        .suggestion-item:hover { background-color: #f1f5f9; color: var(--copros-orange); }
     </style>
 </head>
-<body class="flex h-screen overflow-hidden">
+<body class="flex h-screen overflow-hidden text-slate-700">
 
-   <!-- サイドバー（共通リンク設定済） -->
-<aside class="sidebar flex-shrink-0 text-white flex flex-col shadow-2xl">
-    <div class="p-4 text-xs font-bold text-gray-500 border-b border-gray-800 tracking-widest uppercase">Menu</div>
-    <nav class="flex-1 overflow-y-auto">
-        <!-- お客様 -->
-        <a href="list.html" class="nav-item block px-5 py-4 text-sm flex items-center hover:text-white">
-            <i class="fa-solid fa-users w-6"></i> お客様
-        </a>
+    <div id="sidebar-placeholder"></div>
 
-        <!-- 実績（サブメニュー付き） -->
-        <div class="nav-group">
-            <div class="nav-item block px-5 py-4 text-sm flex items-center cursor-pointer">
-                <i class="fa-solid fa-file-invoice w-6"></i> 実績
-            </div>
-            <div class="bg-black text-[11px]">
-                <a href="history.html" class="block px-10 py-3 text-gray-400 hover:text-white border-b border-gray-900">実績登録</a>
-                <a href="list_records.html" class="block px-10 py-3 text-gray-400 hover:text-white border-b border-gray-900">実績一覧</a>
-                <a href="#" class="block px-10 py-3 text-gray-400 hover:text-white border-b border-gray-900">実績CSV出力</a>
-            </div>
-        </div>
-
-        <!-- カレンダー -->
-        <a href="calendar.html" class="nav-item block px-5 py-4 text-sm flex items-center hover:text-white">
-            <i class="fa-solid fa-calendar-days w-6"></i> カレンダー
-        </a>
-
-        <!-- 回覧一覧 -->
-        <a href="#" class="nav-item block px-5 py-4 text-sm flex items-center hover:text-white">
-            <i class="fa-solid fa-envelope-open-text w-6"></i> 回覧一覧
-            <span class="ml-auto bg-red-600 text-white text-[10px] px-2 py-0.5 rounded-full">1</span>
-        </a>
-
-        <!-- 地図 -->
-        <a href="map.html" class="nav-item block px-5 py-4 text-sm flex items-center hover:text-white">
-            <i class="fa-solid fa-map-location-dot w-6"></i> 地図
-        </a>
-
-        <!-- アポイント -->
-        <a href="appoint.html" class="nav-item block px-5 py-4 text-sm flex items-center hover:text-white">
-            <i class="fa-solid fa-clock w-6"></i> アポイント
-        </a>
-
-        <!-- 集計（サブメニュー付き） -->
-        <div class="nav-group">
-            <div class="nav-item block px-5 py-4 text-sm flex items-center cursor-pointer">
-                <i class="fa-solid fa-chart-line w-6"></i> 集計
-            </div>
-            <div class="bg-black text-[11px]">
-                <a href="usage.html" class="block px-10 py-3 text-gray-400 hover:text-white border-b border-gray-900">組織員利用状況</a>
-                <a href="monthly_list.html" class="block px-10 py-3 text-gray-400 hover:text-white border-b border-gray-900">月別一覧</a>
-                <a href="#" class="block px-10 py-3 text-gray-400 hover:text-white border-b border-gray-900">お客様別滞在時間一覧</a>
-                <a href="#" class="block px-10 py-3 text-gray-400 hover:text-white border-b border-gray-900">実績グラフ出力</a>
-            </div>
-        </div>
-
-        <!-- マスタ管理 -->
-        <a href="#" class="nav-item block px-5 py-4 text-sm flex items-center hover:text-white">
-            <i class="fa-solid fa-gears w-6"></i> マスタ管理
-        </a>
-    </nav>
-
-    <!-- ログアウト -->
-    <div class="p-4 border-t border-gray-800">
-        <a href="index.html" class="text-xs text-gray-500 hover:text-white flex items-center">
-            <i class="fa-solid fa-right-from-bracket mr-2"></i> ログアウト
-        </a>
-    </div>
-</aside>
-
-    <!-- メインコンテンツ -->
     <main class="flex-1 flex flex-col overflow-hidden">
-        <header class="h-14 bg-[#3c4b5a] flex items-center justify-between px-6 text-white shadow-md">
-            <div class="flex items-center gap-4"><span class="text-xl font-bold text-[#87ceeb]">株式会社コプロス</span></div>
-            <div class="text-xs font-medium">篠原 栄 殿</div>
-        </header>
+        <div id="header-placeholder"></div>
 
-        <div class="flex-1 overflow-auto p-8">
+        <div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
             <div class="max-w-5xl mx-auto">
-                <div class="flex justify-between items-center mb-6">
-                    <h1 class="text-2xl font-bold text-gray-700">実績登録</h1>
+                
+                <div class="flex justify-between items-end mb-8">
+                    <div>
+                        <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">実績登録</h1>
+                        <nav class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Activity Report Registration</nav>
+                    </div>
                     <div class="flex gap-3">
-                        <button class="bg-[#ff7e11] text-white px-8 py-2 rounded font-bold text-sm shadow btn-action">登 録</button>
-                        <button class="bg-[#f39800] text-white px-8 py-2 rounded font-bold text-sm shadow btn-action">下書き</button>
-                        <button class="bg-[#004098] text-white px-8 py-2 rounded font-bold text-sm shadow btn-action">PDF出力</button>
+                        <button id="saveDraftBtn" class="px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all shadow-sm">
+                            <i class="fa-solid fa-file-pen mr-1"></i> 下書き
+                        </button>
+                        <button id="submitBtn" class="px-10 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-sm hover:shadow-lg hover:shadow-blue-900/20 transition-all flex items-center gap-2">
+                            <i class="fa-solid fa-paper-plane"></i> 登録を実行
+                        </button>
                     </div>
                 </div>
 
-                <form id="historyForm" class="bg-white shadow-xl rounded-xl border border-gray-200 overflow-hidden">
-                    <table class="form-table">
-                        <tr>
-                            <th>お客様名<span class="required-tag">必須</span></th>
-                            <td>
-                                <input type="text" placeholder="キーワードを入力" class="form-input mb-2 max-w-md">
-                                <select class="form-input max-w-md"><option>--</option></select>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th>お客様先担当者</th>
-                            <td>
-                                <button type="button" class="btn-blue mb-2">選択</button>
-                                <textarea class="form-input" rows="2" placeholder="複数入力の場合はカンマ「,」で区切ってください。"></textarea>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th>訪問日時<span class="required-tag">必須</span></th>
-                            <td>
-                                <div class="flex items-center gap-4 mb-2">
-                                    <input type="date" class="form-input w-48" value="2026-03-10">
-                                    <input type="time" class="form-input w-32"> ～ <input type="time" class="form-input w-32">
+                <form id="historyForm">
+                    
+                    <!-- 基本報告情報 -->
+                    <div class="section-card">
+                        <p class="section-title">基本報告情報</p>
+                        <div class="space-y-6">
+                            <!-- 1列目：お客様名（自動取得項目） -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div class="relative md:col-span-1">
+                                    <label class="label-text">お客様名 <span class="text-rose-500">*</span></label>
+                                    <input type="text" id="customerSearch" placeholder="お客様名を検索..." class="form-input" autocomplete="off" required>
+                                    <div id="customerSuggestions" class="suggestion-box"></div>
                                 </div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th>訪問者<span class="required-tag">必須</span></th>
-                            <td>
-                                <div class="flex items-center gap-6">
-                                    <button type="button" class="btn-blue">選択</button>
-                                    <div class="flex gap-4 text-sm">
-                                        <label class="flex items-center"><input type="radio" name="v_type" checked class="mr-1 accent-[#ff7e11]"> メイン</label>
-                                        <label class="flex items-center"><input type="radio" name="v_type" class="mr-1 accent-[#ff7e11]"> サブ</label>
-                                    </div>
-                                    <span class="text-sm font-bold border-l pl-4">篠原 栄</span>
+                                <div>
+                                    <label class="label-text text-slate-400">顧客ランク（自動反映）</label>
+                                    <input type="text" id="autoRank" class="form-input readonly-input" placeholder="--" readonly>
                                 </div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th>同行者</th>
-                            <td>
-                                <button type="button" class="btn-blue mb-2">選択</button>
-                                <textarea class="form-input" rows="2"></textarea>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th>お客様からの情報</th>
-                            <td>
-                                <div class="grid grid-cols-4 gap-2 mb-2">
-                                    <select class="form-input"><option>(定性データ1)</option></select>
-                                    <select class="form-input"><option>(定性データ2)</option></select>
-                                    <select class="form-input"><option>(定性データ3)</option></select>
-                                    <input type="text" class="form-input" placeholder="(自由入力)">
+                                <div>
+                                    <label class="label-text text-slate-400">属性・区分（自動反映）</label>
+                                    <input type="text" id="autoType" class="form-input readonly-input" placeholder="--" readonly>
                                 </div>
-                                <textarea class="form-input" rows="4" placeholder="様「 」"></textarea>
-                                <div class="mt-2 flex gap-2">
-                                    <button type="button" class="bg-gray-100 border border-gray-300 px-4 py-1 text-xs rounded">削除</button>
-                                    <button type="button" class="btn-blue">追加</button>
-                                </div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th>自分・スタッフの考え</th>
-                            <td><textarea class="form-input" rows="4"></textarea></td>
-                        </tr>
-                        <tr>
-                            <th>回覧者</th>
-                            <td>
-                                <div class="flex items-start gap-4">
-                                    <button type="button" class="btn-blue">選択</button>
-                                    <div class="text-xs text-gray-500 leading-relaxed">
-                                        今冨 弘, 岩本 猛, 金丸 卓朗, 上村 信二, 刈野 慶史, 篠原 栄, 原田 隆仁, 船場 勝信, 宮﨑 薫
-                                    </div>
-                                </div>
-                            </td>
-                        </tr>
-                    </table>
+                            </div>
 
-                    <div class="p-8 bg-gray-50 flex justify-center gap-4">
-                        <button type="submit" class="bg-[#ff7e11] text-white px-20 py-3 rounded-lg font-bold shadow-lg btn-action hover:bg-[#e66f00]">実績を登録する</button>
+                            <!-- 2列目：訪問日時 -->
+                            <div>
+                                <label class="label-text">訪問日時 <span class="text-rose-500">*</span></label>
+                                <div class="flex flex-wrap items-center gap-3">
+                                    <input type="date" id="visitDate" class="form-input w-44" required>
+                                    <div class="flex items-center bg-slate-50 rounded-xl border border-slate-200 px-2">
+                                        <input type="time" id="startTime" class="bg-transparent p-2 outline-none font-bold text-sm" required>
+                                        <span class="text-slate-400 px-1">〜</span>
+                                        <input type="time" id="endTime" class="bg-transparent p-2 outline-none font-bold text-sm" required>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 3列目：訪問者 ＋ 同行者 -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div class="relative">
+                                    <div class="flex items-center gap-4 mb-1">
+                                        <label class="label-text mb-0">訪問者 <span class="text-rose-500">*</span></label>
+                                        <div class="flex items-center gap-3 ml-2">
+                                            <label class="flex items-center gap-1.5 cursor-pointer text-xs font-black text-slate-400">
+                                                <input type="radio" name="visitorRole" value="メイン" checked class="w-4 h-4 accent-[#ff7e11]"> メイン
+                                            </label>
+                                            <label class="flex items-center gap-1.5 cursor-pointer text-xs font-black text-slate-400">
+                                                <input type="radio" name="visitorRole" value="サブ" class="w-4 h-4 accent-[#ff7e11]"> サブ
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="relative">
+                                        <input type="text" id="visitorSearch" placeholder="訪問者を検索..." class="form-input" autocomplete="off" required>
+                                        <div id="visitorSuggestions" class="suggestion-box"></div>
+                                    </div>
+                                </div>
+                                <div class="relative">
+                                    <label class="label-text">同行者</label>
+                                    <input type="text" id="companionSearch" placeholder="同行者を検索..." class="form-input" autocomplete="off">
+                                    <div id="companionSuggestions" class="suggestion-box"></div>
+                                </div>
+                            </div>
+
+                            <!-- 4列目：次回予定 -->
+                            <div class="max-w-xs">
+                                <label class="label-text">次回訪問予定日</label>
+                                <input type="date" id="nextVisitDate" class="form-input">
+                            </div>
+                        </div>
                     </div>
+
+                    <!-- お客様からの情報 -->
+                    <div class="section-card">
+                        <p class="section-title">お客様からの情報</p>
+                        <div class="space-y-6">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <select id="qualData1" class="form-input text-xs font-bold">
+                                    <option value="">（定性データ1）</option>
+                                    <option>01.リサーチ情報</option><option>02.ニーズ</option><option>03.問合せ</option><option>04.調査検討要請</option>
+                                    <option>05.見積要請</option><option>06.個別説明・協議</option><option>07.受注</option><option>08.失注</option>
+                                    <option>お喜びの声</option><option>お叱りの声</option><option>改善要望</option><option>ライバル情報</option>
+                                    <option>仕入先・協力業者情報</option><option>決定経路</option><option>購買（受注）要因</option>
+                                    <option>08-1.失注（お客様失注）</option><option>08-2.失注（お客様受託後）</option><option>発注の見通し</option><option>発注予定</option>
+                                </select>
+                                <select id="qualData2" class="form-input text-xs font-bold">
+                                    <option value="">（定性データ2）</option>
+                                    <option>ケコム大口径</option><option>ケコム中口径</option><option>ケコム小口径</option><option>ケコム特殊</option>
+                                    <option>ケコム工法</option><option>生コン・セメント</option><option>新築工事(建築)</option><option>改築工事(建築)</option>
+                                    <option>雑工事(建築)</option><option>バイオガスプラント新設</option><option>バイオガスメンテナンス</option>
+                                    <option>優れた技術力</option><option>フルラインナップ</option><option>情報提供及び提案力</option>
+                                    <option>遠隔サポート</option><option>組織①KP次席窓口</option><option>組織②組織図</option>
+                                    <option>市場・CS調査①購買要因</option><option>市場・CS調査②改善要望</option><option>市場・CS調査③総需要</option>
+                                    <option>市場・CS調査③インストアシェア</option><option>市場・CS調査④ライバル動向</option><option>市場・CS調査⑤事業発展のお手伝い</option>
+                                    <option>イン①業況</option><option>イン②今後の受注/設計計画</option><option>イン③年間の受注目標</option>
+                                    <option>イン④委託先/問合せ先の有無</option><option>イン⑤難解な施工での工法選定</option><option>シールド工事</option><option>推進工事</option><option>基礎工事・その他</option>
+                                </select>
+                                <select id="qualData3" class="form-input text-xs font-bold">
+                                    <option value="">（定性データ3）</option>
+                                    <option>東北</option><option>北陸</option><option>関東</option><option>甲信越</option><option>東海(中部)</option>
+                                    <option>近畿</option><option>中国</option><option>四国</option><option>九州(沖縄)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="label-text">お客様先担当者</label>
+                                <input type="text" id="customerStaff" placeholder="担当者名を入力してください" class="form-input">
+                            </div>
+                            <textarea id="customerReport" rows="6" placeholder="お客様の要望、状況などを詳しく入力してください..." class="form-input h-48 resize-none"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- 自分・スタッフの考え -->
+                    <div class="section-card">
+                        <p class="section-title">自分・スタッフの考え</p>
+                        <textarea id="staffThoughts" rows="6" placeholder="次回の提案予定や、自分が感じた課題などを入力してください..." class="form-input h-48 resize-none"></textarea>
+                    </div>
+
+                    <!-- 添付ファイル -->
+                    <div class="section-card mb-20">
+                        <p class="section-title">関連資料・画像</p>
+                        <div class="flex items-center justify-center w-full">
+                            <label class="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-200 border-dashed rounded-2xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition-all">
+                                <div class="flex flex-col items-center justify-center pt-5 pb-6 text-slate-400">
+                                    <i class="fa-solid fa-cloud-arrow-up text-3xl mb-2"></i>
+                                    <p class="text-xs font-black uppercase">Click or Drag & Drop to Upload</p>
+                                </div>
+                                <input type="file" class="hidden" />
+                            </label>
+                        </div>
+                    </div>
+
                 </form>
             </div>
         </div>
     </main>
-</body>
- <!-- ここから追加 -->
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // 1. Firebase設定
-    const firebaseConfig = {
-        apiKey: "AIzaSyDhOEZ7Jb1K2rTxLyTH6d8ob4Qzcrwf_XI",
-        authDomain: "copros-my-page.firebaseapp.com",
-        projectId: "copros-my-page",
-        storageBucket: "copros-my-page.firebasestorage.app",
-        messagingSenderId: "54419849010",
-        appId: "1:54419849010:web:a60015b9c6fcf60cd3e12b"
-    };
+    <script src="common.js"></script>
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, addDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // 2. 保存処理
-    async function saveHistory(e) {
-        e.preventDefault(); 
-
-        const historyData = {
-            customerName: document.querySelector('input[placeholder="キーワードを入力"]')?.value || "",
-            visitDate: document.querySelector('input[type="date"]')?.value || "",
-            customerFeedback: document.querySelectorAll('textarea')[2]?.value || "",
-            staffOpinion: document.querySelectorAll('textarea')[3]?.value || "",
-            visitor: "篠原 栄", 
-            createdAt: serverTimestamp()
+        // Firebase設定（あなたの設定を維持）
+        const firebaseConfig = {
+            apiKey: "AiZaSyDh00EZ7Jb1K2rTxLyTH6d80b4Qzcrwf_XI",
+            authDomain: "copros-my-page.firebaseapp.com",
+            projectId: "copros-my-page",
+            storageBucket: "copros-my-page.firebasestorage.app",
+            messagingSenderId: "54419849010",
+            appId: "1:54419849010:web:a60015b9c6fcf60cd3e12b"
         };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
-        if (!historyData.customerName || !historyData.visitDate) {
-            alert("「お客様名」と「訪問日」を入力してください。");
-            return;
+        let allCustomers = [];
+        let allStaffs = [];
+
+        async function init() {
+            // ログイン名デフォセット
+            const myName = sessionStorage.getItem('userName') || '未ログイン';
+            document.getElementById('visitorSearch').value = myName;
+            document.getElementById('visitDate').valueAsDate = new Date();
+
+            // URL名引き継ぎ
+            const params = new URLSearchParams(window.location.search);
+            const nameParam = params.get('name');
+            
+            // データの取得
+            const cSnap = await getDocs(query(collection(db, "customers"), orderBy("name")));
+            allCustomers = cSnap.docs.map(doc => ({ name: doc.data().name, kana: doc.data().kana, rank: doc.data().rank, type: doc.data().type }));
+            
+            const sSnap = await getDocs(collection(db, "staffs"));
+            allStaffs = sSnap.docs.map(doc => ({ name: doc.data().name }));
+
+            if (nameParam) {
+                document.getElementById('customerSearch').value = nameParam;
+                fetchCustomerDetails(nameParam);
+            }
         }
 
-        try {
-            await addDoc(collection(db, "visit_records"), historyData);
-            alert("実績を登録しました！実績一覧へ戻ります。");
-            window.location.href = "list_records.html"; 
-        } catch (error) {
-            console.error("Error:", error);
-            alert("保存に失敗しました。設定を確認してください。");
+        // お客様詳細の自動セット
+        function fetchCustomerDetails(name) {
+            const customer = allCustomers.find(c => c.name === name);
+            if (customer) {
+                document.getElementById('autoRank').value = customer.rank || '設定なし';
+                document.getElementById('autoType').value = customer.type || '設定なし';
+            }
         }
-    }
 
-        // 3. ボタンの設定（上下すべてのボタンをスキャンして「登録」機能をつける）
-    document.addEventListener('DOMContentLoaded', () => {
-                // 右上の名前をログインした人に書き換える処理
-        const savedName = sessionStorage.getItem('userName');
-        if (savedName) {
-            const allElements = document.querySelectorAll('header div, header span, .user-name-class, header p');
-            allElements.forEach(el => {
-                if (el.innerText.includes('篠原 栄')) {
-                    el.innerText = savedName; // ログイン画面で保存した名前に書き換え
+        // オートコンプリート
+        function setupAutocomplete(inputId, suggestionId, dataList, isCustomer = false) {
+            const input = document.getElementById(inputId);
+            const box = document.getElementById(suggestionId);
+            input.addEventListener('input', (e) => {
+                const val = e.target.value.toLowerCase();
+                if (!val) { box.style.display = 'none'; return; }
+                const filtered = dataList.filter(d => d.name.toLowerCase().includes(val) || (d.kana && d.kana.includes(val))).slice(0, 8);
+                if (filtered.length > 0) {
+                    box.innerHTML = filtered.map(d => `<div class="suggestion-item">${d.name}</div>`).join('');
+                    box.style.display = 'block';
+                } else { box.style.display = 'none'; }
+            });
+            box.addEventListener('click', (e) => {
+                if (e.target.classList.contains('suggestion-item')) {
+                    const name = e.target.innerText;
+                    input.value = name;
+                    box.style.display = 'none';
+                    if (isCustomer) fetchCustomerDetails(name);
                 }
             });
         }
-        const btns = document.querySelectorAll('button');
-        btns.forEach(btn => {
-            // ボタンの文字に「登録」が含まれているかチェック（スペースなどは無視します）
-            if (btn.innerText.replace(/\s+/g, '').includes('登録')) {
-                btn.innerText = "登 録"; // 表示を統一
-                btn.type = "button";    // 画面リロードを防止
-                btn.onclick = saveHistory; // 保存機能を「直接」紐付け
-                console.log("登録ボタンを有効化しました:", btn.innerText); 
-            }
-        });
-    });
-</script>
-<!-- ここまで追加 -->   
+
+        setupAutocomplete('customerSearch', 'customerSuggestions', allCustomers, true);
+        setupAutocomplete('visitorSearch', 'visitorSuggestions', allStaffs);
+        setupAutocomplete('companionSearch', 'companionSuggestions', allStaffs);
+
+        // 登録
+        document.getElementById('submitBtn').onclick = async () => {
+            const form = document.getElementById('historyForm');
+            if (!form.checkValidity()) { form.reportValidity(); return; }
+
+            const data = {
+                customerName: document.getElementById('customerSearch').value,
+                customerRank: document.getElementById('autoRank').value,
+                customerType: document.getElementById('autoType').value,
+                visitDate: document.getElementById('visitDate').value,
+                startTime: document.getElementById('startTime').value,
+                endTime: document.getElementById('endTime').value,
+                visitorName: document.getElementById('visitorSearch').value,
+                visitorRole: document.querySelector('input[name="visitorRole"]:checked').value,
+                companion: document.getElementById('companionSearch').value,
+                nextVisitDate: document.getElementById('nextVisitDate').value,
+                qualData1: document.getElementById('qualData1').value,
+                qualData2: document.getElementById('qualData2').value,
+                qualData3: document.getElementById('qualData3').value,
+                customerStaff: document.getElementById('customerStaff').value,
+                customerReport: document.getElementById('customerReport').value,
+                staffThoughts: document.getElementById('staffThoughts').value,
+                createdAt: serverTimestamp()
+            };
+
+            try {
+                await addDoc(collection(db, "activity_records"), data);
+                alert("実績を登録しました！");
+                location.href = 'list_records.html';
+            } catch (e) { alert("エラーが発生しました。"); }
+        };
+
+        init();
+    </script>
+</body>
 </html>
