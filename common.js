@@ -1,6 +1,6 @@
 // common.js
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. ヘッダーの挿入（検索窓はお客様一覧 list.html の時だけ表示するように制御）
+    // 1. ヘッダーの挿入（検索窓は list.html の時だけ。ログイン者の「様」を削除）
     const isListPage = window.location.pathname.includes('list.html');
     const headerHtml = `
         <header class="h-16 bg-[#3c4b5a] flex items-center justify-between px-6 text-white shadow-lg shrink-0 z-50">
@@ -17,25 +17,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>` : ''}
             </div>
             <div class="flex items-center gap-4">
-                <div class="text-right">
-                    <p class="text-[10px] opacity-60 leading-none mb-1">SALES SUPPORT SYSTEM</p>
-                    <p class="text-sm font-bold tracking-wide">${sessionStorage.getItem('userName') || 'ゲスト'} 様</p>
+                <div class="text-right mr-1">
+                    <p class="text-[10px] opacity-50 leading-none mb-1 uppercase tracking-tighter">Current User</p>
+                    <p class="text-sm font-black tracking-wider text-white">${sessionStorage.getItem('userName') || 'ゲスト'}</p>
                 </div>
-                <div class="w-10 h-10 bg-gradient-to-br from-slate-400 to-slate-600 rounded-full flex items-center justify-center border-2 border-white/30 shadow-inner overflow-hidden text-white">
+                <div class="w-10 h-10 bg-gradient-to-br from-slate-400 to-slate-600 rounded-full flex items-center justify-center border-2 border-white/20 shadow-md overflow-hidden text-white">
                     <i class="fa-solid fa-user text-lg"></i>
                 </div>
             </div>
         </header>
     `;
 
-    // 2. サイドバーの挿入（ご指定の階層構造を完全に再現）
+    // 2. サイドバーの挿入（構成はそのまま維持）
     const sidebarHtml = `
         <aside class="sidebar flex flex-col shrink-0 text-sm shadow-2xl overflow-hidden" style="width: 220px; background-color: #1a1a1a; color: white; height: 100vh;">
             <div class="h-16 flex items-center px-6 text-gray-500 font-black tracking-widest text-xs border-b border-gray-800 uppercase">Menu</div>
-            <nav class="flex-1 overflow-y-auto py-2 custom-scrollbar">
+            <nav class="flex-1 overflow-y-auto py-2">
                 
-                <!-- 大項目：お客様 -->
-                <div class="nav-group" id="menu-customer">
+                <!-- お客様 -->
+                <div class="nav-group">
                     <div class="group-header flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-white/5 transition-colors">
                         <div class="flex items-center gap-3"><i class="fa-solid fa-users w-5 text-[#87ceeb]"></i><span>お客様</span></div>
                         <i class="fa-solid fa-chevron-down text-[10px] opacity-30 arrow transition-transform"></i>
@@ -46,8 +46,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
 
-                <!-- 大項目：実績 -->
-                <div class="nav-group" id="menu-history">
+                <!-- 実績 -->
+                <div class="nav-group">
                     <div class="group-header flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-white/5">
                         <div class="flex items-center gap-3"><i class="fa-solid fa-file-invoice w-5 text-[#87ceeb]"></i><span>実績</span></div>
                         <i class="fa-solid fa-chevron-down text-[10px] opacity-30 arrow transition-transform"></i>
@@ -59,28 +59,28 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
 
-                <!-- 大項目：カレンダー（単体） -->
+                <!-- カレンダー -->
                 <div class="px-6 py-3 flex items-center gap-3 hover:bg-white/5 cursor-pointer" onclick="location.href='calendar.html'">
                     <i class="fa-solid fa-calendar-days w-5 text-[#87ceeb]"></i><span>カレンダー</span>
                 </div>
 
-                <!-- 大項目：回覧一覧（単体・バッジ付き） -->
+                <!-- 回覧一覧（バッジ付き） -->
                 <div class="px-6 py-3 flex items-center justify-between hover:bg-white/5 cursor-pointer" onclick="location.href='kairan.html'">
                     <div class="flex items-center gap-3"><i class="fa-solid fa-envelope-open-text w-5 text-[#87ceeb]"></i><span>回覧一覧</span></div>
                     <span class="bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">3</span>
                 </div>
 
-                <!-- 大項目：地図（単体） -->
+                <!-- 地図 -->
                 <div class="px-6 py-3 flex items-center gap-3 hover:bg-white/5 cursor-pointer" onclick="location.href='map.html'">
                     <i class="fa-solid fa-map-location-dot w-5 text-[#87ceeb]"></i><span>地図</span>
                 </div>
 
-                <!-- 大項目：アポイント（単体） -->
+                <!-- アポイント -->
                 <div class="px-6 py-3 flex items-center gap-3 hover:bg-white/5 cursor-pointer" onclick="location.href='appoint.html'">
                     <i class="fa-solid fa-clock w-5 text-[#87ceeb]"></i><span>アポイント</span>
                 </div>
 
-                <!-- 大項目：集計 -->
+                <!-- 集計 -->
                 <div class="nav-group">
                     <div class="group-header flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-white/5">
                         <div class="flex items-center gap-3"><i class="fa-solid fa-chart-line w-5 text-[#87ceeb]"></i><span>集計</span></div>
@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
 
-                <!-- 大項目：マスタ管理 -->
+                <!-- マスタ管理 -->
                 <div class="nav-group">
                     <div class="group-header flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-white/5">
                         <div class="flex items-center gap-3"><i class="fa-solid fa-gear w-5 text-[#87ceeb]"></i><span>マスタ管理</span></div>
@@ -120,23 +120,19 @@ document.addEventListener('DOMContentLoaded', () => {
         </aside>
     `;
 
-    // 画面への書き込み
+    // プレースホルダーへの書き込み
     const headerPlaceholder = document.getElementById('header-placeholder');
     const sidebarPlaceholder = document.getElementById('sidebar-placeholder');
     if (headerPlaceholder) headerPlaceholder.innerHTML = headerHtml;
     if (sidebarPlaceholder) sidebarPlaceholder.innerHTML = sidebarHtml;
 
-    // アコーディオン開閉ロジック
+    // アコーディオンのクリック動作
     document.querySelectorAll('.group-header').forEach(header => {
         header.addEventListener('click', () => {
             const group = header.parentElement;
             const submenu = group.querySelector('.submenu');
             const arrow = header.querySelector('.arrow');
-            
             const isOpen = !submenu.classList.contains('hidden');
-            
-            // 他のメニューを閉じる場合はここを有効に（今は開いたままにできる設定）
-            // document.querySelectorAll('.submenu').forEach(s => s.classList.add('hidden'));
 
             if (isOpen) {
                 submenu.classList.add('hidden');
@@ -148,13 +144,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // 現在のページに基づく自動アクティブ化
+    // 自動アクティブ化（現在地に合わせて色を付ける）
     const currentFile = window.location.pathname.split("/").pop();
-    document.querySelectorAll('.submenu div, .nav-group, nav > div').forEach(el => {
+    document.querySelectorAll('[onclick]').forEach(el => {
         const action = el.getAttribute('onclick');
         if (action && action.includes(currentFile)) {
             el.classList.add('text-[#87ceeb]', 'font-bold');
-            // 親メニューがあれば開く
             const parentSubmenu = el.closest('.submenu');
             if (parentSubmenu) {
                 parentSubmenu.classList.remove('hidden');
