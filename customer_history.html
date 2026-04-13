@@ -7,189 +7,137 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; }
-        body { font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif; background-color: #f8fafc; }
-        
-        /* サイドバー */
-        .sidebar { width: 220px; background-color: var(--sidebar-bg); z-index: 100; overflow-y: auto; height: 100vh; }
-        .nav-item { border-bottom: 1px solid #2d2d2d; color: #b8b8b8; cursor: pointer; transition: all 0.3s; padding: 16px; display: flex; align-items: center; justify-content: space-between; }
-        .nav-item:hover { background-color: #262626; color: white; }
-        .nav-item.open { background-color: #2d3748; color: white; border-left: 4px solid var(--copros-blue); }
-        .nav-item.open i.main-icon { color: var(--copros-blue); }
-        
-        /* 下にスルスル開くアニメーション */
-        .submenu { max-height: 0; overflow: hidden; background-color: #0f0f0f; transition: max-height 0.3s ease-out; }
-        .nav-item.open + .submenu { max-height: 800px; }
-        .submenu-item { padding: 12px 20px 12px 45px; font-size: 12px; color: #888; border-bottom: 1px solid #1a1a1a; cursor: pointer; }
-        .submenu-item:hover { color: var(--copros-blue); background-color: #1a1a1a; }
-        .submenu-item.active-child { color: var(--copros-blue); font-weight: bold; }
-        .badge { background-color: #e53e3e; color: white; border-radius: 50%; padding: 2px 6px; font-size: 10px; }
-
-        /* 実績履歴バー */
-        .history-bar { 
-            background-color: #3c4b5a; color: white; padding: 18px 25px; 
-            margin-bottom: 8px; border-radius: 8px; font-weight: bold; 
-            display: flex; justify-content: space-between; align-items: center;
-            cursor: pointer; transition: all 0.2s; 
-        }
-        .history-bar:hover { background-color: #4a5a6a; transform: translateX(10px); }
-        .btn-action { transition: all 0.2s; }
-        .btn-action:hover { transform: translateY(-1px); opacity: 0.9; }
-        
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; }
+        body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
+        .history-card { background: white; border-radius: 1rem; border: 1px solid #e2e8f0; transition: all 0.3s; overflow: hidden; margin-bottom: 1rem; }
+        .history-header { padding: 1.2rem 1.5rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: #3c4b5a; color: white; }
+        .history-header:hover { background: #2d3748; }
+        .history-body { display: none; padding: 2rem; background: white; border-top: 1px solid #f1f5f9; }
+        .detail-label { font-size: 0.75rem; font-weight: 900; color: #94a3b8; width: 150px; shrink: 0; }
+        .detail-content { font-size: 0.9rem; font-weight: 600; color: #334155; line-height: 1.6; }
+        .detail-row { display: flex; padding: 0.8rem 0; border-bottom: 1px solid #f8fafc; }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700">
 
-    <!-- サイドバー -->
-    <aside class="sidebar flex flex-col shrink-0 text-sm shadow-2xl">
-        <div class="h-16 flex items-center px-6 text-gray-500 font-black tracking-widest text-xs border-b border-gray-800 uppercase">Menu</div>
-        <nav class="flex-1">
-            <!-- お客様 (最初から開いておく) -->
-            <div class="nav-item open" onclick="this.classList.toggle('open')">
-                <div class="flex items-center gap-3"><i class="fa-solid fa-users w-5 main-icon"></i><span>お客様</span></div>
-                <i class="fa-solid fa-chevron-down text-[10px]"></i>
-            </div>
-            <div class="submenu">
-                <div class="submenu-item" onclick="location.href='list.html'">お客様情報一覧</div>
-                <div class="submenu-item active-child">訪問実績履歴</div>
-                <div class="submenu-item" onclick="location.href='add.html'">お客様情報登録</div>
-            </div>
+    <div id="sidebar-placeholder"></div>
 
-            <!-- 実績 -->
-            <div class="nav-item" onclick="this.classList.toggle('open')">
-                <div class="flex items-center gap-3"><i class="fa-solid fa-file-invoice w-5 main-icon"></i><span>実 績</span></div>
-                <i class="fa-solid fa-chevron-down text-[10px]"></i>
-            </div>
-            <div class="submenu">
-                <div class="submenu-item" onclick="location.href='history.html'">実績登録</div>
-                <div class="submenu-item" onclick="location.href='list_records.html'">実績一覧</div>
-                <div class="submenu-item">実績CSV出力</div>
-            </div>
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <div id="header-placeholder"></div>
 
-            <!-- カレンダー、地図、アポなどは単体リンク -->
-            <div class="nav-item" onclick="location.href='calendar.html'"><div class="flex items-center gap-3"><i class="fa-solid fa-calendar-days w-5 main-icon"></i><span>カレンダー</span></div></div>
-            <div class="nav-item flex items-center justify-between" onclick="location.href='kairan.html'"><div class="flex items-center gap-3"><i class="fa-solid fa-envelope-open-text w-5 main-icon"></i><span>回覧一覧</span></div><span class="badge">2</span></div>
-            <div class="nav-item" onclick="location.href='map.html'"><div class="flex items-center gap-3"><i class="fa-solid fa-map-location-dot w-5 main-icon"></i><span>地 図</span></div></div>
-            <div class="nav-item" onclick="location.href='appoint.html'"><div class="flex items-center gap-3"><i class="fa-solid fa-clock w-5 main-icon"></i><span>アポイント</span></div></div>
-
-            <!-- 集計 -->
-            <div class="nav-item" onclick="this.classList.toggle('open')">
-                <div class="flex items-center gap-3"><i class="fa-solid fa-chart-line w-5 main-icon"></i><span>集 計</span></div>
-                <i class="fa-solid fa-chevron-down text-[10px]"></i>
-            </div>
-            <div class="submenu">
-                <div class="submenu-item" onclick="location.href='usage.html'">組織員利用状況</div>
-                <div class="submenu-item" onclick="location.href='monthly_list.html'">月別一覧</div>
-                <div class="submenu-item">滞在時間一覧</div>
-                <div class="submenu-item">実績グラフ出力</div>
-            </div>
-
-            <!-- マスタ管理 -->
-            <div class="nav-item" onclick="this.classList.toggle('open')">
-                <div class="flex items-center gap-3"><i class="fa-solid fa-gear w-5 main-icon"></i><span>マスタ管理</span></div>
-                <i class="fa-solid fa-chevron-down text-[10px]"></i>
-            </div>
-            <div class="submenu">
-                <div class="submenu-item" onclick="location.href='import.html'">インポート</div>
-                <div class="submenu-item">お知らせ登録</div>
-                <div class="submenu-item">組織員登録</div>
-                <div class="submenu-item">実績マスタ</div>
-            </div>
-        </nav>
-        <div class="p-6 border-t border-gray-800">
-            <a href="index.html" class="flex items-center gap-3 text-gray-500 hover:text-rose-400 transition-colors"><i class="fa-solid fa-power-off"></i><span class="font-bold">ログアウト</span></a>
-        </div>
-    </aside>
-
-    <!-- メインコンテンツ -->
-    <main class="flex-1 flex flex-col overflow-hidden bg-slate-50">
-        <header class="h-16 bg-[#3c4b5a] flex items-center justify-between px-8 text-white shadow-lg shrink-0 z-50">
-            <span class="text-xl font-bold tracking-tighter text-[#87ceeb]">株式会社コプロス</span>
-            <div class="flex items-center gap-3">
-                <div class="text-right font-bold"><p id="userNameDisplay" class="text-sm">-- --</p></div>
-                <div class="w-10 h-10 bg-slate-500 rounded-full flex items-center justify-center border-2 border-white/20"><i class="fa-solid fa-user"></i></div>
-            </div>
-        </header>
-
-        <div class="flex-1 overflow-auto p-8">
-            <div class="max-w-[1000px] mx-auto">
-                <h1 class="text-3xl font-black text-slate-800 mb-8 uppercase tracking-tight">訪問実績履歴</h1>
-
-                <div class="flex gap-3 mb-10">
-                    <button onclick="location.href='list.html'" class="btn-action bg-white border border-slate-300 text-slate-600 px-10 py-2.5 rounded-xl font-bold shadow-sm flex items-center gap-2"><i class="fa-solid fa-arrow-left"></i> 戻る</button>
-                    <button id="newRegBtn" class="btn-action bg-[#004098] text-white px-10 py-2.5 rounded-xl font-bold shadow-md flex items-center gap-2"><i class="fa-solid fa-plus"></i> 新規登録</button>
+        <div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
+            <div class="max-w-5xl mx-auto">
+                
+                <!-- ヘッドエリア -->
+                <div class="flex justify-between items-end mb-8">
+                    <div>
+                        <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">訪問実績履歴</h1>
+                        <p id="targetCustomerName" class="text-xl font-bold text-blue-600">読み込み中...</p>
+                    </div>
+                    <div class="flex gap-3">
+                        <button onclick="history.back()" class="px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all">戻る</button>
+                        <button id="newRegBtn" class="px-8 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-sm hover:shadow-lg transition-all flex items-center gap-2">
+                            <i class="fa-solid fa-plus"></i> 新規登録
+                        </button>
+                    </div>
                 </div>
 
-                <!-- 会社名はURLから取得（本物） -->
-                <div class="bg-white p-10 rounded-[2.5rem] shadow-2xl border border-slate-200 mb-10">
-                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Target Customer Information</p>
-                    <h2 id="targetCustomerName" class="text-4xl font-black text-blue-800 tracking-tighter tracking-tighter">-- --</h2>
+                <!-- 履歴リストコンテナ -->
+                <div id="historyListContainer">
+                    <!-- ここにFirebaseから取得した履歴が並びます -->
                 </div>
 
-                <div class="flex justify-end pr-4 mb-4">
-                    <div id="historyCount" class="text-slate-400 text-xs font-black tracking-widest uppercase bg-white px-4 py-1.5 rounded-full shadow-sm border border-slate-100">--/--</div>
-                </div>
-
-                <!-- 履歴リスト (7件のダミーを表示) -->
-                <div id="historyListContainer" class="space-y-3 pb-20"></div>
             </div>
         </div>
     </main>
 
+    <script src="common.js"></script>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
-            apiKey: "AIzaSyDhOEZ7Jb1K2rTxLyTH6d8ob4Qzcrwf_XI",
+            apiKey: "AiZaSyDh00EZ7Jb1K2rTxLyTH6d80b4Qzcrwf_XI",
             authDomain: "copros-my-page.firebaseapp.com",
             projectId: "copros-my-page",
             storageBucket: "copros-my-page.firebasestorage.app",
             messagingSenderId: "54419849010",
             appId: "1:54419849010:web:a60015b9c6fcf60cd3e12b"
         };
-
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
         const params = new URLSearchParams(window.location.search);
-        const customerName = params.get('name') || "(株)木村設計";
+        const customerName = params.get('name');
 
         async function init() {
+            if (!customerName) return;
             document.getElementById('targetCustomerName').innerText = customerName;
-            const savedName = sessionStorage.getItem('userName');
-            if (savedName) document.getElementById('userNameDisplay').innerText = savedName;
+            document.getElementById('newRegBtn').onclick = () => location.href = `history.html?name=${encodeURIComponent(customerName)}`;
 
-            // ダミーデータ（訪問日と訪問者）
-            const dummyRecords = [
-                { visitDate: "2025/12/24", visitor: "苅野 慶史" },
-                { visitDate: "2025/02/06", visitor: "苅野 慶史" },
-                { visitDate: "2025/02/06", visitor: "岩本 猛" },
-                { visitDate: "2024/05/29", visitor: "上村 信二" },
-                { visitDate: "2024/04/23", visitor: "上村 信二" },
-                { visitDate: "2024/03/25", visitor: "上村 信二" },
-                { visitDate: "2024/03/15", visitor: "上村 信二" }
-            ];
+            try {
+                const q = query(
+                    collection(db, "activity_records"),
+                    where("customerName", "==", customerName),
+                    orderBy("visitDate", "desc")
+                );
+                const snap = await getDocs(q);
+                renderHistory(snap.docs.map(doc => doc.data()));
+            } catch (e) {
+                console.error(e);
+                document.getElementById('historyListContainer').innerHTML = '<p class="text-slate-400 font-bold p-10 bg-white rounded-2xl border border-dashed border-slate-200 text-center">まだ実績が登録されていません。</p>';
+            }
+        }
 
+        function renderHistory(dataList) {
             const container = document.getElementById('historyListContainer');
             container.innerHTML = "";
 
-            // 仮データ表示
-            dummyRecords.forEach(data => {
-                const row = `
-                    <div class="history-bar group" onclick="alert('詳細ポップアップ機能は次回構築予定です！')">
-                        <span>${data.visitDate}　${data.visitor}</span>
-                        <i class="fa-solid fa-chevron-right text-xs opacity-20 group-hover:opacity-100"></i>
+            dataList.forEach((data, index) => {
+                const card = `
+                    <div class="history-card">
+                        <div class="history-header" onclick="toggleDetail(this)">
+                            <div class="flex items-center gap-6">
+                                <span class="text-sm font-black tracking-widest">${data.visitDate.replace(/-/g, '/')}</span>
+                                <span class="text-sm font-bold opacity-80">${data.visitorName}</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-down transition-transform duration-300 arrow-icon"></i>
+                        </div>
+                        <div class="history-body">
+                            <div class="detail-row"><div class="detail-label">お客様先担当者</div><div class="detail-content">${data.customerStaff || '--'}</div></div>
+                            <div class="detail-row"><div class="detail-label">訪問時間</div><div class="detail-content">${data.startTime || '--:--'} 〜 ${data.endTime || '--:--'}</div></div>
+                            <div class="detail-row"><div class="detail-label">同行者</div><div class="detail-content">${data.companion || 'なし'}</div></div>
+                            <div class="detail-row">
+                                <div class="detail-label">定性データ</div>
+                                <div class="flex gap-2">
+                                    ${data.qualData1 ? `<span class="bg-blue-50 text-blue-600 px-2 py-1 rounded text-[10px] font-black border border-blue-100">${data.qualData1}</span>` : ''}
+                                    ${data.qualData2 ? `<span class="bg-slate-50 text-slate-500 px-2 py-1 rounded text-[10px] font-black border border-slate-100">${data.qualData2}</span>` : ''}
+                                </div>
+                            </div>
+                            <div class="py-6">
+                                <p class="detail-label mb-3">お客様からの情報</p>
+                                <div class="p-4 bg-slate-50 rounded-xl detail-content whitespace-pre-wrap">${data.customerReport || '未入力'}</div>
+                            </div>
+                            <div class="py-6 border-t border-slate-100">
+                                <p class="detail-label mb-3">自分・スタッフの考え</p>
+                                <div class="p-4 bg-blue-50/30 rounded-xl detail-content whitespace-pre-wrap">${data.staffThoughts || '未入力'}</div>
+                            </div>
+                            <div class="detail-row"><div class="detail-label">次回訪問予定日</div><div class="detail-content text-orange-500">${data.nextVisitDate || '--'}</div></div>
+                        </div>
                     </div>
                 `;
-                container.insertAdjacentHTML('beforeend', row);
+                container.insertAdjacentHTML('beforeend', card);
             });
-
-            document.getElementById('historyCount').innerText = `1-7/7`;
-            document.getElementById('newRegBtn').onclick = () => location.href = `history.html?name=${encodeURIComponent(customerName)}`;
         }
+
+        window.toggleDetail = (el) => {
+            const body = el.nextElementSibling;
+            const arrow = el.querySelector('.arrow-icon');
+            const isOpen = body.style.display === 'block';
+            body.style.display = isOpen ? 'none' : 'block';
+            arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+        };
 
         init();
     </script>
