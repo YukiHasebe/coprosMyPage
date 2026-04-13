@@ -178,7 +178,7 @@
                 const row = `
                     <tr class="hover:bg-blue-50/40 transition-all border-b border-slate-50">
                         <td class="p-6 text-center text-slate-300 font-mono text-xs">${startIndex + index + 1}</td>
-                        <td class="p-6"><div class="text-base text-slate-800 leading-tight">${data.customerName}</div></td>
+                        <td class="p-6"><div class="text-base text-slate-800 leading-tight cursor-pointer hover:text-blue-600 font-black" onclick="location.href='customer_history.html?name=${encodeURIComponent(data.customerName)}'">${data.customerName}</div></td>
                         <td class="p-6 text-center"><span class="bg-slate-100 text-slate-500 px-3 py-1 rounded-full text-xs">${visitCount}回</span></td>
                         <td class="p-6">
                             <div class="text-slate-800 font-mono">${data.visitDate.replace(/-/g, '/')}</div>
@@ -195,7 +195,7 @@
                             <div class="text-orange-500 text-xs">${data.nextVisitDate ? data.nextVisitDate.replace(/-/g, '/') : '--'}</div>
                         </td>
                         <td class="p-6 text-center">
-                            <button class="text-slate-300 hover:text-blue-500 transition-colors">
+                           <button class="text-slate-300 hover:text-blue-500 transition-colors" onclick="location.href='customer_history.html?name=${encodeURIComponent(data.customerName)}'">
                                 <i class="fa-solid fa-circle-chevron-right text-lg"></i>
                             </button>
                         </td>
