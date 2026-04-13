@@ -39,17 +39,17 @@
         <div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
             <div class="max-w-5xl mx-auto">
                 
-                <!-- ボタンエリア（下書き復活） -->
+                <!-- 上部ボタンエリア -->
                 <div class="flex justify-between items-end mb-8">
                     <div>
                         <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">実績登録</h1>
                         <nav class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Activity Report Registration</nav>
                     </div>
                     <div class="flex gap-3">
-                        <button id="saveDraftBtn" class="px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all shadow-sm">
+                        <button type="button" class="btn-draft px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all shadow-sm">
                             <i class="fa-solid fa-file-pen mr-1"></i> 下書き
                         </button>
-                        <button id="submitBtn" class="px-10 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-sm hover:shadow-lg transition-all flex items-center gap-2">
+                        <button type="button" class="btn-submit px-10 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-sm hover:shadow-lg transition-all flex items-center gap-2">
                             <i class="fa-solid fa-paper-plane"></i> 登録を実行
                         </button>
                     </div>
@@ -104,6 +104,7 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="max-w-xs"><label class="label-text">次回訪問予定日</label><input type="date" id="nextVisitDate" class="form-input"></div>
                         </div>
                     </div>
 
@@ -146,20 +147,18 @@
                         <textarea id="staffThoughts" rows="6" placeholder="次回の提案予定や課題..." class="form-input h-48 resize-none"></textarea>
                     </div>
 
-                    <!-- 添付ファイル（復活） -->
+                    <!-- 添付ファイル -->
                     <div class="section-card">
                         <p class="section-title">添付ファイル</p>
-                        <label class="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-200 border-dashed rounded-2xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition-all">
-                            <div class="flex flex-col items-center justify-center pt-5 pb-6 text-slate-400">
-                                <i class="fa-solid fa-cloud-arrow-up text-3xl mb-2"></i>
-                                <p class="text-xs font-black uppercase tracking-widest">Click or Drag & Drop</p>
-                            </div>
+                        <label class="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-200 border-dashed rounded-2xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition-all text-slate-400">
+                            <i class="fa-solid fa-cloud-arrow-up text-3xl mb-2"></i>
+                            <p class="text-xs font-black uppercase">Click or Drag & Drop</p>
                             <input type="file" class="hidden" />
                         </label>
                     </div>
 
                     <!-- 回覧設定 -->
-                    <div class="section-card mb-20">
+                    <div class="section-card">
                         <p class="section-title">回覧設定</p>
                         <div class="flex flex-col gap-4">
                             <label class="flex items-center gap-2 cursor-pointer w-fit bg-rose-50 px-4 py-2 rounded-xl border border-rose-100">
@@ -173,6 +172,16 @@
                                 未選択（ボタンから選んでください）
                             </div>
                         </div>
+                    </div>
+
+                    <!-- 下部ボタンエリア（追加！） -->
+                    <div class="flex justify-center gap-4 py-12 border-t border-slate-100 mt-10">
+                        <button type="button" class="btn-draft px-8 py-3 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all shadow-sm">
+                            <i class="fa-solid fa-file-pen mr-1"></i> 下書き
+                        </button>
+                        <button type="button" class="btn-submit px-16 py-3 bg-[#004098] text-white rounded-xl font-black text-sm hover:shadow-lg transition-all flex items-center gap-2">
+                            <i class="fa-solid fa-paper-plane"></i> 登録を実行
+                        </button>
                     </div>
                 </form>
             </div>
@@ -206,6 +215,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, getDocs, addDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+        // Firebase設定（あなたのものを維持）
         const firebaseConfig = {
             apiKey: "AiZaSyDh00EZ7Jb1K2rTxLyTH6d80b4Qzcrwf_XI",
             authDomain: "copros-my-page.firebaseapp.com",
@@ -237,6 +247,13 @@
             depts.forEach(d => deptSelect.insertAdjacentHTML('beforeend', `<option value="${d}">${d}</option>`));
 
             setupCustomerAutocomplete();
+
+            const params = new URLSearchParams(window.location.search);
+            const nameParam = params.get('name');
+            if (nameParam) {
+                document.getElementById('customerSearch').value = nameParam;
+                fetchCustomerDetails(nameParam);
+            }
         }
 
         function setupCustomerAutocomplete() {
@@ -258,6 +275,14 @@
                     box.style.display = 'none';
                 }
             });
+        }
+
+        function fetchCustomerDetails(name) {
+            const customer = allCustomers.find(c => c.name === name);
+            if (customer) {
+                document.getElementById('autoRank').value = customer.rank || '--';
+                document.getElementById('autoType').value = customer.type || '--';
+            }
         }
 
         window.openStaffModal = (target) => {
@@ -303,29 +328,41 @@
         document.getElementById('staffKeyword').addEventListener('input', renderStaffList);
         document.getElementById('deptFilter').addEventListener('change', renderStaffList);
 
-        document.getElementById('submitBtn').onclick = async () => {
-            const data = {
-                customerName: document.getElementById('customerSearch').value,
-                visitDate: document.getElementById('visitDate').value,
-                startTime: document.getElementById('startTime').value,
-                endTime: document.getElementById('endTime').value,
-                visitorName: document.getElementById('visitorName').value,
-                visitorRole: document.querySelector('input[name="visitorRole"]:checked').value,
-                companion: document.getElementById('companionDisplay').value,
-                qualData1: document.getElementById('qualData1').value,
-                qualData2: document.getElementById('qualData2').value,
-                qualData3: document.getElementById('qualData3').value,
-                customerReport: document.getElementById('customerReport').value,
-                circularUsers: document.getElementById('circularDisplay').innerText,
-                emailCircular: document.getElementById('emailCircular').checked,
-                createdAt: serverTimestamp()
+        // --- 登録ボタン（上と下の両方に対応） ---
+        document.querySelectorAll('.btn-submit').forEach(btn => {
+            btn.onclick = async () => {
+                const form = document.getElementById('historyForm');
+                if (!form.checkValidity()) { form.reportValidity(); return; }
+
+                const data = {
+                    customerName: document.getElementById('customerSearch').value,
+                    visitDate: document.getElementById('visitDate').value,
+                    startTime: document.getElementById('startTime').value,
+                    endTime: document.getElementById('endTime').value,
+                    visitorName: document.getElementById('visitorName').value,
+                    visitorRole: document.querySelector('input[name="visitorRole"]:checked').value,
+                    companion: document.getElementById('companionDisplay').value,
+                    qualData1: document.getElementById('qualData1').value,
+                    qualData2: document.getElementById('qualData2').value,
+                    qualData3: document.getElementById('qualData3').value,
+                    customerReport: document.getElementById('customerReport').value,
+                    staffThoughts: document.getElementById('staffThoughts').value,
+                    circularUsers: document.getElementById('circularDisplay').innerText,
+                    emailCircular: document.getElementById('emailCircular').checked,
+                    createdAt: serverTimestamp()
+                };
+                try {
+                    await addDoc(collection(db, "activity_records"), data);
+                    alert("実績を登録しました！");
+                    location.href = 'list_records.html';
+                } catch (e) { alert("保存に失敗しました。"); }
             };
-            try {
-                await addDoc(collection(db, "activity_records"), data);
-                alert("登録しました！");
-                location.href = 'list_records.html';
-            } catch (e) { alert("保存エラーが発生しました。"); }
-        };
+        });
+
+        // 下書きボタン
+        document.querySelectorAll('.btn-draft').forEach(btn => {
+            btn.onclick = () => alert("下書きとして保存しました（機能は後日実装）");
+        });
 
         init();
     </script>
