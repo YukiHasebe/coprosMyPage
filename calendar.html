@@ -7,235 +7,181 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root {
-            --sidebar-bg: #1a1a1a;
-            --header-bg: #3c4b5a;
-            --accent-orange: #ff7e11;
-            --primary-blue: #004098;
-            --calendar-border: #d1d5db;
-        }
-        body { font-family: "Meiryo", sans-serif; background-color: #f4f7f9; }
+        :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; --appoint-blue: #3b82f6; }
+        body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
         
-        /* サイドバー共通 */
-        .sidebar { background-color: var(--sidebar-bg); width: 200px; }
-        .nav-item { border-bottom: 1px solid #2d2d2d; transition: all 0.2s; color: #b8b8b8; }
-        .nav-item:hover { background-color: #333; color: white; }
-        .active-menu { background-color: #2d3748; border-left: 4px solid var(--accent-orange); color: white !important; }
-        .badge-count { background: #d9534f; color: white; border-radius: 50%; padding: 2px 6px; font-size: 10px; margin-left: auto; }
+        /* カレンダーグリッド */
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); background: #e2e8f0; gap: 1px; border: 1px solid #e2e8f0; border-radius: 1rem; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        .calendar-day { background: white; min-height: 120px; padding: 0.5rem; transition: all 0.2s; }
+        .calendar-day:hover { background: #f8fafc; }
+        .calendar-day.other-month { background: #f1f5f9; color: #cbd5e1; }
+        .day-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem; }
+        .day-num { font-weight: 900; font-size: 0.9rem; font-family: 'Inter', sans-serif; }
+        .is-today .day-num { background: var(--copros-orange); color: white; width: 24px; height: 24px; display: flex; items-center: center; justify-content: center; border-radius: 50%; }
 
-        /* カレンダー特有スタイル */
-        .calendar-table { width: 100%; border-collapse: collapse; table-layout: fixed; background: white; }
-        .calendar-table th { background-color: #7fb5e4; color: white; font-weight: normal; border: 1px solid var(--calendar-border); padding: 5px; font-size: 14px; }
-        .calendar-table td { height: 120px; border: 1px solid var(--calendar-border); vertical-align: top; padding: 5px; transition: background 0.2s; }
-        .calendar-table td:hover { background-color: #f0f7ff; }
-        
-        /* 曜日別カラー */
-        .day-sun { background-color: #fff1f0; } /* 日曜日背景 */
-        .day-sat { color: #004098; }
-        .day-num { font-weight: bold; font-size: 14px; }
-        .day-num.sun { color: #d9534f; }
-        .day-num.sat { color: #004098; }
+        /* ラベルスタイル */
+        .event-label { font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px; margin-bottom: 2px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+        .label-result { background: #fff7ed; color: #ea580c; border-left: 3px solid #ff7e11; } /* 実績 */
+        .label-appoint { background: #eff6ff; color: #2563eb; border-left: 3px solid #3b82f6; } /* アポ */
 
-        /* 実績ラベル（スクリーンショット再現） */
-        .event-label {
-            background-color: #ffcc00; /* オレンジ/黄色系 */
-            border: 1px solid #e6b800;
-            border-radius: 3px;
-            padding: 2px 4px;
-            font-size: 10px;
-            line-height: 1.2;
-            margin-top: 2px;
-            cursor: pointer;
-            color: #333;
-        }
-
-        .btn-view-mode { background: #fff; border: 1px solid #ccc; padding: 4px 12px; font-size: 12px; transition: all 0.2s; }
-        .btn-view-mode.active { background: #004098; color: white; border-color: #004098; }
-        
-        .month-select { color: #4299e1; font-weight: bold; cursor: pointer; padding: 0 5px; }
-        .month-select:hover { text-decoration: underline; }
+        /* ナビゲーション */
+        .month-btn { padding: 0.5rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; transition: all 0.2s; }
+        .month-btn:hover { background: #e2e8f0; }
+        .month-btn.active { background: #334155; color: white; }
     </style>
 </head>
-<body class="flex h-screen overflow-hidden">
+<body class="flex h-screen overflow-hidden text-slate-700">
 
-   <!-- サイドバー（共通リンク設定済） -->
-<aside class="sidebar flex-shrink-0 text-white flex flex-col shadow-2xl">
-    <div class="p-4 text-xs font-bold text-gray-500 border-b border-gray-800 tracking-widest uppercase">Menu</div>
-    <nav class="flex-1 overflow-y-auto">
-        <!-- お客様 -->
-        <a href="list.html" class="nav-item block px-5 py-4 text-sm flex items-center hover:text-white">
-            <i class="fa-solid fa-users w-6"></i> お客様
-        </a>
+    <div id="sidebar-placeholder"></div>
 
-        <!-- 実績（サブメニュー付き） -->
-        <div class="nav-group">
-            <div class="nav-item block px-5 py-4 text-sm flex items-center cursor-pointer">
-                <i class="fa-solid fa-file-invoice w-6"></i> 実績
-            </div>
-            <div class="bg-black text-[11px]">
-                <a href="history.html" class="block px-10 py-3 text-gray-400 hover:text-white border-b border-gray-900">実績登録</a>
-                <a href="list_records.html" class="block px-10 py-3 text-gray-400 hover:text-white border-b border-gray-900">実績一覧</a>
-                <a href="#" class="block px-10 py-3 text-gray-400 hover:text-white border-b border-gray-900">実績CSV出力</a>
-            </div>
-        </div>
-
-        <!-- カレンダー -->
-        <a href="calendar.html" class="nav-item block px-5 py-4 text-sm flex items-center hover:text-white">
-            <i class="fa-solid fa-calendar-days w-6"></i> カレンダー
-        </a>
-
-        <!-- 回覧一覧 -->
-        <a href="#" class="nav-item block px-5 py-4 text-sm flex items-center hover:text-white">
-            <i class="fa-solid fa-envelope-open-text w-6"></i> 回覧一覧
-            <span class="ml-auto bg-red-600 text-white text-[10px] px-2 py-0.5 rounded-full">1</span>
-        </a>
-
-        <!-- 地図 -->
-        <a href="map.html" class="nav-item block px-5 py-4 text-sm flex items-center hover:text-white">
-            <i class="fa-solid fa-map-location-dot w-6"></i> 地図
-        </a>
-
-        <!-- アポイント -->
-        <a href="appoint.html" class="nav-item block px-5 py-4 text-sm flex items-center hover:text-white">
-            <i class="fa-solid fa-clock w-6"></i> アポイント
-        </a>
-
-        <!-- 集計（サブメニュー付き） -->
-        <div class="nav-group">
-            <div class="nav-item block px-5 py-4 text-sm flex items-center cursor-pointer">
-                <i class="fa-solid fa-chart-line w-6"></i> 集計
-            </div>
-            <div class="bg-black text-[11px]">
-                <a href="usage.html" class="block px-10 py-3 text-gray-400 hover:text-white border-b border-gray-900">組織員利用状況</a>
-                <a href="monthly_list.html" class="block px-10 py-3 text-gray-400 hover:text-white border-b border-gray-900">月別一覧</a>
-                <a href="#" class="block px-10 py-3 text-gray-400 hover:text-white border-b border-gray-900">お客様別滞在時間一覧</a>
-                <a href="#" class="block px-10 py-3 text-gray-400 hover:text-white border-b border-gray-900">実績グラフ出力</a>
-            </div>
-        </div>
-
-        <!-- マスタ管理 -->
-        <a href="#" class="nav-item block px-5 py-4 text-sm flex items-center hover:text-white">
-            <i class="fa-solid fa-gears w-6"></i> マスタ管理
-        </a>
-    </nav>
-
-    <!-- ログアウト -->
-    <div class="p-4 border-t border-gray-800">
-        <a href="index.html" class="text-xs text-gray-500 hover:text-white flex items-center">
-            <i class="fa-solid fa-right-from-bracket mr-2"></i> ログアウト
-        </a>
-    </div>
-</aside>
-
-    <!-- メインコンテンツ -->
     <main class="flex-1 flex flex-col overflow-hidden">
-        <header class="h-14 bg-[#3c4b5a] flex items-center justify-between px-6 text-white shadow-md z-10">
-            <div class="flex items-center gap-4">
-                <span class="text-xl font-bold text-[#87ceeb]">株式会社コプロス</span>
-                <div class="relative ml-4 flex">
-                    <input type="text" placeholder="お客様名を入力してください" class="w-80 py-1 px-3 text-sm text-gray-800 rounded-l focus:outline-none">
-                    <button class="bg-[#eee] text-[#333] px-5 py-1 text-sm rounded-r font-bold border-none">検　索</button>
-                </div>
-            </div>
-            <div class="text-xs font-medium">篠原 栄 殿</div>
-        </header>
+        <div id="header-placeholder"></div>
 
-        <div class="flex-1 overflow-auto p-8">
-            <div class="max-w-7xl mx-auto">
-                <h1 class="text-2xl font-bold text-gray-700 mb-6">カレンダー</h1>
-
-                <!-- フィルターエリア -->
-                <div class="bg-white p-6 rounded-lg shadow border border-gray-100 mb-6">
-                    <button class="bg-[#004098] text-white px-10 py-2 rounded text-sm font-bold shadow-md w-64 mb-6">詳細検索</button>
-                    
-                    <div class="flex flex-wrap items-center gap-8 text-sm">
-                        <div class="flex items-center gap-4">
-                            <label class="flex items-center"><input type="checkbox" checked class="mr-1 accent-orange-600"> <span class="text-orange-600 font-bold">■ 実績</span></label>
-                            <label class="flex items-center"><input type="checkbox" checked class="mr-1 accent-blue-600"> <span class="text-blue-800 font-bold">■ アポイント</span></label>
+        <div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
+            <div class="max-w-[1400px] mx-auto">
+                
+                <!-- ヘッダーアクション -->
+                <div class="flex justify-between items-center mb-8">
+                    <div>
+                        <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-1">カレンダー</h1>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest" id="currentMonthDisplay">2026 APRIL</p>
+                    </div>
+                    <div class="flex gap-4 items-center bg-white p-2 rounded-2xl shadow-sm border border-slate-100">
+                        <div class="flex items-center gap-4 px-4 border-r border-slate-100">
+                            <label class="flex items-center gap-2 cursor-pointer text-xs font-black text-orange-600">
+                                <input type="checkbox" checked class="w-4 h-4 accent-orange-500"> 実績
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer text-xs font-black text-blue-600">
+                                <input type="checkbox" checked class="w-4 h-4 accent-blue-500"> アポイント
+                            </label>
                         </div>
-                        
-                        <div class="flex items-center gap-2">
-                            <select class="border border-gray-300 rounded px-2 py-1"><option>2026</option></select> 年
-                            <div class="flex gap-2 ml-4">
-                                <span class="month-select">1月</span><span class="month-select">2月</span><span class="month-select" style="text-decoration: underline; color: #333;">3月</span><span class="month-select">4月</span>
-                                <span class="month-select">5月</span><span class="month-select">6月</span><span class="month-select">7月</span><span class="month-select">8月</span>
-                                <span class="month-select">9月</span><span class="month-select">10月</span><span class="month-select">11月</span><span class="month-select">12月</span>
-                            </div>
-                        </div>
-
-                        <div class="flex items-center gap-4 ml-auto font-bold text-gray-600">
-                            <label><input type="radio" name="view_status" class="mr-1"> 両方</label>
-                            <label><input type="radio" name="view_status" checked class="mr-1 accent-orange-600"> 未読のみ</label>
-                            <label><input type="radio" name="view_status" class="mr-1"> 既読のみ</label>
-                        </div>
+                        <button onclick="changeMonth(-1)" class="p-2 hover:bg-slate-50 rounded-lg text-slate-400"><i class="fa-solid fa-chevron-left"></i></button>
+                        <button onclick="setToday()" class="px-4 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs font-black hover:bg-slate-200">今日</button>
+                        <button onclick="changeMonth(1)" class="p-2 hover:bg-slate-50 rounded-lg text-slate-400"><i class="fa-solid fa-chevron-right"></i></button>
                     </div>
                 </div>
 
-                <!-- カレンダー本体ヘッダー -->
-                <div class="flex items-center justify-between mb-4">
-                    <div class="flex gap-1">
-                        <button class="btn-view-mode"><<</button><button class="btn-view-mode"><</button>
+                <!-- 1月〜12月クイック切替 -->
+                <div class="flex justify-between p-1 bg-white rounded-2xl border border-slate-200 shadow-sm mb-6">
+                    <script>
+                        for(let i=1; i<=12; i++) {
+                            document.write(`<button onclick="jumpMonth(${i})" id="month-btn-${i}" class="month-btn flex-1">${i}月</button>`);
+                        }
+                    </script>
+                </div>
+
+                <!-- カレンダー本体 -->
+                <div class="table-container bg-white p-4 rounded-[2rem] shadow-xl border border-slate-200">
+                    <div class="grid grid-cols-7 mb-4">
+                        <div class="text-center text-[10px] font-black text-slate-400 uppercase">Mon</div>
+                        <div class="text-center text-[10px] font-black text-slate-400 uppercase">Tue</div>
+                        <div class="text-center text-[10px] font-black text-slate-400 uppercase">Wed</div>
+                        <div class="text-center text-[10px] font-black text-slate-400 uppercase">Thu</div>
+                        <div class="text-center text-[10px] font-black text-slate-400 uppercase">Fri</div>
+                        <div class="text-center text-[10px] font-black text-rose-400 uppercase">Sat</div>
+                        <div class="text-center text-[10px] font-black text-rose-600 uppercase">Sun</div>
                     </div>
-                    <div class="flex items-center gap-4">
-                        <span class="text-xl font-bold">2026年 3月</span>
-                        <div class="flex rounded border border-gray-300 overflow-hidden shadow-sm">
-                            <button class="btn-view-mode">今日</button>
-                            <button class="btn-view-mode active">月</button>
-                            <button class="btn-view-mode">週</button>
-                            <button class="btn-view-mode">日</button>
-                            <button class="btn-view-mode font-bold">予定リスト</button>
-                        </div>
-                    </div>
-                    <div class="flex gap-1">
-                        <button class="btn-view-mode">></button><button class="btn-view-mode">>></button>
+                    <div id="calendarGrid" class="calendar-grid">
+                        <!-- JSで生成 -->
                     </div>
                 </div>
 
-                <!-- カレンダーテーブル -->
-                <table class="calendar-table shadow-lg rounded-t-lg overflow-hidden">
-                    <thead>
-                        <tr>
-                            <th>月</th><th>火</th><th>水</th><th>木</th><th>金</th><th style="background-color: #a3c9f1;">土</th><th style="background-color: #f1a3a3;">日</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <!-- 1行目 (3/1は日曜日とするサンプルの配置) -->
-                            <td class="bg-gray-50"></td><td class="bg-gray-50"></td><td class="bg-gray-50"></td><td class="bg-gray-50"></td><td class="bg-gray-50"></td><td class="bg-gray-50"></td>
-                            <td class="day-sun">
-                                <div class="flex justify-between items-start"><span class="day-num sun">1</span> <span class="text-blue-500 cursor-pointer">+</span></div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <!-- 2行目 -->
-                            <td><div class="flex justify-between items-start"><span class="day-num">2</span> <span class="text-blue-500 cursor-pointer">+</span></div></td>
-                            <td><div class="flex justify-between items-start"><span class="day-num">3</span> <span class="text-blue-500 cursor-pointer">+</span></div></td>
-                            <td><div class="flex justify-between items-start"><span class="day-num">4</span> <span class="text-blue-500 cursor-pointer">+</span></div></td>
-                            <td><div class="flex justify-between items-start"><span class="day-num">5</span> <span class="text-blue-500 cursor-pointer">+</span></div></td>
-                            <td><div class="flex justify-between items-start"><span class="day-num">6</span> <span class="text-blue-500 cursor-pointer">+</span></div></td>
-                            <td><div class="flex justify-between items-start"><span class="day-num sat">7</span> <span class="text-blue-500 cursor-pointer">+</span></div></td>
-                            <td class="day-sun"><div class="flex justify-between items-start"><span class="day-num sun">8</span> <span class="text-blue-500 cursor-pointer">+</span></div></td>
-                        </tr>
-                        <tr>
-                            <!-- 3行目 (スクリーンショットの10日を再現) -->
-                            <td><div class="flex justify-between items-start"><span class="day-num">9</span> <span class="text-blue-500 cursor-pointer">+</span></div></td>
-                            <td style="background-color: #fffbe6;">
-                                <div class="flex justify-between items-start mb-1"><span class="day-num">10</span> <span class="text-blue-500 cursor-pointer">+</span></div>
-                                <!-- 実績ラベルの再現 -->
-                                <div class="event-label">● [実] 09:00 - 09:20 中央コンサルタンツ株式会社 【吉野 正則】 電話対応</div>
-                                <div class="event-label">● [実] 10:00 - 10:20 株式会社大阪工営 【吉野 正則】 電話対応</div>
-                                <div class="event-label">● [回覧][実] 九州建設コンサルタント 【加戸 宏征】 電話対応</div>
-                            </td>
-                            <td><div class="flex justify-between items-start"><span class="day-num">11</span> <span class="text-blue-500 cursor-pointer">+</span></div></td>
-                            <td><div class="flex justify-between items-start"><span class="day-num">12</span> <span class="text-blue-500 cursor-pointer">+</span></div></td>
-                            <td><div class="flex justify-between items-start"><span class="day-num">13</span> <span class="text-blue-500 cursor-pointer">+</span></div></td>
-                            <td><div class="flex justify-between items-start"><span class="day-num sat">14</span> <span class="text-blue-500 cursor-pointer">+</span></div></td>
-                            <td class="day-sun"><div class="flex justify-between items-start"><span class="day-num sun">15</span> <span class="text-blue-500 cursor-pointer">+</span></div></td>
-                        </tr>
-                    </tbody>
-                </table>
             </div>
         </div>
     </main>
+
+    <script src="common.js"></script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // Firebase設定
+        const firebaseConfig = {
+            apiKey: "AiZaSyDh00EZ7Jb1K2rTxLyTH6d80b4Qzcrwf_XI",
+            authDomain: "copros-my-page.firebaseapp.com",
+            projectId: "copros-my-page",
+            storageBucket: "copros-my-page.firebasestorage.app",
+            messagingSenderId: "54419849010",
+            appId: "1:54419849010:web:a60015b9c6fcf60cd3e12b"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let currentDate = new Date();
+        let allRecords = [];
+
+        async function init() {
+            renderCalendar();
+            await fetchRecords();
+        }
+
+        // Firebaseから実績データを取得
+        async function fetchRecords() {
+            try {
+                const snap = await getDocs(collection(db, "activity_records"));
+                allRecords = snap.docs.map(doc => doc.data());
+                renderCalendar(); // 取得後に再描画
+            } catch (e) { console.error("Quota exceeded or error:", e); }
+        }
+
+        function renderCalendar() {
+            const grid = document.getElementById('calendarGrid');
+            const display = document.getElementById('currentMonthDisplay');
+            grid.innerHTML = "";
+
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            display.innerText = `${year}年 ${month + 1}月`;
+
+            // 月ボタンのアクティブ表示
+            document.querySelectorAll('.month-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`month-btn-${month + 1}`).classList.add('active');
+
+            const firstDay = new Date(year, month, 1).getDay(); // 0(Sun) to 6(Sat)
+            // 月曜始まりに調整
+            const startOffset = (firstDay === 0) ? 6 : firstDay - 1;
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            
+            // 前月の埋め
+            for(let i=0; i<startOffset; i++) {
+                grid.insertAdjacentHTML('beforeend', '<div class="calendar-day other-month"></div>');
+            }
+
+            // 当月の生成
+            for(let d=1; d<=daysInMonth; d++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                const isToday = new Date().toISOString().split('T')[0] === dateStr;
+                
+                // この日のデータを抽出
+                const dayRecords = allRecords.filter(r => r.visitDate === dateStr);
+                
+                const eventsHtml = dayRecords.map(r => `
+                    <div class="event-label label-result" onclick="alert('${r.customerReport || '内容なし'}')">
+                        ${r.customerName}
+                    </div>
+                `).join('');
+
+                const dayCell = `
+                    <div class="calendar-day ${isToday ? 'is-today' : ''}">
+                        <div class="day-header">
+                            <span class="day-num">${d}</span>
+                            <i class="fa-solid fa-plus text-[10px] text-slate-200 hover:text-blue-400 cursor-pointer" onclick="location.href='history.html'"></i>
+                        </div>
+                        <div class="day-events">
+                            ${eventsHtml}
+                        </div>
+                    </div>
+                `;
+                grid.insertAdjacentHTML('beforeend', dayCell);
+            }
+        }
+
+        window.changeMonth = (val) => { currentDate.setMonth(currentDate.getMonth() + val); renderCalendar(); };
+        window.jumpMonth = (m) => { currentDate.setMonth(m - 1); renderCalendar(); };
+        window.setToday = () => { currentDate = new Date(); renderCalendar(); };
+
+        init();
+    </script>
 </body>
 </html>
