@@ -7,219 +7,194 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; }
-        body { font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif; background-color: #f8fafc; }
-        
-        /* サイドバー：決定版スタイル（水色アクセント） */
-        .sidebar { width: 220px; background-color: var(--sidebar-bg); z-index: 100; overflow-y: auto; height: 100vh; }
-        .nav-item { border-bottom: 1px solid #2d2d2d; color: #b8b8b8; cursor: pointer; transition: all 0.3s; padding: 16px; display: flex; align-items: center; justify-content: space-between; }
-        .nav-item:hover { background-color: #262626; color: white; }
-        .nav-item.open { background-color: #2d3748; color: white; border-left: 4px solid var(--copros-blue); }
-        .nav-item.open i.main-icon { color: var(--copros-blue); }
-        
-        .submenu { max-height: 0; overflow: hidden; background-color: #0f0f0f; transition: max-height 0.3s ease-out; }
-        .nav-item.open + .submenu { max-height: 800px; }
-        .submenu-item { padding: 12px 20px 12px 45px; font-size: 12px; color: #888; border-bottom: 1px solid #1a1a1a; cursor: pointer; }
-        .submenu-item:hover { color: var(--copros-blue); background-color: #1a1a1a; }
-        .submenu-item.active-child { color: var(--copros-blue); font-weight: bold; }
-        .badge { background-color: #e53e3e; color: white; border-radius: 50%; padding: 2px 6px; font-size: 10px; }
-
-        .form-card { background-color: white; border-radius: 2.5rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0; }
-        .btn-action { transition: all 0.2s; }
-        .btn-action:hover { transform: translateY(-1px); opacity: 0.9; }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; }
+        body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
+        .form-card { background: white; border-radius: 2rem; border: 1px solid #e2e8f0; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05); }
+        .tab-btn { transition: all 0.3s; border-bottom: 4px solid transparent; opacity: 0.4; padding-bottom: 1rem; }
+        .tab-btn.active { opacity: 1; }
+        .tab-staffs.active { color: #0ea5e9; border-bottom-color: #0ea5e9; }
+        .tab-customers.active { color: var(--copros-orange); border-bottom-color: var(--copros-orange); }
+        .console-log { background: #1e293b; color: #10b981; font-family: 'Courier New', Courier, monospace; font-size: 0.75rem; border-radius: 1rem; padding: 1.5rem; height: 180px; overflow-y: auto; }
+        #importGuide, #importBtn { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700">
 
-    <!-- サイドバー (全項目完全網羅) -->
-    <aside class="sidebar flex flex-col shrink-0 text-sm shadow-2xl">
-        <div class="h-16 flex items-center px-6 text-gray-500 font-black tracking-widest text-xs border-b border-gray-800 uppercase">Menu</div>
-        <nav class="flex-1">
-            <!-- お客様 -->
-            <div class="nav-item" onclick="this.classList.toggle('open')">
-                <div class="flex items-center gap-3"><i class="fa-solid fa-users w-5 main-icon"></i><span>お客様</span></div>
-                <i class="fa-solid fa-chevron-down text-[10px]"></i>
-            </div>
-            <div class="submenu">
-                <div class="submenu-item" onclick="location.href='list.html'">お客様情報一覧</div>
-                <div class="submenu-item" onclick="location.href='add.html'">お客様情報登録</div>
-            </div>
-            <!-- 実績 -->
-            <div class="nav-item" onclick="this.classList.toggle('open')">
-                <div class="flex items-center gap-3"><i class="fa-solid fa-file-invoice w-5 main-icon"></i><span>実 績</span></div>
-                <i class="fa-solid fa-chevron-down text-[10px]"></i>
-            </div>
-            <div class="submenu">
-                <div class="submenu-item" onclick="location.href='history.html'">実績登録</div>
-                <div class="submenu-item" onclick="location.href='list_records.html'">実績一覧</div>
-                <div class="submenu-item">実績CSV出力</div>
-            </div>
-            <!-- 単体メニュー -->
-            <div class="nav-item" onclick="location.href='calendar.html'"><div class="flex items-center gap-3"><i class="fa-solid fa-calendar-days w-5 main-icon"></i><span>カレンダー</span></div></div>
-            <div class="nav-item flex items-center justify-between" onclick="location.href='kairan.html'"><div class="flex items-center gap-3"><i class="fa-solid fa-envelope-open-text w-5 main-icon"></i><span>回覧一覧</span></div><span class="badge">2</span></div>
-            <div class="nav-item" onclick="location.href='map.html'"><div class="flex items-center gap-3"><i class="fa-solid fa-map-location-dot w-5 main-icon"></i><span>地 図</span></div></div>
-            <div class="nav-item" onclick="location.href='appoint.html'"><div class="flex items-center gap-3"><i class="fa-solid fa-clock w-5 main-icon"></i><span>アポイント</span></div></div>
-            <!-- 集計 -->
-            <div class="nav-item" onclick="this.classList.toggle('open')">
-                <div class="flex items-center gap-3"><i class="fa-solid fa-chart-line w-5 main-icon"></i><span>集 計</span></div>
-                <i class="fa-solid fa-chevron-down text-[10px]"></i>
-            </div>
-            <div class="submenu">
-                <div class="submenu-item">組織員利用状況</div>
-                <div class="submenu-item">月別一覧</div>
-                <div class="submenu-item">お客様別滞在時間一覧</div>
-                <div class="submenu-item">お客様別月別滞在時間一覧</div>
-                <div class="submenu-item">実績グラフ出力</div>
-            </div>
-            <!-- マスタ管理 (最初から開いておく) -->
-            <div class="nav-item open" onclick="this.classList.toggle('open')">
-                <div class="flex items-center gap-3"><i class="fa-solid fa-gear w-5 main-icon"></i><span>マスタ管理</span></div>
-                <i class="fa-solid fa-chevron-down text-[10px]"></i>
-            </div>
-            <div class="submenu">
-                <div class="submenu-item active-child" onclick="location.href='import.html'">インポート</div>
-                <div class="submenu-item">お知らせ登録</div>
-                <div class="submenu-item">組織員情報登録</div>
-                <div class="submenu-item">実績マスタ</div>
-                <div class="submenu-item">お客様情報マスタ</div>
-                <div class="submenu-item">システム管理</div>
-            </div>
-        </nav>
-        <div class="p-6 border-t border-gray-800">
-            <a href="index.html" class="flex items-center gap-3 text-gray-500 hover:text-rose-400 transition-colors"><i class="fa-solid fa-power-off"></i><span class="font-bold">ログアウト</span></a>
-        </div>
-    </aside>
+    <div id="sidebar-placeholder"></div>
 
-    <main class="flex-1 flex flex-col overflow-hidden bg-slate-50">
-        <!-- ヘッダー (人アイコン追加版) -->
-        <header class="h-16 bg-[#3c4b5a] flex items-center justify-between px-8 text-white shadow-lg shrink-0 z-50">
-            <div class="flex items-center gap-8">
-                <span class="text-xl font-bold tracking-tighter text-[#87ceeb]">株式会社コプロス</span>
-            </div>
-            <div class="flex items-center gap-3">
-                <div class="text-right font-bold">
-                    <p id="userNameDisplay" class="text-sm">-- --</p>
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <div id="header-placeholder"></div>
+
+        <div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
+            <div class="max-w-5xl mx-auto">
+                
+                <div class="flex justify-between items-end mb-8">
+                    <div>
+                        <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">データー一括登録</h1>
+                        <nav class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Bulk Data Management System</nav>
+                    </div>
                 </div>
-                <!-- 人アイコンサークル -->
-                <div class="w-10 h-10 bg-slate-500 rounded-full flex items-center justify-center border-2 border-white/20 shadow-sm">
-                    <i class="fa-solid fa-user text-white"></i>
-                </div>
-            </div>
-        </header>
 
-        <div class="flex-1 overflow-auto p-10">
-            <div class="max-w-4xl mx-auto">
-                <!-- 表題：データ一括登録 -->
-                <h1 class="text-3xl font-black text-slate-800 mb-8 uppercase tracking-tight">データ一括登録</h1>
-
-                <div class="form-card p-10 bg-white space-y-8">
-                    <!-- 対象切り替え -->
-                    <div class="flex gap-4 p-2 bg-slate-100 rounded-2xl w-fit">
-                        <label class="px-6 py-2 rounded-xl cursor-pointer font-bold text-sm transition-all has-[:checked]:bg-white has-[:checked]:text-blue-600 has-[:checked]:shadow-sm">
-                            <input type="radio" name="target" value="staffs" class="hidden"> 社員名簿
-                        </label>
-                        <label class="px-6 py-2 rounded-xl cursor-pointer font-bold text-sm transition-all has-[:checked]:bg-white has-[:checked]:text-blue-600 has-[:checked]:shadow-sm">
-                            <input type="radio" name="target" value="customers" checked class="hidden"> お客様名簿
-                        </label>
+                <div class="form-card p-10 mb-8">
+                    <div class="flex gap-12 border-b border-slate-100 mb-8">
+                        <button onclick="switchTab('staffs')" id="tab-staffs" class="tab-btn tab-staffs active text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                            <i class="fa-solid fa-id-card-clip"></i> 社員名簿（組織員）
+                        </button>
+                        <button onclick="switchTab('customers')" id="tab-customers" class="tab-btn tab-customers text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                            <i class="fa-solid fa-address-book"></i> お客様名簿
+                        </button>
                     </div>
 
-                    <div class="space-y-2">
-                        <p id="helpText" class="text-xs font-bold text-blue-500 bg-blue-50 p-4 rounded-xl border border-blue-100">
-                            Excelから A:No | B:お客様名 | C:カナ | D:電話 | E:住所 | F:訪問数 | G:最終訪問日 の順で貼り付けてください。
-                        </p>
-                        <textarea id="dataInput" class="w-full h-64 p-4 bg-slate-50 border-none rounded-2xl outline-none focus:ring-4 focus:ring-blue-100 text-sm font-mono" placeholder="データをここに貼り付け"></textarea>
+                    <div id="importGuide" class="p-6 rounded-2xl mb-6 border">
+                        <p class="font-bold text-sm mb-2">Excelの列を以下の順番でコピー＆ペーストしてください：</p>
+                        <div id="columnMapping" class="text-[11px] font-mono font-black tracking-tight italic">
+                            <!-- JSで挿入 -->
+                        </div>
                     </div>
+
+                    <textarea id="csvData" class="w-full h-64 p-6 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none font-mono text-xs mb-8 transition-all" placeholder="ここに貼り付け"></textarea>
 
                     <div class="flex gap-4">
-                        <button id="importBtn" class="flex-1 bg-[#004098] text-white py-4 rounded-2xl font-black shadow-lg btn-action">一括登録を開始</button>
-                        <button id="clearBtn" class="bg-rose-50 text-rose-600 px-8 py-4 rounded-2xl font-bold hover:bg-rose-100 transition-colors">全データ消去</button>
+                        <button id="importBtn" class="flex-1 py-4 text-white rounded-2xl font-black shadow-lg hover:scale-[1.01] transition-all flex items-center justify-center gap-3">
+                            <i class="fa-solid fa-upload"></i> <span id="btnText">インポート</span>
+                        </button>
+                        <button id="deleteAllBtn" class="px-8 py-4 bg-rose-50 text-rose-600 rounded-2xl font-bold border border-rose-100 hover:bg-rose-600 hover:text-white transition-all">
+                            全消去
+                        </button>
                     </div>
-                    <div id="status" class="mt-4 p-4 h-40 overflow-y-auto bg-slate-900 text-green-400 text-xs font-mono rounded-xl">待機中...</div>
                 </div>
+
+                <div class="bg-white p-6 rounded-[1.5rem] border border-slate-200 shadow-sm">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Process Log</p>
+                    <div id="statusLog" class="console-log">待機中...</div>
+                </div>
+
             </div>
         </div>
     </main>
 
+    <script src="common.js"></script>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, serverTimestamp, getDocs, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, setDoc, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+        // Firebase設定
         const firebaseConfig = {
-            apiKey: "AIzaSyDhOEZ7Jb1K2rTxLyTH6d8ob4Qzcrwf_XI",
+            apiKey: "AiZaSyDh00EZ7Jb1K2rTxLyTH6d80b4Qzcrwf_XI",
             authDomain: "copros-my-page.firebaseapp.com",
             projectId: "copros-my-page",
             storageBucket: "copros-my-page.firebasestorage.app",
             messagingSenderId: "54419849010",
             appId: "1:54419849010:web:a60015b9c6fcf60cd3e12b"
         };
-
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // 名前反映（殿なし）
-        const savedName = sessionStorage.getItem('userName');
-        if (savedName) document.getElementById('userNameDisplay').innerText = savedName;
-
-        // 指示切り替え
-        document.querySelectorAll('input[name="target"]').forEach(radio => {
-            radio.addEventListener('change', () => {
-                const help = document.getElementById('helpText');
-                if (radio.value === 'staffs') {
-                    help.innerText = "Excelから A:社員番号(id) | B:氏名(name) | C:パスワード(password) の順で貼り付けてください。";
-                    help.className = "text-xs font-bold text-orange-500 bg-orange-50 p-4 rounded-xl border border-orange-100";
-                } else {
-                    help.innerText = "Excelから A:No | B:お客様名 | C:カナ | D:電話 | E:住所 | F:訪問数 | G:最終訪問日 の順で貼り付けてください。";
-                    help.className = "text-xs font-bold text-blue-500 bg-blue-50 p-4 rounded-xl border border-blue-100";
-                }
-            });
-        });
-
-        // 消去
-        document.getElementById('clearBtn').onclick = async () => {
-            const target = document.querySelector('input[name="target"]:checked').value;
-            if(!confirm(`${target}の全データを消去しますか？`)) return;
-            const snap = await getDocs(collection(db, target));
-            const batch = writeBatch(db);
-            snap.forEach(d => batch.delete(doc(db, target, d.id)));
-            await batch.commit();
-            alert("消去完了");
+        let currentMode = 'staffs';
+        const mapping = {
+            customers: "A:お客様名 | B:カナ | C:ランク | D:属性 | E:郵便番号 | F:住所 | G:ビル名 | H:電話番号",
+            staffs: "A:社員番号(ID) | B:氏名 | C:パスワード | D:メール | E:権限(管理者/一般) | F:有効無効 | G:所属部署"
         };
 
-        // インポート
-        document.getElementById('importBtn').onclick = async () => {
-            const target = document.querySelector('input[name="target"]:checked').value;
-            const lines = document.getElementById('dataInput').value.trim().split('\n');
-            const status = document.getElementById('status');
-            status.innerText = "登録開始...";
+        window.switchTab = (mode) => {
+            currentMode = mode;
+            const guide = document.getElementById('importGuide');
+            const btn = document.getElementById('importBtn');
+            const btnText = document.getElementById('btnText');
 
-            for (let line of lines) {
-                const cols = line.split('\t');
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`tab-${mode}`).classList.add('active');
+            document.getElementById('columnMapping').innerText = mapping[mode];
+
+            if (mode === 'staffs') {
+                guide.className = "p-6 rounded-2xl mb-6 border border-sky-200 bg-sky-50 text-sky-600";
+                btn.className = "flex-1 py-4 bg-sky-500 text-white rounded-2xl font-black shadow-lg shadow-sky-200 transition-all flex items-center justify-center gap-3";
+                btnText.innerText = "社員名簿をインポート（上書き更新）";
+           } else {
+   　　　　　　 guide.className = "p-6 rounded-2xl mb-6 border border-orange-200 bg-orange-50 text-orange-600";
+    　　　　　　// bg-[#004098]（紺）を bg-[#ff7e11]（オレンジ）に変更し、影の色もオレンジ系にしました
+   　　　　　　 btn.className = "flex-1 py-4 bg-[#ff7e11] text-white rounded-2xl font-black shadow-lg shadow-orange-200 transition-all flex items-center justify-center gap-3";
+   　　　　　　 btnText.innerText = "お客様名簿をインポート";
+　　　　　　}
+
+            log(`モード切替: ${mode === 'staffs' ? '社員名簿' : 'お客様名簿'}`);
+        };
+
+        function log(msg) {
+            const div = document.getElementById('statusLog');
+            div.innerHTML += `<div>> ${msg}</div>`;
+            div.scrollTop = div.scrollHeight;
+        }
+
+        switchTab('staffs');
+
+        document.getElementById('importBtn').onclick = async () => {
+            const rawData = document.getElementById('csvData').value.trim();
+            if (!rawData) return alert("データがありません。");
+            const rows = rawData.split('\n');
+            log(`${rows.length}件の処理を開始...`);
+
+            for (const line of rows) {
+                const col = line.split('\t');
+                if (col.length < 2) continue;
+
                 let data = {};
-                if (target === 'staffs') {
-                    if (cols[0] === "id") continue;
-                    data = { id: cols[0]?.trim(), name: cols[1]?.trim(), password: cols[2]?.trim(), createdAt: serverTimestamp() };
-                } else {
-                    if (cols[1] === "お客様名") continue;
+                let docId = null;
+
+                if (currentMode === 'customers') {
                     data = {
-                        name: cols[1]?.trim() || "",
-                        kana: cols[2]?.trim() || "",
-                        tel: cols[3]?.trim() || "",
-                        address: cols[4]?.trim() || "",
-                        visitCount: cols[5]?.trim() || "0",
-                        lastVisit: cols[6]?.trim() || "",
-                        createdAt: serverTimestamp()
+                        name: col[0]?.trim(),
+                        kana: col[1]?.trim() || "",
+                        rank: col[2]?.trim() || "",
+                        type: col[3]?.trim() || "",
+                        zip: col[4]?.trim() || "",
+                        address: col[5]?.trim() || "",
+                        building: col[6]?.trim() || "",
+                        tel: col[7]?.trim() || "",
+                        visitCount: 0,
+                        lastVisit: "未訪問",
+                        updatedAt: serverTimestamp()
+                    };
+                } else {
+                    docId = col[0]?.trim(); // 社員番号をドキュメントIDに
+                    data = {
+                        id: docId,
+                        name: col[1]?.trim(),
+                        password: col[2]?.trim() || "1234",
+                        email: col[3]?.trim() || "",
+                        role: col[4]?.trim() || "一般",
+                        status: col[5]?.trim() || "有効",
+                        dept: col[6]?.trim() || "営業部",
+                        updatedAt: serverTimestamp()
                     };
                 }
-                if (!data.name && !data.id) continue;
+
                 try {
-                    await addDoc(collection(db, target), data);
-                    status.innerHTML += `<div>✔ 成功: ${data.name || data.id}</div>`;
-                    status.scrollTop = status.scrollHeight;
-                } catch (e) {}
+                    if (currentMode === 'staffs' && docId) {
+                        // 社員の場合はID（社員番号）を指定して保存（既存なら上書き）
+                        await setDoc(doc(db, "staffs", docId), data);
+                    } else {
+                        // お客様の場合は新規追加
+                        await setDoc(doc(collection(db, currentMode), data.name), data);
+                    }
+                    log(`${data.name} ... 完了`);
+                } catch (e) { log(`エラー (${col[0]}): ${e.message}`); }
             }
             alert("インポートが完了しました！");
+        };
+
+        document.getElementById('deleteAllBtn').onclick = async () => {
+            const target = currentMode === 'staffs' ? '社員名簿' : 'お客様名簿';
+            if (!confirm(`警告：${target}をすべて消去しますか？`)) return;
+            try {
+                const snap = await getDocs(collection(db, currentMode));
+                const batch = writeBatch(db);
+                snap.forEach(d => batch.delete(d.ref));
+                await batch.commit();
+                log(`${target}を全消去しました。`);
+                alert("削除完了しました。");
+            } catch (e) { log(`エラー: ${e.message}`); }
         };
     </script>
 </body>
