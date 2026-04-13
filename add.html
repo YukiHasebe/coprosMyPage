@@ -9,85 +9,62 @@
     <style>
         :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
-        
-        /* 入力フォームのプロ仕様スタイル */
         .form-input {
             width: 100%; padding: 0.8rem 1rem; background-color: #f8fafc;
             border: 1px solid #e2e8f0; border-radius: 0.75rem; font-weight: 600;
-            transition: all 0.2s ease-in-out; font-size: 0.95rem;
+            transition: all 0.2s; font-size: 0.95rem;
         }
         .form-input:focus {
             outline: none; border-color: var(--copros-orange);
             background-color: white; box-shadow: 0 0 0 4px rgba(255, 126, 17, 0.1);
         }
-        .label-text {
-            font-size: 0.85rem; font-weight: 800; color: #334155;
-            margin-bottom: 0.5rem; display: block;
-        }
+        .label-text { font-size: 0.85rem; font-weight: 800; color: #334155; margin-bottom: 0.5rem; display: block; }
         .section-title {
-            font-size: 0.75rem; font-weight: 900; color: #94a3b8;
-            letter-spacing: 0.1em; text-transform: uppercase;
+            font-size: 0.75rem; font-weight: 900; color: #94a3b8; letter-spacing: 0.1em;
             border-bottom: 2px solid #f1f5f9; padding-bottom: 0.5rem; margin-bottom: 1.5rem;
         }
-        .form-card {
-            background: white; border-radius: 2rem; border: 1px solid #e2e8f0;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05);
-        }
+        .form-card { background: white; border-radius: 2rem; border: 1px solid #e2e8f0; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05); }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700">
 
-    <!-- サイドバー挿入用 -->
     <div id="sidebar-placeholder"></div>
 
     <main class="flex-1 flex flex-col overflow-hidden">
-        <!-- ヘッダー挿入用 -->
         <div id="header-placeholder"></div>
 
-        <!-- メインコンテンツ -->
         <div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
             <div class="max-w-4xl mx-auto">
                 
-                <!-- タイトルエリア -->
                 <div class="flex justify-between items-end mb-8">
                     <div>
                         <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">お客様情報登録</h1>
                         <nav class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Create New Customer Identity</nav>
                     </div>
                     <div class="flex gap-3">
-                        <button onclick="location.href='list.html'" class="px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all flex items-center gap-2">
-                            <i class="fa-solid fa-arrow-left"></i> 一覧に戻る
+                        <button onclick="location.href='list.html'" class="px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all">
+                            <i class="fa-solid fa-arrow-left mr-2"></i>一覧に戻る
                         </button>
-                        <button id="saveBtn" class="px-10 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-sm hover:scale-105 transition-all shadow-lg shadow-blue-900/20 flex items-center gap-2">
-                            <i class="fa-solid fa-cloud-arrow-up"></i> 登録を実行
+                        <button id="saveBtn" class="px-10 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-sm hover:scale-105 transition-all shadow-lg shadow-blue-900/20">
+                            <i class="fa-solid fa-cloud-arrow-up mr-2"></i>登録を実行
                         </button>
                     </div>
                 </div>
 
-                <!-- 登録フォームカード -->
                 <div class="form-card p-10 mb-20">
                     <form id="customerForm" class="space-y-10">
                         
-                        <!-- 区分セクション -->
+                        <!-- 区分設定 -->
                         <div>
                             <p class="section-title">区分設定</p>
                             <div class="flex gap-8 bg-slate-50 p-6 rounded-2xl">
-                                <label class="flex items-center gap-3 cursor-pointer group">
-                                    <input type="radio" name="category" value="法人" checked class="w-5 h-5 accent-[#ff7e11]">
-                                    <span class="font-bold text-slate-700 group-hover:text-[#ff7e11] transition-colors">法人</span>
-                                </label>
-                                <label class="flex items-center gap-3 cursor-pointer group">
-                                    <input type="radio" name="category" value="個人" class="w-5 h-5 accent-[#ff7e11]">
-                                    <span class="font-bold text-slate-700 group-hover:text-[#ff7e11] transition-colors">個人</span>
-                                </label>
-                                <label class="flex items-center gap-3 cursor-pointer group">
-                                    <input type="radio" name="category" value="日報" class="w-5 h-5 accent-[#ff7e11]">
-                                    <span class="font-bold text-slate-700 group-hover:text-[#ff7e11] transition-colors">日報</span>
-                                </label>
+                                <label class="flex items-center gap-3 cursor-pointer"><input type="radio" name="category" value="法人" checked class="w-5 h-5 accent-[#ff7e11]"><span class="font-bold">法人</span></label>
+                                <label class="flex items-center gap-3 cursor-pointer"><input type="radio" name="category" value="個人" class="w-5 h-5 accent-[#ff7e11]"><span class="font-bold">個人</span></label>
+                                <label class="flex items-center gap-3 cursor-pointer"><input type="radio" name="category" value="日報" class="w-5 h-5 accent-[#ff7e11]"><span class="font-bold">日報</span></label>
                             </div>
                         </div>
 
-                        <!-- 基本情報セクション -->
+                        <!-- 基本情報 -->
                         <div>
                             <p class="section-title">基本情報</p>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -97,27 +74,31 @@
                                 </div>
                                 <div>
                                     <label class="label-text">お客様名カナ <span class="text-rose-500">*</span></label>
-                                    <input type="text" id="kana" placeholder="カブシキガイシャコプロス" class="form-input" required>
+                                    <input type="text" id="kana" placeholder="コプロス（※株式会社等は除いて入力）" class="form-input" required>
+                                    <p class="text-[10px] text-slate-400 mt-1 font-bold">※50音検索を正確にするため、社名のみ入力してください。</p>
                                 </div>
                                 <div>
                                     <label class="label-text">顧客ランク</label>
                                     <select id="rank" class="form-input">
-                                        <option value="">ランクを選択してください</option>
+                                        <option value="">選択無し</option>
                                         <option>Aa</option><option>Ab</option><option>Ac</option><option>Ad</option>
                                         <option>Ba</option><option>Bb</option><option>Bc</option><option>Bd</option>
+                                        <option>Ca</option><option>Cb</option><option>Cc</option><option>Cd</option>
+                                        <option>取引先</option><option>合併</option><option>廃業</option>
                                     </select>
                                 </div>
                                 <div>
                                     <label class="label-text">属性・区分</label>
                                     <select id="type" class="form-input">
                                         <option value="">カテゴリ未設定</option>
-                                        <option>技術開発部</option><option>建築部</option><option>官庁</option>
+                                        <option>宮崎産商</option><option>ケコム</option><option>技術開発部</option>
+                                        <option>建築部</option><option>コンサル</option><option>官庁</option><option>取引先</option>
                                     </select>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- 住所情報セクション -->
+                        <!-- 所在地情報 -->
                         <div>
                             <p class="section-title">所在地情報</p>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -136,12 +117,12 @@
                             </div>
                         </div>
 
-                        <!-- 連絡先セクション -->
+                        <!-- 連絡先 -->
                         <div>
                             <p class="section-title">連絡先</p>
                             <div class="w-full md:w-1/2">
                                 <label class="label-text">電話番号 <span class="text-rose-500">*</span></label>
-                                <input type="tel" id="tel" placeholder="083-2XX-XXXX" class="form-input" required>
+                                <input type="tel" id="tel" placeholder="0832331632" class="form-input" required>
                             </div>
                         </div>
 
@@ -151,15 +132,12 @@
         </div>
     </main>
 
-    <!-- 共通パーツ読み込み -->
     <script src="common.js"></script>
 
-    <!-- Firebase 登録処理 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // Firebase設定（あなたのものを維持）
         const firebaseConfig = {
             apiKey: "AiZaSyDh00EZ7Jb1K2rTxLyTH6d80b4Qzcrwf_XI",
             authDomain: "copros-my-page.firebaseapp.com",
@@ -171,17 +149,13 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // 保存ボタンの動作
         document.getElementById('saveBtn').onclick = async () => {
             const form = document.getElementById('customerForm');
-            
-            // バリデーションチェック（ここを修正しました）
             if (!form.checkValidity()) {
                 form.reportValidity();
                 return;
             }
 
-            // 保存データの作成
             const data = {
                 category: document.querySelector('input[name="category"]:checked').value,
                 name: document.getElementById('name').value,
@@ -198,13 +172,11 @@
             };
 
             try {
-                // 保存実行
                 await addDoc(collection(db, "customers"), data);
                 alert("新しいお客様を登録しました！");
-                location.href = 'list.html'; // 一覧に戻る
+                location.href = 'list.html';
             } catch (e) {
-                console.error("Error adding document: ", e);
-                alert("保存に失敗しました。インターネット接続などを確認してください。");
+                alert("保存に失敗しました。");
             }
         };
     </script>
