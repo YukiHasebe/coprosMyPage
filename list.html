@@ -19,8 +19,6 @@
         .table-container { border-radius: 1.5rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
         thead tr { background-color: #3c4b5a; }
         #detailSearchSection { display: none; }
-        /* テーブルの横スクロール対応（スマホ・小型PC用） */
-        .custom-scrollbar { overflow-x: auto; }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700">
@@ -33,7 +31,7 @@
         <div class="flex-1 overflow-auto p-8 custom-scrollbar">
             <div class="max-w-[1400px] mx-auto">
                 
-                <!-- 上部アクション -->
+                <!-- ヘッダーアクション -->
                 <div class="flex justify-between items-end mb-10">
                     <div>
                         <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">お客様情報一覧</h1>
@@ -97,7 +95,7 @@
                                 <tr class="text-white text-[10px] font-black uppercase tracking-widest">
                                     <th class="p-6 text-center w-20 opacity-50">No</th>
                                     <th class="p-6">お客様情報</th>
-                                    <th class="p-6 text-center w-48 opacity-70">実績</th> <!-- 操作→実績に変更 -->
+                                    <th class="p-6 text-center w-48 opacity-70">実績</th>
                                     <th class="p-6 text-center w-40 opacity-70">連絡先</th>
                                     <th class="p-6 opacity-70">住所</th>
                                     <th class="p-6 text-center w-28 opacity-70">訪問回数</th>
@@ -105,7 +103,7 @@
                                     <th class="p-6 text-center w-16"><i class="fa-solid fa-check-double opacity-30"></i></th>
                                 </tr>
                             </thead>
-                            <tbody id="customerTable" class="divide-y divide-slate-100 text-sm font-bold italic-none"></tbody>
+                            <tbody id="customerTable" class="divide-y divide-slate-100 text-sm font-bold"></tbody>
                         </table>
                     </div>
                 </div>
@@ -122,6 +120,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, getDocs, orderBy, query, doc, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+        // Firebase設定
         const firebaseConfig = {
             apiKey: "AiZaSyDh00EZ7Jb1K2rTxLyTH6d80b4Qzcrwf_XI",
             authDomain: "copros-my-page.firebaseapp.com",
@@ -175,9 +174,7 @@
                         </td>
                         <td class="p-6 text-center text-slate-600 font-mono text-xs tracking-tighter">${data.tel || "-"}</td>
                         <td class="p-6 text-slate-500 text-xs font-medium truncate max-w-[200px]">${data.address || "-"}</td>
-                        <td class="p-6 text-center">
-                            <span class="inline-block bg-orange-50 text-[#ff7e11] px-3 py-1 rounded-full text-sm font-black border border-orange-100">${countNum}回</span>
-                        </td>
+                        <td class="p-6 text-center"><span class="inline-block bg-orange-50 text-[#ff7e11] px-3 py-1 rounded-full text-sm font-black border border-orange-100">${countNum}回</span></td>
                         <td class="p-6 text-center text-slate-400 font-bold text-[10px] uppercase">${data.lastVisit || "未登録"}</td>
                         <td class="p-6 text-center"><input type="checkbox" class="customer-check w-5 h-5 accent-rose-500 rounded-md" data-id="${data.id}"></td>
                     </tr>
@@ -259,15 +256,33 @@
             }
         }
 
-        const rangeMap = {'あ': /^[あ-おア-オ]/,'か': /^[か-こカ-コ]/,'さ': /^[さ-そサ-ソ]/,'た': /^[た-とタ-ト]/,'な': /^[な-のナ-ノ]/,'は': /^[は-ほハ-ホ]/,'ま': /^[ま-もマ-モ]/,'や': /^[や-よヤ-ヨ]/,'ら': /^[ら-ろラ-ロ]/,'わ': /^[わ-んワ-ン]/};
+        // --- 改良：濁点・半濁点対応の50音判定 ---
+        const rangeMap = {
+            'あ': /^[あ-おア-オ]/,
+            'か': /^[か-こカ-コが-ごガ-ゴ]/,
+            'さ': /^[さ-そサ-ソざ-ぞザ-ゾ]/,
+            'た': /^[た-とタ-トだ-どダ-ド]/,
+            'な': /^[な-のナ-ノ]/,
+            'は': /^[は-ほハ-ホば-ぼバ-ボぱ-ぽパ-ポ]/,
+            'ま': /^[ま-もマ-モ]/,
+            'や': /^[や-よヤ-ヨ]/,
+            'ら': /^[ら-ろラ-ロ]/,
+            'わ': /^[わ-んワ-ン]/
+        };
+
         document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.onclick = () => {
                 document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 const range = btn.dataset.range;
-                if (range === 'all') filteredData = [...allData];
-                else if (range === '他') filteredData = allData.filter(d => !Object.values(rangeMap).some(re => re.test(d.kana || d.name)));
-                else filteredData = allData.filter(d => rangeMap[range].test(d.kana || ""));
+                if (range === 'all') {
+                    filteredData = [...allData];
+                } else if (range === '他') {
+                    filteredData = allData.filter(d => !Object.values(rangeMap).some(re => re.test(d.kana || d.name)));
+                } else {
+                    const re = rangeMap[range];
+                    filteredData = allData.filter(d => re.test(d.kana || ""));
+                }
                 currentPage = 1; updateView();
             };
         });
