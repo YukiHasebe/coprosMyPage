@@ -9,33 +9,18 @@
     <style>
         :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
-        
-        /* 50音ボタン：押しやすさ重視 */
         .filter-btn { transition: all 0.2s; }
-        .filter-btn:hover:not(.active) { color: var(--copros-orange); background: rgba(255,126,17,0.05); }
-        .filter-btn.active { 
-            background: var(--copros-orange); color: white; 
-            box-shadow: 0 4px 12px rgba(255,126,17,0.3);
-        }
-
-        /* ページ切替：右寄せモダンデザイン */
-        .modern-page-btn {
-            width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
-            border-radius: 8px; font-weight: 800; font-size: 14px; transition: all 0.3s;
-            color: #94a3b8; cursor: pointer; border: 1px solid transparent;
-        }
+        .filter-btn.active { background: var(--copros-orange); color: white; box-shadow: 0 4px 12px rgba(255,126,17,0.3); }
+        .modern-page-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-weight: 800; font-size: 14px; transition: all 0.3s; color: #94a3b8; cursor: pointer; }
         .modern-page-btn.active { background: #334155; color: white; }
-        .nav-arrow {
-            width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
-            border-radius: 8px; background: white; color: var(--copros-orange); border: 1px solid #e2e8f0;
-        }
+        .nav-arrow { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: white; color: var(--copros-orange); border: 1px solid #e2e8f0; }
         .nav-arrow:hover:not(.disabled) { background: var(--copros-orange); color: white; }
         .nav-arrow.disabled { opacity: 0.2; cursor: default; }
-
         .table-container { border-radius: 1.5rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
         thead tr { background-color: #3c4b5a; }
-        
         #detailSearchSection { display: none; }
+        /* テーブルの横スクロール対応（スマホ・小型PC用） */
+        .custom-scrollbar { overflow-x: auto; }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700">
@@ -48,7 +33,7 @@
         <div class="flex-1 overflow-auto p-8 custom-scrollbar">
             <div class="max-w-[1400px] mx-auto">
                 
-                <!-- 上部エリア -->
+                <!-- 上部アクション -->
                 <div class="flex justify-between items-end mb-10">
                     <div>
                         <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">お客様情報一覧</h1>
@@ -83,14 +68,14 @@
                     </div>
                 </div>
 
-                <!-- 絞り込みツール（左：全件・件数 / 右：ページ切替） -->
+                <!-- ナビゲーション（左：絞り込み・件数 / 右：ページ切替） -->
                 <div class="flex justify-between items-center mb-6 px-2">
                     <div class="flex items-center gap-6">
-                        <div class="flex flex-wrap gap-1 p-1 bg-white rounded-xl border border-slate-200 shadow-sm font-black">
+                        <div class="flex flex-wrap gap-1 p-1 bg-white rounded-xl border border-slate-200 shadow-sm font-black text-slate-400">
                             <button class="filter-btn active px-4 py-1.5 rounded-lg text-xs transition-all" data-range="all">全件</button>
                             <script>
                                 ['あ','か','さ','た','な','は','ま','や','ら','わ','他'].forEach(k => {
-                                    document.write(`<button class="filter-btn px-3 py-1.5 rounded-lg text-xs text-slate-400" data-range="${k}">${k}</button>`);
+                                    document.write(`<button class="filter-btn px-3 py-1.5 rounded-lg text-xs" data-range="${k}">${k}</button>`);
                                 });
                             </script>
                         </div>
@@ -98,7 +83,7 @@
                             <span id="pageRange" class="text-xl font-black text-slate-800 tracking-tighter">0-0</span>
                             <span class="text-slate-300 font-bold">/</span>
                             <span id="totalCount" class="text-sm font-bold text-slate-400">0</span>
-                            <span class="text-[9px] font-black text-slate-300 uppercase tracking-widest ml-1">件</span>
+                            <span class="text-[9px] font-black text-slate-300 uppercase tracking-widest ml-1 text-slate-400">件</span>
                         </div>
                     </div>
                     <div id="paginationTop" class="flex items-center gap-1.5"></div>
@@ -106,21 +91,23 @@
 
                 <!-- テーブル -->
                 <div class="table-container">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="text-white text-[10px] font-black uppercase tracking-widest">
-                                <th class="p-6 text-center w-20 opacity-50">No</th>
-                                <th class="p-6">お客様情報</th>
-                                <th class="p-6 text-center w-48">操作</th>
-                                <th class="p-6 text-center w-40">連絡先</th>
-                                <th class="p-6">住所</th>
-                                <th class="p-6 text-center w-28">訪問回数</th>
-                                <th class="p-6 text-center w-40">最終訪問日</th>
-                                <th class="p-6 text-center w-16"><i class="fa-solid fa-check-double opacity-30"></i></th>
-                            </tr>
-                        </thead>
-                        <tbody id="customerTable" class="divide-y divide-slate-100 text-sm font-bold"></tbody>
-                    </table>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse min-w-[1000px]">
+                            <thead>
+                                <tr class="text-white text-[10px] font-black uppercase tracking-widest">
+                                    <th class="p-6 text-center w-20 opacity-50">No</th>
+                                    <th class="p-6">お客様情報</th>
+                                    <th class="p-6 text-center w-48 opacity-70">実績</th> <!-- 操作→実績に変更 -->
+                                    <th class="p-6 text-center w-40 opacity-70">連絡先</th>
+                                    <th class="p-6 opacity-70">住所</th>
+                                    <th class="p-6 text-center w-28 opacity-70">訪問回数</th>
+                                    <th class="p-6 text-center w-40 opacity-70">最終訪問日</th>
+                                    <th class="p-6 text-center w-16"><i class="fa-solid fa-check-double opacity-30"></i></th>
+                                </tr>
+                            </thead>
+                            <tbody id="customerTable" class="divide-y divide-slate-100 text-sm font-bold italic-none"></tbody>
+                        </table>
+                    </div>
                 </div>
 
                 <!-- 下部ナビ -->
@@ -135,7 +122,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, getDocs, orderBy, query, doc, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // Firebase設定（あなたの設定を維持）
         const firebaseConfig = {
             apiKey: "AiZaSyDh00EZ7Jb1K2rTxLyTH6d80b4Qzcrwf_XI",
             authDomain: "copros-my-page.firebaseapp.com",
@@ -183,13 +169,15 @@
                         <td class="p-6"><div class="font-black text-slate-800 text-base leading-tight">${data.name || ""}</div></td>
                         <td class="p-6 text-center">
                             <div class="flex gap-1.5 justify-center">
-                                <button class="bg-slate-100 text-slate-500 px-4 py-2 rounded-lg font-black text-[10px] hover:bg-[#2c5282] hover:text-white transition-all shadow-sm" onclick="location.href='customer_history.html?name=${encodeURIComponent(data.name)}'">訪問履歴</button>
-                                <button class="bg-[#004098] text-white px-4 py-2 rounded-lg font-black text-[10px] hover:shadow-lg transition-all shadow-sm" onclick="location.href='history.html?name=${encodeURIComponent(data.name)}'">実績登録</button>
+                                <button class="bg-slate-100 text-slate-500 px-4 py-2 rounded-lg font-black text-[10px] hover:bg-[#2c5282] hover:text-white transition-all shadow-sm" onclick="location.href='customer_history.html?name=${encodeURIComponent(data.name)}'">履歴</button>
+                                <button class="bg-[#004098] text-white px-4 py-2 rounded-lg font-black text-[10px] hover:shadow-lg transition-all shadow-sm" onclick="location.href='history.html?name=${encodeURIComponent(data.name)}'">登録</button>
                             </div>
                         </td>
                         <td class="p-6 text-center text-slate-600 font-mono text-xs tracking-tighter">${data.tel || "-"}</td>
                         <td class="p-6 text-slate-500 text-xs font-medium truncate max-w-[200px]">${data.address || "-"}</td>
-                        <td class="p-6 text-center"><span class="inline-block bg-orange-50 text-[#ff7e11] px-3 py-1 rounded-full text-sm font-black border border-orange-100">${countNum}回</span></td>
+                        <td class="p-6 text-center">
+                            <span class="inline-block bg-orange-50 text-[#ff7e11] px-3 py-1 rounded-full text-sm font-black border border-orange-100">${countNum}回</span>
+                        </td>
                         <td class="p-6 text-center text-slate-400 font-bold text-[10px] uppercase">${data.lastVisit || "未登録"}</td>
                         <td class="p-6 text-center"><input type="checkbox" class="customer-check w-5 h-5 accent-rose-500 rounded-md" data-id="${data.id}"></td>
                     </tr>
