@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>月別滞在時間 | CP My Page</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; }
+        body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
+        
+        .table-container { border-radius: 2rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
+        thead tr { background-color: #3c4b5a; }
+        
+        /* セル装飾 */
+        .month-col { width: 70px; text-align: center; border-left: 1px solid #f1f5f9; font-size: 10px; }
+        .val-active { background: #fff7ed; color: var(--copros-orange); font-weight: 900; padding: 4px 0; border-radius: 4px; }
+        
+        /* 固定カラム */
+        .sticky-name { position: sticky; left: 0; background: white; z-index: 10; border-right: 2px solid #f1f5f9; min-width: 250px; }
+        thead .sticky-name { background: #3c4b5a; z-index: 20; color: white; }
+
+        /* 年度操作ボタン（ご指定のデザイン） */
+        .year-btn { padding: 0.5rem 1rem; border-radius: 0.75rem; font-weight: 900; font-size: 0.75rem; transition: all 0.2s; border: 1px solid #e2e8f0; background: white; color: #64748b; }
+        .year-btn:hover { background: #f8fafc; border-color: var(--copros-orange); color: var(--copros-orange); }
+
+        /* スマート部署選択 */
+        .scope-select { background: #e2e8f0; border: none; padding: 0.4rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; appearance: none; cursor: pointer; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden text-slate-700">
+
+    <div id="sidebar-placeholder"></div>
+
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <div id="header-placeholder"></div>
+
+        <div class="flex-1 overflow-auto p-8 custom-scrollbar">
+            <div class="max-w-[1600px] mx-auto">
+                
+                <!-- ヘッドエリア -->
+                <div class="flex justify-between items-end mb-10">
+                    <div class="flex items-end gap-6">
+                        <div>
+                            <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">月別滞在時間一覧</h1>
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Monthly Engagement Analysis</p>
+                        </div>
+                        <div class="mb-2">
+                            <select id="deptFilter" onchange="window.updateTable()" class="scope-select shadow-inner">
+                                <option value="ALL">全社表示</option>
+                                <option>ケコム部</option><option>関西支店</option><option>関東支店</option>
+                                <option>中部営業所</option><option>土木部</option><option>建築部</option>
+                                <option>建機部</option><option>総務部</option><option>購買課</option>
+                                <option>宮崎産商</option><option>企画部</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 🌟 統一された操作ユニット（ご指定のレイアウト） -->
+                    <div class="flex gap-3 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100 items-center">
+                        <div class="flex items-center gap-2 px-2 border-r border-slate-100">
+                            <button onclick="changeYear(-1)" class="year-btn">前年</button>
+                            <span id="displayYear" class="text-sm font-black text-slate-700 px-2 min-w-[80px] text-center">2026年度</span>
+                            <button onclick="changeYear(1)" class="year-btn">翌年</button>
+                        </div>
+                        <button class="px-6 py-2.5 bg-slate-800 text-white rounded-xl font-bold text-sm shadow-lg hover:bg-black transition-all">
+                            <i class="fa-solid fa-file-csv mr-2 text-blue-400"></i>CSV出力
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 集計テーブル -->
+                <div class="table-container overflow-x-auto">
+                    <table class="w-full text-left border-collapse min-w-[1400px]">
+                        <thead>
+                            <tr class="text-white text-[10px] font-black uppercase tracking-widest text-center">
+                                <th class="p-4 sticky-name text-left">お客様名</th>
+                                <th class="month-col">4月</th><th class="month-col">5月</th><th class="month-col">6月</th>
+                                <th class="month-col">7月</th><th class="month-col">8月</th><th class="month-col">9月</th>
+                                <th class="month-col">10月</th><th class="month-col">11月</th><th class="month-col">12月</th>
+                                <th class="month-col">1月</th><th class="month-col">2月</th><th class="month-col">3月</th>
+                                <th class="p-4 bg-slate-900 text-white w-24">合計時間</th>
+                            </tr>
+                        </thead>
+                        <tbody id="monthlyTableBody" class="text-xs font-bold"></tbody>
+                    </table>
+                </div>
+
+                <div id="loading" class="py-20 text-center">
+                    <div class="animate-spin inline-block mb-4 text-blue-400 text-4xl"><i class="fa-solid fa-circle-notch"></i></div>
+                    <p class="text-slate-400 font-bold">データを年度集計中...</p>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <script src="common.js"></script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // Firebase設定
+        const firebaseConfig = {
+            apiKey: "AiZaSyDh00EZ7Jb1K2rTxLyTH6d80b4Qzcrwf_XI",
+            authDomain: "copros-my-page.firebaseapp.com",
+            projectId: "copros-my-page",
+            storageBucket: "copros-my-page.firebasestorage.app",
+            messagingSenderId: "54419849010",
+            appId: "1:54419849010:web:a60015b9c6fcf60cd3e12b"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let currentYear = 2026;
+        let allCustomers = [];
+        let allRecords = [];
+
+        async function init() {
+            try {
+                const [cSnap, rSnap] = await Promise.all([
+                    getDocs(query(collection(db, "customers"), orderBy("name"))),
+                    getDocs(collection(db, "activity_records"))
+                ]);
+                allCustomers = cSnap.docs.map(d => d.data());
+                allRecords = rSnap.docs.map(d => d.data());
+                document.getElementById('loading').style.display = 'none';
+                renderTable();
+            } catch (e) { console.warn("Firebaseリセット待ち"); }
+        }
+
+        window.updateTable = () => renderTable();
+
+        function renderTable() {
+            const tbody = document.getElementById('monthlyTableBody');
+            tbody.innerHTML = "";
+            document.getElementById('displayYear').innerText = `${currentYear}年度`;
+            const selectedDept = document.getElementById('deptFilter').value;
+
+            const fiscalMonths = [
+                {y: currentYear, m: 4}, {y: currentYear, m: 5}, {y: currentYear, m: 6},
+                {y: currentYear, m: 7}, {y: currentYear, m: 8}, {y: currentYear, m: 9},
+                {y: currentYear, m: 10}, {y: currentYear, m: 11}, {y: currentYear, m: 12},
+                {y: currentYear + 1, m: 1}, {y: currentYear + 1, m: 2}, {y: currentYear + 1, m: 3}
+            ];
+
+            allCustomers.forEach(cust => {
+                let monthlyHtml = "";
+                let rowTotalMins = 0;
+                let hasData = false;
+
+                fiscalMonths.forEach(fm => {
+                    let mins = 0;
+                    allRecords.filter(r => {
+                        const d = new Date(r.visitDate);
+                        return r.customerName === cust.name && d.getFullYear() === fm.y && (d.getMonth()+1) === fm.m && (selectedDept === 'ALL' || r.visitorDept === selectedDept);
+                    }).forEach(r => {
+                        if(r.startTime && r.endTime) {
+                            const s = r.startTime.split(':'); const e = r.endTime.split(':');
+                            mins += (parseInt(e[0])*60+parseInt(e[1]))-(parseInt(s[0])*60+parseInt(s[1]));
+                        }
+                    });
+                    
+                    rowTotalMins += mins;
+                    if (mins > 0) {
+                        hasData = true;
+                        monthlyHtml += `<td class="month-col"><div class="mx-1 val-active">${mins}分</div></td>`;
+                    } else {
+                        monthlyHtml += `<td class="month-col"><div class="text-slate-200">0</div></td>`;
+                    }
+                });
+
+                if (selectedDept === 'ALL' || hasData) {
+                    tbody.insertAdjacentHTML('beforeend', `
+                        <tr class="hover:bg-slate-50 border-b border-slate-50">
+                            <td class="p-4 sticky-name text-slate-800 font-black truncate max-w-[250px] cursor-pointer hover:text-blue-600" onclick="location.href='customer_history.html?name=${encodeURIComponent(cust.name)}'">${cust.name}</td>
+                            ${monthlyHtml}
+                            <td class="p-4 text-center bg-slate-50 font-black text-slate-700">${Math.floor(rowTotalMins/60)}h ${rowTotalMins%60}m</td>
+                        </tr>
+                    `);
+                }
+            });
+        }
+
+        window.changeYear = (val) => { currentYear += val; renderTable(); };
+        init();
+    </script>
+</body>
+</html>
