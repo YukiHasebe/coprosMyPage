@@ -7,211 +7,237 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root {
-            --sidebar-bg: #1a1a1a;
-            --header-bg: #3c4b5a;
-            --accent-orange: #ff7e11;
-            --primary-blue: #004098;
-        }
-        body { font-family: "Meiryo", sans-serif; background-color: #f4f7f9; }
+        :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; }
+        body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
+        .form-input { width: 100%; padding: 0.75rem 1rem; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.75rem; font-weight: 600; transition: all 0.2s; font-size: 0.9rem; }
+        .form-input:focus { outline: none; border-color: #3b82f6; background-color: white; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
+        .readonly-input { background-color: #f1f5f9; color: #64748b; cursor: not-allowed; border-style: dashed; }
+        .label-text { font-size: 0.8rem; font-weight: 800; color: #475569; margin-bottom: 0.4rem; display: block; }
+        .section-card { background: white; border-radius: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04); padding: 2rem; margin-bottom: 2rem; }
+        .section-title { font-size: 0.75rem; font-weight: 900; color: #94a3b8; letter-spacing: 0.1em; border-bottom: 2px solid #f1f5f9; padding-bottom: 0.5rem; margin-bottom: 1.5rem; text-transform: uppercase; }
         
-        /* サイドバー共通 */
-        .sidebar { background-color: var(--sidebar-bg); width: 200px; }
-        .nav-item { border-bottom: 1px solid #2d2d2d; transition: all 0.2s; color: #b8b8b8; }
-        .nav-item:hover { background-color: #333; color: white; }
-        .active-menu { background-color: #2d3748; border-left: 4px solid var(--accent-orange); color: white !important; }
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; backdrop-filter: blur(4px); align-items: center; justify-content: center; }
+        .modal-content { background: white; width: 450px; border-radius: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); overflow: hidden; }
+        .staff-item { padding: 0.8rem 1.2rem; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-weight: 600; display: flex; justify-content: space-between; }
+        .staff-item:hover { background: #f8fafc; color: #3b82f6; }
+        .staff-item.selected { background: #eff6ff; color: #2563eb; border-left: 4px solid #2563eb; }
 
-        /* 入力エリア */
-        .form-table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
-        .form-table th { 
-            width: 220px; background-color: #fff; text-align: left; padding: 18px; 
-            font-size: 14px; color: #444; border-bottom: 1px solid #eee; vertical-align: top;
-        }
-        .form-table td { padding: 15px; border-bottom: 1px solid #eee; }
-        
-        .form-input { 
-            width: 100%; border: 1px solid #d1d5db; padding: 8px; border-radius: 4px; 
-            transition: all 0.2s; outline: none; font-size: 14px;
-        }
-        .form-input:focus { border-color: var(--primary-blue); box-shadow: 0 0 0 3px rgba(0, 64, 152, 0.1); }
-
-        .required-tag {
-            background-color: #fff1f0; color: #d8514d; border: 1px solid #ffa39e;
-            font-size: 10px; padding: 1px 4px; border-radius: 2px; margin-left: 8px;
-        }
-
-        .btn-blue { background-color: var(--primary-blue); color: white; padding: 6px 20px; border-radius: 4px; font-size: 12px; font-weight: bold; }
-        .btn-gray { background-color: #f3f4f6; color: #4b5563; border: 1px solid #d1d5db; padding: 6px 20px; border-radius: 4px; font-size: 12px; }
-        .btn-action { transition: transform 0.1s; cursor: pointer; }
-        .btn-action:active { transform: scale(0.98); }
+        .suggestion-box { position: absolute; width: 100%; top: 100%; left: 0; z-index: 50; background: white; border-radius: 0.75rem; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; max-height: 200px; overflow-y: auto; display: none; }
+        .suggestion-item { padding: 0.7rem 1rem; cursor: pointer; font-weight: 600; font-size: 0.85rem; }
+        .suggestion-item:hover { background-color: #f1f5f9; color: #3b82f6; }
     </style>
 </head>
-<body class="flex h-screen overflow-hidden">
+<body class="flex h-screen overflow-hidden text-slate-700">
 
-    <!-- サイドバー（共通リンク設定済） -->
-<aside class="sidebar flex-shrink-0 text-white flex flex-col shadow-2xl">
-    <div class="p-4 text-xs font-bold text-gray-500 border-b border-gray-800 tracking-widest uppercase">Menu</div>
-    <nav class="flex-1 overflow-y-auto">
-        <!-- お客様 -->
-        <a href="list.html" class="nav-item block px-5 py-4 text-sm flex items-center hover:text-white">
-            <i class="fa-solid fa-users w-6"></i> お客様
-        </a>
+    <div id="sidebar-placeholder"></div>
 
-        <!-- 実績（サブメニュー付き） -->
-        <div class="nav-group">
-            <div class="nav-item block px-5 py-4 text-sm flex items-center cursor-pointer">
-                <i class="fa-solid fa-file-invoice w-6"></i> 実績
-            </div>
-            <div class="bg-black text-[11px]">
-                <a href="history.html" class="block px-10 py-3 text-gray-400 hover:text-white border-b border-gray-900">実績登録</a>
-                <a href="list_records.html" class="block px-10 py-3 text-gray-400 hover:text-white border-b border-gray-900">実績一覧</a>
-                <a href="#" class="block px-10 py-3 text-gray-400 hover:text-white border-b border-gray-900">実績CSV出力</a>
-            </div>
-        </div>
-
-        <!-- カレンダー -->
-        <a href="calendar.html" class="nav-item block px-5 py-4 text-sm flex items-center hover:text-white">
-            <i class="fa-solid fa-calendar-days w-6"></i> カレンダー
-        </a>
-
-        <!-- 回覧一覧 -->
-        <a href="#" class="nav-item block px-5 py-4 text-sm flex items-center hover:text-white">
-            <i class="fa-solid fa-envelope-open-text w-6"></i> 回覧一覧
-            <span class="ml-auto bg-red-600 text-white text-[10px] px-2 py-0.5 rounded-full">1</span>
-        </a>
-
-        <!-- 地図 -->
-        <a href="map.html" class="nav-item block px-5 py-4 text-sm flex items-center hover:text-white">
-            <i class="fa-solid fa-map-location-dot w-6"></i> 地図
-        </a>
-
-        <!-- アポイント -->
-        <a href="appoint.html" class="nav-item block px-5 py-4 text-sm flex items-center hover:text-white">
-            <i class="fa-solid fa-clock w-6"></i> アポイント
-        </a>
-
-        <!-- 集計（サブメニュー付き） -->
-        <div class="nav-group">
-            <div class="nav-item block px-5 py-4 text-sm flex items-center cursor-pointer">
-                <i class="fa-solid fa-chart-line w-6"></i> 集計
-            </div>
-            <div class="bg-black text-[11px]">
-                <a href="usage.html" class="block px-10 py-3 text-gray-400 hover:text-white border-b border-gray-900">組織員利用状況</a>
-                <a href="monthly_list.html" class="block px-10 py-3 text-gray-400 hover:text-white border-b border-gray-900">月別一覧</a>
-                <a href="#" class="block px-10 py-3 text-gray-400 hover:text-white border-b border-gray-900">お客様別滞在時間一覧</a>
-                <a href="#" class="block px-10 py-3 text-gray-400 hover:text-white border-b border-gray-900">実績グラフ出力</a>
-            </div>
-        </div>
-
-        <!-- マスタ管理 -->
-        <a href="#" class="nav-item block px-5 py-4 text-sm flex items-center hover:text-white">
-            <i class="fa-solid fa-gears w-6"></i> マスタ管理
-        </a>
-    </nav>
-
-    <!-- ログアウト -->
-    <div class="p-4 border-t border-gray-800">
-        <a href="index.html" class="text-xs text-gray-500 hover:text-white flex items-center">
-            <i class="fa-solid fa-right-from-bracket mr-2"></i> ログアウト
-        </a>
-    </div>
-</aside>
-
-    <!-- メインコンテンツ -->
     <main class="flex-1 flex flex-col overflow-hidden">
-        <header class="h-14 bg-[#3c4b5a] flex items-center justify-between px-6 text-white shadow-md z-10">
-            <div class="flex items-center gap-4"><span class="text-xl font-bold text-[#87ceeb]">株式会社コプロス</span></div>
-            <div class="text-xs font-medium">篠原 栄 殿</div>
-        </header>
+        <div id="header-placeholder"></div>
 
-        <div class="flex-1 overflow-auto p-8">
+        <div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
             <div class="max-w-5xl mx-auto">
-                <div class="flex justify-between items-center mb-6">
-                    <h1 class="text-2xl font-bold text-gray-700">アポイント</h1>
+                
+                <div class="flex justify-between items-end mb-8">
+                    <div>
+                        <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">アポイント登録</h1>
+                        <nav class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Schedule & Appointment Setup</nav>
+                    </div>
                     <div class="flex gap-3">
-                        <button class="bg-[#ff7e11] text-white px-12 py-2 rounded font-bold text-sm shadow btn-action">登 録</button>
-                        <button class="bg-[#f39800] text-white px-12 py-2 rounded font-bold text-sm shadow btn-action">下書き</button>
+                        <button type="button" class="btn-draft px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 shadow-sm">下書き</button>
+                        <button type="button" class="btn-submit px-10 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-sm hover:shadow-lg flex items-center gap-2">
+                            <i class="fa-solid fa-calendar-check"></i> 登録を実行
+                        </button>
                     </div>
                 </div>
 
-                <form id="appointForm" class="bg-white shadow-xl rounded-xl border border-gray-200 overflow-hidden">
-                    <table class="form-table">
-                        <!-- お客様名 -->
-                        <tr>
-                            <th>お客様名<span class="required-tag">必須</span></th>
-                            <td>
-                                <input type="text" placeholder="キーワードを入力" class="form-input mb-2 max-w-md">
-                                <select class="form-input max-w-md"><option>--</option></select>
-                            </td>
-                        </tr>
+                <form id="appointForm">
+                    <!-- 基本情報 -->
+                    <div class="section-card">
+                        <p class="section-title">訪問予定の基本情報</p>
+                        <div class="space-y-6">
+                            <div class="relative max-w-2xl">
+                                <label class="label-text">お客様名 <span class="text-rose-500">*</span></label>
+                                <input type="text" id="customerSearch" placeholder="お客様名を検索..." class="form-input" autocomplete="off" required>
+                                <div id="customerSuggestions" class="suggestion-box"></div>
+                            </div>
 
-                        <!-- 訪問予定日時（動的追加エリアのイメージ） -->
-                        <tr>
-                            <th>訪問予定日時<span class="required-tag">必須</span></th>
-                            <td id="dateArea">
-                                <button type="button" class="btn-blue mb-4">訪問予定日時追加</button>
-                                <div class="p-4 bg-gray-50 border border-gray-100 rounded mb-2">
-                                    <div class="flex items-center gap-2 mb-2">
-                                        <input type="date" class="form-input w-40" value="2026-03-10">
-                                        <select class="form-input w-20"><option>--</option></select> 時
-                                        <select class="form-input w-20"><option>--</option></select> 分
+                            <div>
+                                <label class="label-text">訪問予定日時 <span class="text-rose-500">*</span></label>
+                                <div class="flex flex-wrap items-center gap-3">
+                                    <input type="date" id="appointDate" class="form-input w-44" required>
+                                    <div class="flex items-center bg-slate-50 rounded-xl border border-slate-200 px-2">
+                                        <input type="time" id="startTime" class="bg-transparent p-2 outline-none font-bold text-sm" required>
+                                        <span class="text-slate-400 px-1">〜</span>
+                                        <input type="time" id="endTime" class="bg-transparent p-2 outline-none font-bold text-sm" required>
                                     </div>
-                                    <div class="text-gray-400 text-xs my-1">～</div>
-                                    <div class="flex items-center gap-2 mb-4">
-                                        <input type="date" class="form-input w-40" value="2026-03-10">
-                                        <select class="form-input w-20"><option>--</option></select> 時
-                                        <select class="form-input w-20"><option>--</option></select> 分
-                                    </div>
-                                    <button type="button" class="btn-gray text-xs">削除</button>
                                 </div>
-                            </td>
-                        </tr>
+                            </div>
 
-                        <!-- 訪問予定者 -->
-                        <tr>
-                            <th>訪問予定者<span class="required-tag">必須</span></th>
-                            <td>
-                                <button type="button" class="btn-blue mb-2">選択</button>
-                                <div class="text-sm font-bold text-gray-700 mt-2 ml-1">篠原 栄</div>
-                            </td>
-                        </tr>
-
-                        <!-- 回覧 -->
-                        <tr>
-                            <th>回覧</th>
-                            <td>
-                                <label class="flex items-center cursor-pointer text-sm font-bold">
-                                    <input type="checkbox" checked class="mr-2 w-4 h-4 accent-[#ff7e11]"> メール回覧
-                                </label>
-                            </td>
-                        </tr>
-
-                        <!-- 回覧者 -->
-                        <tr>
-                            <th>回覧者</th>
-                            <td>
-                                <div class="flex items-start gap-4">
-                                    <button type="button" class="btn-blue">選択</button>
-                                    <div class="text-xs text-gray-500 leading-relaxed max-w-xl">
-                                        今冨 弘, 岩本 猛, 金丸 卓朗, 上村 信二, 刈野 慶史, 篠原 栄, 原田 隆仁, 船場 勝信, 宮﨑 薫
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div>
+                                    <label class="label-text">訪問予定者 <span class="text-rose-500">*</span></label>
+                                    <div class="flex gap-2">
+                                        <input type="text" id="visitorName" class="form-input bg-blue-50 text-blue-700" readonly>
+                                        <button type="button" onclick="openStaffModal('visitor')" class="px-4 bg-white border border-slate-200 rounded-xl text-xs font-black hover:bg-slate-50 shadow-sm">選択</button>
                                     </div>
-                                    <label class="flex items-center text-xs text-gray-500 whitespace-nowrap">
-                                        <input type="checkbox" class="mr-1"> 回覧者を保持する
-                                    </label>
                                 </div>
-                            </td>
-                        </tr>
-                    </table>
+                                <div>
+                                    <label class="label-text">内容（仮）</label>
+                                    <input type="text" id="appointSubject" placeholder="例：新工法の説明" class="form-input">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-                    <!-- 下部ボタンエリア -->
-                    <div class="p-8 bg-gray-50 flex justify-center gap-4 border-t">
-                        <button type="submit" class="bg-[#ff7e11] text-white px-20 py-3 rounded-lg font-bold shadow-lg btn-action hover:bg-[#e66f00]">登 録</button>
-                        <button type="button" class="bg-[#f39800] text-white px-20 py-3 rounded-lg font-bold shadow-lg btn-action hover:bg-[#e66f00]">下書き</button>
+                    <!-- 回覧設定 -->
+                    <div class="section-card">
+                        <p class="section-title">回覧設定</p>
+                        <div class="flex flex-col gap-4">
+                            <div class="flex items-center gap-4">
+                                <button type="button" onclick="openStaffModal('circular')" class="px-6 py-2 bg-[#004098] text-white rounded-xl text-xs font-black shadow-md">回覧者を選択</button>
+                            </div>
+                            <div id="circularDisplay" class="p-4 bg-slate-50 border border-slate-200 rounded-2xl min-h-[60px] text-sm font-bold text-slate-600">未選択</div>
+                        </div>
+                    </div>
+
+                    <!-- 下部ボタン -->
+                    <div class="flex justify-center gap-4 py-12 border-t border-slate-100 mt-10">
+                        <button type="button" class="btn-draft px-8 py-3 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-sm">下書き</button>
+                        <button type="button" class="btn-submit px-16 py-3 bg-[#004098] text-white rounded-xl font-black text-sm shadow-lg flex items-center gap-2">
+                            <i class="fa-solid fa-calendar-check"></i> 登録を実行
+                        </button>
                     </div>
                 </form>
             </div>
         </div>
     </main>
 
+    <!-- モーダル（共通） -->
+    <div id="staffModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="bg-slate-900 p-4 text-white flex justify-between items-center"><span id="modalTitle" class="font-black text-xs uppercase tracking-widest">社員選択</span><i class="fa-solid fa-xmark cursor-pointer" onclick="closeModal()"></i></div>
+            <div class="p-5 bg-slate-50 border-b border-slate-100">
+                <div class="grid grid-cols-2 gap-3 mb-3">
+                    <input type="text" id="staffKeyword" placeholder="氏名検索..." class="p-2.5 rounded-lg border text-xs font-bold outline-none">
+                    <select id="deptFilter" class="p-2.5 rounded-lg border text-xs font-bold outline-none"><option value="">全ての部署</option></select>
+                </div>
+            </div>
+            <div id="staffList" class="overflow-y-auto" style="height: 300px;"></div>
+            <div class="p-4 bg-slate-50 grid grid-cols-3 gap-2">
+                <button onclick="applySelection()" class="col-span-2 py-3 bg-blue-600 text-white rounded-xl font-black text-sm">設定する</button>
+                <button onclick="clearModalSelection()" class="py-3 bg-white border rounded-xl font-bold text-sm">クリア</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="common.js"></script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, addDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AiZaSyDh00EZ7Jb1K2rTxLyTH6d80b4Qzcrwf_XI",
+            authDomain: "copros-my-page.firebaseapp.com",
+            projectId: "copros-my-page",
+            storageBucket: "copros-my-page.firebasestorage.app",
+            messagingSenderId: "54419849010",
+            appId: "1:54419849010:web:a60015b9c6fcf60cd3e12b"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let allCustomers = [];
+        let allStaffs = [];
+        let currentTarget = ''; 
+        let modalSelected = [];
+
+        async function init() {
+            document.getElementById('visitorName').value = sessionStorage.getItem('userName') || '未ログイン';
+            document.getElementById('appointDate').valueAsDate = new Date();
+
+            const [cSnap, sSnap] = await Promise.all([
+                getDocs(query(collection(db, "customers"), orderBy("name"))),
+                getDocs(collection(db, "staffs"))
+            ]);
+            allCustomers = cSnap.docs.map(doc => ({ name: doc.data().name, kana: doc.data().kana }));
+            allStaffs = sSnap.docs.map(doc => ({ ...doc.data() }));
+
+            const depts = [...new Set(allStaffs.map(s => s.dept).filter(Boolean))];
+            depts.forEach(d => document.getElementById('deptFilter').insertAdjacentHTML('beforeend', `<option value="${d}">${d}</option>`));
+
+            setupCustomerAutocomplete();
+        }
+
+        function setupCustomerAutocomplete() {
+            const input = document.getElementById('customerSearch');
+            const box = document.getElementById('customerSuggestions');
+            input.addEventListener('input', () => {
+                const val = input.value.toLowerCase();
+                if (!val) { box.style.display = 'none'; return; }
+                const filtered = allCustomers.filter(c => c.name.toLowerCase().includes(val) || (c.kana && c.kana.includes(val))).slice(0, 10);
+                box.innerHTML = filtered.map(c => `<div class="suggestion-item">${c.name}</div>`).join('');
+                box.style.display = filtered.length ? 'block' : 'none';
+            });
+            box.addEventListener('click', (e) => { if(e.target.closest('.suggestion-item')) { input.value = e.target.innerText; box.style.display = 'none'; } });
+        }
+
+        window.openStaffModal = (target) => {
+            currentTarget = target;
+            document.getElementById('modalTitle').innerText = target === 'visitor' ? '訪問予定者を選択' : '回覧者を選択';
+            document.getElementById('staffModal').style.display = 'flex';
+            modalSelected = [];
+            renderStaffList();
+        };
+
+        window.closeModal = () => document.getElementById('staffModal').style.display = 'none';
+
+        function renderStaffList() {
+            const keyword = document.getElementById('staffKeyword').value.toLowerCase();
+            const dept = document.getElementById('deptFilter').value;
+            const container = document.getElementById('staffList');
+            const filtered = allStaffs.filter(s => (!keyword || s.name.toLowerCase().includes(keyword)) && (!dept || s.dept === dept));
+            container.innerHTML = filtered.map(s => `<div class="staff-item ${modalSelected.includes(s.name) ? 'selected' : ''}" onclick="toggleStaffSelection('${s.name}')"><span>${s.name}</span><span class="text-[10px] opacity-40 uppercase font-black">${s.dept || ''}</span></div>`).join('');
+        }
+
+        window.toggleStaffSelection = (name) => {
+            if (currentTarget === 'visitor') { modalSelected = [name]; } 
+            else { modalSelected.includes(name) ? modalSelected = modalSelected.filter(n => n !== name) : modalSelected.push(name); }
+            renderStaffList();
+        };
+
+        window.applySelection = () => {
+            const names = modalSelected.join(', ');
+            if (currentTarget === 'visitor') document.getElementById('visitorName').value = names;
+            if (currentTarget === 'circular') document.getElementById('circularDisplay').innerText = names || '未選択';
+            closeModal();
+        };
+
+        window.clearModalSelection = () => { modalSelected = []; renderStaffList(); };
+        document.getElementById('staffKeyword').addEventListener('input', renderStaffList);
+        document.getElementById('deptFilter').addEventListener('change', renderStaffList);
+
+        document.querySelectorAll('.btn-submit').forEach(btn => {
+            btn.onclick = async () => {
+                const data = {
+                    customerName: document.getElementById('customerSearch').value,
+                    appointDate: document.getElementById('appointDate').value,
+                    startTime: document.getElementById('startTime').value,
+                    endTime: document.getElementById('endTime').value,
+                    visitorName: document.getElementById('visitorName').value,
+                    subject: document.getElementById('appointSubject').value,
+                    circularUsers: document.getElementById('circularDisplay').innerText,
+                    createdAt: serverTimestamp()
+                };
+                try {
+                    await addDoc(collection(db, "appointments"), data);
+                    alert("アポイントを登録しました！");
+                    location.href = 'calendar.html';
+                } catch (e) { alert("保存失敗"); }
+            };
+        });
+
+        init();
+    </script>
 </body>
 </html>
