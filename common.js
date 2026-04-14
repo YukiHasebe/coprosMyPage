@@ -1,18 +1,14 @@
 // common.js
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. プレースホルダーの存在確認（これがないとエラーで止まるため）
     const headerPlaceholder = document.getElementById('header-placeholder');
     const sidebarPlaceholder = document.getElementById('sidebar-placeholder');
 
-    if (!headerPlaceholder || !sidebarPlaceholder) {
-        console.warn("Placeholders not found. Check your HTML IDs.");
-        return; 
-    }
+    if (!headerPlaceholder || !sidebarPlaceholder) return;
 
     const currentFile = window.location.pathname.split("/").pop() || 'index.html';
-    const isListPage = currentFile.includes('list.html');
+    const isListPage = currentFile === 'list.html';
 
-    // 2. ヘッダーの挿入
+    // 1. ヘッダーの挿入
     headerPlaceholder.innerHTML = `
         <header class="h-16 bg-[#3c4b5a] flex items-center justify-between px-6 text-white shadow-lg shrink-0 z-50">
             <div class="flex items-center gap-6">
@@ -39,13 +35,12 @@ document.addEventListener('DOMContentLoaded', () => {
         </header>
     `;
 
-    // 3. サイドバーの挿入
+    // 2. サイドバーの挿入
     sidebarPlaceholder.innerHTML = `
         <aside class="sidebar flex flex-col shrink-0 text-sm shadow-2xl overflow-hidden" style="width: 220px; background-color: #1a1a1a; color: white; height: 100vh;">
             <div class="h-16 flex items-center px-6 text-gray-500 font-black tracking-widest text-xs border-b border-gray-800 uppercase">Menu</div>
             <nav class="flex-1 overflow-y-auto py-2">
                 
-                <!-- お客様 -->
                 <div class="nav-group">
                     <div class="group-header flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-white/5 transition-colors">
                         <div class="flex items-center gap-3"><i class="fa-solid fa-users w-5 text-[#87ceeb]"></i><span>お客様</span></div>
@@ -57,7 +52,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
 
-                <!-- 実績 -->
                 <div class="nav-group">
                     <div class="group-header flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-white/5">
                         <div class="flex items-center gap-3"><i class="fa-solid fa-file-invoice w-5 text-[#87ceeb]"></i><span>実績</span></div>
@@ -70,13 +64,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
 
-                <!-- 単体メニュー -->
                 <div class="px-6 py-3 flex items-center gap-3 hover:bg-white/5 cursor-pointer" onclick="location.href='calendar.html'"><i class="fa-solid fa-calendar-days w-5 text-[#87ceeb]"></i><span>カレンダー</span></div>
                 <div class="px-6 py-3 flex items-center justify-between hover:bg-white/5 cursor-pointer" onclick="location.href='kairan.html'"><div class="flex items-center gap-3"><i class="fa-solid fa-envelope-open-text w-5 text-[#87ceeb]"></i><span>回覧一覧</span></div><span class="bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">3</span></div>
                 <div class="px-6 py-3 flex items-center gap-3 hover:bg-white/5 cursor-pointer" onclick="location.href='map.html'"><i class="fa-solid fa-map-location-dot w-5 text-[#87ceeb]"></i><span>地図</span></div>
                 <div class="px-6 py-3 flex items-center gap-3 hover:bg-white/5 cursor-pointer" onclick="location.href='appoint.html'"><i class="fa-solid fa-clock w-5 text-[#87ceeb]"></i><span>アポイント</span></div>
 
-                <!-- 集計 -->
                 <div class="nav-group">
                     <div class="group-header flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-white/5">
                         <div class="flex items-center gap-3"><i class="fa-solid fa-chart-line w-5 text-[#87ceeb]"></i><span>集計</span></div>
@@ -91,7 +83,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
 
-                <!-- マスタ管理 -->
                 <div class="nav-group">
                     <div class="group-header flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-white/5">
                         <div class="flex items-center gap-3"><i class="fa-solid fa-gear w-5 text-[#87ceeb]"></i><span>マスタ管理</span></div>
@@ -106,7 +97,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="py-2 pl-14 pr-4 text-xs opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='import.html'">インポート</div>
                     </div>
                 </div>
-
             </nav>
             <div class="p-6 border-t border-gray-800 bg-[#1a1a1a]">
                 <a href="index.html" class="flex items-center gap-3 text-gray-500 hover:text-rose-400 transition-colors font-bold">
@@ -116,7 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </aside>
     `;
 
-    // 4. アコーディオン開閉ロジック
+    // アコーディオン開閉
     document.querySelectorAll('.group-header').forEach(header => {
         header.addEventListener('click', () => {
             const submenu = header.nextElementSibling;
@@ -132,21 +122,27 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // 5. 自動開閉 ＆ ハイライト
+    // 🌟 しつけ直し：完全一致（または厳格な比較）でハイライト 🌟
     document.querySelectorAll('[onclick]').forEach(el => {
         const action = el.getAttribute('onclick');
-        if (action && action.includes(currentFile)) {
+        if (!action) return;
+
+        // onclick="location.href='xxx.html'" からファイル名だけを抜く
+        const match = action.match(/href='([^']+)'/);
+        const targetFile = match ? match[1] : null;
+
+        if (targetFile === currentFile) {
             el.classList.add('text-[#87ceeb]', 'font-bold');
             const parentSubmenu = el.closest('.submenu');
             if (parentSubmenu) {
                 parentSubmenu.classList.remove('hidden');
                 const arrow = parentSubmenu.parentElement.querySelector('.arrow');
-                if(arrow) arrow.style.transform = 'rotate(180deg)';
+                if (arrow) arrow.style.transform = 'rotate(180deg)';
             }
         }
     });
 
-    // 6. ログイン直後（list.html）だけは必ずお客様メニューを開く
+    // ログイン直後の特別しつけ：list.htmlの時はお客様メニューだけを開く
     if (currentFile === 'list.html') {
         const firstSub = document.querySelector('.nav-group .submenu');
         if (firstSub) {
