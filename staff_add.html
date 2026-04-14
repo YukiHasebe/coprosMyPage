@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>組織員登録・編集 | CP My Page</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; }
+        body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
+        .form-input { width: 100%; padding: 0.75rem 1rem; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.75rem; font-weight: 600; transition: all 0.2s; font-size: 0.9rem; }
+        .form-input:focus { outline: none; border-color: #0ea5e9; background-color: white; box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.1); }
+        .label-text { font-size: 0.8rem; font-weight: 800; color: #475569; margin-bottom: 0.4rem; display: block; }
+        .section-card { background: white; border-radius: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04); padding: 2.5rem; margin-bottom: 2rem; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden text-slate-700">
+
+    <div id="sidebar-placeholder"></div>
+
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <div id="header-placeholder"></div>
+
+        <div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
+            <div class="max-w-4xl mx-auto">
+                <div class="flex justify-between items-end mb-8">
+                    <div>
+                        <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">組織員情報登録・編集</h1>
+                        <nav class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Staff Account Setup</nav>
+                    </div>
+                    <div class="flex gap-3">
+                        <button onclick="location.href='staff_list.html'" class="px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all">戻る</button>
+                        <button id="saveBtn" class="px-10 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-sm hover:shadow-lg transition-all flex items-center gap-2">
+                            <i class="fa-solid fa-cloud-arrow-up mr-1"></i> 情報を保存する
+                        </button>
+                    </div>
+                </div>
+
+                <form id="staffForm">
+                    <div class="section-card">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div>
+                                <label class="label-text">社員コード（ID） <span class="text-rose-500">*</span></label>
+                                <input type="text" id="staffId" placeholder="例: 1122" class="form-input" required>
+                            </div>
+                            <div>
+                                <label class="label-text">氏名 <span class="text-rose-500">*</span></label>
+                                <input type="text" id="staffName" placeholder="例: コプロス 太郎" class="form-input" required>
+                            </div>
+                            <div>
+                                <label class="label-text">所属部署</label>
+                                <select id="staffDept" class="form-input">
+                                    <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option><option>土木部</option><option>建築部</option><option>建機部</option><option>総務部</option><option>購買課</option><option>宮﨑産商</option><option>宮﨑産商</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="label-text">マイページ権限 <span class="text-rose-500">*</span></label>
+                                <div class="flex gap-6 mt-2">
+                                    <label class="flex items-center gap-2 font-bold cursor-pointer"><input type="radio" name="role" value="一般" checked class="w-4 h-4 accent-sky-500"> 一般</label>
+                                    <label class="flex items-center gap-2 font-bold cursor-pointer"><input type="radio" name="role" value="管理者" class="w-4 h-4 accent-sky-500"> 管理者</label>
+                                </div>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="label-text">メールアドレス</label>
+                                <input type="email" id="staffEmail" placeholder="example@copros.co.jp" class="form-input">
+                            </div>
+                            <div>
+                                <label class="label-text">パスワード <span class="text-rose-500">*</span></label>
+                                <input type="password" id="staffPass" placeholder="••••" class="form-input" required>
+                            </div>
+                            <div>
+                                <label class="label-text">状態</label>
+                                <label class="flex items-center gap-2 mt-2 font-bold cursor-pointer">
+                                    <input type="checkbox" id="staffStatus" checked class="w-5 h-5 accent-green-500">
+                                    <span>このアカウントを有効にする</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script src="common.js"></script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AiZaSyDh00EZ7Jb1K2rTxLyTH6d80b4Qzcrwf_XI",
+            authDomain: "copros-my-page.firebaseapp.com",
+            projectId: "copros-my-page",
+            storageBucket: "copros-my-page.firebasestorage.app",
+            messagingSenderId: "54419849010",
+            appId: "1:54419849010:web:a60015b9c6fcf60cd3e12b"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // URLにIDがあれば編集モード
+        const params = new URLSearchParams(window.location.search);
+        const editId = params.get('id');
+
+        async function init() {
+            if (editId) {
+                const snap = await getDoc(doc(db, "staffs", editId));
+                if (snap.exists()) {
+                    const d = snap.data();
+                    document.getElementById('staffId').value = d.id;
+                    document.getElementById('staffId').readOnly = true;
+                    document.getElementById('staffName').value = d.name;
+                    document.getElementById('staffEmail').value = d.email || '';
+                    document.getElementById('staffPass').value = d.password;
+                    document.getElementById('staffDept').value = d.dept || '営業部';
+                    document.getElementById('staffStatus').checked = (d.status !== "無効");
+                    document.querySelector(`input[name="role"][value="${d.role || '一般'}"]`).checked = true;
+                }
+            }
+        }
+
+        document.getElementById('saveBtn').onclick = async () => {
+            const id = document.getElementById('staffId').value;
+            if(!id) return alert("社員番号を入力してください");
+
+            const data = {
+                id: id,
+                name: document.getElementById('staffName').value,
+                email: document.getElementById('staffEmail').value,
+                password: document.getElementById('staffPass').value,
+                dept: document.getElementById('staffDept').value,
+                role: document.querySelector('input[name="role"]:checked').value,
+                status: document.getElementById('staffStatus').checked ? "有効" : "無効",
+                updatedAt: serverTimestamp()
+            };
+
+            await setDoc(doc(db, "staffs", id), data);
+            alert("保存しました！");
+            location.href = 'staff_list.html';
+        };
+
+        init();
+    </script>
+</body>
+</html>
