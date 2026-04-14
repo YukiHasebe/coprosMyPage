@@ -329,34 +329,46 @@
         document.getElementById('deptFilter').addEventListener('change', renderStaffList);
 
         // --- 登録ボタン（上と下の両方に対応） ---
-        document.querySelectorAll('.btn-submit').forEach(btn => {
-            btn.onclick = async () => {
-                const form = document.getElementById('historyForm');
-                if (!form.checkValidity()) { form.reportValidity(); return; }
+               btn.onclick = async () => {
+            const form = document.getElementById('historyForm');
+            if (!form.checkValidity()) { form.reportValidity(); return; }
 
-                const data = {
-                    customerName: document.getElementById('customerSearch').value,
-                    visitDate: document.getElementById('visitDate').value,
-                    startTime: document.getElementById('startTime').value,
-                    endTime: document.getElementById('endTime').value,
-                    visitorName: document.getElementById('visitorName').value,
-                    visitorRole: document.querySelector('input[name="visitorRole"]:checked').value,
-                    companion: document.getElementById('companionDisplay').value,
-                    qualData1: document.getElementById('qualData1').value,
-                    qualData2: document.getElementById('qualData2').value,
-                    qualData3: document.getElementById('qualData3').value,
-                    customerReport: document.getElementById('customerReport').value,
-                    staffThoughts: document.getElementById('staffThoughts').value,
-                    circularUsers: document.getElementById('circularDisplay').innerText,
-                    emailCircular: document.getElementById('emailCircular').checked,
-                    createdAt: serverTimestamp()
-                };
-                try {
-                    await addDoc(collection(db, "activity_records"), data);
-                    alert("実績を登録しました！");
-                    location.href = 'list_records.html';
-                } catch (e) { alert("保存に失敗しました。"); }
+            // 🌟 訪問者の名前から部署名を特定するロジックを追加
+            const vName = document.getElementById('visitorName').value;
+            const staffInfo = allStaffs.find(s => s.name === vName);
+            const vDept = staffInfo ? staffInfo.dept : "未設定";
+
+            const data = {
+                customerName: document.getElementById('customerSearch').value,
+                customerRank: document.getElementById('autoRank').value,
+                customerType: document.getElementById('autoType').value,
+                visitDate: document.getElementById('visitDate').value,
+                startTime: document.getElementById('startTime').value,
+                endTime: document.getElementById('endTime').value,
+                visitorName: vName,
+                visitorDept: vDept, // 🌟 これで部署が保存されます！
+                visitorRole: document.querySelector('input[name="visitorRole"]:checked').value,
+                companion: document.getElementById('companionDisplay').value,
+                qualData1: document.getElementById('qualData1').value,
+                qualData2: document.getElementById('qualData2').value,
+                qualData3: document.getElementById('qualData3').value,
+                customerStaff: document.getElementById('customerStaff').value,
+                customerReport: document.getElementById('customerReport').value,
+                staffThoughts: document.getElementById('staffThoughts').value,
+                circularUsers: document.getElementById('circularDisplay').innerText,
+                emailCircular: document.getElementById('emailCircular').checked,
+                createdAt: serverTimestamp()
             };
+
+            try {
+                await addDoc(collection(db, "activity_records"), data);
+                alert("実績を登録しました！");
+                location.href = 'list_records.html';
+            } catch (e) {
+                console.error(e);
+                alert("保存に失敗しました。設定を確認してください。");
+            }
+        };
         });
 
         // 下書きボタン
