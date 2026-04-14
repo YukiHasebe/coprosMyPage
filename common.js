@@ -86,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <!-- 🌟 リンクを接続 -->
                         <div class="py-2 pl-14 pr-4 text-xs opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='customer_stay_time.html'">お客様別滞在時間一覧</div>
                         <div class="py-2 pl-14 pr-4 text-xs opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='monthly_stay_time.html'">お客様別月別滞在時間一覧</div>
-                        <div class="py-2 pl-14 pr-4 text-xs opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer">実績グラフ出力</div>
+                        <div class="py-2 pl-14 pr-4 text-xs opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='view_graph.html'">実績グラフ出力</div>
                     </div>
                 </div>
 
