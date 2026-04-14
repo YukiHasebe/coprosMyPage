@@ -122,7 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // 🌟 しつけ直し：完全一致（または厳格な比較）でハイライト 🌟
+    // しつけ直し：完全一致（または厳格な比較）でハイライト
     document.querySelectorAll('[onclick]').forEach(el => {
         const action = el.getAttribute('onclick');
         if (!action) return;
@@ -151,4 +151,21 @@ document.addEventListener('DOMContentLoaded', () => {
             if (firstArrow) firstArrow.style.transform = 'rotate(180deg)';
         }
     }
+        // 🌟 未読バッジをFirebaseから取得してリアルタイム更新する魔法
+    async function refreshUnreadBadge() {
+        const myName = sessionStorage.getItem('userName');
+        if (!myName) return;
+        try {
+            const { getFirestore, collection, getDocs, query, where } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+            const db = getFirestore();
+            const q = query(collection(db, "notifications"), where("recipient", "==", myName), where("isRead", "==", false));
+            const snap = await getDocs(q);
+            const badge = document.querySelector('.bg-rose-500'); // サイドバーの赤丸
+            if (badge) {
+                badge.innerText = snap.size;
+                badge.style.display = snap.size > 0 ? 'flex' : 'none';
+            }
+        } catch (e) { /* リセット待ち */ }
+    }
+    refreshUnreadBadge();
 });
