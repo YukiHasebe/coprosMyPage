@@ -7,31 +7,22 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; --appoint-blue: #3b82f6; }
+        :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; --appoint-blue: #3b82f6; --next-green: #10b981; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
-        
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); background: #e2e8f0; gap: 1px; border: 1px solid #e2e8f0; border-radius: 1rem; overflow: hidden; }
-        .calendar-day { background: white; min-height: 130px; padding: 0.4rem; transition: all 0.2s; position: relative; }
+        .calendar-day { background: white; min-height: 130px; padding: 0.4rem; position: relative; }
         .calendar-day:hover { background: #f8fafc; }
         .calendar-day.other-month { background: #f1f5f9; color: #cbd5e1; }
         .day-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; }
-        .day-num { font-weight: 900; font-size: 0.85rem; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
+        .day-num { font-weight: 900; font-size: 0.85rem; width: 22px; height: 22px; display: flex; items-center: center; justify-content: center; }
         .is-today .day-num { background: var(--copros-orange); color: white; border-radius: 50%; }
 
-        /* ラベル共通 */
-        .event-label { 
-            font-size: 9px; font-weight: 800; padding: 2px 5px; border-radius: 4px; margin-bottom: 2px; 
-            cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
-            display: block; transition: all 0.2s; border-left: 3px solid;
-        }
-        .event-label:hover { transform: translateX(2px); opacity: 0.8; }
-        
-        /* 実績（オレンジ） */
-        .label-result { border-left-color: var(--copros-orange); background: #fff7ed; color: #ea580c; }
-        /* アポ（青） */
-        .label-appoint { border-left-color: var(--appoint-blue); background: #eff6ff; color: #1d4ed8; }
+        .event-label { font-size: 9px; font-weight: 800; padding: 2px 5px; border-radius: 4px; margin-bottom: 2px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; border-left: 3px solid; }
+        .label-result { border-left-color: var(--copros-orange); background: #fff7ed; color: #ea580c; } /* 実績 */
+        .label-next { border-left-color: var(--next-green); background: #f0fdf4; color: #16a34a; } /* 次回予定 */
+        .label-appoint { border-left-color: var(--appoint-blue); background: #eff6ff; color: #1d4ed8; } /* アポ */
 
-        .month-btn { padding: 0.5rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; transition: all 0.2s; }
+        .month-btn { padding: 0.5rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; }
         .month-btn.active { background: #334155; color: white; }
     </style>
 </head>
@@ -45,35 +36,26 @@
         <div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
             <div class="max-w-[1400px] mx-auto">
                 
-                <!-- アクションヘッダー -->
                 <div class="flex justify-between items-center mb-8">
                     <div>
                         <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-1">カレンダー</h1>
                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest" id="currentMonthDisplay">--</p>
                     </div>
-                    <div class="flex gap-4 items-center bg-white p-2 rounded-2xl shadow-sm border border-slate-100 font-black">
-                        <!-- 表示切り替えスイッチ -->
+                    <div class="flex gap-4 items-center bg-white p-2 rounded-2xl shadow-sm border border-slate-100 font-black text-[10px]">
+                        <!-- 3色出し分けスイッチ -->
                         <div class="flex items-center gap-4 px-4 border-r border-slate-100">
-                            <label class="flex items-center gap-2 cursor-pointer text-xs text-orange-600">
-                                <input type="checkbox" id="showResults" checked onchange="renderCalendar()" class="w-4 h-4 accent-orange-500"> 実績
-                            </label>
-                            <label class="flex items-center gap-2 cursor-pointer text-xs text-blue-600">
-                                <input type="checkbox" id="showAppoints" checked onchange="renderCalendar()" class="w-4 h-4 accent-blue-500"> アポ(次回予定)
-                            </label>
+                            <label class="flex items-center gap-1.5 cursor-pointer text-orange-600"><input type="checkbox" id="showRes" checked onchange="renderCalendar()" class="accent-orange-500"> 実績</label>
+                            <label class="flex items-center gap-1.5 cursor-pointer text-emerald-600"><input type="checkbox" id="showNext" checked onchange="renderCalendar()" class="accent-emerald-500"> 次回予定</label>
+                            <label class="flex items-center gap-1.5 cursor-pointer text-blue-600"><input type="checkbox" id="showApp" checked onchange="renderCalendar()" class="accent-blue-500"> アポ</label>
                         </div>
-                        <button onclick="changeMonth(-1)" class="p-2 hover:bg-slate-50 rounded-lg text-slate-400"><i class="fa-solid fa-chevron-left"></i></button>
-                        <button onclick="setToday()" class="px-4 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs hover:bg-slate-200">今日</button>
-                        <button onclick="changeMonth(1)" class="p-2 hover:bg-slate-50 rounded-lg text-slate-400"><i class="fa-solid fa-chevron-right"></i></button>
+                        <button onclick="changeMonth(-1)" class="p-2 text-slate-400"><i class="fa-solid fa-chevron-left"></i></button>
+                        <button onclick="setToday()" class="px-4 py-1.5 bg-slate-100 text-slate-600 rounded-lg">今日</button>
+                        <button onclick="changeMonth(1)" class="p-2 text-slate-400"><i class="fa-solid fa-chevron-right"></i></button>
                     </div>
                 </div>
 
-                <!-- 1月〜12月ボタン -->
                 <div class="flex justify-between p-1 bg-white rounded-2xl border border-slate-200 shadow-sm mb-6">
-                    <script>
-                        for(let i=1; i<=12; i++) {
-                            document.write(`<button onclick="jumpMonth(${i})" id="month-btn-${i}" class="month-btn flex-1">${i}月</button>`);
-                        }
-                    </script>
+                    <script>for(let i=1; i<=12; i++) document.write(`<button onclick="jumpMonth(${i})" id="month-btn-${i}" class="month-btn flex-1">${i}月</button>`);</script>
                 </div>
 
                 <div class="bg-white p-4 rounded-[2rem] shadow-xl border border-slate-200">
@@ -92,7 +74,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // Firebase設定
         const firebaseConfig = {
             apiKey: "AiZaSyDh00EZ7Jb1K2rTxLyTH6d80b4Qzcrwf_XI",
             authDomain: "copros-my-page.firebaseapp.com",
@@ -106,18 +87,23 @@
 
         let currentDate = new Date();
         let allRecords = [];
+        let allAppoints = [];
 
         async function init() {
             renderCalendar();
-            await fetchRecords();
+            await fetchData();
         }
 
-        async function fetchRecords() {
+        async function fetchData() {
             try {
-                const snap = await getDocs(collection(db, "activity_records"));
-                allRecords = snap.docs.map(doc => doc.data());
+                const [rSnap, aSnap] = await Promise.all([
+                    getDocs(collection(db, "activity_records")),
+                    getDocs(collection(db, "appointments"))
+                ]);
+                allRecords = rSnap.docs.map(d => d.data());
+                allAppoints = aSnap.docs.map(d => d.data());
                 renderCalendar();
-            } catch (e) { console.warn("Firebaseロック中。リセットをお待ちください。"); }
+            } catch (e) { console.warn("Firebase待機中..."); }
         }
 
         function renderCalendar() {
@@ -126,7 +112,6 @@
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth();
             document.getElementById('currentMonthDisplay').innerText = `${year}年 ${month + 1}月`;
-
             document.querySelectorAll('.month-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(`month-btn-${month + 1}`).classList.add('active');
 
@@ -134,8 +119,9 @@
             const startOffset = (firstDay === 0) ? 6 : firstDay - 1;
             const daysInMonth = new Date(year, month + 1, 0).getDate();
             
-            const showRes = document.getElementById('showResults').checked;
-            const showApp = document.getElementById('showAppoints').checked;
+            const showRes = document.getElementById('showRes').checked;
+            const showNext = document.getElementById('showNext').checked;
+            const showApp = document.getElementById('showApp').checked;
 
             for(let i=0; i<startOffset; i++) grid.insertAdjacentHTML('beforeend', '<div class="calendar-day other-month"></div>');
 
@@ -143,45 +129,29 @@
                 const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
                 const isToday = new Date().toISOString().split('T')[0] === dateStr;
                 
-                // ① 実績（訪問日）の抽出
-                const results = allRecords.filter(r => r.visitDate === dateStr);
-                // ② アポイント（次回訪問予定日）の抽出
-                const appoints = allRecords.filter(r => r.nextVisitDate === dateStr);
-                
                 let eventsHtml = "";
-                
-                // 実績を表示（オレンジ）
                 if (showRes) {
-                    results.forEach(r => {
-                        eventsHtml += `
-                            <div class="event-label label-result" onclick="location.href='customer_history.html?name=${encodeURIComponent(r.customerName)}'">
-                                <i class="fa-solid fa-check mr-1"></i>${r.customerName}
-                            </div>`;
+                    allRecords.filter(r => r.visitDate === dateStr).forEach(r => {
+                        eventsHtml += `<div class="event-label label-result" onclick="location.href='customer_history.html?name=${encodeURIComponent(r.customerName)}'">実績: ${r.customerName}</div>`;
                     });
                 }
-
-                // アポイントを表示（青）
+                if (showNext) {
+                    allRecords.filter(r => r.nextVisitDate === dateStr).forEach(r => {
+                        eventsHtml += `<div class="event-label label-next" onclick="location.href='customer_history.html?name=${encodeURIComponent(r.customerName)}'">次回: ${r.visitorName}</div>`;
+                    });
+                }
                 if (showApp) {
-                    appoints.forEach(r => {
-                        eventsHtml += `
-                            <div class="event-label label-appoint" onclick="location.href='customer_history.html?name=${encodeURIComponent(r.customerName)}'">
-                                <i class="fa-solid fa-calendar-day mr-1"></i>${r.visitorName}
-                            </div>`;
+                    allAppoints.filter(a => a.appointDate === dateStr).forEach(a => {
+                        eventsHtml += `<div class="event-label label-appoint" onclick="location.href='customer_history.html?name=${encodeURIComponent(a.customerName)}'">アポ: ${a.visitorName}</div>`;
                     });
                 }
 
-                const dayCell = `
+                grid.insertAdjacentHTML('beforeend', `
                     <div class="calendar-day ${isToday ? 'is-today' : ''}">
-                        <div class="day-header">
-                            <span class="day-num">${d}</span>
-                            <i class="fa-solid fa-plus text-slate-200 hover:text-blue-500 cursor-pointer" onclick="location.href='history.html?date=${dateStr}'"></i>
-                        </div>
-                        <div class="max-h-[90px] overflow-y-auto custom-scrollbar">
-                            ${eventsHtml}
-                        </div>
+                        <div class="day-header"><span class="day-num">${d}</span><i class="fa-solid fa-plus text-slate-200 hover:text-blue-500 cursor-pointer" onclick="location.href='history.html?date=${dateStr}'"></i></div>
+                        <div class="max-h-[90px] overflow-y-auto custom-scrollbar">${eventsHtml}</div>
                     </div>
-                `;
-                grid.insertAdjacentHTML('beforeend', dayCell);
+                `);
             }
         }
 
