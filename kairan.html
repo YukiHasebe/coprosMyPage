@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>回覧一覧 | CP My Page</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; }
+        body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
+        .table-container { border-radius: 1.5rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
+        thead tr { background-color: #3c4b5a; }
+        .row-unread { background-color: #fff7ed; }
+        .status-badge { padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 900; }
+        .status-unread { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
+        .status-read { background: #f1f5f9; color: #94a3b8; }
+        .detail-area { display: none; background: #f8fafc; border-top: 1px solid #e2e8f0; }
+        
+        .modern-page-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-weight: 800; font-size: 12px; transition: all 0.3s; color: #94a3b8; cursor: pointer; border: 1px solid transparent; }
+        .modern-page-btn.active { background: #334155; color: white; }
+        .nav-arrow { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: white; color: var(--copros-orange); border: 1px solid #e2e8f0; }
+        
+        #detailSearchSection { display: none; animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden text-slate-700">
+
+    <div id="sidebar-placeholder"></div>
+
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <div id="header-placeholder"></div>
+
+        <div class="flex-1 overflow-auto p-8 custom-scrollbar">
+            <div class="max-w-[1400px] mx-auto">
+                
+                <!-- ヘッドエリア -->
+                <div class="flex justify-between items-end mb-10">
+                    <div>
+                        <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">回覧一覧</h1>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Notification & Feedback</p>
+                    </div>
+                    <div class="flex gap-3 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100">
+                        <button id="detailSearchToggle" class="px-5 py-2.5 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 flex items-center gap-2">
+                            <i class="fa-solid fa-sliders text-blue-400"></i>詳細検索
+                        </button>
+                        <div class="w-px h-6 bg-slate-100 my-auto"></div>
+                        <button onclick="toggleAllDetails()" class="px-5 py-2.5 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 flex items-center gap-2">
+                            <i class="fa-solid fa-layer-group"></i>一括展開
+                        </button>
+                        <button onclick="markAllAsRead()" class="px-6 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-sm hover:shadow-lg flex items-center gap-2">
+                            <i class="fa-solid fa-check-double"></i>一括既読
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 詳細検索パネル -->
+                <div id="detailSearchSection" class="mb-8 p-8 bg-white rounded-3xl shadow-xl border border-blue-50">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 text-xs font-bold">
+                        <div class="space-y-2"><label class="text-slate-400">お客様名</label><input type="text" id="searchCustomer" class="form-input" placeholder="キーワード"></div>
+                        <div class="space-y-2"><label class="text-slate-400">報告者</label><input type="text" id="searchVisitor" class="form-input" placeholder="氏名検索"></div>
+                        <div class="space-y-2"><label class="text-slate-400">状態</label>
+                            <select id="searchStatus" class="form-input"><option value="">全て</option><option value="unread">未読のみ</option><option value="read">既読のみ</option></select>
+                        </div>
+                        <div class="space-y-2"><label class="text-slate-400">訪問日</label><input type="date" id="searchDate" class="form-input"></div>
+                    </div>
+                    <div class="flex justify-center gap-4 mt-8">
+                        <button onclick="execSearch()" class="bg-[#334155] text-white px-12 py-3 rounded-xl font-bold shadow-lg hover:bg-black transition-all">検索を実行</button>
+                        <button onclick="clearSearch()" class="text-slate-400 px-8 py-3 rounded-xl font-bold">リセット</button>
+                    </div>
+                </div>
+
+                <!-- ナビゲーション（お客様一覧と統一） -->
+                <div class="flex justify-between items-center mb-6 px-2">
+                    <div class="flex items-center gap-2 border-slate-200 h-8">
+                        <span id="pageRange" class="text-xl font-black text-slate-800 tracking-tighter">0-0</span>
+                        <span class="text-slate-300 font-bold">/</span>
+                        <span id="totalCount" class="text-sm font-bold text-slate-400">0</span>
+                        <span class="text-[9px] font-black text-slate-300 uppercase tracking-widest ml-1">Notifications</span>
+                    </div>
+                    <div id="paginationTop" class="flex items-center gap-1.5"></div>
+                </div>
+
+                <!-- テーブル -->
+                <div class="table-container">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="text-white text-[10px] font-black uppercase tracking-widest">
+                                <th class="p-6 text-center w-16 opacity-50">No</th>
+                                <th class="p-6 w-32">種別</th>
+                                <th class="p-6">訪問日時</th>
+                                <th class="p-6 text-center w-24">状態</th>
+                                <th class="p-6">報告者</th>
+                                <th class="p-6">お客様名</th>
+                                <th class="p-6 text-center w-16"><input type="checkbox" id="checkAll"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="kairanTable" class="text-sm font-bold"></tbody>
+                    </table>
+                </div>
+
+                <div id="paginationBottom" class="mt-12 mb-24 flex justify-center items-center gap-1.5"></div>
+            </div>
+        </div>
+    </main>
+
+    <script src="common.js"></script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, query, where, orderBy, doc, updateDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AiZaSyDh00EZ7Jb1K2rTxLyTH6d80b4Qzcrwf_XI",
+            authDomain: "copros-my-page.firebaseapp.com",
+            projectId: "copros-my-page",
+            storageBucket: "copros-my-page.firebasestorage.app",
+            messagingSenderId: "54419849010",
+            appId: "1:54419849010:web:a60015b9c6fcf60cd3e12b"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const myName = sessionStorage.getItem('userName');
+        let allKairan = [];
+        let filteredData = [];
+        let currentPage = 1;
+        const perPage = 20;
+
+        async function init() {
+            if (!myName) return;
+            try {
+                const q = query(collection(db, "notifications"), where("recipient", "==", myName), orderBy("createdAt", "desc"));
+                const snap = await getDocs(q);
+                allKairan = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                filteredData = [...allKairan];
+                updateView();
+            } catch (e) { console.warn("Firebaseリセット待ち"); }
+        }
+
+        function updateView() {
+            const start = (currentPage - 1) * perPage;
+            const end = start + perPage;
+            renderTable(filteredData.slice(start, end), start);
+            renderPagination();
+            document.getElementById('totalCount').innerText = filteredData.length;
+            document.getElementById('pageRange').innerText = filteredData.length > 0 ? `${start + 1}-${Math.min(end, filteredData.length)}` : "0-0";
+        }
+
+        function renderTable(dataList, startIndex) {
+            const tbody = document.getElementById('kairanTable');
+            tbody.innerHTML = "";
+            dataList.forEach((data, index) => {
+                const isUnread = !data.isRead;
+                const row = `
+                    <tr class="${isUnread ? 'row-unread' : ''} hover:bg-slate-50 transition-all border-b border-slate-100">
+                        <td class="p-6 text-center text-slate-300 font-mono text-xs">
+                            <i class="fa-solid fa-circle-plus mr-2 cursor-pointer text-blue-400" onclick="toggleRow(this)"></i>${startIndex + index + 1}
+                        </td>
+                        <td class="p-6 text-[10px] text-slate-400 font-black tracking-tighter">【実績回覧】</td>
+                        <td class="p-6 cursor-pointer text-blue-600 underline" onclick="markReadAndToggle('${data.id}', this)">${data.visitDate}</td>
+                        <td class="p-6 text-center">
+                            <span class="status-badge ${isUnread ? 'status-unread' : 'status-read'}">${isUnread ? '未読' : '既読'}</span>
+                        </td>
+                        <td class="p-6">${data.visitorName}</td>
+                        <td class="p-6">${data.customerName}</td>
+                        <td class="p-6 text-center"><input type="checkbox" class="item-check w-4 h-4 accent-blue-600" data-id="${data.id}"></td>
+                    </tr>
+                    <tr class="detail-area"><td colspan="7">
+                        <div class="bg-white p-8 rounded-2xl border border-blue-50 m-4 shadow-inner">
+                            <p class="text-[10px] font-black text-blue-400 mb-4 uppercase">Activity Detail</p>
+                            <div class="whitespace-pre-wrap leading-relaxed text-slate-700 font-bold">${data.content || '詳細内容なし'}</div>
+                        </div>
+                    </td></tr>
+                `;
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+        }
+
+        window.markReadAndToggle = async (id, el) => {
+            await updateDoc(doc(db, "notifications", id), { isRead: true });
+            toggleRow(el.parentElement.querySelector('.fa-circle-plus'));
+            // ページをリロードせずにバッジと表示だけ更新するのが理想ですが、今はリロードで確実に更新します
+            location.reload();
+        };
+
+        window.toggleRow = (icon) => {
+            if (!icon) return;
+            const detail = icon.closest('tr').nextElementSibling;
+            const isOpen = detail.style.display === 'table-row';
+            detail.style.display = isOpen ? 'none' : 'table-row';
+            icon.classList.toggle('fa-circle-plus', isOpen);
+            icon.classList.toggle('fa-circle-minus', !isOpen);
+        };
+
+        window.renderPagination = () => {
+            const totalPages = Math.ceil(filteredData.length / perPage);
+            const containers = [document.getElementById('paginationTop'), document.getElementById('paginationBottom')];
+            containers.forEach(container => {
+                container.innerHTML = "";
+                if (totalPages <= 1) return;
+                for (let i = 1; i <= totalPages; i++) {
+                    const btn = document.createElement('div');
+                    btn.innerText = i;
+                    btn.className = `modern-page-btn ${currentPage === i ? 'active' : ''}`;
+                    btn.onclick = () => { currentPage = i; updateView(); window.scrollTo({top: 0, behavior: 'smooth'}); };
+                    container.appendChild(btn);
+                }
+            });
+        };
+
+        document.getElementById('detailSearchToggle').onclick = () => {
+            const sec = document.getElementById('detailSearchSection');
+            sec.style.display = (sec.style.display === 'block') ? 'none' : 'block';
+        };
+
+        window.execSearch = () => {
+            const custK = document.getElementById('searchCustomer').value.toLowerCase();
+            const visiK = document.getElementById('searchVisitor').value.toLowerCase();
+            const statusK = document.getElementById('searchStatus').value;
+            filteredData = allKairan.filter(d => {
+                const mCust = !custK || d.customerName.toLowerCase().includes(custK);
+                const mVisi = !visiK || d.visitorName.toLowerCase().includes(visiK);
+                const mStat = !statusK || (statusK === 'unread' ? !d.isRead : d.isRead);
+                return mCust && mVisi && mStat;
+            });
+            currentPage = 1; updateView();
+        };
+
+        init();
+    </script>
+</body>
+</html>
