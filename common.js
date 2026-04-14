@@ -126,6 +126,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 【自動開閉ロジック】現在開いているページのメニューだけを自動で「開いた状態」にする
     const currentFile = window.location.pathname.split("/").pop() || 'index.html';
+    
+    // 全てのメニューを一旦閉じる
+    document.querySelectorAll('.submenu').forEach(s => s.classList.add('hidden'));
+    document.querySelectorAll('.arrow').forEach(a => a.style.transform = 'rotate(0deg)');
+
+    // 今いるページの項目をハイライトし、その親だけを開く
     document.querySelectorAll('[onclick]').forEach(el => {
         const action = el.getAttribute('onclick');
         if (action && action.includes(currentFile)) {
@@ -138,4 +144,3 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
-});
