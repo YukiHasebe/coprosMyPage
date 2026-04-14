@@ -1,8 +1,19 @@
 // common.js
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. ヘッダーの挿入（検索窓の出し分け、様なし氏名）
-    const isListPage = window.location.pathname.includes('list.html');
-    const headerHtml = `
+    // 1. プレースホルダーの存在確認（これがないとエラーで止まるため）
+    const headerPlaceholder = document.getElementById('header-placeholder');
+    const sidebarPlaceholder = document.getElementById('sidebar-placeholder');
+
+    if (!headerPlaceholder || !sidebarPlaceholder) {
+        console.warn("Placeholders not found. Check your HTML IDs.");
+        return; 
+    }
+
+    const currentFile = window.location.pathname.split("/").pop() || 'index.html';
+    const isListPage = currentFile.includes('list.html');
+
+    // 2. ヘッダーの挿入
+    headerPlaceholder.innerHTML = `
         <header class="h-16 bg-[#3c4b5a] flex items-center justify-between px-6 text-white shadow-lg shrink-0 z-50">
             <div class="flex items-center gap-6">
                 <div class="flex items-center gap-3">
@@ -28,13 +39,13 @@ document.addEventListener('DOMContentLoaded', () => {
         </header>
     `;
 
-    // 2. サイドバーの挿入（全項目網羅）
-    const sidebarHtml = `
+    // 3. サイドバーの挿入
+    sidebarPlaceholder.innerHTML = `
         <aside class="sidebar flex flex-col shrink-0 text-sm shadow-2xl overflow-hidden" style="width: 220px; background-color: #1a1a1a; color: white; height: 100vh;">
             <div class="h-16 flex items-center px-6 text-gray-500 font-black tracking-widest text-xs border-b border-gray-800 uppercase">Menu</div>
             <nav class="flex-1 overflow-y-auto py-2">
                 
-                <!-- 大項目：お客様 -->
+                <!-- お客様 -->
                 <div class="nav-group">
                     <div class="group-header flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-white/5 transition-colors">
                         <div class="flex items-center gap-3"><i class="fa-solid fa-users w-5 text-[#87ceeb]"></i><span>お客様</span></div>
@@ -46,7 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
 
-                <!-- 大項目：実績 -->
+                <!-- 実績 -->
                 <div class="nav-group">
                     <div class="group-header flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-white/5">
                         <div class="flex items-center gap-3"><i class="fa-solid fa-file-invoice w-5 text-[#87ceeb]"></i><span>実績</span></div>
@@ -59,13 +70,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
 
-                <!-- 単体項目 -->
+                <!-- 単体メニュー -->
                 <div class="px-6 py-3 flex items-center gap-3 hover:bg-white/5 cursor-pointer" onclick="location.href='calendar.html'"><i class="fa-solid fa-calendar-days w-5 text-[#87ceeb]"></i><span>カレンダー</span></div>
                 <div class="px-6 py-3 flex items-center justify-between hover:bg-white/5 cursor-pointer" onclick="location.href='kairan.html'"><div class="flex items-center gap-3"><i class="fa-solid fa-envelope-open-text w-5 text-[#87ceeb]"></i><span>回覧一覧</span></div><span class="bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">3</span></div>
                 <div class="px-6 py-3 flex items-center gap-3 hover:bg-white/5 cursor-pointer" onclick="location.href='map.html'"><i class="fa-solid fa-map-location-dot w-5 text-[#87ceeb]"></i><span>地図</span></div>
                 <div class="px-6 py-3 flex items-center gap-3 hover:bg-white/5 cursor-pointer" onclick="location.href='appoint.html'"><i class="fa-solid fa-clock w-5 text-[#87ceeb]"></i><span>アポイント</span></div>
 
-                <!-- 大項目：集計 -->
+                <!-- 集計 -->
                 <div class="nav-group">
                     <div class="group-header flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-white/5">
                         <div class="flex items-center gap-3"><i class="fa-solid fa-chart-line w-5 text-[#87ceeb]"></i><span>集計</span></div>
@@ -80,7 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
 
-                <!-- 大項目：マスタ管理 -->
+                <!-- マスタ管理 -->
                 <div class="nav-group">
                     <div class="group-header flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-white/5">
                         <div class="flex items-center gap-3"><i class="fa-solid fa-gear w-5 text-[#87ceeb]"></i><span>マスタ管理</span></div>
@@ -105,10 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </aside>
     `;
 
-    document.getElementById('header-placeholder').innerHTML = headerHtml;
-    document.getElementById('sidebar-placeholder').innerHTML = sidebarHtml;
-
-    // アコーディオン開閉ロジック
+    // 4. アコーディオン開閉ロジック
     document.querySelectorAll('.group-header').forEach(header => {
         header.addEventListener('click', () => {
             const submenu = header.nextElementSibling;
@@ -124,14 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // 【自動開閉ロジック】現在開いているページのメニューだけを自動で「開いた状態」にする
-    const currentFile = window.location.pathname.split("/").pop() || 'index.html';
-    
-    // 全てのメニューを一旦閉じる
-    document.querySelectorAll('.submenu').forEach(s => s.classList.add('hidden'));
-    document.querySelectorAll('.arrow').forEach(a => a.style.transform = 'rotate(0deg)');
-
-    // 今いるページの項目をハイライトし、その親だけを開く
+    // 5. 自動開閉 ＆ ハイライト
     document.querySelectorAll('[onclick]').forEach(el => {
         const action = el.getAttribute('onclick');
         if (action && action.includes(currentFile)) {
@@ -144,3 +145,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
+
+    // 6. ログイン直後（list.html）だけは必ずお客様メニューを開く
+    if (currentFile === 'list.html') {
+        const firstSub = document.querySelector('.nav-group .submenu');
+        if (firstSub) {
+            firstSub.classList.remove('hidden');
+            const firstArrow = firstSub.parentElement.querySelector('.arrow');
+            if (firstArrow) firstArrow.style.transform = 'rotate(180deg)';
+        }
+    }
+});
