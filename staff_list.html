@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>組織員情報一覧 | CP My Page</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; }
+        body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
+        .filter-btn { transition: all 0.2s; }
+        .filter-btn.active { background: #0ea5e9; color: white; box-shadow: 0 4px 12px rgba(14,165,233,0.3); }
+        .table-container { border-radius: 1.5rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
+        thead tr { background-color: #3c4b5a; }
+        .status-badge { padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 900; }
+        .status-on { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+        .status-off { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden text-slate-700">
+
+    <div id="sidebar-placeholder"></div>
+
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <div id="header-placeholder"></div>
+
+        <div class="flex-1 overflow-auto p-8 custom-scrollbar">
+            <div class="max-w-[1400px] mx-auto">
+                
+                <div class="flex justify-between items-end mb-10">
+                    <div>
+                        <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">組織員情報一覧</h1>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Organization Staff Management</p>
+                    </div>
+                    <div class="flex gap-3 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100">
+                        <button onclick="location.href='staff_add.html'" class="px-6 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-sm hover:shadow-lg transition-all flex items-center gap-2">
+                            <i class="fa-solid fa-user-plus"></i>新規組織員登録
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 絞り込みツール -->
+                <div class="flex justify-between items-center mb-6 px-2">
+                    <div class="flex items-center gap-6">
+                        <div class="flex flex-wrap gap-1 p-1 bg-white rounded-xl border border-slate-200 shadow-sm">
+                            <button class="filter-btn active px-4 py-1.5 rounded-lg text-xs font-black transition-all" data-range="all">全件</button>
+                            <script>
+                                ['あ','か','さ','た','な','は','ま','や','ら','わ','他'].forEach(k => {
+                                    document.write(`<button class="filter-btn px-3 py-1.5 rounded-lg text-xs text-slate-400 font-bold" data-range="${k}">${k}</button>`);
+                                });
+                            </script>
+                        </div>
+                        <div class="text-slate-400 font-mono font-bold text-sm">
+                            <span id="totalCount" class="text-slate-800">0</span> <span class="text-[9px] uppercase ml-1">Staffs</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="text-white text-[10px] font-black uppercase tracking-widest">
+                                <th class="p-6 text-center w-24">社員番号</th>
+                                <th class="p-6">氏名</th>
+                                <th class="p-6">所属部署</th>
+                                <th class="p-6">メールアドレス</th>
+                                <th class="p-6 text-center w-24">権限</th>
+                                <th class="p-6 text-center w-24">状態</th>
+                                <th class="p-6 text-center w-16">削除</th>
+                            </tr>
+                        </thead>
+                        <tbody id="staffTable" class="divide-y divide-slate-100 text-sm font-bold"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="common.js"></script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, doc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AiZaSyDh00EZ7Jb1K2rTxLyTH6d80b4Qzcrwf_XI",
+            authDomain: "copros-my-page.firebaseapp.com",
+            projectId: "copros-my-page",
+            storageBucket: "copros-my-page.firebasestorage.app",
+            messagingSenderId: "54419849010",
+            appId: "1:54419849010:web:a60015b9c6fcf60cd3e12b"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let allStaffs = [];
+
+        async function init() {
+            try {
+                const snap = await getDocs(query(collection(db, "staffs"), orderBy("id")));
+                allStaffs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderTable(allStaffs);
+                document.getElementById('totalCount').innerText = allStaffs.length;
+            } catch (e) { console.warn("Firebaseリセット待ちです。"); }
+        }
+
+        function renderTable(dataList) {
+            const tbody = document.getElementById('staffTable');
+            tbody.innerHTML = "";
+            dataList.forEach(data => {
+                const statusOn = data.status === "有効";
+                const row = `
+                    <tr class="hover:bg-sky-50/30 transition-all border-b border-slate-50">
+                        <td class="p-6 text-center text-slate-400 font-mono text-xs">${data.id}</td>
+                        <td class="p-6">
+                            <div class="text-base text-slate-800 leading-tight cursor-pointer hover:text-sky-600" onclick="location.href='staff_add.html?id=${data.id}'">${data.name}</div>
+                        </td>
+                        <td class="p-6 text-slate-500">${data.dept || '未設定'}</td>
+                        <td class="p-6 text-slate-500 font-medium">${data.email || '--'}</td>
+                        <td class="p-6 text-center text-[10px] font-black uppercase text-slate-400">${data.role || '一般'}</td>
+                        <td class="p-6 text-center">
+                            <span class="status-badge ${statusOn ? 'status-on' : 'status-off'}">${data.status || '有効'}</span>
+                        </td>
+                        <td class="p-6 text-center">
+                            <button onclick="deleteStaff('${data.id}', '${data.name}')" class="text-slate-300 hover:text-rose-500 transition-colors"><i class="fa-solid fa-trash-can"></i></button>
+                        </td>
+                    </tr>
+                `;
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+        }
+
+        window.deleteStaff = async (id, name) => {
+            if(!confirm(`${name}さんを削除してもよろしいですか？`)) return;
+            await deleteDoc(doc(db, "staffs", id));
+            alert("削除しました。");
+            init();
+        };
+
+        init();
+    </script>
+</body>
+</html>
