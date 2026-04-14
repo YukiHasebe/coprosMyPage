@@ -11,22 +11,29 @@
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
         
         /* 50音ボタン */
-        .filter-btn { transition: all 0.2s; border: 1px solid transparent; }
+        .filter-btn { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
         .filter-btn:hover:not(.active) { color: var(--copros-orange); background: rgba(255,126,17,0.05); }
-        .filter-btn.active { background: var(--copros-orange); color: white; box-shadow: 0 4px 12px rgba(255,126,17,0.3); }
+        .filter-btn.active { background: var(--copros-orange); color: white; box-shadow: 0 4px 12px rgba(255,126,17,0.3); transform: translateY(-1px); }
 
-        /* ページ切替 */
-        .modern-page-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-weight: 800; font-size: 12px; transition: all 0.3s; color: #94a3b8; cursor: pointer; }
+        /* ページネーション */
+        .modern-page-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-weight: 800; font-size: 12px; transition: all 0.3s; color: #94a3b8; cursor: pointer; border: 1px solid transparent; }
         .modern-page-btn.active { background: #334155; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .nav-arrow { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: white; color: var(--copros-orange); border: 1px solid #e2e8f0; }
-        .nav-arrow:hover:not(.disabled) { background: var(--copros-orange); color: white; }
-        .nav-arrow.disabled { opacity: 0.3; }
+        .nav-arrow { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: white; color: var(--copros-orange); border: 1px solid #e2e8f0; transition: all 0.2s; }
+        .nav-arrow:hover:not(.disabled) { border-color: var(--copros-orange); background: var(--copros-orange); color: white; }
 
         .table-container { border-radius: 1.5rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
         thead tr { background-color: #3c4b5a; }
         
         #detailSearchSection { display: none; animation: fadeIn 0.3s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 🌟 タイトル横のスマート部署選択 */
+        .scope-select { 
+            background: #e2e8f0; border: none; padding: 0.4rem 1rem; border-radius: 0.75rem; 
+            font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; appearance: none;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .scope-select:hover { background: #cbd5e1; }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700">
@@ -39,12 +46,26 @@
         <div class="flex-1 overflow-auto p-8 custom-scrollbar">
             <div class="max-w-[1400px] mx-auto">
                 
-                <!-- ヘッドエリア -->
+                <!-- ヘッドエリア：タイトル横に部署選択を配置 -->
                 <div class="flex justify-between items-end mb-10">
-                    <div>
-                        <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">実績一覧</h1>
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Activity History Dashboard</p>
+                    <div class="flex items-end gap-6">
+                        <div>
+                            <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">実績一覧</h1>
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Activity History Dashboard</p>
+                        </div>
+                        <!-- 🌟 部署フィルターをタイトル横に移動（スマートな配置） -->
+                        <div class="mb-2">
+                            <select id="deptFilter" onchange="window.updateView()" class="scope-select shadow-inner">
+                                <option value="ALL">全社表示</option>
+                                <option>ケコム部</option><option>関西支店</option><option>関東支店</option>
+                                <option>中部営業所</option><option>土木部</option><option>建築部</option>
+                                <option>建機部</option><option>総務部</option><option>購買課</option>
+                                <option>宮崎産商</option><option>企画部</option>
+                            </select>
+                        </div>
                     </div>
+
+                    <!-- アクションボタン：元のスッキリしたデザインを復活 -->
                     <div class="flex gap-3 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100">
                         <button id="detailSearchToggle" class="px-5 py-2.5 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all flex items-center gap-2">
                             <i class="fa-solid fa-sliders text-blue-400"></i>詳細絞り込み
@@ -56,7 +77,7 @@
                     </div>
                 </div>
 
-                <!-- 詳細検索 -->
+                <!-- 詳細検索パネル（中身は維持） -->
                 <div id="detailSearchSection" class="mb-8 p-8 bg-white rounded-3xl shadow-xl border border-blue-50">
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 text-xs font-bold">
                         <div class="space-y-2"><label class="text-slate-400">お客様名</label><input type="text" id="filterCustomer" class="form-input" placeholder="キーワード"></div>
@@ -65,12 +86,12 @@
                         <div class="space-y-2"><label class="text-slate-400">期間（終了）</label><input type="date" id="endDate" class="form-input"></div>
                     </div>
                     <div class="flex justify-center gap-4 mt-8">
-                        <button id="execSearch" class="bg-[#334155] text-white px-12 py-3 rounded-xl font-bold shadow-lg hover:bg-black transition-all">検索を実行</button>
-                        <button id="clearSearch" class="text-slate-400 px-8 py-3 rounded-xl font-bold hover:text-slate-600 transition-all">リセット</button>
+                        <button onclick="window.updateView()" class="bg-[#334155] text-white px-12 py-3 rounded-xl font-bold shadow-lg hover:bg-black transition-all">検索を実行</button>
+                        <button onclick="clearSearch()" class="text-slate-400 px-8 py-3 rounded-xl font-bold hover:text-slate-600 transition-all">リセット</button>
                     </div>
                 </div>
 
-                <!-- 50音フィルター ＆ 件数 ＆ ページ切替（デザイン統一） -->
+                <!-- 50音・件数・ページネーション -->
                 <div class="flex justify-between items-center mb-6 px-2">
                     <div class="flex items-center gap-6">
                         <div class="flex flex-wrap gap-1 p-1 bg-white rounded-xl border border-slate-200 shadow-sm font-black">
@@ -85,30 +106,27 @@
                             <span id="pageRange" class="text-xl font-black text-slate-800 tracking-tighter">0-0</span>
                             <span class="text-slate-300 font-bold">/</span>
                             <span id="totalCount" class="text-sm font-bold text-slate-400">0</span>
-                            <span class="text-[9px] font-black text-slate-300 uppercase tracking-widest ml-1">件</span>
                         </div>
                     </div>
                     <div id="paginationTop" class="flex items-center gap-1.5"></div>
                 </div>
 
-                <!-- 実績テーブル -->
                 <div class="table-container">
-                    <table class="w-full text-left border-collapse">
+                    <table class="w-full text-left border-collapse min-w-[1000px]">
                         <thead>
-                            <tr class="text-white text-[10px] font-black uppercase tracking-widest">
-                                <th class="p-6 text-center w-16 opacity-50">No</th>
-                                <th class="p-6">お客様名</th>
-                                <th class="p-6 text-center w-28">訪問回数</th>
-                                <th class="p-6">訪問日時 / 滞在時間</th>
-                                <th class="p-6">訪問者</th>
-                                <th class="p-6">次回訪問予定</th>
-                                <th class="p-6 text-center w-16"><i class="fa-solid fa-eye opacity-30"></i></th>
+                            <tr class="text-white text-[10px] font-black uppercase tracking-widest text-center">
+                                <th class="p-6 w-16 opacity-50 text-center">No</th>
+                                <th class="p-6 text-left">お客様名</th>
+                                <th class="p-6 w-24">訪問回数</th>
+                                <th class="p-6 text-left">訪問日時 / 滞在時間</th>
+                                <th class="p-6 text-left">訪問者</th>
+                                <th class="p-6 text-left">次回訪問予定</th>
+                                <th class="p-6 w-16"><i class="fa-solid fa-eye opacity-30"></i></th>
                             </tr>
                         </thead>
-                        <tbody id="recordTable" class="divide-y divide-slate-100 text-sm font-bold italic-none"></tbody>
+                        <tbody id="recordTable" class="divide-y divide-slate-100 text-sm font-bold"></tbody>
                     </table>
                 </div>
-
                 <div id="paginationBottom" class="mt-12 mb-24 flex justify-center items-center gap-1.5"></div>
             </div>
         </div>
@@ -136,136 +154,102 @@
         let filteredData = [];
         let currentPage = 1;
         const perPage = 20;
+        let current50on = 'all';
 
         async function init() {
             try {
                 const snap = await getDocs(query(collection(db, "activity_records"), orderBy("visitDate", "desc")));
                 allRecords = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                filteredData = [...allRecords];
-                updateView();
-            } catch (e) { console.error(e); }
+                window.updateView();
+            } catch (e) { console.error("Firebaseリセット待ち"); }
         }
 
-        function calculateDuration(start, end) {
-            if (!start || !end) return "";
-            const s = start.split(':'); const e = end.split(':');
-            const diff = (parseInt(e[0]) * 60 + parseInt(e[1])) - (parseInt(s[0]) * 60 + parseInt(s[1]));
-            return diff > 0 ? `${diff}分` : "";
-        }
+        window.updateView = () => {
+            const deptK = document.getElementById('deptFilter').value;
+            const custK = document.getElementById('filterCustomer').value.toLowerCase();
+            const visiK = document.getElementById('filterVisitor').value.toLowerCase();
+            const startK = document.getElementById('startDate').value;
+            const endK = document.getElementById('endDate').value;
+            const rangeMap = { 'あ': /^[あ-おア-オ]/, 'か': /^[か-こカ-コが-ごガ-ゴ]/, 'さ': /^[さ-そサ-ソざ-ぞザ-ゾ]/, 'た': /^[た-とタ-トだ-どダ-ド]/, 'な': /^[な-のナ-ノ]/, 'は': /^[は-ほハ-ホば-ぼバ-ボぱ-ぽパ-ポ]/, 'ま': /^[ま-もマ-モ]/, 'や': /^[や-よヤ-ヨ]/, 'ら': /^[ら-ろラ-ロ]/, 'わ': /^[わ-んワ-ン]/ };
 
-        function getCustomerVisitCount(customerName) {
-            return allRecords.filter(r => r.customerName === customerName).length;
-        }
+            filteredData = allRecords.filter(d => {
+                const mDept = deptK === 'ALL' || d.visitorDept === deptK;
+                const mCust = !custK || d.customerName.toLowerCase().includes(custK);
+                const mVisi = !visiK || d.visitorName.toLowerCase().includes(visiK);
+                let mDate = true;
+                if (startK && d.visitDate < startK) mDate = false;
+                if (endK && d.visitDate > endK) mDate = false;
+                let m50on = current50on === 'all' ? true : (current50on === '他' ? !Object.values(rangeMap).some(re => re.test(d.customerName)) : rangeMap[current50on].test(d.customerName));
+                return mDept && mCust && mVisi && mDate && m50on;
+            });
 
-        function updateView() {
             const start = (currentPage - 1) * perPage;
             const end = start + perPage;
-            const pagedData = filteredData.slice(start, end);
-            renderTable(pagedData, start);
+            renderTable(filteredData.slice(start, end), start);
             renderPagination();
             document.getElementById('totalCount').innerText = filteredData.length;
             document.getElementById('pageRange').innerText = filteredData.length > 0 ? `${start + 1}-${Math.min(end, filteredData.length)}` : "0-0";
-        }
+        };
 
         function renderTable(dataList, startIndex) {
             const tbody = document.getElementById('recordTable');
             tbody.innerHTML = "";
             dataList.forEach((data, index) => {
                 const duration = calculateDuration(data.startTime, data.endTime);
-                const visitCount = getCustomerVisitCount(data.customerName);
-                const row = `
+                const visitCount = allRecords.filter(r => r.customerName === data.customerName).length;
+                tbody.insertAdjacentHTML('beforeend', `
                     <tr class="hover:bg-blue-50/40 transition-all border-b border-slate-50">
                         <td class="p-6 text-center text-slate-300 font-mono text-xs">${startIndex + index + 1}</td>
-                        <td class="p-6">
-                            <div class="text-base text-slate-800 leading-tight cursor-pointer hover:text-blue-600 font-black" onclick="location.href='customer_history.html?name=${encodeURIComponent(data.customerName)}'">${data.customerName}</div>
-                        </td>
-                        <td class="p-6 text-center">
-                            <span class="inline-block bg-slate-100 text-slate-500 px-4 py-1.5 rounded-full text-xs whitespace-nowrap">${visitCount}回</span>
-                        </td>
-                        <td class="p-6">
-                            <div class="text-slate-800 font-mono">${data.visitDate.replace(/-/g, '/')}</div>
-                            <div class="text-[10px] text-slate-400 mt-1">${data.startTime || '--:--'} 〜 ${data.endTime || '--:--'} <span class="text-blue-500 font-black ml-2">${duration ? '滞在: '+duration : ''}</span></div>
-                        </td>
-                        <td class="p-6">
-                            <div class="text-slate-700">${data.visitorName}</div>
-                            <div class="text-[9px] text-slate-400 font-black uppercase mt-0.5">${data.visitorRole || 'メイン'}</div>
-                        </td>
+                        <td class="p-6"><div class="text-base text-slate-800 leading-tight cursor-pointer hover:text-blue-600 font-black" onclick="location.href='customer_history.html?name=${encodeURIComponent(data.customerName)}'">${data.customerName}</div></td>
+                        <td class="p-6 text-center"><span class="bg-slate-100 text-slate-500 px-4 py-1.5 rounded-full text-xs">${visitCount}回</span></td>
+                        <td class="p-6"><div class="text-slate-800 font-mono">${data.visitDate.replace(/-/g, '/')}</div><div class="text-[10px] text-slate-400 mt-1">${data.startTime || '--:--'} 〜 ${data.endTime || '--:--'} <span class="text-blue-500 font-black ml-2">${duration ? '滞在: '+duration : ''}</span></div></td>
+                        <td class="p-6"><div class="text-slate-700">${data.visitorName}</div><div class="text-[9px] text-slate-400 font-black uppercase mt-0.5">${data.visitorRole || 'メイン'}</div></td>
                         <td class="p-6"><div class="text-orange-500 text-xs">${data.nextVisitDate ? data.nextVisitDate.replace(/-/g, '/') : '--'}</div></td>
                         <td class="p-6 text-center"><button class="text-slate-300 hover:text-blue-500" onclick="location.href='customer_history.html?name=${encodeURIComponent(data.customerName)}'"><i class="fa-solid fa-circle-chevron-right text-lg"></i></button></td>
                     </tr>
-                `;
-                tbody.insertAdjacentHTML('beforeend', row);
+                `);
             });
         }
 
-        // 50音判定ロジック
-        const rangeMap = { 'あ': /^[あ-おア-オ]/, 'か': /^[か-こカ-コが-ごガ-ゴ]/, 'さ': /^[さ-そサ-ソざ-ぞザ-ゾ]/, 'た': /^[た-とタ-トだ-どダ-ド]/, 'な': /^[な-のナ-ノ]/, 'は': /^[は-ほハ-ホば-ぼバ-ボぱ-ぽパ-ポ]/, 'ま': /^[ま-もマ-モ]/, 'や': /^[や-よヤ-ヨ]/, 'ら': /^[ら-ろラ-ロ]/, 'わ': /^[わ-んワ-ン]/ };
+        function calculateDuration(s, e) { if (!s || !e) return ""; const sp = s.split(':'); const ep = e.split(':'); const d = (parseInt(ep[0])*60+parseInt(ep[1]))-(parseInt(sp[0])*60+parseInt(sp[1])); return d>0 ? d+'分' : ""; }
 
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.onclick = () => {
-                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                const range = btn.dataset.range;
-                if (range === 'all') filteredData = [...allRecords];
-                else if (range === '他') filteredData = allRecords.filter(d => !Object.values(rangeMap).some(re => re.test(d.customerName)));
-                else filteredData = allRecords.filter(d => rangeMap[range].test(d.customerName));
-                currentPage = 1; updateView();
-            };
-        });
-
-        // ページネーション、検索は維持
         function renderPagination() {
             const totalPages = Math.ceil(filteredData.length / perPage);
             const containers = [document.getElementById('paginationTop'), document.getElementById('paginationBottom')];
             containers.forEach(container => {
                 container.innerHTML = "";
                 if (totalPages <= 1) return;
-                const prev = document.createElement('div');
-                prev.innerHTML = '<i class="fa-solid fa-arrow-left"></i>';
-                prev.className = `nav-arrow prev ${currentPage === 1 ? 'disabled' : ''}`;
-                prev.onclick = () => { if(currentPage > 1) { currentPage--; updateView(); window.scrollTo({top: 0, behavior: 'smooth'}); } };
-                container.appendChild(prev);
-                const startPage = Math.max(1, currentPage - 1);
-                const endPage = Math.min(totalPages, startPage + 3);
-                for (let i = startPage; i <= endPage; i++) {
+                for (let i = 1; i <= totalPages; i++) {
                     const btn = document.createElement('div');
                     btn.innerText = i;
                     btn.className = `modern-page-btn ${currentPage === i ? 'active' : ''}`;
-                    btn.onclick = () => { currentPage = i; updateView(); window.scrollTo({top: 0, behavior: 'smooth'}); };
+                    btn.onclick = () => { currentPage = i; window.updateView(); window.scrollTo({top: 0, behavior: 'smooth'}); };
                     container.appendChild(btn);
                 }
-                const next = document.createElement('div');
-                next.innerHTML = '<i class="fa-solid fa-arrow-right"></i>';
-                next.className = `nav-arrow next ${currentPage === totalPages ? 'disabled' : ''}`;
-                next.onclick = () => { if(currentPage < totalPages) { currentPage++; updateView(); window.scrollTo({top: 0, behavior: 'smooth'}); } };
-                container.appendChild(next);
             });
         }
+
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.onclick = () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                current50on = btn.dataset.range;
+                currentPage = 1;
+                window.updateView();
+            };
+        });
 
         document.getElementById('detailSearchToggle').onclick = () => {
             const sec = document.getElementById('detailSearchSection');
             sec.style.display = (sec.style.display === 'block') ? 'none' : 'block';
         };
 
-        document.getElementById('execSearch').onclick = () => {
-            const custK = document.getElementById('filterCustomer').value.toLowerCase();
-            const visiK = document.getElementById('filterVisitor').value.toLowerCase();
-            const startK = document.getElementById('startDate').value;
-            const endK = document.getElementById('endDate').value;
-            filteredData = allRecords.filter(d => {
-                const mCust = !custK || d.customerName.toLowerCase().includes(custK);
-                const mVisi = !visiK || d.visitorName.toLowerCase().includes(visiK);
-                let mDate = true;
-                if (startK && d.visitDate < startK) mDate = false;
-                if (endK && d.visitDate > endK) mDate = false;
-                return mCust && mVisi && mDate;
-            });
-            currentPage = 1; updateView();
-        };
-
-        document.getElementById('clearSearch').onclick = () => {
+        window.clearSearch = () => {
             document.querySelectorAll('#detailSearchSection input').forEach(i => i.value = "");
-            filteredData = [...allRecords]; currentPage = 1; updateView();
+            document.getElementById('deptFilter').value = "ALL";
+            current50on = 'all';
+            currentPage = 1;
+            window.updateView();
         };
 
         init();
