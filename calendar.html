@@ -10,23 +10,28 @@
         :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; --appoint-blue: #3b82f6; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
         
-        /* カレンダーグリッド */
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); background: #e2e8f0; gap: 1px; border: 1px solid #e2e8f0; border-radius: 1rem; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-        .calendar-day { background: white; min-height: 120px; padding: 0.5rem; transition: all 0.2s; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); background: #e2e8f0; gap: 1px; border: 1px solid #e2e8f0; border-radius: 1rem; overflow: hidden; }
+        .calendar-day { background: white; min-height: 130px; padding: 0.4rem; transition: all 0.2s; position: relative; }
         .calendar-day:hover { background: #f8fafc; }
         .calendar-day.other-month { background: #f1f5f9; color: #cbd5e1; }
-        .day-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem; }
-        .day-num { font-weight: 900; font-size: 0.9rem; font-family: 'Inter', sans-serif; }
-        .is-today .day-num { background: var(--copros-orange); color: white; width: 24px; height: 24px; display: flex; items-center: center; justify-content: center; border-radius: 50%; }
+        .day-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; }
+        .day-num { font-weight: 900; font-size: 0.85rem; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
+        .is-today .day-num { background: var(--copros-orange); color: white; border-radius: 50%; }
 
-        /* ラベルスタイル */
-        .event-label { font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px; margin-bottom: 2px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
-        .label-result { background: #fff7ed; color: #ea580c; border-left: 3px solid #ff7e11; } /* 実績 */
-        .label-appoint { background: #eff6ff; color: #2563eb; border-left: 3px solid #3b82f6; } /* アポ */
+        /* ラベル共通 */
+        .event-label { 
+            font-size: 9px; font-weight: 800; padding: 2px 5px; border-radius: 4px; margin-bottom: 2px; 
+            cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+            display: block; transition: all 0.2s; border-left: 3px solid;
+        }
+        .event-label:hover { transform: translateX(2px); opacity: 0.8; }
+        
+        /* 実績（オレンジ） */
+        .label-result { border-left-color: var(--copros-orange); background: #fff7ed; color: #ea580c; }
+        /* アポ（青） */
+        .label-appoint { border-left-color: var(--appoint-blue); background: #eff6ff; color: #1d4ed8; }
 
-        /* ナビゲーション */
         .month-btn { padding: 0.5rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; transition: all 0.2s; }
-        .month-btn:hover { background: #e2e8f0; }
         .month-btn.active { background: #334155; color: white; }
     </style>
 </head>
@@ -40,28 +45,29 @@
         <div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
             <div class="max-w-[1400px] mx-auto">
                 
-                <!-- ヘッダーアクション -->
+                <!-- アクションヘッダー -->
                 <div class="flex justify-between items-center mb-8">
                     <div>
                         <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-1">カレンダー</h1>
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest" id="currentMonthDisplay">2026 APRIL</p>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest" id="currentMonthDisplay">--</p>
                     </div>
-                    <div class="flex gap-4 items-center bg-white p-2 rounded-2xl shadow-sm border border-slate-100">
+                    <div class="flex gap-4 items-center bg-white p-2 rounded-2xl shadow-sm border border-slate-100 font-black">
+                        <!-- 表示切り替えスイッチ -->
                         <div class="flex items-center gap-4 px-4 border-r border-slate-100">
-                            <label class="flex items-center gap-2 cursor-pointer text-xs font-black text-orange-600">
-                                <input type="checkbox" checked class="w-4 h-4 accent-orange-500"> 実績
+                            <label class="flex items-center gap-2 cursor-pointer text-xs text-orange-600">
+                                <input type="checkbox" id="showResults" checked onchange="renderCalendar()" class="w-4 h-4 accent-orange-500"> 実績
                             </label>
-                            <label class="flex items-center gap-2 cursor-pointer text-xs font-black text-blue-600">
-                                <input type="checkbox" checked class="w-4 h-4 accent-blue-500"> アポイント
+                            <label class="flex items-center gap-2 cursor-pointer text-xs text-blue-600">
+                                <input type="checkbox" id="showAppoints" checked onchange="renderCalendar()" class="w-4 h-4 accent-blue-500"> アポ(次回予定)
                             </label>
                         </div>
                         <button onclick="changeMonth(-1)" class="p-2 hover:bg-slate-50 rounded-lg text-slate-400"><i class="fa-solid fa-chevron-left"></i></button>
-                        <button onclick="setToday()" class="px-4 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs font-black hover:bg-slate-200">今日</button>
+                        <button onclick="setToday()" class="px-4 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs hover:bg-slate-200">今日</button>
                         <button onclick="changeMonth(1)" class="p-2 hover:bg-slate-50 rounded-lg text-slate-400"><i class="fa-solid fa-chevron-right"></i></button>
                     </div>
                 </div>
 
-                <!-- 1月〜12月クイック切替 -->
+                <!-- 1月〜12月ボタン -->
                 <div class="flex justify-between p-1 bg-white rounded-2xl border border-slate-200 shadow-sm mb-6">
                     <script>
                         for(let i=1; i<=12; i++) {
@@ -70,22 +76,12 @@
                     </script>
                 </div>
 
-                <!-- カレンダー本体 -->
-                <div class="table-container bg-white p-4 rounded-[2rem] shadow-xl border border-slate-200">
-                    <div class="grid grid-cols-7 mb-4">
-                        <div class="text-center text-[10px] font-black text-slate-400 uppercase">Mon</div>
-                        <div class="text-center text-[10px] font-black text-slate-400 uppercase">Tue</div>
-                        <div class="text-center text-[10px] font-black text-slate-400 uppercase">Wed</div>
-                        <div class="text-center text-[10px] font-black text-slate-400 uppercase">Thu</div>
-                        <div class="text-center text-[10px] font-black text-slate-400 uppercase">Fri</div>
-                        <div class="text-center text-[10px] font-black text-rose-400 uppercase">Sat</div>
-                        <div class="text-center text-[10px] font-black text-rose-600 uppercase">Sun</div>
+                <div class="bg-white p-4 rounded-[2rem] shadow-xl border border-slate-200">
+                    <div class="grid grid-cols-7 mb-4 font-black text-[10px] text-slate-400 uppercase text-center">
+                        <div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div class="text-rose-400">Sat</div><div class="text-rose-600">Sun</div>
                     </div>
-                    <div id="calendarGrid" class="calendar-grid">
-                        <!-- JSで生成 -->
-                    </div>
+                    <div id="calendarGrid" class="calendar-grid"></div>
                 </div>
-
             </div>
         </div>
     </main>
@@ -94,7 +90,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         // Firebase設定
         const firebaseConfig = {
@@ -116,59 +112,71 @@
             await fetchRecords();
         }
 
-        // Firebaseから実績データを取得
         async function fetchRecords() {
             try {
                 const snap = await getDocs(collection(db, "activity_records"));
                 allRecords = snap.docs.map(doc => doc.data());
-                renderCalendar(); // 取得後に再描画
-            } catch (e) { console.error("Quota exceeded or error:", e); }
+                renderCalendar();
+            } catch (e) { console.warn("Firebaseロック中。リセットをお待ちください。"); }
         }
 
         function renderCalendar() {
             const grid = document.getElementById('calendarGrid');
-            const display = document.getElementById('currentMonthDisplay');
             grid.innerHTML = "";
-
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth();
-            display.innerText = `${year}年 ${month + 1}月`;
+            document.getElementById('currentMonthDisplay').innerText = `${year}年 ${month + 1}月`;
 
-            // 月ボタンのアクティブ表示
             document.querySelectorAll('.month-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(`month-btn-${month + 1}`).classList.add('active');
 
-            const firstDay = new Date(year, month, 1).getDay(); // 0(Sun) to 6(Sat)
-            // 月曜始まりに調整
+            const firstDay = new Date(year, month, 1).getDay();
             const startOffset = (firstDay === 0) ? 6 : firstDay - 1;
             const daysInMonth = new Date(year, month + 1, 0).getDate();
             
-            // 前月の埋め
-            for(let i=0; i<startOffset; i++) {
-                grid.insertAdjacentHTML('beforeend', '<div class="calendar-day other-month"></div>');
-            }
+            const showRes = document.getElementById('showResults').checked;
+            const showApp = document.getElementById('showAppoints').checked;
 
-            // 当月の生成
+            for(let i=0; i<startOffset; i++) grid.insertAdjacentHTML('beforeend', '<div class="calendar-day other-month"></div>');
+
             for(let d=1; d<=daysInMonth; d++) {
                 const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
                 const isToday = new Date().toISOString().split('T')[0] === dateStr;
                 
-                // この日のデータを抽出
-                const dayRecords = allRecords.filter(r => r.visitDate === dateStr);
+                // ① 実績（訪問日）の抽出
+                const results = allRecords.filter(r => r.visitDate === dateStr);
+                // ② アポイント（次回訪問予定日）の抽出
+                const appoints = allRecords.filter(r => r.nextVisitDate === dateStr);
                 
-                const eventsHtml = dayRecords.map(r => `
-                    <div class="event-label label-result" onclick="alert('${r.customerReport || '内容なし'}')">
-                        ${r.customerName}
-                    </div>
-                `).join('');
+                let eventsHtml = "";
+                
+                // 実績を表示（オレンジ）
+                if (showRes) {
+                    results.forEach(r => {
+                        eventsHtml += `
+                            <div class="event-label label-result" onclick="location.href='customer_history.html?name=${encodeURIComponent(r.customerName)}'">
+                                <i class="fa-solid fa-check mr-1"></i>${r.customerName}
+                            </div>`;
+                    });
+                }
+
+                // アポイントを表示（青）
+                if (showApp) {
+                    appoints.forEach(r => {
+                        eventsHtml += `
+                            <div class="event-label label-appoint" onclick="location.href='customer_history.html?name=${encodeURIComponent(r.customerName)}'">
+                                <i class="fa-solid fa-calendar-day mr-1"></i>${r.visitorName}
+                            </div>`;
+                    });
+                }
 
                 const dayCell = `
                     <div class="calendar-day ${isToday ? 'is-today' : ''}">
                         <div class="day-header">
                             <span class="day-num">${d}</span>
-                            <i class="fa-solid fa-plus text-[10px] text-slate-200 hover:text-blue-400 cursor-pointer" onclick="location.href='history.html'"></i>
+                            <i class="fa-solid fa-plus text-slate-200 hover:text-blue-500 cursor-pointer" onclick="location.href='history.html?date=${dateStr}'"></i>
                         </div>
-                        <div class="day-events">
+                        <div class="max-h-[90px] overflow-y-auto custom-scrollbar">
                             ${eventsHtml}
                         </div>
                     </div>
