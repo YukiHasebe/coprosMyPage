@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>お客様別滞在時間一覧 | CP My Page</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; }
+        body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
+        .table-container { border-radius: 1.5rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
+        thead tr { background-color: #3c4b5a; }
+        .scope-select { background: #e2e8f0; border: none; padding: 0.4rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; cursor: pointer; }
+        .modern-page-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-weight: 800; font-size: 12px; color: #94a3b8; cursor: pointer; }
+        .modern-page-btn.active { background: #334155; color: white; }
+        .time-badge { background: #fff7ed; color: var(--copros-orange); padding: 4px 12px; border-radius: 20px; font-weight: 900; border: 1px solid #ffedd5; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden text-slate-700">
+    <div id="sidebar-placeholder"></div>
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <div id="header-placeholder"></div>
+        <div class="flex-1 overflow-auto p-8 custom-scrollbar">
+            <div class="max-w-[1400px] mx-auto">
+                <div class="flex justify-between items-end mb-10">
+                    <div class="flex items-end gap-6">
+                        <div>
+                            <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">お客様別滞在時間</h1>
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Customer Engagement Time Analysis</p>
+                        </div>
+                        <div class="mb-2">
+                            <select id="deptFilter" onchange="window.updateView()" class="scope-select shadow-inner">
+                                <option value="ALL">全社表示</option>
+                                <option>ケコム部</option><option>関西支店</option><option>関東支店</option>
+                                <option>中部営業所</option><option>土木部</option><option>建築部</option>
+                                <option>建機部</option><option>総務部</option><option>購買課</option>
+                                <option>宮崎産商</option><option>企画部</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="px-6 py-2.5 bg-slate-800 text-white rounded-xl font-bold text-sm shadow-lg flex items-center gap-2"><i class="fa-solid fa-file-csv"></i>CSV出力</button>
+                </div>
+
+                <div class="flex justify-between items-center mb-6 px-2">
+                    <div class="flex items-center gap-2 border-slate-200 h-8">
+                        <span id="pageRange" class="text-xl font-black text-slate-800 tracking-tighter">0-0</span>
+                        <span class="text-slate-300 font-bold">/</span>
+                        <span id="totalCount" class="text-sm font-bold text-slate-400">0</span>
+                        <span class="text-[9px] font-black text-slate-300 uppercase tracking-widest ml-1">Customers</span>
+                    </div>
+                    <div id="paginationTop" class="flex items-center gap-1.5"></div>
+                </div>
+
+                <div class="table-container">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="text-white text-[10px] font-black uppercase tracking-widest text-center">
+                                <th class="p-6 w-16 opacity-50">No</th>
+                                <th class="p-6 text-left">お客様名</th>
+                                <th class="p-6">属性・区分</th>
+                                <th class="p-6 w-24">訪問数</th>
+                                <th class="p-6">合計滞在時間</th>
+                                <th class="p-6">平均滞在時間</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stayTableBody" class="divide-y divide-slate-100 text-sm font-bold"></tbody>
+                    </table>
+                </div>
+                <div id="paginationBottom" class="mt-12 mb-24 flex justify-center items-center gap-1.5"></div>
+            </div>
+        </div>
+    </main>
+
+    <script src="common.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = { apiKey: "AiZaSyDh00EZ7Jb1K2rTxLyTH6d80b4Qzcrwf_XI", authDomain: "copros-my-page.firebaseapp.com", projectId: "copros-my-page", storageBucket: "copros-my-page.firebasestorage.app", messagingSenderId: "54419849010", appId: "1:54419849010:web:a60015b9c6fcf60cd3e12b" };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let customerStats = [];
+        let currentPage = 1;
+        const perPage = 20;
+
+        async function init() {
+            try {
+                const [cSnap, rSnap] = await Promise.all([getDocs(collection(db, "customers")), getDocs(collection(db, "activity_records"))]);
+                const customers = cSnap.docs.map(d => d.data());
+                const records = rSnap.docs.map(d => d.data());
+
+                customerStats = customers.map(cust => {
+                    const myRecords = records.filter(r => r.customerName === cust.name);
+                    let totalMins = 0;
+                    myRecords.forEach(r => {
+                        if(r.startTime && r.endTime) {
+                            const s = r.startTime.split(':'); const e = r.endTime.split(':');
+                            totalMins += (parseInt(e[0])*60+parseInt(e[1]))-(parseInt(s[0])*60+parseInt(s[1]));
+                        }
+                    });
+                    return { ...cust, visitCount: myRecords.length, totalMins, avgMins: myRecords.length > 0 ? Math.round(totalMins / myRecords.length) : 0 };
+                });
+                window.updateView();
+            } catch (e) { console.error(e); }
+        }
+
+        window.updateView = () => {
+            const deptK = document.getElementById('deptFilter').value;
+            const filtered = customerStats.filter(c => deptK === 'ALL' || c.visitorDept === deptK); // 厳密には実績側で絞り込み
+            const start = (currentPage - 1) * perPage;
+            const paged = filtered.slice(start, start + perPage);
+            
+            const tbody = document.getElementById('stayTableBody');
+            tbody.innerHTML = paged.map((c, i) => `
+                <tr class="hover:bg-slate-50 text-center">
+                    <td class="p-6 text-slate-300 font-mono text-xs">${start + i + 1}</td>
+                    <td class="p-6 text-left text-slate-800 font-black">${c.name}</td>
+                    <td class="p-6 text-slate-400 text-[10px]">${c.type || '-'}</td>
+                    <td class="p-6">${c.visitCount}回</td>
+                    <td class="p-6"><span class="time-badge">${Math.floor(c.totalMins/60)}時間${c.totalMins%60}分</span></td>
+                    <td class="p-6 text-slate-500">${c.avgMins}分 / 回</td>
+                </tr>
+            `).join('');
+
+            document.getElementById('totalCount').innerText = filtered.length;
+            document.getElementById('pageRange').innerText = `${start+1}-${Math.min(start+perPage, filtered.length)}`;
+            renderPagination(filtered.length);
+        };
+
+        function renderPagination(total) {
+            const totalPages = Math.ceil(total / perPage);
+            const containers = [document.getElementById('paginationTop'), document.getElementById('paginationBottom')];
+            containers.forEach(container => {
+                container.innerHTML = "";
+                for (let i = 1; i <= totalPages; i++) {
+                    const btn = document.createElement('div');
+                    btn.innerText = i; btn.className = `modern-page-btn ${currentPage === i ? 'active' : ''}`;
+                    btn.onclick = () => { currentPage = i; window.updateView(); };
+                    container.appendChild(btn);
+                }
+            });
+        }
+        init();
+    </script>
+</body>
+</html>
