@@ -15,27 +15,23 @@
         
         /* 月別セルの装飾 */
         .month-col { width: 60px; text-align: center; border-left: 1px solid #f1f5f9; }
-        .count-val { font-family: 'Inter', sans-serif; font-weight: 800; }
         .val-zero { color: #e2e8f0; font-weight: 400; }
-        .val-active { color: var(--copros-orange); background: #fff7ed; border-radius: 4px; padding: 4px 0; }
+        .val-active { color: var(--copros-orange); background: #fff7ed; border-radius: 4px; padding: 4px 0; font-weight: 800; }
 
-        .year-btn { padding: 0.5rem 1.5rem; border-radius: 0.75rem; font-weight: 900; font-size: 0.75rem; transition: all 0.2s; border: 1px solid #e2e8f0; background: white; }
-        .year-btn:hover { background: #f8fafc; border-color: var(--copros-orange); color: var(--copros-orange); }
+        .year-btn { padding: 0.5rem 1rem; border-radius: 0.75rem; font-weight: 900; font-size: 0.75rem; transition: all 0.2s; border: 1px solid #e2e8f0; background: white; color: #64748b; }
+        .year-btn:hover { background: #f8fafc; color: var(--copros-orange); }
 
-        /* 左側固定カラムの設定 */
-        .sticky-rank { position: sticky; left: 0; background: white; z-index: 10; border-right: 1px solid #f1f5f9; }
-        .sticky-name { position: sticky; left: 60px; background: white; z-index: 10; border-right: 2px solid #f1f5f9; }
-        thead .sticky-rank, thead .sticky-name { background: #3c4b5a; z-index: 20; }
+        /* 左側固定カラム */
+        .sticky-rank { position: sticky; left: 0; background: white; z-index: 10; border-right: 1px solid #f1f5f9; min-width: 50px; }
+        .sticky-name { position: sticky; left: 50px; background: white; z-index: 10; border-right: 2px solid #f1f5f9; min-width: 200px; }
+        thead .sticky-rank, thead .sticky-name { background: #3c4b5a; z-index: 20; color: white; }
 
-        /* セレクトボックスのプロ仕様デザイン */
-        .dept-select {
-            background: white; border: 2px solid #e2e8f0; padding: 0.6rem 1.5rem;
-            border-radius: 1rem; font-size: 0.85rem; font-weight: 900; color: #334155;
-            outline: none; transition: all 0.3s; cursor: pointer; appearance: none;
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-            background-repeat: no-repeat; background-position: right 1rem center; background-size: 1em; padding-right: 2.5rem;
+        /* タイトル横のスマート部署選択 */
+        .scope-select { 
+            background: #e2e8f0; border: none; padding: 0.4rem 1rem; border-radius: 0.75rem; 
+            font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; appearance: none;
+            cursor: pointer; transition: all 0.2s;
         }
-        .dept-select:focus { border-color: #0ea5e9; box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.1); }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700">
@@ -45,41 +41,36 @@
     <main class="flex-1 flex flex-col overflow-hidden">
         <div id="header-placeholder"></div>
 
-        <div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
+        <div class="flex-1 overflow-auto p-8 custom-scrollbar">
             <div class="max-w-[1600px] mx-auto">
                 
                 <!-- ヘッドエリア -->
-                <div class="flex justify-between items-start mb-8">
-                    <div>
-                        <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">月別実績一覧</h1>
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Monthly Performance Matrix</p>
-                    </div>
-                    
-                    <div class="flex flex-col items-end gap-4">
-                        <!-- 🌟 部署フィルター（ご指定の順番 ＆ 企画部への変更反映） -->
-                        <div class="flex items-center gap-3">
-                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Department:</span>
-                            <select id="deptFilter" onchange="window.updateTable()" class="dept-select shadow-sm">
+                <div class="flex justify-between items-end mb-10">
+                    <div class="flex items-end gap-6">
+                        <div>
+                            <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">月別実績一覧</h1>
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Monthly Sales Performance Matrix</p>
+                        </div>
+                        <div class="mb-2">
+                            <select id="deptFilter" onchange="window.updateTable()" class="scope-select shadow-inner">
                                 <option value="ALL">全社表示</option>
-                                <option value="ケコム部">ケコム部</option>
-                                <option value="関西支店">関西支店</option>
-                                <option value="関東支店">関東支店</option>
-                                <option value="中部営業所">中部営業所</option>
-                                <option value="土木部">土木部</option>
-                                <option value="建築部">建築部</option>
-                                <option value="建機部">建機部</option>
-                                <option value="総務部">総務部</option>
-                                <option value="購買課">購買課</option>
-                                <option value="宮崎産商">宮崎産商</option>
-                                <option value="企画部">企画部</option> <!-- Miyazaki Sanshoから変更 -->
+                                <option>ケコム部</option><option>関西支店</option><option>関東支店</option>
+                                <option>中部営業所</option><option>土木部</option><option>建築部</option>
+                                <option>建機部</option><option>総務部</option><option>購買課</option>
+                                <option>宮崎産商</option><option>企画部</option>
                             </select>
                         </div>
+                    </div>
 
-                        <div class="flex items-center gap-4 bg-white p-2 rounded-2xl shadow-sm border border-slate-100">
-                            <button onclick="changeYear(-1)" class="year-btn text-slate-400 hover:text-slate-600">前年度</button>
-                            <span id="displayYear" class="text-lg font-black text-slate-700 px-4 min-w-[120px] text-center">2026年度</span>
-                            <button onclick="changeYear(1)" class="year-btn text-slate-400 hover:text-slate-600">翌年度</button>
+                    <div class="flex gap-3 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100 items-center">
+                        <div class="flex items-center gap-2 px-2 border-r border-slate-100">
+                            <button onclick="changeYear(-1)" class="year-btn">前年</button>
+                            <span id="displayYear" class="text-sm font-black text-slate-700 px-2 min-w-[80px] text-center">2026年度</span>
+                            <button onclick="changeYear(1)" class="year-btn">翌年</button>
                         </div>
+                        <button class="px-6 py-2.5 bg-slate-800 text-white rounded-xl font-bold text-sm shadow-lg hover:bg-black transition-all">
+                            <i class="fa-solid fa-file-csv mr-2 text-blue-400"></i>CSV出力
+                        </button>
                     </div>
                 </div>
 
@@ -88,11 +79,9 @@
                     <table class="w-full text-left border-collapse min-w-[1300px]">
                         <thead>
                             <tr class="text-white text-[10px] font-black uppercase tracking-widest text-center">
-                                <th class="p-4 sticky-rank w-16">Rank</th>
-                                <th class="p-4 sticky-name w-64 text-left">お客様名</th>
+                                <th class="p-4 sticky-rank">Rank</th>
+                                <th class="p-4 sticky-name text-left">お客様名</th>
                                 <th class="p-4 w-24">属性</th>
-                                <th class="p-4 w-20">区分</th>
-                                <!-- 4月から始まる月ヘッダー -->
                                 <th class="month-col">4月</th><th class="month-col">5月</th><th class="month-col">6月</th>
                                 <th class="month-col">7月</th><th class="month-col">8月</th><th class="month-col">9月</th>
                                 <th class="month-col">10月</th><th class="month-col">11月</th><th class="month-col">12月</th>
@@ -100,15 +89,13 @@
                                 <th class="p-4 bg-slate-900 w-20">合計</th>
                             </tr>
                         </thead>
-                        <tbody id="monthlyTableBody" class="text-xs font-bold">
-                            <!-- JSで生成 -->
-                        </tbody>
+                        <tbody id="monthlyTableBody" class="text-xs font-bold"></tbody>
                     </table>
                 </div>
 
                 <div id="loading" class="py-20 text-center">
                     <div class="animate-spin inline-block mb-4 text-blue-400 text-4xl"><i class="fa-solid fa-circle-notch"></i></div>
-                    <p class="text-slate-400 font-bold">実績データを集計中...</p>
+                    <p class="text-slate-400 font-bold">実績データを年度集計中...</p>
                 </div>
 
             </div>
@@ -132,9 +119,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        let currentYear = new Date().getFullYear();
-        if (new Date().getMonth() < 3) currentYear--; // 1-3月なら前年を年度とする
-
+        let currentYear = 2026;
         let allCustomers = [];
         let allRecords = [];
 
@@ -144,25 +129,21 @@
                     getDocs(query(collection(db, "customers"), orderBy("name"))),
                     getDocs(collection(db, "activity_records"))
                 ]);
-                allCustomers = cSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+                allCustomers = cSnap.docs.map(d => d.data());
                 allRecords = rSnap.docs.map(d => d.data());
-                
                 document.getElementById('loading').style.display = 'none';
                 renderTable();
-            } catch (e) { console.warn("Firebaseリセット待ちです。"); }
+            } catch (e) { console.warn("Quota待機中"); }
         }
 
-        // 🌟 外部から呼べるようにwindowに公開
         window.updateTable = () => renderTable();
 
         function renderTable() {
             const tbody = document.getElementById('monthlyTableBody');
             tbody.innerHTML = "";
             document.getElementById('displayYear').innerText = `${currentYear}年度`;
-
             const selectedDept = document.getElementById('deptFilter').value;
 
-            // 年度（4月〜翌3月）の定義
             const fiscalMonths = [
                 {y: currentYear, m: 4}, {y: currentYear, m: 5}, {y: currentYear, m: 6},
                 {y: currentYear, m: 7}, {y: currentYear, m: 8}, {y: currentYear, m: 9},
@@ -170,56 +151,43 @@
                 {y: currentYear + 1, m: 1}, {y: currentYear + 1, m: 2}, {y: currentYear + 1, m: 3}
             ];
 
-            // データの絞り込み（部署フィルター）
-            let displayRecords = allRecords;
-            if (selectedDept !== 'ALL') {
-                displayRecords = allRecords.filter(r => r.visitorDept === selectedDept);
-            }
+            let displayRecords = selectedDept === 'ALL' ? allRecords : allRecords.filter(r => r.visitorDept === selectedDept);
 
             allCustomers.forEach(cust => {
                 let monthlyHtml = "";
                 let rowTotal = 0;
-                let hasAnyData = false;
+                let hasData = false;
 
                 fiscalMonths.forEach(fm => {
                     const count = displayRecords.filter(r => {
                         const d = new Date(r.visitDate);
-                        return r.customerName === cust.name && 
-                               d.getFullYear() === fm.y && 
-                               (d.getMonth() + 1) === fm.m;
+                        return r.customerName === cust.name && d.getFullYear() === fm.y && (d.getMonth() + 1) === fm.m;
                     }).length;
                     
                     if (count > 0) {
                         rowTotal += count;
-                        hasAnyData = true;
+                        hasData = true;
                         monthlyHtml += `<td class="month-col"><div class="mx-1 val-active">${count}</div></td>`;
                     } else {
                         monthlyHtml += `<td class="month-col"><div class="val-zero">0</div></td>`;
                     }
                 });
 
-                // 選択された部署にデータがある場合、または「全社表示」の時のみ行を表示する
-                if (selectedDept === 'ALL' || hasAnyData) {
-                    const row = `
+                if (selectedDept === 'ALL' || hasData) {
+                    tbody.insertAdjacentHTML('beforeend', `
                         <tr class="hover:bg-slate-50 border-b border-slate-50">
                             <td class="p-4 text-center sticky-rank text-[10px] text-slate-400 font-black">${cust.rank || '-'}</td>
                             <td class="p-4 sticky-name text-slate-800 font-black truncate max-w-[250px] cursor-pointer hover:text-blue-600" onclick="location.href='customer_history.html?name=${encodeURIComponent(cust.name)}'">${cust.name}</td>
                             <td class="p-4 text-slate-400 text-[10px]">${cust.type || '-'}</td>
-                            <td class="p-4 text-slate-400 text-[10px]">${cust.category || '-'}</td>
                             ${monthlyHtml}
                             <td class="p-4 text-center bg-slate-50 font-black text-slate-700">${rowTotal}</td>
                         </tr>
-                    `;
-                    tbody.insertAdjacentHTML('beforeend', row);
+                    `);
                 }
             });
         }
 
-        window.changeYear = (val) => {
-            currentYear += val;
-            renderTable();
-        };
-
+        window.changeYear = (val) => { currentYear += val; renderTable(); };
         init();
     </script>
 </body>
