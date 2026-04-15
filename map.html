@@ -3,26 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>顧客地図 | CP My Page</title>
+    <title>営業マップ | CP My Page</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <!-- 地図用ライブラリ -->
+    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
-        :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; }
+        :root { --copros-blue: #87ceeb; --copros-orange: #ff7e11; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
         #map { height: calc(100vh - 64px); width: 100%; z-index: 1; }
         
-        /* プロ仕様の浮き出しコントロール */
+        /* 🌟 プロ仕様の浮き出しコントロール */
         .map-control { position: absolute; top: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
-        .control-btn { background: white; width: 50px; height: 50px; border-radius: 15px; display: flex; items-center: center; justify-content: center; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; transition: all 0.2s; color: #475569; }
-        .control-btn:hover { background: var(--copros-orange); color: white; transform: scale(1.1); }
-        
-        /* ポップアップのデザイン */
-        .leaflet-popup-content-wrapper { border-radius: 1.5rem; padding: 5px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); }
-        .popup-card { min-width: 220px; }
-        .nav-btn { background: #004098; color: white; padding: 8px; border-radius: 10px; width: 100%; display: block; text-align: center; font-weight: 900; font-size: 12px; margin-top: 10px; }
+        .control-btn { background: white; width: 44px; height: 44px; border-radius: 12px; display: flex; items-center: center; justify-content: center; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; transition: all 0.2s; color: #475569; }
+        .control-btn:hover { background: var(--copros-orange); color: white; transform: scale(1.05); }
+
+        /* 🌟 ポップアップのデザインを由紀さんの世界観に合わせる */
+        .leaflet-popup-content-wrapper { border-radius: 1.2rem; padding: 5px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
+        .popup-card { min-width: 200px; padding: 10px; }
+        .nav-btn { background: #004098; color: white; padding: 8px; border-radius: 8px; width: 100%; display: block; text-align: center; font-weight: 900; font-size: 11px; margin-top: 10px; transition: all 0.2s; }
+        .nav-btn:hover { opacity: 0.9; box-shadow: 0 4px 12px rgba(0,64,152,0.3); }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700">
@@ -34,39 +34,33 @@
 
         <!-- 地図コントロール -->
         <div class="map-control">
-            <button onclick="locateMe()" title="現在地を表示" class="control-btn"><i class="fa-solid fa-location-crosshairs text-xl"></i></button>
-            <button onclick="zoomToJapan()" title="全体を表示" class="control-btn"><i class="fa-solid fa-map-location-dot text-xl"></i></button>
+            <button onclick="window.locateMe()" title="現在地を表示" class="control-btn"><i class="fa-solid fa-location-crosshairs text-lg"></i></button>
+            <button onclick="window.zoomToJapan()" title="全体を表示" class="control-btn"><i class="fa-solid fa-map-location-dot text-lg"></i></button>
         </div>
 
         <!-- 地図本体 -->
         <div id="map"></div>
     </main>
 
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="common.js"></script>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, query, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { firebaseConfig } from "./common.js";
 
-        // Firebase設定
-        const firebaseConfig = {
-            apiKey: "AiZaSyDh00EZ7Jb1K2rTxLyTH6d80b4Qzcrwf_XI",
-            authDomain: "copros-my-page.firebaseapp.com",
-            projectId: "copros-my-page",
-            storageBucket: "copros-my-page.firebasestorage.app",
-            messagingSenderId: "54419849010",
-            appId: "1:54419849010:web:a60015b9c6fcf60cd3e12b"
-        };
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // 地図の初期化
+        // 地図の初期化 (日本中心付近)
         const map = L.map('map', { zoomControl: false }).setView([35.6812, 139.7671], 5);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap'
+            attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
 
-        // --- 便利機能関数の公開 ---
+        // --- 便利機能の公開 ---
         window.locateMe = () => {
             map.locate({setView: true, maxZoom: 15});
         };
@@ -76,36 +70,41 @@
 
         async function init() {
             try {
-                const snap = await getDocs(collection(db, "customers"));
-                const customers = snap.docs.map(doc => doc.data());
+                // 🌟 鉄壁リミット：まずは100件のお客様だけを取得（座標データがある前提）
+                const q = query(collection(db, "customers"), limit(100));
+                const snap = await getDocs(q);
                 
-                // 顧客データを地図にプロット
-                // ※本来は住所から座標(緯度経度)へ変換が必要ですが、今回は仮のランダム位置または座標データがある想定で動かします
-                customers.forEach(c => {
-                    if (c.lat && c.lng) { // 座標データがある場合
+                snap.forEach(doc => {
+                    const c = doc.data();
+                    // 🌟 座標（lat, lng）がある場合のみピンを立てる
+                    if (c.lat && c.lng) {
                         const marker = L.marker([c.lat, c.lng]).addTo(map);
                         marker.bindPopup(`
                             <div class="popup-card">
                                 <p class="text-[10px] font-black text-slate-400 uppercase mb-1">Customer Info</p>
                                 <h3 class="text-base font-black text-slate-800 mb-1">${c.name}</h3>
-                                <p class="text-[11px] text-slate-500 font-bold mb-2"><i class="fa-solid fa-location-dot mr-1"></i>${c.address || '住所未登録'}</p>
+                                <p class="text-[10px] text-slate-500 mb-3"><i class="fa-solid fa-location-dot mr-1 text-rose-400"></i>${c.address || '住所未登録'}</p>
                                 <div class="flex gap-2">
-                                    <span class="text-[9px] font-black bg-orange-100 text-orange-600 px-2 py-0.5 rounded">RANK: ${c.rank || '--'}</span>
-                                    <span class="text-[9px] font-black bg-blue-100 text-blue-600 px-2 py-0.5 rounded">${c.type || '--'}</span>
+                                    <span class="bg-orange-50 text-orange-600 px-2 py-0.5 rounded text-[10px] font-black border border-orange-100">RANK: ${c.rank || '--'}</span>
+                                    <span class="bg-blue-50 text-blue-600 px-2 py-0.5 rounded text-[10px] font-black border border-blue-100">${c.type || '--'}</span>
                                 </div>
-                                <a href="history.html?name=${encodeURIComponent(c.name)}" class="nav-btn"><i class="fa-solid fa-pen mr-1"></i> 実績を登録</a>
-                                <a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(c.address)}" target="_blank" class="text-center block text-[10px] text-blue-500 font-black mt-2 underline">Googleマップでナビ開始</a>
+                                <a href="history.html?name=${encodeURIComponent(c.name)}" class="nav-btn">
+                                    <i class="fa-solid fa-pen-nib mr-1"></i> 実績を登録
+                                </a>
+                                <a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(c.address)}" target="_blank" class="text-center block text-[9px] text-blue-500 font-bold mt-2 underline">
+                                    Googleマップでナビ開始
+                                </a>
                             </div>
                         `);
                     }
                 });
-            } catch (e) { console.error("Firebaseリセット待ち、または座標未設定"); }
+            } catch (e) { console.error("Map Init Error:", e); }
         }
 
         // 現在地が見つかった時の青い円
         map.on('locationfound', (e) => {
             L.circle(e.latlng, e.accuracy / 2).addTo(map);
-            L.marker(e.latlng).addTo(map).bindPopup("あなたは今ここにいます").openPopup();
+            L.marker(e.latlng).addTo(map).bindPopup("<b>あなたは今ここにいます</b>").openPopup();
         });
 
         init();
