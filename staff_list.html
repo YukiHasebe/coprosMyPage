@@ -9,41 +9,43 @@
     <style>
         :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
-        .filter-btn { transition: all 0.2s; }
+        .filter-btn { transition: all 0.2s; white-space: nowrap; }
         .filter-btn.active { background: #0ea5e9; color: white; box-shadow: 0 4px 12px rgba(14,165,233,0.3); }
         .table-container { border-radius: 1.5rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
         thead tr { background-color: #3c4b5a; }
-        .status-badge { padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 900; }
+        .status-badge { padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 900; white-space: nowrap; }
         .status-on { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
         .status-off { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+        .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
-<body class="flex h-screen overflow-hidden text-slate-700">
+<body class="flex h-screen overflow-hidden text-slate-700 font-sans">
 
     <div id="sidebar-placeholder"></div>
 
     <main class="flex-1 flex flex-col overflow-hidden">
         <div id="header-placeholder"></div>
 
-        <div class="flex-1 overflow-auto p-8 custom-scrollbar">
+        <div class="flex-1 overflow-y-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1400px] mx-auto">
                 
-                <div class="flex justify-between items-end mb-10">
+                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-4">
                     <div>
-                        <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">組織員情報一覧</h1>
+                        <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-2">組織員情報一覧</h1>
                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Organization Staff Management</p>
                     </div>
-                    <div class="flex gap-3 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100">
-                        <button onclick="location.href='staff_add.html'" class="px-6 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-sm hover:shadow-lg transition-all flex items-center gap-2">
+                    <div class="flex gap-2 w-full lg:w-auto">
+                        <button onclick="location.href='staff_add.html'" class="flex-1 lg:flex-none px-6 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-xs hover:shadow-lg transition-all flex items-center justify-center gap-2">
                             <i class="fa-solid fa-user-plus"></i>新規組織員登録
                         </button>
                     </div>
                 </div>
 
-                <!-- 絞り込みツール -->
-                <div class="flex justify-between items-center mb-6 px-2">
-                    <div class="flex items-center gap-6">
-                        <div class="flex flex-wrap gap-1 p-1 bg-white rounded-xl border border-slate-200 shadow-sm">
+                <!-- 絞り込みツール (スマホ対応スクロール) -->
+                <div class="flex flex-col lg:flex-row justify-between items-center mb-6 gap-4 px-2">
+                    <div class="flex items-center gap-4 w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0 custom-scrollbar">
+                        <div class="flex gap-1 p-1 bg-white rounded-xl border border-slate-200 shadow-sm">
                             <button class="filter-btn active px-4 py-1.5 rounded-lg text-xs font-black transition-all" data-range="all">全件</button>
                             <script>
                                 ['あ','か','さ','た','な','は','ま','や','ら','わ','他'].forEach(k => {
@@ -51,14 +53,15 @@
                                 });
                             </script>
                         </div>
-                        <div class="text-slate-400 font-mono font-bold text-sm">
-                            <span id="totalCount" class="text-slate-800">0</span> <span class="text-[9px] uppercase ml-1">Staffs</span>
-                        </div>
+                    </div>
+                    <div class="flex items-center justify-end w-full lg:w-auto gap-2 text-slate-400 font-mono font-bold text-sm border-l-2 border-slate-200 pl-4 h-8">
+                        <span id="totalCount" class="text-slate-800 text-xl tracking-tighter">0</span> 
+                        <span class="text-[9px] uppercase">Staffs</span>
                     </div>
                 </div>
 
-                <div class="table-container">
-                    <table class="w-full text-left border-collapse">
+                <div class="table-container custom-scrollbar overflow-x-auto">
+                    <table class="w-full text-left border-collapse min-w-[1000px]">
                         <thead>
                             <tr class="text-white text-[10px] font-black uppercase tracking-widest">
                                 <th class="p-6 text-center w-24">社員番号</th>
@@ -67,10 +70,12 @@
                                 <th class="p-6">メールアドレス</th>
                                 <th class="p-6 text-center w-24">権限</th>
                                 <th class="p-6 text-center w-24">状態</th>
-                                <th class="p-6 text-center w-16">削除</th>
+                                <th class="p-6 text-center w-16 opacity-30"><i class="fa-solid fa-trash-can"></i></th>
                             </tr>
                         </thead>
-                        <tbody id="staffTable" class="divide-y divide-slate-100 text-sm font-bold"></tbody>
+                        <tbody id="staffTable" class="divide-y divide-slate-100 text-sm font-bold">
+                            <tr><td colspan="7" class="p-10 text-center text-slate-400">データを読み込み中...</td></tr>
+                        </tbody>
                     </table>
                 </div>
             </div>
@@ -82,15 +87,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, getDocs, doc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { firebaseConfig } from "./common.js";
 
-        const firebaseConfig = {
-            apiKey: "AiZaSyDh00EZ7Jb1K2rTxLyTH6d80b4Qzcrwf_XI",
-            authDomain: "copros-my-page.firebaseapp.com",
-            projectId: "copros-my-page",
-            storageBucket: "copros-my-page.firebasestorage.app",
-            messagingSenderId: "54419849010",
-            appId: "1:54419849010:web:a60015b9c6fcf60cd3e12b"
-        };
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
@@ -98,45 +96,81 @@
 
         async function init() {
             try {
+                // 🌟 197万回防止：社員名簿は全件取得するが orderBy で制御
                 const snap = await getDocs(query(collection(db, "staffs"), orderBy("id")));
                 allStaffs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderTable(allStaffs);
                 document.getElementById('totalCount').innerText = allStaffs.length;
-            } catch (e) { console.warn("Firebaseリセット待ちです。"); }
+            } catch (e) { 
+                console.error("Staff Load Error:", e);
+                document.getElementById('staffTable').innerHTML = '<tr><td colspan="7" class="p-10 text-center text-rose-400">読み込みに失敗しました。</td></tr>';
+            }
         }
 
         function renderTable(dataList) {
             const tbody = document.getElementById('staffTable');
             tbody.innerHTML = "";
+            
+            if (dataList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="p-10 text-center text-slate-400 font-bold">該当する組織員はいません。</td></tr>';
+                return;
+            }
+
             dataList.forEach(data => {
                 const statusOn = data.status === "有効";
-                const row = `
+                tbody.insertAdjacentHTML('beforeend', `
                     <tr class="hover:bg-sky-50/30 transition-all border-b border-slate-50">
                         <td class="p-6 text-center text-slate-400 font-mono text-xs">${data.id}</td>
                         <td class="p-6">
-                            <div class="text-base text-slate-800 leading-tight cursor-pointer hover:text-sky-600" onclick="location.href='staff_add.html?id=${data.id}'">${data.name}</div>
+                            <div class="text-base text-slate-800 leading-tight cursor-pointer hover:text-sky-600 font-black" 
+                                 onclick="location.href='staff_add.html?id=${data.id}'">
+                                 ${data.name || '名称不明'}
+                            </div>
                         </td>
                         <td class="p-6 text-slate-500">${data.dept || '未設定'}</td>
-                        <td class="p-6 text-slate-500 font-medium">${data.email || '--'}</td>
+                        <td class="p-6 text-slate-500 font-medium truncate max-w-[200px]">${data.email || '--'}</td>
                         <td class="p-6 text-center text-[10px] font-black uppercase text-slate-400">${data.role || '一般'}</td>
                         <td class="p-6 text-center">
                             <span class="status-badge ${statusOn ? 'status-on' : 'status-off'}">${data.status || '有効'}</span>
                         </td>
                         <td class="p-6 text-center">
-                            <button onclick="deleteStaff('${data.id}', '${data.name}')" class="text-slate-300 hover:text-rose-500 transition-colors"><i class="fa-solid fa-trash-can"></i></button>
+                            <button onclick="window.deleteStaff('${data.id}', '${data.name}')" class="text-slate-200 hover:text-rose-500 transition-colors">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
                         </td>
                     </tr>
-                `;
-                tbody.insertAdjacentHTML('beforeend', row);
+                `);
             });
         }
 
         window.deleteStaff = async (id, name) => {
             if(!confirm(`${name}さんを削除してもよろしいですか？`)) return;
-            await deleteDoc(doc(db, "staffs", id));
-            alert("削除しました。");
-            init();
+            try {
+                await deleteDoc(doc(db, "staffs", id));
+                alert("削除しました。");
+                init();
+            } catch (e) { alert("削除に失敗しました。"); }
         };
+
+        // --- 50音フィルターの実装 ---
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.onclick = () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const range = btn.dataset.range;
+                const rangeMap = { 'あ': /^[あ-おア-オ]/, 'か': /^[か-こカ-コが-ごガ-ゴ]/, 'さ': /^[さ-そサ-ソざ-ぞザ-ゾ]/, 'た': /^[た-とタ-トだ-どダ-ド]/, 'な': /^[な-のナ-ノ]/, 'は': /^[は-ほハ-ホば-ぼバ-ボぱ-ぽパ-ポ]/, 'ま': /^[ま-もマ-モ]/, 'や': /^[や-よヤ-ヨ]/, 'ら': /^[ら-ろラ-ロ]/, 'わ': /^[わ-んワ-ン]/ };
+                
+                let filtered = allStaffs;
+                if (range !== 'all') {
+                    if (range === '他') {
+                        filtered = allStaffs.filter(s => !Object.values(rangeMap).some(re => re.test(s.kana || s.name || "")));
+                    } else {
+                        filtered = allStaffs.filter(s => rangeMap[range].test(s.kana || s.name || ""));
+                    }
+                }
+                renderTable(filtered);
+            };
+        });
 
         init();
     </script>
