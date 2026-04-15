@@ -11,40 +11,41 @@
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
         .form-input { width: 100%; padding: 0.75rem 1rem; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.75rem; font-weight: 600; transition: all 0.2s; font-size: 0.9rem; }
         .form-input:focus { outline: none; border-color: #3b82f6; background-color: white; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
-        .readonly-input { background-color: #f1f5f9; color: #64748b; cursor: not-allowed; border-style: dashed; }
         .label-text { font-size: 0.8rem; font-weight: 800; color: #475569; margin-bottom: 0.4rem; display: block; }
-        .section-card { background: white; border-radius: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04); padding: 2rem; margin-bottom: 2rem; }
+        .section-card { background: white; border-radius: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04); padding: 1.5rem; lg:padding: 2rem; margin-bottom: 1.5rem; }
         .section-title { font-size: 0.75rem; font-weight: 900; color: #94a3b8; letter-spacing: 0.1em; border-bottom: 2px solid #f1f5f9; padding-bottom: 0.5rem; margin-bottom: 1.5rem; text-transform: uppercase; }
         
-        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; backdrop-filter: blur(4px); align-items: center; justify-content: center; }
-        .modal-content { background: white; width: 450px; border-radius: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); overflow: hidden; }
-        .staff-item { padding: 0.8rem 1.2rem; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-weight: 600; display: flex; justify-content: space-between; }
+        /* ポップアップスマホ対応 */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 1rem; }
+        .modal-content { background: white; width: 100%; max-width: 450px; border-radius: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); overflow: hidden; animation: popIn 0.3s ease-out; }
+        @keyframes popIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .staff-item { padding: 0.8rem 1.2rem; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
         .staff-item:hover { background: #f8fafc; color: #3b82f6; }
         .staff-item.selected { background: #eff6ff; color: #2563eb; border-left: 4px solid #2563eb; }
 
         .suggestion-box { position: absolute; width: 100%; top: 100%; left: 0; z-index: 50; background: white; border-radius: 0.75rem; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; max-height: 200px; overflow-y: auto; display: none; }
-        .suggestion-item { padding: 0.7rem 1rem; cursor: pointer; font-weight: 600; font-size: 0.85rem; }
+        .suggestion-item { padding: 0.7rem 1rem; cursor: pointer; font-weight: 600; font-size: 0.85rem; border-bottom: 1px solid #f8fafc; }
         .suggestion-item:hover { background-color: #f1f5f9; color: #3b82f6; }
     </style>
 </head>
-<body class="flex h-screen overflow-hidden text-slate-700">
+<body class="flex h-screen overflow-hidden text-slate-700 font-sans">
 
     <div id="sidebar-placeholder"></div>
 
     <main class="flex-1 flex flex-col overflow-hidden">
         <div id="header-placeholder"></div>
 
-        <div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
+        <div class="flex-1 overflow-y-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-5xl mx-auto">
                 
-                <div class="flex justify-between items-end mb-8">
+                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-4">
                     <div>
-                        <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">アポイント登録</h1>
+                        <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-2">アポイント登録</h1>
                         <nav class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Schedule & Appointment Setup</nav>
                     </div>
-                    <div class="flex gap-3">
-                        <button type="button" class="btn-draft px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 shadow-sm">下書き</button>
-                        <button type="button" class="btn-submit px-10 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-sm hover:shadow-lg flex items-center gap-2">
+                    <div class="flex gap-2 w-full lg:w-auto">
+                        <button type="button" class="btn-draft flex-1 lg:flex-none px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-xs hover:bg-slate-50 shadow-sm transition-all">下書き</button>
+                        <button type="button" id="submitBtnTop" class="flex-1 lg:flex-none px-10 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-xs hover:shadow-lg transition-all flex items-center justify-center gap-2 active:scale-95">
                             <i class="fa-solid fa-calendar-check"></i> 登録を実行
                         </button>
                     </div>
@@ -58,27 +59,27 @@
                             <div class="relative max-w-2xl">
                                 <label class="label-text">お客様名 <span class="text-rose-500">*</span></label>
                                 <input type="text" id="customerSearch" placeholder="お客様名を検索..." class="form-input" autocomplete="off" required>
-                                <div id="customerSuggestions" class="suggestion-box"></div>
+                                <div id="customerSuggestions" class="suggestion-box custom-scrollbar"></div>
                             </div>
 
                             <div>
                                 <label class="label-text">訪問予定日時 <span class="text-rose-500">*</span></label>
                                 <div class="flex flex-wrap items-center gap-3">
-                                    <input type="date" id="appointDate" class="form-input w-44" required>
-                                    <div class="flex items-center bg-slate-50 rounded-xl border border-slate-200 px-2">
-                                        <input type="time" id="startTime" class="bg-transparent p-2 outline-none font-bold text-sm" required>
+                                    <input type="date" id="appointDate" class="form-input w-full sm:w-44" required>
+                                    <div class="flex items-center bg-slate-50 rounded-xl border border-slate-200 px-2 w-full sm:w-auto">
+                                        <input type="time" id="startTime" class="bg-transparent p-2 outline-none font-bold text-sm flex-1" required>
                                         <span class="text-slate-400 px-1">〜</span>
-                                        <input type="time" id="endTime" class="bg-transparent p-2 outline-none font-bold text-sm" required>
+                                        <input type="time" id="endTime" class="bg-transparent p-2 outline-none font-bold text-sm flex-1" required>
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
                                 <div>
                                     <label class="label-text">訪問予定者 <span class="text-rose-500">*</span></label>
                                     <div class="flex gap-2">
-                                        <input type="text" id="visitorName" class="form-input bg-blue-50 text-blue-700" readonly>
-                                        <button type="button" onclick="openStaffModal('visitor')" class="px-4 bg-white border border-slate-200 rounded-xl text-xs font-black hover:bg-slate-50 shadow-sm">選択</button>
+                                        <input type="text" id="visitorName" class="form-input bg-blue-50 text-blue-700 font-bold" readonly>
+                                        <button type="button" onclick="openStaffModal('visitor')" class="px-4 bg-white border border-slate-200 rounded-xl text-xs font-black hover:bg-slate-50 shadow-sm transition-all">選択</button>
                                     </div>
                                 </div>
                                 <div>
@@ -94,7 +95,7 @@
                         <p class="section-title">回覧設定</p>
                         <div class="flex flex-col gap-4">
                             <div class="flex items-center gap-4">
-                                <button type="button" onclick="openStaffModal('circular')" class="px-6 py-2 bg-[#004098] text-white rounded-xl text-xs font-black shadow-md">回覧者を選択</button>
+                                <button type="button" onclick="openStaffModal('circular')" class="px-6 py-2 bg-[#004098] text-white rounded-xl text-xs font-black shadow-md hover:opacity-90 transition-all">回覧者を選択</button>
                             </div>
                             <div id="circularDisplay" class="p-4 bg-slate-50 border border-slate-200 rounded-2xl min-h-[60px] text-sm font-bold text-slate-600">未選択</div>
                         </div>
@@ -102,8 +103,8 @@
 
                     <!-- 下部ボタン -->
                     <div class="flex justify-center gap-4 py-12 border-t border-slate-100 mt-10">
-                        <button type="button" class="btn-draft px-8 py-3 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-sm">下書き</button>
-                        <button type="button" class="btn-submit px-16 py-3 bg-[#004098] text-white rounded-xl font-black text-sm shadow-lg flex items-center gap-2">
+                        <button type="button" class="btn-draft px-8 py-3 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all shadow-sm">下書き</button>
+                        <button type="button" id="submitBtnBottom" class="px-16 py-3 bg-[#004098] text-white rounded-xl font-black text-sm hover:shadow-lg flex items-center gap-2 active:scale-95 transition-all">
                             <i class="fa-solid fa-calendar-check"></i> 登録を実行
                         </button>
                     </div>
@@ -112,20 +113,23 @@
         </div>
     </main>
 
-    <!-- モーダル（共通） -->
+    <!-- スタッフ選択ポップアップ -->
     <div id="staffModal" class="modal-overlay">
         <div class="modal-content">
-            <div class="bg-slate-900 p-4 text-white flex justify-between items-center"><span id="modalTitle" class="font-black text-xs uppercase tracking-widest">社員選択</span><i class="fa-solid fa-xmark cursor-pointer" onclick="closeModal()"></i></div>
-            <div class="p-5 bg-slate-50 border-b border-slate-100">
-                <div class="grid grid-cols-2 gap-3 mb-3">
-                    <input type="text" id="staffKeyword" placeholder="氏名検索..." class="p-2.5 rounded-lg border text-xs font-bold outline-none">
-                    <select id="deptFilter" class="p-2.5 rounded-lg border text-xs font-bold outline-none"><option value="">全ての部署</option></select>
+            <div class="bg-slate-900 p-4 text-white flex justify-between items-center">
+                <span id="modalTitle" class="font-black text-xs uppercase tracking-widest">社員選択</span>
+                <i class="fa-solid fa-xmark cursor-pointer hover:text-rose-400 transition-colors" onclick="closeModal()"></i>
+            </div>
+            <div class="p-4 bg-slate-50 border-b border-slate-100">
+                <div class="grid grid-cols-2 gap-2 mb-2">
+                    <input type="text" id="staffKeyword" placeholder="氏名検索..." class="p-2.5 rounded-lg border border-slate-200 text-xs font-bold outline-none focus:border-blue-400 transition-all">
+                    <select id="staffDeptFilter" class="p-2.5 rounded-lg border border-slate-200 text-xs font-bold outline-none focus:border-blue-400 transition-all"><option value="">全ての部署</option></select>
                 </div>
             </div>
-            <div id="staffList" class="overflow-y-auto" style="height: 300px;"></div>
-            <div class="p-4 bg-slate-50 grid grid-cols-3 gap-2">
-                <button onclick="applySelection()" class="col-span-2 py-3 bg-blue-600 text-white rounded-xl font-black text-sm">設定する</button>
-                <button onclick="clearModalSelection()" class="py-3 bg-white border rounded-xl font-bold text-sm">クリア</button>
+            <div id="staffList" class="overflow-y-auto custom-scrollbar" style="height: 300px;"></div>
+            <div class="p-4 bg-slate-50 grid grid-cols-3 gap-2 border-t border-slate-100">
+                <button onclick="applySelection()" class="col-span-2 py-3 bg-blue-600 text-white rounded-xl font-black text-sm shadow-lg hover:bg-blue-700 transition-all">決定</button>
+                <button onclick="clearModalSelection()" class="py-3 bg-white border border-slate-200 text-slate-400 rounded-xl font-bold text-sm">クリア</button>
             </div>
         </div>
     </div>
@@ -134,16 +138,9 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, addDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, addDoc, serverTimestamp, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { firebaseConfig } from "./common.js";
 
-        const firebaseConfig = {
-            apiKey: "AiZaSyDh00EZ7Jb1K2rTxLyTH6d80b4Qzcrwf_XI",
-            authDomain: "copros-my-page.firebaseapp.com",
-            projectId: "copros-my-page",
-            storageBucket: "copros-my-page.firebasestorage.app",
-            messagingSenderId: "54419849010",
-            appId: "1:54419849010:web:a60015b9c6fcf60cd3e12b"
-        };
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
@@ -156,30 +153,36 @@
             document.getElementById('visitorName').value = sessionStorage.getItem('userName') || '未ログイン';
             document.getElementById('appointDate').valueAsDate = new Date();
 
-            const [cSnap, sSnap] = await Promise.all([
-                getDocs(query(collection(db, "customers"), orderBy("name"))),
-                getDocs(collection(db, "staffs"))
-            ]);
-            allCustomers = cSnap.docs.map(doc => ({ name: doc.data().name, kana: doc.data().kana }));
-            allStaffs = sSnap.docs.map(doc => ({ ...doc.data() }));
+            try {
+                // 🌟 鉄壁リミット：初期読み込みを100件に制限
+                const [cSnap, sSnap] = await Promise.all([
+                    getDocs(query(collection(db, "customers"), orderBy("name"), limit(100))),
+                    getDocs(query(collection(db, "staffs"), limit(100)))
+                ]);
+                allCustomers = cSnap.docs.map(doc => ({ name: doc.data().name, kana: doc.data().kana }));
+                allStaffs = sSnap.docs.map(doc => ({ ...doc.data() }));
 
-            const depts = [...new Set(allStaffs.map(s => s.dept).filter(Boolean))];
-            depts.forEach(d => document.getElementById('deptFilter').insertAdjacentHTML('beforeend', `<option value="${d}">${d}</option>`));
+                const depts = [...new Set(allStaffs.map(s => s.dept).filter(Boolean))];
+                depts.forEach(d => document.getElementById('staffDeptFilter').insertAdjacentHTML('beforeend', `<option value="${d}">${d}</option>`));
 
-            setupCustomerAutocomplete();
+                setupCustomerAutocomplete();
+            } catch (e) { console.error("Init Error:", e); }
         }
 
         function setupCustomerAutocomplete() {
             const input = document.getElementById('customerSearch');
             const box = document.getElementById('customerSuggestions');
-            input.addEventListener('input', () => {
+            input.oninput = () => {
                 const val = input.value.toLowerCase();
                 if (!val) { box.style.display = 'none'; return; }
-                const filtered = allCustomers.filter(c => c.name.toLowerCase().includes(val) || (c.kana && c.kana.includes(val))).slice(0, 10);
+                const filtered = allCustomers.filter(c => (c.name||"").toLowerCase().includes(val) || (c.kana||"").includes(val)).slice(0, 10);
                 box.innerHTML = filtered.map(c => `<div class="suggestion-item">${c.name}</div>`).join('');
                 box.style.display = filtered.length ? 'block' : 'none';
-            });
-            box.addEventListener('click', (e) => { if(e.target.closest('.suggestion-item')) { input.value = e.target.innerText; box.style.display = 'none'; } });
+            };
+            box.onclick = (e) => {
+                const item = e.target.closest('.suggestion-item');
+                if (item) { input.value = item.innerText; box.style.display = 'none'; }
+            };
         }
 
         window.openStaffModal = (target) => {
@@ -192,17 +195,20 @@
 
         window.closeModal = () => document.getElementById('staffModal').style.display = 'none';
 
-        function renderStaffList() {
+        window.renderStaffList = () => {
             const keyword = document.getElementById('staffKeyword').value.toLowerCase();
-            const dept = document.getElementById('deptFilter').value;
+            const dept = document.getElementById('staffDeptFilter').value;
             const container = document.getElementById('staffList');
-            const filtered = allStaffs.filter(s => (!keyword || s.name.toLowerCase().includes(keyword)) && (!dept || s.dept === dept));
-            container.innerHTML = filtered.map(s => `<div class="staff-item ${modalSelected.includes(s.name) ? 'selected' : ''}" onclick="toggleStaffSelection('${s.name}')"><span>${s.name}</span><span class="text-[10px] opacity-40 uppercase font-black">${s.dept || ''}</span></div>`).join('');
-        }
+            const filtered = allStaffs.filter(s => (!keyword || (s.name||"").toLowerCase().includes(keyword)) && (!dept || s.dept === dept));
+            container.innerHTML = filtered.map(s => `<div class="staff-item ${modalSelected.includes(s.name) ? 'selected' : ''}" onclick="toggleStaffSelection('${s.name}')"><span>${s.name}</span><span class="text-[9px] opacity-40 uppercase font-black">${s.dept || ''}</span></div>`).join('');
+        };
 
         window.toggleStaffSelection = (name) => {
-            if (currentTarget === 'visitor') { modalSelected = [name]; } 
-            else { modalSelected.includes(name) ? modalSelected = modalSelected.filter(n => n !== name) : modalSelected.push(name); }
+            if (currentTarget === 'visitor') modalSelected = [name];
+            else {
+                if (modalSelected.includes(name)) modalSelected = modalSelected.filter(n => n !== name);
+                else modalSelected.push(name);
+            }
             renderStaffList();
         };
 
@@ -214,28 +220,37 @@
         };
 
         window.clearModalSelection = () => { modalSelected = []; renderStaffList(); };
-        document.getElementById('staffKeyword').addEventListener('input', renderStaffList);
-        document.getElementById('deptFilter').addEventListener('change', renderStaffList);
+        document.getElementById('staffKeyword').oninput = renderStaffList;
+        document.getElementById('staffDeptFilter').onchange = renderStaffList;
 
-        document.querySelectorAll('.btn-submit').forEach(btn => {
-            btn.onclick = async () => {
-                const data = {
-                    customerName: document.getElementById('customerSearch').value,
-                    appointDate: document.getElementById('appointDate').value,
-                    startTime: document.getElementById('startTime').value,
-                    endTime: document.getElementById('endTime').value,
-                    visitorName: document.getElementById('visitorName').value,
-                    subject: document.getElementById('appointSubject').value,
-                    circularUsers: document.getElementById('circularDisplay').innerText,
-                    createdAt: serverTimestamp()
-                };
-                try {
-                    await addDoc(collection(db, "appointments"), data);
-                    alert("アポイントを登録しました！");
-                    location.href = 'calendar.html';
-                } catch (e) { alert("保存失敗"); }
+        const handleRegister = async () => {
+            const btn = document.getElementById('submitBtnTop');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>登録中...';
+
+            const data = {
+                customerName: document.getElementById('customerSearch').value,
+                appointDate: document.getElementById('appointDate').value,
+                startTime: document.getElementById('startTime').value,
+                endTime: document.getElementById('endTime').value,
+                visitorName: document.getElementById('visitorName').value,
+                subject: document.getElementById('appointSubject').value,
+                circularUsers: document.getElementById('circularDisplay').innerText,
+                createdAt: serverTimestamp()
             };
-        });
+            try {
+                await addDoc(collection(db, "appointments"), data);
+                alert("アポイントを登録しました！");
+                location.href = 'calendar.html';
+            } catch (e) {
+                alert("保存失敗");
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-calendar-check"></i> 登録を実行';
+            }
+        };
+
+        document.getElementById('submitBtnTop').onclick = handleRegister;
+        document.getElementById('submitBtnBottom').onclick = handleRegister;
 
         init();
     </script>
