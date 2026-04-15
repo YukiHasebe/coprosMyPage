@@ -1,4 +1,4 @@
-// 👑 CP My Page: 共通基盤JS (common.js) - 最終完成版
+// 👑 CP My Page: 共通基盤JS (common.js) - 由紀さんデザイン完全復元版
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, collection, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
@@ -20,21 +20,28 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!headerPlaceholder || !sidebarPlaceholder) return;
 
     const currentFile = window.location.pathname.split("/").pop() || 'index.html';
+    const isListPage = currentFile === 'list.html';
 
-    // 1. ヘッダー注入（名前表示 ID: user-display-name を追加）
+    // 1. ヘッダー注入 (ID: user-display-name を適用)
     headerPlaceholder.innerHTML = `
         <header class="h-16 bg-[#3c4b5a] flex items-center justify-between px-6 text-white shadow-lg shrink-0 z-50 sticky top-0">
-            <div class="flex items-center gap-4">
-                <button id="mobile-toggle" class="lg:hidden text-white/70 hover:text-[#87ceeb]"><i class="fa-solid fa-bars text-xl"></i></button>
+            <div class="flex items-center gap-6">
                 <div class="flex items-center gap-3">
+                    <button id="mobile-toggle" class="lg:hidden text-white/70 mr-2"><i class="fa-solid fa-bars text-xl"></i></button>
                     <img src="logo.jpg" alt="ロゴ" class="h-10 w-auto object-contain">
                     <span class="hidden sm:inline text-xl font-bold tracking-tighter text-[#87ceeb]">株式会社コプロス</span>
                 </div>
+                ${isListPage ? `
+                <div class="hidden md:flex relative items-center group ml-4">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 text-gray-400"></i>
+                    <input type="text" id="headerSearchInput" placeholder="お客様名で高速検索..." 
+                           class="w-80 py-2 pl-10 pr-4 text-sm text-gray-800 rounded-full outline-none transition-all bg-gray-50/90 border border-transparent focus:border-blue-400">
+                </div>` : ''}
             </div>
             <div class="flex items-center gap-4">
                 <div class="text-right mr-1 hidden xs:block">
                     <p class="text-[10px] opacity-50 leading-none mb-1 uppercase tracking-tighter">Current User</p>
-                    <p id="user-display-name" class="text-sm font-black tracking-wider text-white">読み込み中...</p>
+                    <p id="user-display-name" class="text-sm font-black tracking-wider text-white">ゲスト</p>
                 </div>
                 <div class="w-10 h-10 bg-gradient-to-br from-slate-400 to-slate-600 rounded-full flex items-center justify-center border-2 border-white/20 shadow-md text-white">
                     <i class="fa-solid fa-user text-lg"></i>
@@ -43,60 +50,78 @@ document.addEventListener('DOMContentLoaded', () => {
         </header>
     `;
 
-    // 2. サイドバー注入（幅220px固定・字の大きさ統一・お知らせ管理追加）
+    // 2. サイドバー注入 (由紀さんの階層・アイコンを完全復元)
     sidebarPlaceholder.innerHTML = `
         <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 z-40 hidden lg:hidden"></div>
         <aside id="main-sidebar" class="sidebar flex flex-col shrink-0 fixed lg:static inset-y-0 left-0 z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out" style="width: 220px; background-color: #1a1a1a; color: white; height: 100vh;">
-            <div class="h-16 flex items-center justify-between px-6 text-gray-500 font-black tracking-widest text-[10px] border-b border-gray-800 uppercase">
-                <span>Menu System</span>
-                <button id="sidebar-close" class="lg:hidden"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-            <nav class="flex-1 overflow-y-auto py-4 custom-scrollbar text-[13px]">
-                <div class="nav-group mb-2">
-                    <div class="group-header flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-white/5 transition-all">
-                        <div class="flex items-center gap-3"><i class="fa-solid fa-users w-5 text-[#87ceeb]"></i><span>お客様管理</span></div>
-                        <i class="fa-solid fa-chevron-down text-[10px] opacity-30 arrow"></i>
-                    </div>
-                    <div class="submenu hidden bg-black/20 font-bold">
-                        <div class="py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='list.html'">お客様一覧</div>
-                        <div class="py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='add.html'">お客様登録</div>
-                    </div>
-                </div>
-                <div class="nav-group mb-2">
-                    <div class="group-header flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-white/5 transition-all">
-                        <div class="flex items-center gap-3"><i class="fa-solid fa-file-invoice w-5 text-[#87ceeb]"></i><span>実績管理</span></div>
-                        <i class="fa-solid fa-chevron-down text-[10px] opacity-30 arrow"></i>
-                    </div>
-                    <div class="submenu hidden bg-black/20 font-bold">
-                        <div class="py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='history.html'">実績登録</div>
-                        <div class="py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='list_records.html'">実績一覧</div>
-                    </div>
-                </div>
-                <div class="px-6 py-3 flex items-center gap-3 hover:bg-white/5 cursor-pointer transition-all" onclick="location.href='calendar.html'"><i class="fa-solid fa-calendar-days w-5 text-[#87ceeb]"></i><span>カレンダー</span></div>
-                <div class="px-6 py-3 flex items-center justify-between hover:bg-white/5 cursor-pointer transition-all" onclick="location.href='kairan.html'"><div class="flex items-center gap-3"><i class="fa-solid fa-envelope-open-text w-5 text-[#87ceeb]"></i><span>回覧一覧</span></div><span id="unreadBadge" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold" style="display:none;">0</span></div>
-                <div class="px-6 py-3 flex items-center gap-3 hover:bg-white/5 cursor-pointer transition-all" onclick="location.href='map.html'"><i class="fa-solid fa-map-location-dot w-5 text-[#87ceeb]"></i><span>営業マップ</span></div>
-                <div class="px-6 py-3 flex items-center gap-3 hover:bg-white/5 cursor-pointer transition-all mb-4" onclick="location.href='appoint.html'"><i class="fa-solid fa-clock w-5 text-[#87ceeb]"></i><span>アポイント</span></div>
+            <div class="h-16 flex items-center px-6 text-gray-500 font-black tracking-widest text-xs border-b border-gray-800 uppercase">Menu</div>
+            <nav class="flex-1 overflow-y-auto py-2 custom-scrollbar">
                 
-                <div class="px-4 py-2 text-[10px] font-black text-gray-600 uppercase tracking-widest border-t border-gray-800 pt-6">Data Analytics</div>
-                <div class="px-6 py-3 flex items-center gap-3 hover:bg-white/5 cursor-pointer transition-all text-gray-400" onclick="location.href='usage.html'"><span>組織員利用状況</span></div>
-                <div class="px-6 py-3 flex items-center gap-3 hover:bg-white/5 cursor-pointer transition-all text-gray-400" onclick="location.href='monthly_list.html'"><span>月別実績一覧</span></div>
-                <div class="px-6 py-3 flex items-center gap-3 hover:bg-white/5 cursor-pointer transition-all text-gray-400" onclick="location.href='view_graph.html'"><span>実績グラフ</span></div>
-
-                <div class="nav-group mt-4">
-                    <div class="group-header flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-white/5 border-t border-gray-800 pt-6">
-                        <div class="flex items-center gap-3 text-gray-500 font-bold"><span>システム管理</span></div>
-                        <i class="fa-solid fa-chevron-down text-[10px] opacity-30 arrow"></i>
+                <div class="nav-group">
+                    <div class="group-header flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-white/5 transition-colors">
+                        <div class="flex items-center gap-3"><i class="fa-solid fa-users w-5 icon-to-color"></i><span>お客様</span></div>
+                        <i class="fa-solid fa-chevron-down text-[10px] opacity-30 arrow transition-transform"></i>
                     </div>
-                    <div class="submenu hidden bg-black/20 font-bold">
-                        <div class="py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='notice_list.html'">お知らせ管理</div>
-                        <div class="py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='staff_list.html'">組織員登録</div>
-                        <div class="py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='import.html'">データ移行</div>
+                    <div class="submenu hidden bg-black/20">
+                        <div class="py-2.5 pl-14 pr-4 text-xs opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='list.html'">お客様情報一覧</div>
+                        <div class="py-2.5 pl-14 pr-4 text-xs opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='add.html'">お客様情報登録</div>
+                    </div>
+                </div>
+
+                <div class="nav-group">
+                    <div class="group-header flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-white/5">
+                        <div class="flex items-center gap-3"><i class="fa-solid fa-file-invoice w-5 icon-to-color"></i><span>実績</span></div>
+                        <i class="fa-solid fa-chevron-down text-[10px] opacity-30 arrow transition-transform"></i>
+                    </div>
+                    <div class="submenu hidden bg-black/20">
+                        <div class="py-2.5 pl-14 pr-4 text-xs opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='history.html'">実績登録</div>
+                        <div class="py-2.5 pl-14 pr-4 text-xs opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='list_records.html'">実績一覧</div>
+                        <div class="py-2.5 pl-14 pr-4 text-xs opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer">実績CSV出力</div>
+                    </div>
+                </div>
+
+                <div class="px-6 py-3 flex items-center gap-3 hover:bg-white/5 cursor-pointer item-link" onclick="location.href='calendar.html'"><i class="fa-solid fa-calendar-days w-5 icon-to-color"></i><span>カレンダー</span></div>
+                
+                <div class="px-6 py-3 flex items-center justify-between hover:bg-white/5 cursor-pointer item-link" onclick="location.href='kairan.html'">
+                    <div class="flex items-center gap-3"><i class="fa-solid fa-envelope-open-text w-5 icon-to-color"></i><span>回覧一覧</span></div>
+                    <span id="unreadBadge" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold" style="display:none;">0</span>
+                </div>
+
+                <div class="px-6 py-3 flex items-center gap-3 hover:bg-white/5 cursor-pointer item-link" onclick="location.href='map.html'"><i class="fa-solid fa-map-location-dot w-5 icon-to-color"></i><span>地図</span></div>
+                <div class="px-6 py-3 flex items-center gap-3 hover:bg-white/5 cursor-pointer item-link" onclick="location.href='appoint.html'"><i class="fa-solid fa-clock w-5 icon-to-color"></i><span>アポイント</span></div>
+
+                <div class="nav-group">
+                    <div class="group-header flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-white/5">
+                        <div class="flex items-center gap-3"><i class="fa-solid fa-chart-line w-5 icon-to-color"></i><span>集計</span></div>
+                        <i class="fa-solid fa-chevron-down text-[10px] opacity-30 arrow transition-transform"></i>
+                    </div>
+                    <div class="submenu hidden bg-black/20">
+                        <div class="py-2.5 pl-14 pr-4 text-xs opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='usage.html'">組織員利用状況</div>
+                        <div class="py-2.5 pl-14 pr-4 text-xs opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='monthly_list.html'">月別一覧</div>
+                        <div class="py-2.5 pl-14 pr-4 text-xs opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='customer_stay_time.html'">お客様別滞在時間一覧</div>
+                        <div class="py-2.5 pl-14 pr-4 text-xs opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='monthly_stay_time.html'">お客様別月別滞在時間一覧</div>
+                        <div class="py-2.5 pl-14 pr-4 text-xs opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='view_graph.html'">実績グラフ出力</div>
+                    </div>
+                </div>
+
+                <div class="nav-group">
+                    <div class="group-header flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-white/5">
+                        <div class="flex items-center gap-3"><i class="fa-solid fa-gear w-5 icon-to-color"></i><span>マスタ管理</span></div>
+                        <i class="fa-solid fa-chevron-down text-[10px] opacity-30 arrow transition-transform"></i>
+                    </div>
+                    <div class="submenu hidden bg-black/20">
+                        <div class="py-2.5 pl-14 pr-4 text-xs opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='notice_list.html'">お知らせ管理</div>
+                        <div class="py-2.5 pl-14 pr-4 text-xs opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='staff_list.html'">組織員情報登録</div>
+                        <div class="py-2.5 pl-14 pr-4 text-xs opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer">実績マスタ</div>
+                        <div class="py-2.5 pl-14 pr-4 text-xs opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer">お客様情報マスタ</div>
+                        <div class="py-2.5 pl-14 pr-4 text-xs opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer">システム管理</div>
+                        <div class="py-2.5 pl-14 pr-4 text-xs opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='import.html'">インポート</div>
                     </div>
                 </div>
             </nav>
             <div class="p-6 border-t border-gray-800 bg-[#1a1a1a]">
                 <button onclick="logout()" class="flex items-center gap-3 text-gray-500 hover:text-rose-400 transition-colors font-bold w-full text-left">
-                    <i class="fa-solid fa-power-off text-xs"></i><span>ログアウト</span>
+                    <i class="fa-solid fa-power-off"></i><span>ログアウト</span>
                 </button>
             </div>
         </aside>
@@ -115,34 +140,49 @@ document.addEventListener('DOMContentLoaded', () => {
     if(sidebarClose) sidebarClose.onclick = () => controlSidebar(false);
     if(sidebarOverlay) sidebarOverlay.onclick = () => controlSidebar(false);
 
-    // --- ロジック：アコーディオン ＆ ハイライト ---
+    // --- ロジック：アコーディオン開閉 ---
     document.querySelectorAll('.group-header').forEach(header => {
         header.addEventListener('click', () => {
             const submenu = header.nextElementSibling;
             const arrow = header.querySelector('.arrow');
+            const isOpen = !submenu.classList.contains('hidden');
             submenu.classList.toggle('hidden');
-            arrow.style.transform = submenu.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+            if (arrow) arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
         });
     });
 
-    document.querySelectorAll('[onclick]').forEach(el => {
-        const action = el.getAttribute('onclick');
-        if (action && action.includes(`'${currentFile}'`)) {
+    // --- ロジック：ハイライト（大項目アイコン ＆ 小項目テキストを水色に） ---
+    document.querySelectorAll('[onclick], .item-link').forEach(el => {
+        const action = el.getAttribute('onclick') || "";
+        if (action.includes(`'${currentFile}'`) || el.classList.contains('active-link')) {
+            // 小項目の色付け
             el.classList.add('text-[#87ceeb]', 'font-black');
-            const parentSubmenu = el.closest('.submenu');
-            if (parentSubmenu) {
-                parentSubmenu.classList.remove('hidden');
-                const arrow = parentSubmenu.parentElement.querySelector('.arrow');
+            el.classList.remove('opacity-70');
+
+            // 親グループ（大項目）の特定
+            const parentGroup = el.closest('.nav-group');
+            if (parentGroup) {
+                // サブメニューを開く
+                const submenu = parentGroup.querySelector('.submenu');
+                const arrow = parentGroup.querySelector('.arrow');
+                const icon = parentGroup.querySelector('.icon-to-color');
+                if (submenu) submenu.classList.remove('hidden');
                 if (arrow) arrow.style.transform = 'rotate(180deg)';
+                if (icon) icon.classList.add('text-[#87ceeb]'); // 大項目のアイコンを水色に
+            } else if (el.classList.contains('item-link')) {
+                // 単体メニューの場合のアイコン色付け
+                const icon = el.querySelector('.icon-to-color');
+                if (icon) icon.classList.add('text-[#87ceeb]');
             }
         }
     });
 
-    // --- 名前表示 ＆ バッジ ---
+    // --- 名前表示 ---
     const userName = sessionStorage.getItem('userName');
     const nameEl = document.getElementById('user-display-name');
     if (userName && nameEl) nameEl.innerText = userName + " 氏";
 
+    // --- 未読バッジ ---
     async function refreshUnreadBadge() {
         if (!userName) return;
         try {
