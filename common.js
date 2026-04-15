@@ -1,4 +1,4 @@
-// 👑 CP My Page: 共通基盤JS (common.js) - 由紀さんデザイン完全復元版
+// 👑 CP My Page: 共通基盤JS (common.js) - スムーズ・イン ＆ デザイン固定版
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, collection, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
@@ -14,6 +14,16 @@ export const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// 🌟 スムーズな表示のためのCSSを注入
+const style = document.createElement('style');
+style.innerHTML = `
+    #header-placeholder, #sidebar-placeholder { opacity: 0; transition: opacity 0.3s ease-in-out; }
+    #header-placeholder.loaded, #sidebar-placeholder.loaded { opacity: 1; }
+    main { animation: fadeInContent 0.4s ease-out; }
+    @keyframes fadeInContent { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+`;
+document.head.appendChild(style);
+
 document.addEventListener('DOMContentLoaded', () => {
     const headerPlaceholder = document.getElementById('header-placeholder');
     const sidebarPlaceholder = document.getElementById('sidebar-placeholder');
@@ -22,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentFile = window.location.pathname.split("/").pop() || 'index.html';
     const isListPage = currentFile === 'list.html';
 
-    // 1. ヘッダー注入 (ID: user-display-name を適用)
+    // 1. ヘッダー注入
     headerPlaceholder.innerHTML = `
         <header class="h-16 bg-[#3c4b5a] flex items-center justify-between px-6 text-white shadow-lg shrink-0 z-50 sticky top-0">
             <div class="flex items-center gap-6">
@@ -50,15 +60,15 @@ document.addEventListener('DOMContentLoaded', () => {
         </header>
     `;
 
-    // 2. サイドバー注入 (由紀さんの階層・アイコンを完全復元)
+    // 2. サイドバー注入 (デザイン固定版)
     sidebarPlaceholder.innerHTML = `
         <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 z-40 hidden lg:hidden"></div>
         <aside id="main-sidebar" class="sidebar flex flex-col shrink-0 fixed lg:static inset-y-0 left-0 z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out" style="width: 220px; background-color: #1a1a1a; color: white; height: 100vh;">
             <div class="h-16 flex items-center px-6 text-gray-500 font-black tracking-widest text-xs border-b border-gray-800 uppercase">Menu</div>
             <nav class="flex-1 overflow-y-auto py-2 custom-scrollbar">
                 
-                <div class="nav-group">
-                    <div class="group-header flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-white/5 transition-colors">
+                <div class="nav-group" data-group="customers">
+                    <div class="group-header flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-white/5">
                         <div class="flex items-center gap-3"><i class="fa-solid fa-users w-5 icon-to-color"></i><span>お客様</span></div>
                         <i class="fa-solid fa-chevron-down text-[10px] opacity-30 arrow transition-transform"></i>
                     </div>
@@ -68,7 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
 
-                <div class="nav-group">
+                <div class="nav-group" data-group="records">
                     <div class="group-header flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-white/5">
                         <div class="flex items-center gap-3"><i class="fa-solid fa-file-invoice w-5 icon-to-color"></i><span>実績</span></div>
                         <i class="fa-solid fa-chevron-down text-[10px] opacity-30 arrow transition-transform"></i>
@@ -76,21 +86,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="submenu hidden bg-black/20">
                         <div class="py-2.5 pl-14 pr-4 text-xs opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='history.html'">実績登録</div>
                         <div class="py-2.5 pl-14 pr-4 text-xs opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='list_records.html'">実績一覧</div>
-                        <div class="py-2.5 pl-14 pr-4 text-xs opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer">実績CSV出力</div>
                     </div>
                 </div>
 
                 <div class="px-6 py-3 flex items-center gap-3 hover:bg-white/5 cursor-pointer item-link" onclick="location.href='calendar.html'"><i class="fa-solid fa-calendar-days w-5 icon-to-color"></i><span>カレンダー</span></div>
-                
-                <div class="px-6 py-3 flex items-center justify-between hover:bg-white/5 cursor-pointer item-link" onclick="location.href='kairan.html'">
-                    <div class="flex items-center gap-3"><i class="fa-solid fa-envelope-open-text w-5 icon-to-color"></i><span>回覧一覧</span></div>
-                    <span id="unreadBadge" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold" style="display:none;">0</span>
-                </div>
-
+                <div class="px-6 py-3 flex items-center justify-between hover:bg-white/5 cursor-pointer item-link" onclick="location.href='kairan.html'"><div class="flex items-center gap-3"><i class="fa-solid fa-envelope-open-text w-5 icon-to-color"></i><span>回覧一覧</span></div><span id="unreadBadge" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold" style="display:none;">0</span></div>
                 <div class="px-6 py-3 flex items-center gap-3 hover:bg-white/5 cursor-pointer item-link" onclick="location.href='map.html'"><i class="fa-solid fa-map-location-dot w-5 icon-to-color"></i><span>地図</span></div>
-                <div class="px-6 py-3 flex items-center gap-3 hover:bg-white/5 cursor-pointer item-link" onclick="location.href='appoint.html'"><i class="fa-solid fa-clock w-5 icon-to-color"></i><span>アポイント</span></div>
+                <div class="px-6 py-3 flex items-center gap-3 hover:bg-white/5 cursor-pointer item-link mb-4" onclick="location.href='appoint.html'"><i class="fa-solid fa-clock w-5 icon-to-color"></i><span>アポイント</span></div>
 
-                <div class="nav-group">
+                <div class="nav-group" data-group="stats">
                     <div class="group-header flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-white/5">
                         <div class="flex items-center gap-3"><i class="fa-solid fa-chart-line w-5 icon-to-color"></i><span>集計</span></div>
                         <i class="fa-solid fa-chevron-down text-[10px] opacity-30 arrow transition-transform"></i>
@@ -104,7 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
 
-                <div class="nav-group">
+                <div class="nav-group" data-group="admin">
                     <div class="group-header flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-white/5">
                         <div class="flex items-center gap-3"><i class="fa-solid fa-gear w-5 icon-to-color"></i><span>マスタ管理</span></div>
                         <i class="fa-solid fa-chevron-down text-[10px] opacity-30 arrow transition-transform"></i>
@@ -112,9 +116,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="submenu hidden bg-black/20">
                         <div class="py-2.5 pl-14 pr-4 text-xs opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='notice_list.html'">お知らせ管理</div>
                         <div class="py-2.5 pl-14 pr-4 text-xs opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='staff_list.html'">組織員情報登録</div>
-                        <div class="py-2.5 pl-14 pr-4 text-xs opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer">実績マスタ</div>
-                        <div class="py-2.5 pl-14 pr-4 text-xs opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer">お客様情報マスタ</div>
-                        <div class="py-2.5 pl-14 pr-4 text-xs opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer">システム管理</div>
                         <div class="py-2.5 pl-14 pr-4 text-xs opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='import.html'">インポート</div>
                     </div>
                 </div>
@@ -127,7 +128,32 @@ document.addEventListener('DOMContentLoaded', () => {
         </aside>
     `;
 
-    // --- ロジック：スマホ制御 ---
+    // 🌟 注入完了後、クラスを追加してふわっと表示
+    headerPlaceholder.classList.add('loaded');
+    sidebarPlaceholder.classList.add('loaded');
+
+    // --- ロジック：ハイライト ＆ 自動開閉（高速化） ---
+    document.querySelectorAll('[onclick], .item-link').forEach(el => {
+        const action = el.getAttribute('onclick') || "";
+        if (action.includes(`'${currentFile}'`)) {
+            el.classList.add('text-[#87ceeb]', 'font-black');
+            el.classList.remove('opacity-70');
+            const parentGroup = el.closest('.nav-group');
+            if (parentGroup) {
+                const submenu = parentGroup.querySelector('.submenu');
+                const arrow = parentGroup.querySelector('.arrow');
+                const icon = parentGroup.querySelector('.icon-to-color');
+                if (submenu) submenu.classList.remove('hidden');
+                if (arrow) arrow.style.transform = 'rotate(180deg)';
+                if (icon) icon.classList.add('text-[#87ceeb]');
+            } else if (el.classList.contains('item-link')) {
+                const icon = el.querySelector('.icon-to-color');
+                if (icon) icon.classList.add('text-[#87ceeb]');
+            }
+        }
+    });
+
+    // --- 他のイベント（スマホ制御・アコーディオン）はそのまま維持 ---
     const mobileToggle = document.getElementById('mobile-toggle');
     const sidebarClose = document.getElementById('sidebar-close');
     const sidebarOverlay = document.getElementById('sidebar-overlay');
@@ -140,7 +166,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if(sidebarClose) sidebarClose.onclick = () => controlSidebar(false);
     if(sidebarOverlay) sidebarOverlay.onclick = () => controlSidebar(false);
 
-    // --- ロジック：アコーディオン開閉 ---
     document.querySelectorAll('.group-header').forEach(header => {
         header.addEventListener('click', () => {
             const submenu = header.nextElementSibling;
@@ -151,38 +176,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // --- ロジック：ハイライト（大項目アイコン ＆ 小項目テキストを水色に） ---
-    document.querySelectorAll('[onclick], .item-link').forEach(el => {
-        const action = el.getAttribute('onclick') || "";
-        if (action.includes(`'${currentFile}'`) || el.classList.contains('active-link')) {
-            // 小項目の色付け
-            el.classList.add('text-[#87ceeb]', 'font-black');
-            el.classList.remove('opacity-70');
-
-            // 親グループ（大項目）の特定
-            const parentGroup = el.closest('.nav-group');
-            if (parentGroup) {
-                // サブメニューを開く
-                const submenu = parentGroup.querySelector('.submenu');
-                const arrow = parentGroup.querySelector('.arrow');
-                const icon = parentGroup.querySelector('.icon-to-color');
-                if (submenu) submenu.classList.remove('hidden');
-                if (arrow) arrow.style.transform = 'rotate(180deg)';
-                if (icon) icon.classList.add('text-[#87ceeb]'); // 大項目のアイコンを水色に
-            } else if (el.classList.contains('item-link')) {
-                // 単体メニューの場合のアイコン色付け
-                const icon = el.querySelector('.icon-to-color');
-                if (icon) icon.classList.add('text-[#87ceeb]');
-            }
-        }
-    });
-
-    // --- 名前表示 ---
     const userName = sessionStorage.getItem('userName');
     const nameEl = document.getElementById('user-display-name');
     if (userName && nameEl) nameEl.innerText = userName + " 氏";
 
-    // --- 未読バッジ ---
     async function refreshUnreadBadge() {
         if (!userName) return;
         try {
