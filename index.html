@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ログイン | CP My Page</title>
+    <title>ログイン | CP My Page V2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -16,15 +16,19 @@
         .notice-item { border-bottom: 1px solid rgba(255,255,255,0.05); padding: 1rem; transition: background 0.3s; }
         .notice-item:last-child { border-bottom: none; }
         .notice-item:hover { background: rgba(255,255,255,0.02); }
+        
+        /* スクロールバーの非表示（お知らせ用） */
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
     </style>
 </head>
-<body class="flex flex-col items-center justify-center p-6">
+<body class="flex flex-col items-center justify-center p-6 min-h-screen">
 
     <!-- ログインカード -->
     <div class="login-card p-10 rounded-xl shadow-2xl w-full max-w-md">
         <div class="text-center mb-10">
             <h1 class="text-3xl font-extrabold text-[#2c5282] tracking-tight">株式会社コプロス</h1>
-            <p class="text-[#4299e1] text-sm font-bold tracking-[0.2em] mt-2">CP My Page - 営業支援システム</p>
+            <p class="text-[#4299e1] text-sm font-bold tracking-[0.2em] mt-2 uppercase">CP My Page V2 - Sales Support</p>
         </div>
 
         <form id="loginForm" class="space-y-6">
@@ -32,7 +36,7 @@
                 <label class="block text-xs font-bold text-gray-600 mb-1 ml-1">ユーザーID</label>
                 <div class="relative">
                     <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400"><i class="fa-solid fa-user"></i></span>
-                    <input type="text" id="userId" placeholder="UserID" class="w-full border border-gray-300 pl-10 p-3 rounded-lg outline-none input-focus transition-all" required>
+                    <input type="text" id="userId" placeholder="社員番号を入力" class="w-full border border-gray-300 pl-10 p-3 rounded-lg outline-none input-focus transition-all font-bold" required>
                 </div>
             </div>
             <div>
@@ -43,46 +47,49 @@
                 </div>
             </div>
             <div class="flex items-center justify-between text-xs text-gray-500">
-                <label class="flex items-center cursor-pointer"><input type="checkbox" class="mr-1"> ログイン状態を保持</label>
-                <a href="#" class="hover:text-[#2c5282]">パスワードを忘れた場合</a>
+                <label class="flex items-center cursor-pointer select-none"><input type="checkbox" class="mr-1 accent-[#ff7e11]"> ログイン状態を保持</label>
+                <a href="#" class="hover:text-[#2c5282] font-bold transition-colors">パスワードを忘れた場合</a>
             </div>
-            <button type="submit" class="w-full bg-[#ff7e11] hover:bg-[#e66a00] text-white py-4 rounded-lg font-bold shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2">
-                ログイン <i class="fa-solid fa-right-to-bracket"></i>
+            <button type="submit" id="loginBtn" class="w-full bg-[#ff7e11] hover:bg-[#e66a00] text-white py-4 rounded-lg font-bold shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2">
+                <span>ログイン</span> <i class="fa-solid fa-right-to-bracket"></i>
             </button>
         </form>
-        <p class="mt-8 text-center text-gray-400 text-[10px]">© 2026 COPROS Co., Ltd. All Rights Reserved.</p>
+        <p class="mt-8 text-center text-gray-400 text-[10px] tracking-widest">© 2026 COPROS Co., Ltd. All Rights Reserved.</p>
     </div>
 
-    <!-- 🌟 重要なお知らせボード（ログイン画面の下に配置） -->
+    <!-- 🌟 重要なお知らせボード（V2 鉄壁版） -->
     <div class="notice-board w-full shadow-2xl">
-        <div class="bg-white/10 px-6 py-3 flex items-center gap-2">
+        <div class="bg-white/10 px-6 py-3 flex items-center gap-2 border-b border-white/5">
             <i class="fa-solid fa-bullhorn text-orange-400 text-xs"></i>
-            <span class="text-white text-[10px] font-black uppercase tracking-widest">Important Notices</span>
+            <span class="text-white text-[10px] font-black uppercase tracking-[0.2em]">Important Notices</span>
         </div>
-        <div id="noticeContainer" class="p-2">
+        <div id="noticeContainer" class="max-h-[250px] overflow-y-auto custom-scrollbar p-2">
             <p class="text-gray-500 text-xs font-bold p-6 text-center">お知らせを読み込み中...</p>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+        // 🌟 由紀さんの新プロジェクトV2設定
         const firebaseConfig = {
-            apiKey: "AiZaSyDh00EZ7Jb1K2rTxLyTH6d80b4Qzcrwf_XI",
-            authDomain: "copros-my-page.firebaseapp.com",
-            projectId: "copros-my-page",
-            storageBucket: "copros-my-page.firebasestorage.app",
-            messagingSenderId: "54419849010",
-            appId: "1:54419849010:web:a60015b9c6fcf60cd3e12b"
+            apiKey: "AIzaSyC5L1V6jn3Q8i1bWFW03Gd25w_If6dklmY",
+            authDomain: "copros-my-page-v2.firebaseapp.com",
+            projectId: "copros-my-page-v2",
+            storageBucket: "copros-my-page-v2.firebasestorage.app",
+            messagingSenderId: "595195904220",
+            appId: "1:595195904220:web:402fd4e8620e2f32673419"
         };
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // --- 1. お知らせの取得表示 ---
+        // --- 1. お知らせの取得表示（V2 鉄壁版） ---
         async function loadNotices() {
             try {
-                const snap = await getDocs(query(collection(db, "notices"), orderBy("createdAt", "desc")));
+                // 最新5件に絞って取得（読み取り数節約）
+                const q = query(collection(db, "notices"), orderBy("createdAt", "desc"), limit(5));
+                const snap = await getDocs(q);
                 const container = document.getElementById('noticeContainer');
                 const today = new Date().toISOString().split('T')[0];
 
@@ -97,29 +104,37 @@
                         return `
                             <div class="notice-item">
                                 <div class="flex justify-between items-center mb-1">
-                                    <h4 class="text-sky-300 font-black text-sm">${data.title}</h4>
-                                    <span class="text-[9px] text-gray-500 font-mono">${data.startDate.replace(/-/g,'/')}</span>
+                                    <h4 class="text-sky-300 font-black text-sm">${data.title || '無題'}</h4>
+                                    <span class="text-[9px] text-gray-500 font-mono">${(data.startDate || '').replace(/-/g,'/')}</span>
                                 </div>
-                                <p class="text-gray-300 text-xs leading-relaxed line-clamp-2">${data.content}</p>
+                                <p class="text-gray-300 text-xs leading-relaxed line-clamp-2">${data.content || ''}</p>
                             </div>
                         `;
                     }).join('');
                 } else {
-                    container.innerHTML = '<p class="text-gray-500 text-[10px] p-4 text-center font-bold">現在、掲載中のお知らせはありません。</p>';
+                    container.innerHTML = '<p class="text-gray-500 text-[10px] p-6 text-center font-bold">現在、掲載中のお知らせはありません。</p>';
                 }
-            } catch (e) { console.warn("Quota待機中..."); }
+            } catch (e) { 
+                console.warn("Notice Load Error:", e);
+                document.getElementById('noticeContainer').innerHTML = '<p class="text-gray-600 text-[9px] p-4 text-center">お知らせの取得に失敗しました。</p>';
+            }
         }
         loadNotices();
 
-        // --- 2. ログイン処理 ---
+        // --- 2. ログイン処理（V2 鉄壁版） ---
         const loginForm = document.getElementById('loginForm');
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const inputId = document.getElementById('userId').value;
+            const btn = document.getElementById('loginBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 認証中...';
+
+            const inputId = document.getElementById('userId').value.trim();
             const inputPw = document.getElementById('password').value;
 
             try {
-                const q = query(collection(db, "staffs"), where("id", "==", inputId));
+                // 社員特定も limit(1) で最小限に
+                const q = query(collection(db, "staffs"), where("id", "==", inputId), limit(1));
                 const snap = await getDocs(q);
 
                 if (!snap.empty) {
@@ -129,9 +144,22 @@
                         sessionStorage.setItem('userDept', staffData.dept || '未設定');
                         alert(`${staffData.name}さん、お疲れ様です！`);
                         location.href = 'list.html';
-                    } else { alert("パスワードが正しくありません。"); }
-                } else { alert("社員番号が見つかりません。"); }
-            } catch (error) { alert("ログイン処理中にエラーが発生しました。"); }
+                    } else { 
+                        alert("パスワードが正しくありません。"); 
+                        btn.disabled = false;
+                        btn.innerHTML = 'ログイン <i class="fa-solid fa-right-to-bracket"></i>';
+                    }
+                } else { 
+                    alert("社員番号が見つかりません。"); 
+                    btn.disabled = false;
+                    btn.innerHTML = 'ログイン <i class="fa-solid fa-right-to-bracket"></i>';
+                }
+            } catch (error) { 
+                console.error("Login Error:", error);
+                alert("ログインに失敗しました。接続状況を確認してください。"); 
+                btn.disabled = false;
+                btn.innerHTML = 'ログイン <i class="fa-solid fa-right-to-bracket"></i>';
+            }
         });
     </script>
 </body>
