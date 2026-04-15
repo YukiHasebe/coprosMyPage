@@ -134,125 +134,141 @@
 
     <script src="common.js"></script>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, orderBy, query } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+   <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    // 🌟 limit を追加インポート
+    import { getFirestore, collection, getDocs, orderBy, query, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // Firebase設定
-        const firebaseConfig = {
-            apiKey: "AiZaSyDh00EZ7Jb1K2rTxLyTH6d80b4Qzcrwf_XI",
-            authDomain: "copros-my-page.firebaseapp.com",
-            projectId: "copros-my-page",
-            storageBucket: "copros-my-page.firebasestorage.app",
-            messagingSenderId: "54419849010",
-            appId: "1:54419849010:web:a60015b9c6fcf60cd3e12b"
-        };
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+    // Firebase設定 (そのまま)
+    const firebaseConfig = {
+        apiKey: "AiZaSyDh00EZ7Jb1K2rTxLyTH6d80b4Qzcrwf_XI",
+        authDomain: "copros-my-page.firebaseapp.com",
+        projectId: "copros-my-page",
+        storageBucket: "copros-my-page.firebasestorage.app",
+        messagingSenderId: "54419849010",
+        appId: "1:54419849010:web:a60015b9c6fcf60cd3e12b"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-        let allRecords = [];
-        let filteredData = [];
-        let currentPage = 1;
-        const perPage = 20;
-        let current50on = 'all';
+    let allRecords = [];
+    let filteredData = [];
+    let currentPage = 1;
+    const perPage = 20;
+    let current50on = 'all';
 
-        async function init() {
-            try {
-                const snap = await getDocs(query(collection(db, "activity_records"), orderBy("visitDate", "desc")));
-                allRecords = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                window.updateView();
-            } catch (e) { console.error("Firebaseリセット待ち"); }
+    // 🌟 修正版 init: limit(100) を追加して、読み取り数を制限！
+    async function init() {
+        try {
+            console.log("データ取得開始...");
+            // とりあえず最新の100件だけ取得するように「蛇口」を絞ります
+            const q = query(
+                collection(db, "activity_records"), 
+                orderBy("visitDate", "desc"),
+                limit(100) 
+            );
+            const snap = await getDocs(q);
+            allRecords = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            console.log(allRecords.length + "件取得完了");
+            window.updateView();
+        } catch (e) { 
+            console.error("エラー発生:", e);
+            alert("データの読み込み制限に達したか、エラーが発生しました。");
         }
+    }
 
-        window.updateView = () => {
-            const deptK = document.getElementById('deptFilter').value;
-            const custK = document.getElementById('filterCustomer').value.toLowerCase();
-            const visiK = document.getElementById('filterVisitor').value.toLowerCase();
-            const startK = document.getElementById('startDate').value;
-            const endK = document.getElementById('endDate').value;
-            const rangeMap = { 'あ': /^[あ-おア-オ]/, 'か': /^[か-こカ-コが-ごガ-ゴ]/, 'さ': /^[さ-そサ-ソざ-ぞザ-ゾ]/, 'た': /^[た-とタ-トだ-どダ-ド]/, 'な': /^[な-のナ-ノ]/, 'は': /^[は-ほハ-ホば-ぼバ-ボぱ-ぽパ-ポ]/, 'ま': /^[ま-もマ-モ]/, 'や': /^[や-よヤ-ヨ]/, 'ら': /^[ら-ろラ-ロ]/, 'わ': /^[わ-んワ-ン]/ };
+    // 🌟 updateView 内の訪問回数計算も「取得できている範囲内」で行うよう修正
+    window.updateView = () => {
+        const deptK = document.getElementById('deptFilter').value;
+        const custK = document.getElementById('filterCustomer').value.toLowerCase();
+        const visiK = document.getElementById('filterVisitor').value.toLowerCase();
+        const startK = document.getElementById('startDate').value;
+        const endK = document.getElementById('endDate').value;
+        const rangeMap = { 'あ': /^[あ-おア-オ]/, 'か': /^[か-こカ-コが-ごガ-ゴ]/, 'さ': /^[さ-そサ-ソざ-ぞザ-ゾ]/, 'た': /^[た-とタ-トだ-どダ-ド]/, 'な': /^[な-のナ-ノ]/, 'は': /^[は-ほハ-ホば-ぼバ-ボぱ-ぽパ-ポ]/, 'ま': /^[ま-もマ-モ]/, 'や': /^[や-よヤ-ヨ]/, 'ら': /^[ら-ろラ-ロ]/, 'わ': /^[わ-んワ-ン]/ };
 
-            filteredData = allRecords.filter(d => {
-                const mDept = deptK === 'ALL' || d.visitorDept === deptK;
-                const mCust = !custK || d.customerName.toLowerCase().includes(custK);
-                const mVisi = !visiK || d.visitorName.toLowerCase().includes(visiK);
-                let mDate = true;
-                if (startK && d.visitDate < startK) mDate = false;
-                if (endK && d.visitDate > endK) mDate = false;
-                let m50on = current50on === 'all' ? true : (current50on === '他' ? !Object.values(rangeMap).some(re => re.test(d.customerName)) : rangeMap[current50on].test(d.customerName));
-                return mDept && mCust && mVisi && mDate && m50on;
-            });
-
-            const start = (currentPage - 1) * perPage;
-            const end = start + perPage;
-            renderTable(filteredData.slice(start, end), start);
-            renderPagination();
-            document.getElementById('totalCount').innerText = filteredData.length;
-            document.getElementById('pageRange').innerText = filteredData.length > 0 ? `${start + 1}-${Math.min(end, filteredData.length)}` : "0-0";
-        };
-
-        function renderTable(dataList, startIndex) {
-            const tbody = document.getElementById('recordTable');
-            tbody.innerHTML = "";
-            dataList.forEach((data, index) => {
-                const duration = calculateDuration(data.startTime, data.endTime);
-                const visitCount = allRecords.filter(r => r.customerName === data.customerName).length;
-                tbody.insertAdjacentHTML('beforeend', `
-                    <tr class="hover:bg-blue-50/40 transition-all border-b border-slate-50">
-                        <td class="p-6 text-center text-slate-300 font-mono text-xs">${startIndex + index + 1}</td>
-                        <td class="p-6"><div class="text-base text-slate-800 leading-tight cursor-pointer hover:text-blue-600 font-black" onclick="location.href='customer_history.html?name=${encodeURIComponent(data.customerName)}'">${data.customerName}</div></td>
-                        <td class="p-6 text-center"><span class="bg-slate-100 text-slate-500 px-4 py-1.5 rounded-full text-xs">${visitCount}回</span></td>
-                        <td class="p-6"><div class="text-slate-800 font-mono">${data.visitDate.replace(/-/g, '/')}</div><div class="text-[10px] text-slate-400 mt-1">${data.startTime || '--:--'} 〜 ${data.endTime || '--:--'} <span class="text-blue-500 font-black ml-2">${duration ? '滞在: '+duration : ''}</span></div></td>
-                        <td class="p-6"><div class="text-slate-700">${data.visitorName}</div><div class="text-[9px] text-slate-400 font-black uppercase mt-0.5">${data.visitorRole || 'メイン'}</div></td>
-                        <td class="p-6"><div class="text-orange-500 text-xs">${data.nextVisitDate ? data.nextVisitDate.replace(/-/g, '/') : '--'}</div></td>
-                        <td class="p-6 text-center"><button class="text-slate-300 hover:text-blue-500" onclick="location.href='customer_history.html?name=${encodeURIComponent(data.customerName)}'"><i class="fa-solid fa-circle-chevron-right text-lg"></i></button></td>
-                    </tr>
-                `);
-            });
-        }
-
-        function calculateDuration(s, e) { if (!s || !e) return ""; const sp = s.split(':'); const ep = e.split(':'); const d = (parseInt(ep[0])*60+parseInt(ep[1]))-(parseInt(sp[0])*60+parseInt(sp[1])); return d>0 ? d+'分' : ""; }
-
-        function renderPagination() {
-            const totalPages = Math.ceil(filteredData.length / perPage);
-            const containers = [document.getElementById('paginationTop'), document.getElementById('paginationBottom')];
-            containers.forEach(container => {
-                container.innerHTML = "";
-                if (totalPages <= 1) return;
-                for (let i = 1; i <= totalPages; i++) {
-                    const btn = document.createElement('div');
-                    btn.innerText = i;
-                    btn.className = `modern-page-btn ${currentPage === i ? 'active' : ''}`;
-                    btn.onclick = () => { currentPage = i; window.updateView(); window.scrollTo({top: 0, behavior: 'smooth'}); };
-                    container.appendChild(btn);
-                }
-            });
-        }
-
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.onclick = () => {
-                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                current50on = btn.dataset.range;
-                currentPage = 1;
-                window.updateView();
-            };
+        filteredData = allRecords.filter(d => {
+            const mDept = deptK === 'ALL' || d.visitorDept === deptK;
+            const mCust = !custK || (d.customerName && d.customerName.toLowerCase().includes(custK));
+            const mVisi = !visiK || (d.visitorName && d.visitorName.toLowerCase().includes(visiK));
+            let mDate = true;
+            if (startK && d.visitDate < startK) mDate = false;
+            if (endK && d.visitDate > endK) mDate = false;
+            let m50on = current50on === 'all' ? true : (current50on === '他' ? !Object.values(rangeMap).some(re => re.test(d.customerName)) : (d.customerName && rangeMap[current50on].test(d.customerName)));
+            return mDept && mCust && mVisi && mDate && m50on;
         });
 
-        document.getElementById('detailSearchToggle').onclick = () => {
-            const sec = document.getElementById('detailSearchSection');
-            sec.style.display = (sec.style.display === 'block') ? 'none' : 'block';
-        };
+        const start = (currentPage - 1) * perPage;
+        const end = start + perPage;
+        renderTable(filteredData.slice(start, end), start);
+        renderPagination();
+        document.getElementById('totalCount').innerText = filteredData.length;
+        document.getElementById('pageRange').innerText = filteredData.length > 0 ? `${start + 1}-${Math.min(end, filteredData.length)}` : "0-0";
+    };
 
-        window.clearSearch = () => {
-            document.querySelectorAll('#detailSearchSection input').forEach(i => i.value = "");
-            document.getElementById('deptFilter').value = "ALL";
-            current50on = 'all';
+    function renderTable(dataList, startIndex) {
+        const tbody = document.getElementById('recordTable');
+        tbody.innerHTML = "";
+        dataList.forEach((data, index) => {
+            const duration = calculateDuration(data.startTime, data.endTime);
+            // 🌟 訪問回数の計算でエラーが出ないよう安全策
+            const visitCount = allRecords.filter(r => r.customerName === data.customerName).length;
+            tbody.insertAdjacentHTML('beforeend', `
+                <tr class="hover:bg-blue-50/40 transition-all border-b border-slate-50">
+                    <td class="p-6 text-center text-slate-300 font-mono text-xs">${startIndex + index + 1}</td>
+                    <td class="p-6"><div class="text-base text-slate-800 leading-tight cursor-pointer hover:text-blue-600 font-black" onclick="location.href='customer_history.html?name=${encodeURIComponent(data.customerName || '')}'">${data.customerName || '名称不明'}</div></td>
+                    <td class="p-6 text-center"><span class="bg-slate-100 text-slate-500 px-4 py-1.5 rounded-full text-xs">${visitCount}回</span></td>
+                    <td class="p-6"><div class="text-slate-800 font-mono">${(data.visitDate || '').replace(/-/g, '/')}</div><div class="text-[10px] text-slate-400 mt-1">${data.startTime || '--:--'} 〜 ${data.endTime || '--:--'} <span class="text-blue-500 font-black ml-2">${duration ? '滞在: '+duration : ''}</span></div></td>
+                    <td class="p-6"><div class="text-slate-700">${data.visitorName || '不明'}</div><div class="text-[9px] text-slate-400 font-black uppercase mt-0.5">${data.visitorRole || 'メイン'}</div></td>
+                    <td class="p-6"><div class="text-orange-500 text-xs">${data.nextVisitDate ? data.nextVisitDate.replace(/-/g, '/') : '--'}</div></td>
+                    <td class="p-6 text-center"><button class="text-slate-300 hover:text-blue-500" onclick="location.href='customer_history.html?name=${encodeURIComponent(data.customerName || '')}'"><i class="fa-solid fa-circle-chevron-right text-lg"></i></button></td>
+                </tr>
+            `);
+        });
+    }
+
+    function calculateDuration(s, e) { if (!s || !e) return ""; const sp = s.split(':'); const ep = e.split(':'); const d = (parseInt(ep[0])*60+parseInt(ep[1]))-(parseInt(sp[0])*60+parseInt(sp[1])); return d>0 ? d+'分' : ""; }
+
+    function renderPagination() {
+        const totalPages = Math.ceil(filteredData.length / perPage);
+        const containers = [document.getElementById('paginationTop'), document.getElementById('paginationBottom')];
+        containers.forEach(container => {
+            container.innerHTML = "";
+            if (totalPages <= 1) return;
+            for (let i = 1; i <= totalPages; i++) {
+                const btn = document.createElement('div');
+                btn.innerText = i;
+                btn.className = `modern-page-btn ${currentPage === i ? 'active' : ''}`;
+                btn.onclick = () => { currentPage = i; window.updateView(); window.scrollTo({top: 0, behavior: 'smooth'}); };
+                container.appendChild(btn);
+            }
+        });
+    }
+
+    // イベントリスナー設定 (そのまま)
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.onclick = () => {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            current50on = btn.dataset.range;
             currentPage = 1;
             window.updateView();
         };
+    });
 
-        init();
-    </script>
+    document.getElementById('detailSearchToggle').onclick = () => {
+        const sec = document.getElementById('detailSearchSection');
+        sec.style.display = (sec.style.display === 'block') ? 'none' : 'block';
+    };
+
+    window.clearSearch = () => {
+        document.querySelectorAll('#detailSearchSection input').forEach(i => i.value = "");
+        document.getElementById('deptFilter').value = "ALL";
+        current50on = 'all';
+        currentPage = 1;
+        window.updateView();
+    };
+
+    init();
+</script>
 </body>
 </html>
