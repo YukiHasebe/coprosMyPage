@@ -10,16 +10,11 @@
         :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
         
-        /* 50音ボタン */
-        .filter-btn { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
-        .filter-btn:hover:not(.active) { color: var(--copros-orange); background: rgba(255,126,17,0.05); }
+        .filter-btn { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); white-space: nowrap; }
         .filter-btn.active { background: var(--copros-orange); color: white; box-shadow: 0 4px 12px rgba(255,126,17,0.3); transform: translateY(-1px); }
 
-        /* ページネーション */
         .modern-page-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-weight: 800; font-size: 12px; transition: all 0.3s; color: #94a3b8; cursor: pointer; border: 1px solid transparent; }
         .modern-page-btn.active { background: #334155; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .nav-arrow { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: white; color: var(--copros-orange); border: 1px solid #e2e8f0; transition: all 0.2s; }
-        .nav-arrow:hover:not(.disabled) { border-color: var(--copros-orange); background: var(--copros-orange); color: white; }
 
         .table-container { border-radius: 1.5rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
         thead tr { background-color: #3c4b5a; }
@@ -27,13 +22,16 @@
         #detailSearchSection { display: none; animation: fadeIn 0.3s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* 🌟 タイトル横のスマート部署選択 */
         .scope-select { 
             background: #e2e8f0; border: none; padding: 0.4rem 1rem; border-radius: 0.75rem; 
             font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; appearance: none;
             cursor: pointer; transition: all 0.2s;
         }
         .scope-select:hover { background: #cbd5e1; }
+        
+        /* スクロールバーのカスタマイズ */
+        .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700">
@@ -43,17 +41,16 @@
     <main class="flex-1 flex flex-col overflow-hidden">
         <div id="header-placeholder"></div>
 
-        <div class="flex-1 overflow-auto p-8 custom-scrollbar">
+        <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1400px] mx-auto">
                 
-                <!-- ヘッドエリア：タイトル横に部署選択を配置 -->
-                <div class="flex justify-between items-end mb-10">
-                    <div class="flex items-end gap-6">
+                <!-- ヘッドエリア -->
+                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 lg:mb-10 gap-6">
+                    <div class="flex items-end gap-4 lg:gap-6">
                         <div>
-                            <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">実績一覧</h1>
-                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Activity History Dashboard</p>
+                            <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-2">実績一覧</h1>
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Activity History</p>
                         </div>
-                        <!-- 🌟 部署フィルターをタイトル横に移動（スマートな配置） -->
                         <div class="mb-2">
                             <select id="deptFilter" onchange="window.updateView()" class="scope-select shadow-inner">
                                 <option value="ALL">全社表示</option>
@@ -65,53 +62,53 @@
                         </div>
                     </div>
 
-                    <!-- アクションボタン：元のスッキリしたデザインを復活 -->
-                    <div class="flex gap-3 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100">
-                        <button id="detailSearchToggle" class="px-5 py-2.5 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all flex items-center gap-2">
-                            <i class="fa-solid fa-sliders text-blue-400"></i>詳細絞り込み
+                    <div class="flex gap-2 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100 w-full lg:w-auto">
+                        <button id="detailSearchToggle" class="flex-1 lg:flex-none px-4 py-2.5 text-slate-500 rounded-xl font-bold text-xs hover:bg-slate-50 transition-all flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-sliders text-blue-400"></i>絞り込み
                         </button>
-                        <div class="w-px h-6 bg-slate-100 my-auto"></div>
-                        <button onclick="location.href='history.html'" class="px-6 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-sm hover:shadow-lg transition-all flex items-center gap-2">
-                            <i class="fa-solid fa-plus-circle"></i>実績を新規作成
+                        <div class="hidden lg:block w-px h-6 bg-slate-100 my-auto"></div>
+                        <button onclick="location.href='history.html'" class="flex-1 lg:flex-none px-5 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-xs hover:shadow-lg transition-all flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-plus-circle"></i>新規作成
                         </button>
                     </div>
                 </div>
 
-                <!-- 詳細検索パネル（中身は維持） -->
-                <div id="detailSearchSection" class="mb-8 p-8 bg-white rounded-3xl shadow-xl border border-blue-50">
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 text-xs font-bold">
-                        <div class="space-y-2"><label class="text-slate-400">お客様名</label><input type="text" id="filterCustomer" class="form-input" placeholder="キーワード"></div>
-                        <div class="space-y-2"><label class="text-slate-400">訪問者</label><input type="text" id="filterVisitor" class="form-input" placeholder="氏名検索"></div>
-                        <div class="space-y-2"><label class="text-slate-400">期間（開始）</label><input type="date" id="startDate" class="form-input"></div>
-                        <div class="space-y-2"><label class="text-slate-400">期間（終了）</label><input type="date" id="endDate" class="form-input"></div>
+                <!-- 詳細検索 -->
+                <div id="detailSearchSection" class="mb-8 p-6 bg-white rounded-3xl shadow-xl border border-blue-50">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs font-bold">
+                        <div class="space-y-2"><label class="text-slate-400 pl-1">お客様名</label><input type="text" id="filterCustomer" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="キーワード"></div>
+                        <div class="space-y-2"><label class="text-slate-400 pl-1">訪問者</label><input type="text" id="filterVisitor" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="氏名"></div>
+                        <div class="space-y-2"><label class="text-slate-400 pl-1">開始日</label><input type="date" id="startDate" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none"></div>
+                        <div class="space-y-2"><label class="text-slate-400 pl-1">終了日</label><input type="date" id="endDate" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none"></div>
                     </div>
                     <div class="flex justify-center gap-4 mt-8">
-                        <button onclick="window.updateView()" class="bg-[#334155] text-white px-12 py-3 rounded-xl font-bold shadow-lg hover:bg-black transition-all">検索を実行</button>
-                        <button onclick="clearSearch()" class="text-slate-400 px-8 py-3 rounded-xl font-bold hover:text-slate-600 transition-all">リセット</button>
+                        <button onclick="window.updateView()" class="bg-[#334155] text-white px-10 py-3 rounded-xl font-bold shadow-lg hover:bg-black transition-all">検索実行</button>
+                        <button onclick="clearSearch()" class="text-slate-400 px-6 py-3 rounded-xl font-bold hover:text-slate-600 transition-all">クリア</button>
                     </div>
                 </div>
 
-                <!-- 50音・件数・ページネーション -->
-                <div class="flex justify-between items-center mb-6 px-2">
-                    <div class="flex items-center gap-6">
-                        <div class="flex flex-wrap gap-1 p-1 bg-white rounded-xl border border-slate-200 shadow-sm font-black">
-                            <button class="filter-btn active px-4 py-1.5 rounded-lg text-xs transition-all" data-range="all">全件</button>
+                <!-- 50音・件数 -->
+                <div class="flex flex-col lg:flex-row justify-between items-center mb-6 gap-4 px-2">
+                    <div class="flex items-center gap-4 w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0 custom-scrollbar">
+                        <div class="flex gap-1 p-1 bg-white rounded-xl border border-slate-200 shadow-sm font-black">
+                            <button class="filter-btn active px-4 py-1.5 rounded-lg text-xs" data-range="all">全件</button>
                             <script>
                                 ['あ','か','さ','た','な','は','ま','や','ら','わ','他'].forEach(k => {
                                     document.write(`<button class="filter-btn px-3 py-1.5 rounded-lg text-xs text-slate-400" data-range="${k}">${k}</button>`);
                                 });
                             </script>
                         </div>
+                    </div>
+                    <div class="flex items-center justify-between w-full lg:w-auto gap-6 px-2">
                         <div class="flex items-center gap-2 border-l-2 border-slate-200 pl-6 h-8">
                             <span id="pageRange" class="text-xl font-black text-slate-800 tracking-tighter">0-0</span>
-                            <span class="text-slate-300 font-bold">/</span>
-                            <span id="totalCount" class="text-sm font-bold text-slate-400">0</span>
+                            <span class="text-sm font-bold text-slate-400 ml-2">/ <span id="totalCount">0</span> 件</span>
                         </div>
+                        <div id="paginationTop" class="flex items-center gap-1.5"></div>
                     </div>
-                    <div id="paginationTop" class="flex items-center gap-1.5"></div>
                 </div>
 
-                <div class="table-container">
+                <div class="table-container custom-scrollbar overflow-x-auto">
                     <table class="w-full text-left border-collapse min-w-[1000px]">
                         <thead>
                             <tr class="text-white text-[10px] font-black uppercase tracking-widest text-center">
@@ -120,8 +117,8 @@
                                 <th class="p-6 w-24">訪問回数</th>
                                 <th class="p-6 text-left">訪問日時 / 滞在時間</th>
                                 <th class="p-6 text-left">訪問者</th>
-                                <th class="p-6 text-left">次回訪問予定</th>
-                                <th class="p-6 w-16"><i class="fa-solid fa-eye opacity-30"></i></th>
+                                <th class="p-6 text-left">次回予定</th>
+                                <th class="p-6 w-16 opacity-30"><i class="fa-solid fa-eye"></i></th>
                             </tr>
                         </thead>
                         <tbody id="recordTable" class="divide-y divide-slate-100 text-sm font-bold"></tbody>
@@ -134,141 +131,141 @@
 
     <script src="common.js"></script>
 
-   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    // 🌟 limit を追加インポート
-    import { getFirestore, collection, getDocs, orderBy, query, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, orderBy, query, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { firebaseConfig } from "./common.js";
 
-    // Firebase設定 (そのまま)
-    const firebaseConfig = {
-        apiKey: "AiZaSyDh00EZ7Jb1K2rTxLyTH6d80b4Qzcrwf_XI",
-        authDomain: "copros-my-page.firebaseapp.com",
-        projectId: "copros-my-page",
-        storageBucket: "copros-my-page.firebasestorage.app",
-        messagingSenderId: "54419849010",
-        appId: "1:54419849010:web:a60015b9c6fcf60cd3e12b"
-    };
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
-    let allRecords = [];
-    let filteredData = [];
-    let currentPage = 1;
-    const perPage = 20;
-    let current50on = 'all';
+        let allRecords = [];
+        let filteredData = [];
+        let currentPage = 1;
+        const perPage = 20;
+        let current50on = 'all';
 
-    // 🌟 修正版 init: limit(100) を追加して、読み取り数を制限！
-    async function init() {
-        try {
-            console.log("データ取得開始...");
-            // とりあえず最新の100件だけ取得するように「蛇口」を絞ります
-            const q = query(
-                collection(db, "activity_records"), 
-                orderBy("visitDate", "desc"),
-                limit(100) 
-            );
-            const snap = await getDocs(q);
-            allRecords = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            console.log(allRecords.length + "件取得完了");
-            window.updateView();
-        } catch (e) { 
-            console.error("エラー発生:", e);
-            alert("データの読み込み制限に達したか、エラーが発生しました。");
+        async function init() {
+            try {
+                // 🌟 197万回防止：最新100件リミット
+                const q = query(collection(db, "activity_records"), orderBy("visitDate", "desc"), limit(100));
+                const snap = await getDocs(q);
+                allRecords = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                window.updateView();
+            } catch (e) { console.error("Firebaseリセット待ち", e); }
         }
-    }
 
-    // 🌟 updateView 内の訪問回数計算も「取得できている範囲内」で行うよう修正
-    window.updateView = () => {
-        const deptK = document.getElementById('deptFilter').value;
-        const custK = document.getElementById('filterCustomer').value.toLowerCase();
-        const visiK = document.getElementById('filterVisitor').value.toLowerCase();
-        const startK = document.getElementById('startDate').value;
-        const endK = document.getElementById('endDate').value;
-        const rangeMap = { 'あ': /^[あ-おア-オ]/, 'か': /^[か-こカ-コが-ごガ-ゴ]/, 'さ': /^[さ-そサ-ソざ-ぞザ-ゾ]/, 'た': /^[た-とタ-トだ-どダ-ド]/, 'な': /^[な-のナ-ノ]/, 'は': /^[は-ほハ-ホば-ぼバ-ボぱ-ぽパ-ポ]/, 'ま': /^[ま-もマ-モ]/, 'や': /^[や-よヤ-ヨ]/, 'ら': /^[ら-ろラ-ロ]/, 'わ': /^[わ-んワ-ン]/ };
+        window.updateView = () => {
+            const deptK = document.getElementById('deptFilter').value;
+            const custK = (document.getElementById('filterCustomer').value || "").toLowerCase();
+            const visiK = (document.getElementById('filterVisitor').value || "").toLowerCase();
+            const startK = document.getElementById('startDate').value;
+            const endK = document.getElementById('endDate').value;
+            const rangeMap = { 'あ': /^[あ-おア-オ]/, 'か': /^[か-こカ-コが-ごガ-ゴ]/, 'さ': /^[さ-そサ-ソざ-ぞザ-ゾ]/, 'た': /^[た-とタ-トだ-どダ-ド]/, 'な': /^[な-のナ-ノ]/, 'は': /^[は-ほハ-ホば-ぼバ-ボぱ-ぽパ-ポ]/, 'ま': /^[ま-もマ-モ]/, 'や': /^[や-よヤ-ヨ]/, 'ら': /^[ら-ろラ-ロ]/, 'わ': /^[わ-んワ-ン]/ };
 
-        filteredData = allRecords.filter(d => {
-            const mDept = deptK === 'ALL' || d.visitorDept === deptK;
-            const mCust = !custK || (d.customerName && d.customerName.toLowerCase().includes(custK));
-            const mVisi = !visiK || (d.visitorName && d.visitorName.toLowerCase().includes(visiK));
-            let mDate = true;
-            if (startK && d.visitDate < startK) mDate = false;
-            if (endK && d.visitDate > endK) mDate = false;
-            let m50on = current50on === 'all' ? true : (current50on === '他' ? !Object.values(rangeMap).some(re => re.test(d.customerName)) : (d.customerName && rangeMap[current50on].test(d.customerName)));
-            return mDept && mCust && mVisi && mDate && m50on;
+            filteredData = allRecords.filter(d => {
+                const mDept = deptK === 'ALL' || d.visitorDept === deptK;
+                const mCust = !custK || (d.customerName||"").toLowerCase().includes(custK);
+                const mVisi = !visiK || (d.visitorName||"").toLowerCase().includes(visiK);
+                let mDate = true;
+                if (startK && d.visitDate < startK) mDate = false;
+                if (endK && d.visitDate > endK) mDate = false;
+                let m50on = current50on === 'all' ? true : (current50on === '他' ? !Object.values(rangeMap).some(re => re.test(d.customerName)) : (d.customerName && rangeMap[current50on].test(d.customerName)));
+                return mDept && mCust && mVisi && mDate && m50on;
+            });
+
+            const start = (currentPage - 1) * perPage;
+            const end = start + perPage;
+            renderTable(filteredData.slice(start, end), start);
+            renderPagination();
+            document.getElementById('totalCount').innerText = filteredData.length;
+            document.getElementById('pageRange').innerText = filteredData.length > 0 ? `${start + 1}-${Math.min(end, filteredData.length)}` : "0-0";
+        };
+
+        function renderTable(dataList, startIndex) {
+            const tbody = document.getElementById('recordTable');
+            tbody.innerHTML = "";
+            dataList.forEach((data, index) => {
+                const duration = calculateDuration(data.startTime, data.endTime);
+                const visitCount = allRecords.filter(r => r.customerName === data.customerName).length;
+                tbody.insertAdjacentHTML('beforeend', `
+                    <tr class="hover:bg-blue-50/40 transition-all border-b border-slate-50">
+                        <td class="p-6 text-center text-slate-300 font-mono text-xs">${startIndex + index + 1}</td>
+                        <td class="p-6">
+                            <div class="text-base text-slate-800 leading-tight cursor-pointer hover:text-blue-600 font-black" 
+                                 onclick="location.href='customer_history.html?name=${encodeURIComponent(data.customerName || '')}'">
+                                 ${data.customerName || '名称未設定'}
+                            </div>
+                        </td>
+                        <td class="p-6 text-center"><span class="bg-slate-100 text-slate-500 px-4 py-1.5 rounded-full text-xs">${visitCount}回</span></td>
+                        <td class="p-6">
+                            <div class="text-slate-800 font-mono">${(data.visitDate || '').replace(/-/g, '/')}</div>
+                            <div class="text-[10px] text-slate-400 mt-1">${data.startTime || '--:--'} 〜 ${data.endTime || '--:--'} 
+                                <span class="text-blue-500 font-black ml-2">${duration ? '滞在: '+duration : ''}</span>
+                            </div>
+                        </td>
+                        <td class="p-6">
+                            <div class="text-slate-700">${data.visitorName || '未登録'}</div>
+                            <div class="text-[9px] text-slate-400 font-black uppercase mt-0.5">${data.visitorRole || 'メイン'}</div>
+                        </td>
+                        <td class="p-6"><div class="text-orange-500 text-xs font-bold">${(data.nextVisitDate || '--').replace(/-/g, '/')}</div></td>
+                        <td class="p-6 text-center">
+                            <button class="text-slate-200 hover:text-blue-500" onclick="location.href='customer_history.html?name=${encodeURIComponent(data.customerName || '')}'">
+                                <i class="fa-solid fa-circle-chevron-right text-lg"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `);
+            });
+        }
+
+        function calculateDuration(s, e) { 
+            if (!s || !e) return ""; 
+            const sp = s.split(':'); const ep = e.split(':'); 
+            const d = (parseInt(ep[0])*60+parseInt(ep[1]))-(parseInt(sp[0])*60+parseInt(sp[1])); 
+            return d>0 ? d+'分' : ""; 
+        }
+
+        function renderPagination() {
+            const totalPages = Math.ceil(filteredData.length / perPage);
+            const containers = [document.getElementById('paginationTop'), document.getElementById('paginationBottom')];
+            containers.forEach(container => {
+                container.innerHTML = "";
+                if (totalPages <= 1) return;
+                for (let i = 1; i <= totalPages; i++) {
+                    const btn = document.createElement('div');
+                    btn.innerText = i;
+                    btn.className = `modern-page-btn ${currentPage === i ? 'active' : ''}`;
+                    btn.onclick = () => { currentPage = i; window.updateView(); window.scrollTo({top: 0, behavior: 'smooth'}); };
+                    container.appendChild(btn);
+                }
+            });
+        }
+
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.onclick = () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                current50on = btn.dataset.range;
+                currentPage = 1;
+                window.updateView();
+            };
         });
 
-        const start = (currentPage - 1) * perPage;
-        const end = start + perPage;
-        renderTable(filteredData.slice(start, end), start);
-        renderPagination();
-        document.getElementById('totalCount').innerText = filteredData.length;
-        document.getElementById('pageRange').innerText = filteredData.length > 0 ? `${start + 1}-${Math.min(end, filteredData.length)}` : "0-0";
-    };
+        document.getElementById('detailSearchToggle').onclick = () => {
+            const sec = document.getElementById('detailSearchSection');
+            sec.style.display = (sec.style.display === 'block') ? 'none' : 'block';
+        };
 
-    function renderTable(dataList, startIndex) {
-        const tbody = document.getElementById('recordTable');
-        tbody.innerHTML = "";
-        dataList.forEach((data, index) => {
-            const duration = calculateDuration(data.startTime, data.endTime);
-            // 🌟 訪問回数の計算でエラーが出ないよう安全策
-            const visitCount = allRecords.filter(r => r.customerName === data.customerName).length;
-            tbody.insertAdjacentHTML('beforeend', `
-                <tr class="hover:bg-blue-50/40 transition-all border-b border-slate-50">
-                    <td class="p-6 text-center text-slate-300 font-mono text-xs">${startIndex + index + 1}</td>
-                    <td class="p-6"><div class="text-base text-slate-800 leading-tight cursor-pointer hover:text-blue-600 font-black" onclick="location.href='customer_history.html?name=${encodeURIComponent(data.customerName || '')}'">${data.customerName || '名称不明'}</div></td>
-                    <td class="p-6 text-center"><span class="bg-slate-100 text-slate-500 px-4 py-1.5 rounded-full text-xs">${visitCount}回</span></td>
-                    <td class="p-6"><div class="text-slate-800 font-mono">${(data.visitDate || '').replace(/-/g, '/')}</div><div class="text-[10px] text-slate-400 mt-1">${data.startTime || '--:--'} 〜 ${data.endTime || '--:--'} <span class="text-blue-500 font-black ml-2">${duration ? '滞在: '+duration : ''}</span></div></td>
-                    <td class="p-6"><div class="text-slate-700">${data.visitorName || '不明'}</div><div class="text-[9px] text-slate-400 font-black uppercase mt-0.5">${data.visitorRole || 'メイン'}</div></td>
-                    <td class="p-6"><div class="text-orange-500 text-xs">${data.nextVisitDate ? data.nextVisitDate.replace(/-/g, '/') : '--'}</div></td>
-                    <td class="p-6 text-center"><button class="text-slate-300 hover:text-blue-500" onclick="location.href='customer_history.html?name=${encodeURIComponent(data.customerName || '')}'"><i class="fa-solid fa-circle-chevron-right text-lg"></i></button></td>
-                </tr>
-            `);
-        });
-    }
-
-    function calculateDuration(s, e) { if (!s || !e) return ""; const sp = s.split(':'); const ep = e.split(':'); const d = (parseInt(ep[0])*60+parseInt(ep[1]))-(parseInt(sp[0])*60+parseInt(sp[1])); return d>0 ? d+'分' : ""; }
-
-    function renderPagination() {
-        const totalPages = Math.ceil(filteredData.length / perPage);
-        const containers = [document.getElementById('paginationTop'), document.getElementById('paginationBottom')];
-        containers.forEach(container => {
-            container.innerHTML = "";
-            if (totalPages <= 1) return;
-            for (let i = 1; i <= totalPages; i++) {
-                const btn = document.createElement('div');
-                btn.innerText = i;
-                btn.className = `modern-page-btn ${currentPage === i ? 'active' : ''}`;
-                btn.onclick = () => { currentPage = i; window.updateView(); window.scrollTo({top: 0, behavior: 'smooth'}); };
-                container.appendChild(btn);
-            }
-        });
-    }
-
-    // イベントリスナー設定 (そのまま)
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.onclick = () => {
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            current50on = btn.dataset.range;
+        window.clearSearch = () => {
+            document.querySelectorAll('#detailSearchSection input').forEach(i => i.value = "");
+            document.getElementById('deptFilter').value = "ALL";
+            current50on = 'all';
             currentPage = 1;
             window.updateView();
         };
-    });
 
-    document.getElementById('detailSearchToggle').onclick = () => {
-        const sec = document.getElementById('detailSearchSection');
-        sec.style.display = (sec.style.display === 'block') ? 'none' : 'block';
-    };
-
-    window.clearSearch = () => {
-        document.querySelectorAll('#detailSearchSection input').forEach(i => i.value = "");
-        document.getElementById('deptFilter').value = "ALL";
-        current50on = 'all';
-        currentPage = 1;
-        window.updateView();
-    };
-
-    init();
-</script>
+        init();
+    </script>
 </body>
 </html>
