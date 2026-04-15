@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>お知らせ管理 | CP My Page</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --copros-orange: #ff7e11; }
+        body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
+        .table-container { border-radius: 1.5rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
+        thead tr { background-color: #3c4b5a; }
+        .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 10px; font-weight: 900; white-space: nowrap; }
+        .status-active { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+        .status-scheduled { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+        .status-expired { background: #f1f5f9; color: #94a3b8; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden text-slate-700 font-sans">
+    <div id="sidebar-placeholder"></div>
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <div id="header-placeholder"></div>
+        <div class="flex-1 overflow-y-auto p-4 lg:p-8 custom-scrollbar">
+            <div class="max-w-5xl mx-auto">
+                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-4">
+                    <div>
+                        <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-2">お知らせ管理</h1>
+                        <nav class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Notice Management System</nav>
+                    </div>
+                    <button onclick="location.href='notice_add.html'" class="px-8 py-3 bg-[#ff7e11] text-white rounded-xl font-bold text-sm hover:shadow-lg transition-all flex items-center gap-2 active:scale-95">
+                        <i class="fa-solid fa-plus-circle"></i> 新規お知らせ登録
+                    </button>
+                </div>
+
+                <div class="table-container overflow-x-auto mb-20">
+                    <table class="w-full text-left border-collapse min-w-[800px]">
+                        <thead>
+                            <tr class="text-white text-[10px] font-black uppercase tracking-widest text-center">
+                                <th class="p-6 w-32">状態</th>
+                                <th class="p-6 text-left">件名</th>
+                                <th class="p-6">掲載期間</th>
+                                <th class="p-6 w-24">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="noticeTableBody" class="divide-y divide-slate-100 text-sm font-bold">
+                            <tr><td colspan="4" class="p-20 text-center text-slate-400 font-bold italic">お知らせを読み込み中...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script type="module" src="common.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, query, orderBy, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { firebaseConfig } from "./common.js";
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        async function init() {
+            try {
+                const q = query(collection(db, "notices"), orderBy("createdAt", "desc"));
+                const snap = await getDocs(q);
+                renderTable(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+            } catch (e) { console.error(e); }
+        }
+
+        function renderTable(dataList) {
+            const tbody = document.getElementById('noticeTableBody');
+            if (dataList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="p-20 text-center text-slate-400">登録済みのお知らせはありません。</td></tr>';
+                return;
+            }
+
+            const today = new Date().toISOString().split('T')[0];
+            tbody.innerHTML = dataList.map(d => {
+                let statusClass = "status-active";
+                let statusText = "掲載中";
+                if (today < d.startDate) { statusClass = "status-scheduled"; statusText = "予約中"; }
+                else if (today > d.endDate) { statusClass = "status-expired"; statusText = "終了"; }
+
+                return `
+                    <tr class="hover:bg-slate-50 transition-colors border-b border-slate-50">
+                        <td class="p-6 text-center"><span class="status-badge ${statusClass}">${statusText}</span></td>
+                        <td class="p-6 text-slate-800">${d.title}</td>
+                        <td class="p-6 text-center text-xs text-slate-400 font-mono font-bold">${(d.startDate||'').replace(/-/g,'/')} 〜 ${(d.endDate||'').replace(/-/g,'/')}</td>
+                        <td class="p-6 text-center">
+                            <div class="flex gap-4 justify-center">
+                                <button onclick="location.href='notice_add.html?id=${d.id}'" class="text-blue-400 hover:text-blue-600 transition-colors"><i class="fa-solid fa-pen"></i></button>
+                                <button onclick="window.deleteNotice('${d.id}', '${d.title}')" class="text-slate-200 hover:text-rose-500 transition-colors"><i class="fa-solid fa-trash-can"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        window.deleteNotice = async (id, title) => {
+            if (!confirm(`お知らせ「${title}」を削除しますか？`)) return;
+            try {
+                await deleteDoc(doc(db, "notices", id));
+                init();
+            } catch (e) { alert("削除に失敗しました。"); }
+        };
+
+        init();
+    </script>
+</body>
+</html>
