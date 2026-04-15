@@ -10,28 +10,29 @@
     <style>
         :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
-        .table-container { border-radius: 2rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
         .scope-select { background: #e2e8f0; border: none; padding: 0.4rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; cursor: pointer; }
         .stat-card { background: white; border-radius: 1.5rem; padding: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
-        .tab-btn { padding: 0.6rem 1.5rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; transition: all 0.2s; }
+        .tab-btn { padding: 0.6rem 1.2rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; transition: all 0.2s; white-space: nowrap; }
         .tab-btn.active { background: #334155; color: white; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
-<body class="flex h-screen overflow-hidden text-slate-700">
+<body class="flex h-screen overflow-hidden text-slate-700 font-sans">
 
     <div id="sidebar-placeholder"></div>
 
     <main class="flex-1 flex flex-col overflow-hidden">
         <div id="header-placeholder"></div>
 
-        <div class="flex-1 overflow-auto p-8 custom-scrollbar">
+        <div class="flex-1 overflow-y-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1200px] mx-auto">
                 
                 <!-- ヘッドエリア -->
-                <div class="flex justify-between items-end mb-10">
-                    <div class="flex items-end gap-6">
+                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-6">
+                    <div class="flex items-end gap-4 lg:gap-6">
                         <div>
-                            <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">実績グラフ出力</h1>
+                            <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-2">実績グラフ出力</h1>
                             <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Performance Data Analysis</p>
                         </div>
                         <div class="mb-2">
@@ -44,43 +45,45 @@
                             </select>
                         </div>
                     </div>
-                    <div class="flex gap-2 bg-white p-1 rounded-xl shadow-sm border border-slate-200">
-                        <button onclick="switchChart('trend')" id="btn-trend" class="tab-btn active">月別の推移を見る</button>
-                        <button onclick="switchChart('quality')" id="btn-quality" class="tab-btn">内容の割合を分析</button>
+                    <div class="flex gap-2 bg-white p-1 rounded-xl shadow-sm border border-slate-200 overflow-x-auto w-full lg:w-auto">
+                        <button onclick="switchChart('trend')" id="btn-trend" class="tab-btn active flex-1">月別推移</button>
+                        <button onclick="switchChart('quality')" id="btn-quality" class="tab-btn flex-1">内容分析</button>
                     </div>
                 </div>
 
-                <!-- 🌟 おじさま親切サマリーカード -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 text-center">
+                <!-- サマリーカード (スマホ対応) -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 lg:gap-6 mb-8 text-center">
                     <div class="stat-card">
-                        <p class="text-xs font-black text-slate-400 mb-1">総訪問件数</p>
-                        <p id="statTotalVisits" class="text-4xl font-black text-slate-800">-- <span class="text-sm">件</span></p>
+                        <p class="text-[10px] font-black text-slate-400 mb-1 uppercase">Total Visits</p>
+                        <p id="statTotalVisits" class="text-3xl lg:text-4xl font-black text-slate-800">-- <span class="text-xs">件</span></p>
                     </div>
                     <div class="stat-card">
-                        <p class="text-xs font-black text-slate-400 mb-1">総滞在時間</p>
-                        <p id="statTotalTime" class="text-4xl font-black text-blue-600">-- <span class="text-sm">時間</span></p>
+                        <p class="text-[10px] font-black text-slate-400 mb-1 uppercase">Total Hours</p>
+                        <p id="statTotalTime" class="text-3xl lg:text-4xl font-black text-blue-600">-- <span class="text-xs">時間</span></p>
                     </div>
                     <div class="stat-card">
-                        <p class="text-xs font-black text-slate-400 mb-1">平均滞在時間（1回あたり）</p>
-                        <p id="statAvgTime" class="text-4xl font-black text-[#ff7e11]">-- <span class="text-sm">分</span></p>
+                        <p class="text-[10px] font-black text-slate-400 mb-1 uppercase">Average Time</p>
+                        <p id="statAvgTime" class="text-3xl lg:text-4xl font-black text-[#ff7e11]">-- <span class="text-xs">分</span></p>
                     </div>
                 </div>
 
                 <!-- グラフエリア -->
-                <div class="bg-white p-10 rounded-[2.5rem] shadow-2xl border border-slate-100 min-h-[500px] flex flex-col items-center justify-center relative">
-                    <div id="qualityControls" class="mb-8 hidden">
-                        <select id="qualityType" onchange="window.updateCharts()" class="scope-select bg-slate-100 font-black">
+                <div class="bg-white p-6 lg:p-10 rounded-[2rem] lg:rounded-[2.5rem] shadow-2xl border border-slate-100 min-h-[400px] flex flex-col items-center justify-center relative mb-20">
+                    <div id="qualityControls" class="mb-8 hidden w-full max-w-md">
+                        <select id="qualityType" onchange="window.updateCharts()" class="scope-select bg-slate-50 font-black w-full border border-slate-200">
                             <option value="qualData1">定性データ1 (リサーチ・受注等)</option>
                             <option value="qualData2">定性データ2 (工法・市場等)</option>
                             <option value="qualData3">定性データ3 (エリア等)</option>
                         </select>
                     </div>
-                    <canvas id="mainChart" style="max-height: 400px;"></canvas>
+                    <div class="w-full relative" style="height: 300px; lg:height: 400px;">
+                        <canvas id="mainChart"></canvas>
+                    </div>
                 </div>
 
-                <div id="loading" class="py-20 text-center">
-                    <div class="animate-spin inline-block mb-4 text-blue-400 text-4xl"><i class="fa-solid fa-circle-notch"></i></div>
-                    <p class="text-slate-400 font-bold">データを解析してビジュアル化中...</p>
+                <div id="loading" class="fixed inset-0 bg-white/80 backdrop-blur-sm z-[100] flex flex-col items-center justify-center">
+                    <div class="animate-spin mb-4 text-blue-500 text-5xl"><i class="fa-solid fa-circle-notch"></i></div>
+                    <p class="text-slate-800 font-black tracking-tighter">データを解析中...</p>
                 </div>
 
             </div>
@@ -91,16 +94,9 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, query, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { firebaseConfig } from "./common.js";
 
-        const firebaseConfig = {
-            apiKey: "AiZaSyDh00EZ7Jb1K2rTxLyTH6d80b4Qzcrwf_XI",
-            authDomain: "copros-my-page.firebaseapp.com",
-            projectId: "copros-my-page",
-            storageBucket: "copros-my-page.firebasestorage.app",
-            messagingSenderId: "54419849010",
-            appId: "1:54419849010:web:a60015b9c6fcf60cd3e12b"
-        };
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
@@ -110,11 +106,16 @@
 
         async function init() {
             try {
-                const snap = await getDocs(collection(db, "activity_records"));
+                // 🌟 鉄壁リミット：最新の1,000件を取得（197万回防止）
+                const q = query(collection(db, "activity_records"), orderBy("visitDate", "desc"), limit(1000));
+                const snap = await getDocs(q);
                 allRecords = snap.docs.map(d => d.data());
                 document.getElementById('loading').style.display = 'none';
                 window.updateCharts();
-            } catch (e) { console.error("Quota待機中"); }
+            } catch (e) { 
+                console.error("Chart Load Error:", e);
+                document.getElementById('loading').innerHTML = '<p class="text-rose-500 font-bold">データの取得に失敗しました</p>';
+            }
         }
 
         window.updateCharts = () => {
@@ -125,12 +126,13 @@
             filtered.forEach(r => {
                 if(r.startTime && r.endTime) {
                     const s = r.startTime.split(':'); const e = r.endTime.split(':');
-                    totalMins += (parseInt(e[0])*60+parseInt(e[1]))-(parseInt(s[0])*60+parseInt(s[1]));
+                    const diff = (parseInt(e[0]||0)*60 + parseInt(e[1]||0)) - (parseInt(s[0]||0)*60 + parseInt(s[1]||0));
+                    if (diff > 0) totalMins += diff;
                 }
             });
-            document.getElementById('statTotalVisits').innerHTML = `${filtered.length} <span class="text-sm font-bold">件</span>`;
-            document.getElementById('statTotalTime').innerHTML = `${Math.floor(totalMins/60)} <span class="text-sm font-bold">時間</span>`;
-            document.getElementById('statAvgTime').innerHTML = `${filtered.length ? Math.round(totalMins/filtered.length) : 0} <span class="text-sm font-bold">分</span>`;
+            document.getElementById('statTotalVisits').innerHTML = `${filtered.length} <span class="text-xs font-bold">件</span>`;
+            document.getElementById('statTotalTime').innerHTML = `${Math.floor(totalMins/60)} <span class="text-xs font-bold">時間</span>`;
+            document.getElementById('statAvgTime').innerHTML = `${filtered.length ? Math.round(totalMins/filtered.length) : 0} <span class="text-xs font-bold">分</span>`;
 
             if (currentChartType === 'trend') renderTrendChart(filtered);
             else renderQualityChart(filtered);
@@ -140,19 +142,26 @@
             const months = ["4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月", "1月", "2月", "3月"];
             const counts = new Array(12).fill(0);
             data.forEach(r => {
+                if(!r.visitDate) return;
                 const m = new Date(r.visitDate).getMonth();
                 const fiscalIdx = (m >= 3) ? m - 3 : m + 9;
-                counts[fiscalIdx]++;
+                if (fiscalIdx >= 0 && fiscalIdx < 12) counts[fiscalIdx]++;
             });
+            
             if (chartInstance) chartInstance.destroy();
             const ctx = document.getElementById('mainChart').getContext('2d');
             chartInstance = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: months,
-                    datasets: [{ label: '訪問件数', data: counts, backgroundColor: '#0ea5e9', borderRadius: 8 }]
+                    datasets: [{ label: '訪問件数', data: counts, backgroundColor: '#0ea5e9', borderRadius: 6 }]
                 },
-                options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { display: false } }, x: { grid: { display: false } } } }
+                options: { 
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } } 
+                }
             });
         }
 
@@ -160,15 +169,24 @@
             const field = document.getElementById('qualityType').value;
             const counts = {};
             data.forEach(r => { const v = r[field] || "未設定"; counts[v] = (counts[v] || 0) + 1; });
+            
             if (chartInstance) chartInstance.destroy();
             const ctx = document.getElementById('mainChart').getContext('2d');
             chartInstance = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
                     labels: Object.keys(counts),
-                    datasets: [{ data: Object.values(counts), backgroundColor: ['#ff7e11', '#0ea5e9', '#10b981', '#f59e0b', '#6366f1', '#ec4899'], borderWidth: 2 }]
+                    datasets: [{ 
+                        data: Object.values(counts), 
+                        backgroundColor: ['#ff7e11', '#0ea5e9', '#10b981', '#f59e0b', '#6366f1', '#ec4899', '#94a3b8'],
+                        borderWidth: 0
+                    }]
                 },
-                options: { plugins: { legend: { position: 'bottom' } } }
+                options: { 
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10, weight: 'bold' } } } } 
+                }
             });
         }
 
