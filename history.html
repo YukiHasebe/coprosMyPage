@@ -13,43 +13,43 @@
         .form-input:focus { outline: none; border-color: var(--copros-orange); background-color: white; box-shadow: 0 0 0 4px rgba(255, 126, 17, 0.1); }
         .readonly-input { background-color: #f1f5f9; color: #64748b; cursor: not-allowed; border-style: dashed; }
         .label-text { font-size: 0.8rem; font-weight: 800; color: #475569; margin-bottom: 0.4rem; display: block; }
-        .section-card { background: white; border-radius: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04); padding: 2rem; margin-bottom: 2rem; }
+        .section-card { background: white; border-radius: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04); padding: 1.5rem; lg:padding: 2rem; margin-bottom: 1.5rem; }
         .section-title { font-size: 0.75rem; font-weight: 900; color: #94a3b8; letter-spacing: 0.1em; border-bottom: 2px solid #f1f5f9; padding-bottom: 0.5rem; margin-bottom: 1.5rem; text-transform: uppercase; }
         
-        /* ポップアップ */
-        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; backdrop-filter: blur(4px); align-items: center; justify-content: center; }
-        .modal-content { background: white; width: 450px; border-radius: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); overflow: hidden; animation: popIn 0.3s ease-out; }
+        /* ポップアップ（スマホ対応強化） */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 1rem; }
+        .modal-content { background: white; width: 100%; max-width: 450px; border-radius: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); overflow: hidden; animation: popIn 0.3s ease-out; }
         @keyframes popIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        .staff-item { padding: 0.8rem 1.2rem; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-weight: 600; transition: all 0.2s; display: flex; justify-content: space-between; }
+        .staff-item { padding: 0.8rem 1.2rem; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-weight: 600; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center; }
         .staff-item:hover { background: #f8fafc; color: var(--copros-orange); }
         .staff-item.selected { background: #eff6ff; color: #2563eb; border-left: 4px solid #2563eb; }
 
         .suggestion-box { position: absolute; width: 100%; top: 100%; left: 0; z-index: 50; background: white; border-radius: 0.75rem; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; max-height: 200px; overflow-y: auto; display: none; }
-        .suggestion-item { padding: 0.7rem 1rem; cursor: pointer; font-weight: 600; font-size: 0.85rem; }
+        .suggestion-item { padding: 0.7rem 1rem; cursor: pointer; font-weight: 600; font-size: 0.85rem; border-bottom: 1px solid #f8fafc; }
         .suggestion-item:hover { background-color: #f1f5f9; color: var(--copros-orange); }
     </style>
 </head>
-<body class="flex h-screen overflow-hidden text-slate-700">
+<body class="flex h-screen overflow-hidden text-slate-700 font-sans">
 
     <div id="sidebar-placeholder"></div>
 
     <main class="flex-1 flex flex-col overflow-hidden">
         <div id="header-placeholder"></div>
 
-        <div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
+        <div class="flex-1 overflow-y-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-5xl mx-auto">
                 
-                <!-- 上部ボタンエリア -->
-                <div class="flex justify-between items-end mb-8">
+                <!-- ヘッドエリア -->
+                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-4">
                     <div>
-                        <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">実績登録</h1>
+                        <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-2">実績登録</h1>
                         <nav class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Activity Report Registration</nav>
                     </div>
-                    <div class="flex gap-3">
-                        <button type="button" class="btn-draft px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all shadow-sm">
+                    <div class="flex gap-2 w-full lg:w-auto">
+                        <button type="button" class="btn-draft flex-1 lg:flex-none px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 shadow-sm transition-all">
                             <i class="fa-solid fa-file-pen mr-1"></i> 下書き
                         </button>
-                        <button type="button" class="btn-submit px-10 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-sm hover:shadow-lg transition-all flex items-center gap-2">
+                        <button type="button" id="submitBtnTop" class="flex-1 lg:flex-none px-10 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-sm hover:shadow-lg transition-all flex items-center justify-center gap-2">
                             <i class="fa-solid fa-paper-plane"></i> 登録を実行
                         </button>
                     </div>
@@ -60,11 +60,11 @@
                     <div class="section-card">
                         <p class="section-title">基本報告情報</p>
                         <div class="space-y-6">
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
                                 <div class="relative md:col-span-1">
                                     <label class="label-text">お客様名 <span class="text-rose-500">*</span></label>
                                     <input type="text" id="customerSearch" placeholder="お客様名を検索..." class="form-input" autocomplete="off" required>
-                                    <div id="customerSuggestions" class="suggestion-box"></div>
+                                    <div id="customerSuggestions" class="suggestion-box custom-scrollbar"></div>
                                 </div>
                                 <div><label class="label-text text-slate-400">顧客ランク</label><input type="text" id="autoRank" class="form-input readonly-input" placeholder="--" readonly></div>
                                 <div><label class="label-text text-slate-400">属性・区分</label><input type="text" id="autoType" class="form-input readonly-input" placeholder="--" readonly></div>
@@ -73,34 +73,34 @@
                             <div>
                                 <label class="label-text">訪問日時 <span class="text-rose-500">*</span></label>
                                 <div class="flex flex-wrap items-center gap-3">
-                                    <input type="date" id="visitDate" class="form-input w-44" required>
-                                    <div class="flex items-center bg-slate-50 rounded-xl border border-slate-200 px-2">
-                                        <input type="time" id="startTime" class="bg-transparent p-2 outline-none font-bold text-sm" required>
+                                    <input type="date" id="visitDate" class="form-input w-full sm:w-44" required>
+                                    <div class="flex items-center bg-slate-50 rounded-xl border border-slate-200 px-2 w-full sm:w-auto">
+                                        <input type="time" id="startTime" class="bg-transparent p-2 outline-none font-bold text-sm flex-1" required>
                                         <span class="text-slate-400 px-1">〜</span>
-                                        <input type="time" id="endTime" class="bg-transparent p-2 outline-none font-bold text-sm" required>
+                                        <input type="time" id="endTime" class="bg-transparent p-2 outline-none font-bold text-sm flex-1" required>
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
                                 <div class="relative">
                                     <div class="flex items-center gap-4 mb-1">
                                         <label class="label-text mb-0">訪問者 <span class="text-rose-500">*</span></label>
                                         <div class="flex items-center gap-3 ml-2">
-                                            <label class="flex items-center gap-1.5 cursor-pointer text-xs font-black text-slate-400"><input type="radio" name="visitorRole" value="メイン" checked class="w-4 h-4 accent-[#ff7e11]"> メイン</label>
-                                            <label class="flex items-center gap-1.5 cursor-pointer text-xs font-black text-slate-400"><input type="radio" name="visitorRole" value="サブ" class="w-4 h-4 accent-[#ff7e11]"> サブ</label>
+                                            <label class="flex items-center gap-1.5 cursor-pointer text-[10px] font-black text-slate-400"><input type="radio" name="visitorRole" value="メイン" checked class="w-4 h-4 accent-[#ff7e11]"> メイン</label>
+                                            <label class="flex items-center gap-1.5 cursor-pointer text-[10px] font-black text-slate-400"><input type="radio" name="visitorRole" value="サブ" class="w-4 h-4 accent-[#ff7e11]"> サブ</label>
                                         </div>
                                     </div>
                                     <div class="flex gap-2">
                                         <input type="text" id="visitorName" class="form-input bg-blue-50 text-blue-700" readonly>
-                                        <button type="button" onclick="openStaffModal('visitor')" class="px-4 bg-white border border-slate-200 rounded-xl text-xs font-black hover:bg-slate-50 shadow-sm">選択</button>
+                                        <button type="button" onclick="openStaffModal('visitor')" class="px-4 bg-white border border-slate-200 rounded-xl text-xs font-black hover:bg-slate-50 shadow-sm transition-all">選択</button>
                                     </div>
                                 </div>
                                 <div class="relative">
                                     <label class="label-text">同行者</label>
                                     <div class="flex gap-2">
                                         <input type="text" id="companionDisplay" class="form-input" placeholder="未選択" readonly>
-                                        <button type="button" onclick="openStaffModal('companion')" class="px-4 bg-white border border-slate-200 rounded-xl text-xs font-black hover:bg-slate-50 shadow-sm">選択</button>
+                                        <button type="button" onclick="openStaffModal('companion')" class="px-4 bg-white border border-slate-200 rounded-xl text-xs font-black hover:bg-slate-50 shadow-sm transition-all">選択</button>
                                     </div>
                                 </div>
                             </div>
@@ -112,29 +112,10 @@
                     <div class="section-card">
                         <p class="section-title">お客様からの情報</p>
                         <div class="space-y-6">
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <select id="qualData1" class="form-input text-xs font-bold"><option value="">（定性データ1）</option>
-                                    <option>01.リサーチ情報</option><option>02.ニーズ</option><option>03.問合せ</option><option>04.調査検討要請</option>
-                                    <option>05.見積要請</option><option>06.個別説明・協議</option><option>07.受注</option><option>08.失注</option>
-                                    <option>お喜びの声</option><option>お叱りの声</option><option>改善要望</option><option>ライバル情報</option>
-                                    <option>仕入先・協力業者情報</option><option>決定経路</option><option>購買（受注）要因</option>
-                                    <option>08-1.失注（お客様失注）</option><option>08-2.失注（お客様受託後）</option><option>発注の見通し</option><option>発注予定</option>
-                                </select>
-                                <select id="qualData2" class="form-input text-xs font-bold"><option value="">（定性データ2）</option>
-                                    <option>ケコム大口径</option><option>ケコム中口径</option><option>ケコム小口径</option><option>ケコム特殊</option>
-                                    <option>ケコム工法</option><option>生コン・セメント</option><option>新築工事(建築)</option><option>改築工事(建築)</option>
-                                    <option>雑工事(建築)</option><option>バイオガスプラント新設</option><option>バイオガスメンテナンス</option>
-                                    <option>優れた技術力</option><option>フルラインナップ</option><option>情報提供及び提案力</option>
-                                    <option>遠隔サポート</option><option>組織①KP次席窓口</option><option>組織②組織図</option>
-                                    <option>市場・CS調査①購買要因</option><option>市場・CS調査②改善要望</option><option>市場・CS調査③総需要</option>
-                                    <option>市場・CS調査③インストアシェア</option><option>市場・CS調査④ライバル動向</option><option>市場・CS調査⑤事業発展のお手伝い</option>
-                                    <option>イン①業況</option><option>イン②今後の受注/設計計画</option><option>イン③年間の受注目標</option>
-                                    <option>イン④委託先/問合せ先の有無</option><option>イン⑤難解な施工での工法選定</option><option>シールド工事</option><option>推進工事</option><option>基礎工事・その他</option>
-                                </select>
-                                <select id="qualData3" class="form-input text-xs font-bold"><option value="">（定性データ3）</option>
-                                    <option>東北</option><option>北陸</option><option>関東</option><option>甲信越</option><option>東海(中部)</option>
-                                    <option>近畿</option><option>中国</option><option>四国</option><option>九州(沖縄)</option>
-                                </select>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 lg:gap-4">
+                                <select id="qualData1" class="form-input text-xs font-bold"><option value="">（定性データ1）</option><option>01.リサーチ情報</option><option>02.ニーズ</option><option>03.問合せ</option><option>04.調査検討要請</option><option>05.見積要請</option><option>06.個別説明・協議</option><option>07.受注</option><option>08.失注</option><option>お喜びの声</option><option>お叱りの声</option><option>改善要望</option><option>ライバル情報</option><option>仕入先・協力業者情報</option><option>決定経路</option><option>購買（受注）要因</option><option>08-1.失注（お客様失注）</option><option>08-2.失注（お客様受託後）</option><option>発注の見通し</option><option>発注予定</option></select>
+                                <select id="qualData2" class="form-input text-xs font-bold"><option value="">（定性データ2）</option><option>ケコム大口径</option><option>ケコム中口径</option><option>ケコム小口径</option><option>ケコム特殊</option><option>ケコム工法</option><option>生コン・セメント</option><option>新築工事(建築)</option><option>改築工事(建築)</option><option>雑工事(建築)</option><option>バイオガスプラント新設</option><option>バイオガスメンテナンス</option><option>優れた技術力</option><option>フルラインナップ</option><option>情報提供及び提案力</option><option>遠隔サポート</option><option>組織①KP次席窓口</option><option>組織②組織図</option><option>市場・CS調査①購買要因</option><option>市場・CS調査②改善要望</option><option>市場・CS調査③総需要</option><option>市場・CS調査③インストアシェア</option><option>市場・CS調査④ライバル動向</option><option>市場・CS調査⑤事業発展のお手伝い</option><option>イン①業況</option><option>イン②今後の受注/設計計画</option><option>イン③年間の受注目標</option><option>イン④委託先/問合せ先の有無</option><option>イン⑤難解な施工での工法選定</option><option>シールド工事</option><option>推進工事</option><option>基礎工事・その他</option></select>
+                                <select id="qualData3" class="form-input text-xs font-bold"><option value="">（定性データ3）</option><option>東北</option><option>北陸</option><option>関東</option><option>甲信越</option><option>東海(中部)</option><option>近畿</option><option>中国</option><option>四国</option><option>九州(沖縄)</option></select>
                             </div>
                             <div><label class="label-text">お客様先担当者</label><input type="text" id="customerStaff" placeholder="担当者名を入力" class="form-input"></div>
                             <textarea id="customerReport" rows="6" placeholder="お客様の要望、状況などを詳しく入力してください..." class="form-input h-48 resize-none"></textarea>
@@ -147,26 +128,16 @@
                         <textarea id="staffThoughts" rows="6" placeholder="次回の提案予定や課題..." class="form-input h-48 resize-none"></textarea>
                     </div>
 
-                    <!-- 添付ファイル -->
-                    <div class="section-card">
-                        <p class="section-title">添付ファイル</p>
-                        <label class="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-200 border-dashed rounded-2xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition-all text-slate-400">
-                            <i class="fa-solid fa-cloud-arrow-up text-3xl mb-2"></i>
-                            <p class="text-xs font-black uppercase">Click or Drag & Drop</p>
-                            <input type="file" class="hidden" />
-                        </label>
-                    </div>
-
                     <!-- 回覧設定 -->
                     <div class="section-card">
                         <p class="section-title">回覧設定</p>
                         <div class="flex flex-col gap-4">
-                            <label class="flex items-center gap-2 cursor-pointer w-fit bg-rose-50 px-4 py-2 rounded-xl border border-rose-100">
+                            <label class="flex items-center gap-2 cursor-pointer w-fit bg-rose-50 px-4 py-2 rounded-xl border border-rose-100 transition-all hover:bg-rose-100">
                                 <input type="checkbox" id="emailCircular" checked class="w-4 h-4 accent-rose-500">
                                 <span class="text-xs font-black text-rose-600 uppercase">メール回覧を行う</span>
                             </label>
                             <div class="flex items-center gap-4">
-                                <button type="button" onclick="openStaffModal('circular')" class="px-6 py-2 bg-[#004098] text-white rounded-xl text-xs font-black shadow-md hover:opacity-90">回覧者を選択</button>
+                                <button type="button" onclick="openStaffModal('circular')" class="px-6 py-2 bg-[#004098] text-white rounded-xl text-xs font-black shadow-md hover:opacity-90 transition-all">回覧者を選択</button>
                             </div>
                             <div id="circularDisplay" class="p-4 bg-slate-50 border border-slate-200 rounded-2xl min-h-[60px] text-sm font-bold text-slate-600">
                                 未選択（ボタンから選んでください）
@@ -174,12 +145,12 @@
                         </div>
                     </div>
 
-                    <!-- 下部ボタンエリア（追加！） -->
+                    <!-- 下部ボタンエリア -->
                     <div class="flex justify-center gap-4 py-12 border-t border-slate-100 mt-10">
                         <button type="button" class="btn-draft px-8 py-3 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all shadow-sm">
                             <i class="fa-solid fa-file-pen mr-1"></i> 下書き
                         </button>
-                        <button type="button" class="btn-submit px-16 py-3 bg-[#004098] text-white rounded-xl font-black text-sm hover:shadow-lg transition-all flex items-center gap-2">
+                        <button type="button" id="submitBtnBottom" class="px-16 py-3 bg-[#004098] text-white rounded-xl font-black text-sm hover:shadow-lg transition-all flex items-center gap-2 active:scale-95">
                             <i class="fa-solid fa-paper-plane"></i> 登録を実行
                         </button>
                     </div>
@@ -193,17 +164,17 @@
         <div class="modal-content">
             <div class="bg-slate-900 p-4 text-white flex justify-between items-center">
                 <span id="modalTitle" class="font-black text-sm tracking-widest uppercase">社員選択</span>
-                <i class="fa-solid fa-xmark cursor-pointer" onclick="closeModal()"></i>
+                <i class="fa-solid fa-xmark cursor-pointer hover:text-rose-400" onclick="closeModal()"></i>
             </div>
-            <div class="p-5 bg-slate-50 border-b border-slate-100">
-                <div class="grid grid-cols-2 gap-3 mb-3">
-                    <input type="text" id="staffKeyword" placeholder="氏名検索..." class="p-2.5 rounded-lg border border-slate-200 text-xs font-bold outline-none">
-                    <select id="deptFilter" class="p-2.5 rounded-lg border border-slate-200 text-xs font-bold outline-none"><option value="">全ての部署</option></select>
+            <div class="p-4 bg-slate-50 border-b border-slate-100">
+                <div class="grid grid-cols-2 gap-2 mb-2">
+                    <input type="text" id="staffKeyword" placeholder="氏名検索..." class="p-2.5 rounded-lg border border-slate-200 text-xs font-bold outline-none focus:border-blue-400 transition-all">
+                    <select id="staffDeptFilter" class="p-2.5 rounded-lg border border-slate-200 text-xs font-bold outline-none focus:border-blue-400 transition-all"><option value="">全ての部署</option></select>
                 </div>
             </div>
-            <div id="staffList" class="overflow-y-auto" style="height: 300px;"></div>
-            <div class="p-4 bg-slate-50 grid grid-cols-3 gap-2">
-                <button onclick="applySelection()" class="col-span-2 py-3 bg-blue-600 text-white rounded-xl font-black text-sm shadow-lg">設定する</button>
+            <div id="staffList" class="overflow-y-auto custom-scrollbar" style="height: 300px;"></div>
+            <div class="p-4 bg-slate-50 grid grid-cols-3 gap-2 border-t border-slate-100">
+                <button onclick="applySelection()" class="col-span-2 py-3 bg-blue-600 text-white rounded-xl font-black text-sm shadow-lg hover:bg-blue-700 transition-all">決定</button>
                 <button onclick="clearModalSelection()" class="py-3 bg-white border border-slate-200 text-slate-400 rounded-xl font-bold text-sm">クリア</button>
             </div>
         </div>
@@ -213,17 +184,9 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, addDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, addDoc, serverTimestamp, query, orderBy, where, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { firebaseConfig } from "./common.js";
 
-        // Firebase設定（あなたのものを維持）
-        const firebaseConfig = {
-            apiKey: "AiZaSyDh00EZ7Jb1K2rTxLyTH6d80b4Qzcrwf_XI",
-            authDomain: "copros-my-page.firebaseapp.com",
-            projectId: "copros-my-page",
-            storageBucket: "copros-my-page.firebasestorage.app",
-            messagingSenderId: "54419849010",
-            appId: "1:54419849010:web:a60015b9c6fcf60cd3e12b"
-        };
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
@@ -233,56 +196,60 @@
         let modalSelected = [];
 
         async function init() {
+            // デフォルト値
             document.getElementById('visitorName').value = sessionStorage.getItem('userName') || '未ログイン';
             document.getElementById('visitDate').valueAsDate = new Date();
 
-            const cSnap = await getDocs(query(collection(db, "customers"), orderBy("name")));
-            allCustomers = cSnap.docs.map(doc => ({ ...doc.data() }));
-            
-            const sSnap = await getDocs(collection(db, "staffs"));
-            allStaffs = sSnap.docs.map(doc => ({ ...doc.data() }));
+            try {
+                // 🌟 鉄壁リミット：最初の100件ずつのみ取得（オートコンプリート用）
+                const [cSnap, sSnap] = await Promise.all([
+                    getDocs(query(collection(db, "customers"), orderBy("name"), limit(100))),
+                    getDocs(query(collection(db, "staffs"), limit(100)))
+                ]);
+                
+                allCustomers = cSnap.docs.map(doc => ({ ...doc.data() }));
+                allStaffs = sSnap.docs.map(doc => ({ ...doc.data() }));
 
-            const depts = [...new Set(allStaffs.map(s => s.dept).filter(Boolean))];
-            const deptSelect = document.getElementById('deptFilter');
-            depts.forEach(d => deptSelect.insertAdjacentHTML('beforeend', `<option value="${d}">${d}</option>`));
+                // 部署フィルターの構築
+                const depts = [...new Set(allStaffs.map(s => s.dept).filter(Boolean))];
+                const deptSelect = document.getElementById('staffDeptFilter');
+                depts.forEach(d => deptSelect.insertAdjacentHTML('beforeend', `<option value="${d}">${d}</option>`));
 
-            setupCustomerAutocomplete();
+                setupCustomerAutocomplete();
 
-            const params = new URLSearchParams(window.location.search);
-            const nameParam = params.get('name');
-            if (nameParam) {
-                document.getElementById('customerSearch').value = nameParam;
-                fetchCustomerDetails(nameParam);
-            }
+                // URLパラメータ（履歴ボタンからの遷移など）対応
+                const params = new URLSearchParams(window.location.search);
+                const nameParam = params.get('name');
+                if (nameParam) {
+                    document.getElementById('customerSearch').value = nameParam;
+                    const customer = allCustomers.find(c => c.name === nameParam);
+                    if (customer) {
+                        document.getElementById('autoRank').value = customer.rank || '--';
+                        document.getElementById('autoType').value = customer.type || '--';
+                    }
+                }
+            } catch (e) { console.error("Init Error:", e); }
         }
 
         function setupCustomerAutocomplete() {
             const input = document.getElementById('customerSearch');
             const box = document.getElementById('customerSuggestions');
-            input.addEventListener('input', () => {
+            input.oninput = () => {
                 const val = input.value.toLowerCase();
                 if (!val) { box.style.display = 'none'; return; }
-                const filtered = allCustomers.filter(c => c.name.toLowerCase().includes(val) || (c.kana && c.kana.includes(val))).slice(0, 10);
-                box.innerHTML = filtered.map(c => `<div class="suggestion-item" data-rank="${c.rank}" data-type="${c.type}">${c.name}</div>`).join('');
+                const filtered = allCustomers.filter(c => (c.name||"").toLowerCase().includes(val) || (c.kana||"").includes(val)).slice(0, 10);
+                box.innerHTML = filtered.map(c => `<div class="suggestion-item" data-rank="${c.rank||'--'}" data-type="${c.type||'--'}">${c.name}</div>`).join('');
                 box.style.display = filtered.length ? 'block' : 'none';
-            });
-            box.addEventListener('click', (e) => {
+            };
+            box.onclick = (e) => {
                 const item = e.target.closest('.suggestion-item');
                 if (item) {
                     input.value = item.innerText;
-                    document.getElementById('autoRank').value = item.dataset.rank || '--';
-                    document.getElementById('autoType').value = item.dataset.type || '--';
+                    document.getElementById('autoRank').value = item.dataset.rank;
+                    document.getElementById('autoType').value = item.dataset.type;
                     box.style.display = 'none';
                 }
-            });
-        }
-
-        function fetchCustomerDetails(name) {
-            const customer = allCustomers.find(c => c.name === name);
-            if (customer) {
-                document.getElementById('autoRank').value = customer.rank || '--';
-                document.getElementById('autoType').value = customer.type || '--';
-            }
+            };
         }
 
         window.openStaffModal = (target) => {
@@ -295,23 +262,23 @@
 
         window.closeModal = () => document.getElementById('staffModal').style.display = 'none';
 
-        function renderStaffList() {
+        window.renderStaffList = () => {
             const keyword = document.getElementById('staffKeyword').value.toLowerCase();
-            const dept = document.getElementById('deptFilter').value;
+            const dept = document.getElementById('staffDeptFilter').value;
             const container = document.getElementById('staffList');
-            const filtered = allStaffs.filter(s => (!keyword || s.name.toLowerCase().includes(keyword)) && (!dept || s.dept === dept));
+            const filtered = allStaffs.filter(s => (!keyword || (s.name||"").toLowerCase().includes(keyword)) && (!dept || s.dept === dept));
             container.innerHTML = filtered.map(s => `
                 <div class="staff-item ${modalSelected.includes(s.name) ? 'selected' : ''}" onclick="toggleStaffSelection('${s.name}')">
-                    <span>${s.name}</span><span class="text-[10px] opacity-40 uppercase font-black">${s.dept || ''}</span>
+                    <span>${s.name}</span><span class="text-[9px] opacity-40 uppercase font-black">${s.dept || ''}</span>
                 </div>
             `).join('');
-        }
+        };
 
         window.toggleStaffSelection = (name) => {
-            if (currentTarget === 'visitor') { modalSelected = [name]; } 
+            if (currentTarget === 'visitor') modalSelected = [name];
             else {
-                if (modalSelected.includes(name)) { modalSelected = modalSelected.filter(n => n !== name); } 
-                else { modalSelected.push(name); }
+                if (modalSelected.includes(name)) modalSelected = modalSelected.filter(n => n !== name);
+                else modalSelected.push(name);
             }
             renderStaffList();
         };
@@ -325,18 +292,17 @@
         };
 
         window.clearModalSelection = () => { modalSelected = []; renderStaffList(); };
-        document.getElementById('staffKeyword').addEventListener('input', renderStaffList);
-        document.getElementById('deptFilter').addEventListener('change', renderStaffList);
+        document.getElementById('staffKeyword').oninput = renderStaffList;
+        document.getElementById('staffDeptFilter').onchange = renderStaffList;
 
-        // --- 登録ボタン（上と下の両方に対応） ---
-               btn.onclick = async () => {
+        // --- 登録処理 ---
+        const handleRegister = async () => {
             const form = document.getElementById('historyForm');
             if (!form.checkValidity()) { form.reportValidity(); return; }
 
-            // 🌟 訪問者の名前から部署名を特定するロジックを追加
             const vName = document.getElementById('visitorName').value;
             const staffInfo = allStaffs.find(s => s.name === vName);
-            const vDept = staffInfo ? staffInfo.dept : "未設定";
+            const vDept = staffInfo ? (staffInfo.dept || "未設定") : (sessionStorage.getItem('userDept') || "未設定");
 
             const data = {
                 customerName: document.getElementById('customerSearch').value,
@@ -346,7 +312,7 @@
                 startTime: document.getElementById('startTime').value,
                 endTime: document.getElementById('endTime').value,
                 visitorName: vName,
-                visitorDept: vDept, // 🌟 これで部署が保存されます！
+                visitorDept: vDept,
                 visitorRole: document.querySelector('input[name="visitorRole"]:checked').value,
                 companion: document.getElementById('companionDisplay').value,
                 qualData1: document.getElementById('qualData1').value,
@@ -364,17 +330,11 @@
                 await addDoc(collection(db, "activity_records"), data);
                 alert("実績を登録しました！");
                 location.href = 'list_records.html';
-            } catch (e) {
-                console.error(e);
-                alert("保存に失敗しました。設定を確認してください。");
-            }
+            } catch (e) { alert("保存に失敗しました。"); }
         };
-        });
 
-        // 下書きボタン
-        document.querySelectorAll('.btn-draft').forEach(btn => {
-            btn.onclick = () => alert("下書きとして保存しました（機能は後日実装）");
-        });
+        document.getElementById('submitBtnTop').onclick = handleRegister;
+        document.getElementById('submitBtnBottom').onclick = handleRegister;
 
         init();
     </script>
