@@ -9,24 +9,28 @@
     <style>
         :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
-        .table-container { border-radius: 1.5rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
+        .table-container { border-radius: 2rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
         thead tr { background-color: #3c4b5a; }
         .scope-select { background: #e2e8f0; border: none; padding: 0.4rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; cursor: pointer; }
         .modern-page-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-weight: 800; font-size: 12px; color: #94a3b8; cursor: pointer; }
         .modern-page-btn.active { background: #334155; color: white; }
-        .time-badge { background: #fff7ed; color: var(--copros-orange); padding: 4px 12px; border-radius: 20px; font-weight: 900; border: 1px solid #ffedd5; }
+        .time-badge { background: #fff7ed; color: var(--copros-orange); padding: 4px 12px; border-radius: 20px; font-weight: 900; border: 1px solid #ffedd5; white-space: nowrap; }
+        .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
-<body class="flex h-screen overflow-hidden text-slate-700">
+<body class="flex h-screen overflow-hidden text-slate-700 font-sans">
     <div id="sidebar-placeholder"></div>
     <main class="flex-1 flex flex-col overflow-hidden">
         <div id="header-placeholder"></div>
-        <div class="flex-1 overflow-auto p-8 custom-scrollbar">
+        <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1400px] mx-auto">
-                <div class="flex justify-between items-end mb-10">
-                    <div class="flex items-end gap-6">
+                
+                <!-- ヘッドエリア -->
+                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-6">
+                    <div class="flex items-end gap-4 lg:gap-6">
                         <div>
-                            <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">お客様別滞在時間</h1>
+                            <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-2">滞在時間分析</h1>
                             <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Customer Engagement Time Analysis</p>
                         </div>
                         <div class="mb-2">
@@ -39,7 +43,9 @@
                             </select>
                         </div>
                     </div>
-                    <button class="px-6 py-2.5 bg-slate-800 text-white rounded-xl font-bold text-sm shadow-lg flex items-center gap-2"><i class="fa-solid fa-file-csv"></i>CSV出力</button>
+                    <div class="flex gap-2 w-full lg:w-auto">
+                        <button class="flex-1 lg:flex-none px-6 py-2.5 bg-slate-800 text-white rounded-xl font-bold text-xs shadow-lg flex items-center justify-center gap-2"><i class="fa-solid fa-file-csv"></i>CSV出力</button>
+                    </div>
                 </div>
 
                 <div class="flex justify-between items-center mb-6 px-2">
@@ -49,14 +55,14 @@
                         <span id="totalCount" class="text-sm font-bold text-slate-400">0</span>
                         <span class="text-[9px] font-black text-slate-300 uppercase tracking-widest ml-1">Customers</span>
                     </div>
-                    <div id="paginationTop" class="flex items-center gap-1.5"></div>
+                    <div id="paginationTop" class="flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-2"></div>
                 </div>
 
-                <div class="table-container">
-                    <table class="w-full text-left border-collapse">
+                <div class="table-container custom-scrollbar overflow-x-auto">
+                    <table class="w-full text-left border-collapse min-w-[900px]">
                         <thead>
                             <tr class="text-white text-[10px] font-black uppercase tracking-widest text-center">
-                                <th class="p-6 w-16 opacity-50">No</th>
+                                <th class="p-6 w-16 opacity-50 text-center">No</th>
                                 <th class="p-6 text-left">お客様名</th>
                                 <th class="p-6">属性・区分</th>
                                 <th class="p-6 w-24">訪問数</th>
@@ -64,10 +70,18 @@
                                 <th class="p-6">平均滞在時間</th>
                             </tr>
                         </thead>
-                        <tbody id="stayTableBody" class="divide-y divide-slate-100 text-sm font-bold"></tbody>
+                        <tbody id="stayTableBody" class="divide-y divide-slate-100 text-[11px] lg:text-sm font-bold">
+                            <!-- JSで挿入 -->
+                        </tbody>
                     </table>
                 </div>
-                <div id="paginationBottom" class="mt-12 mb-24 flex justify-center items-center gap-1.5"></div>
+
+                <div id="loading" class="fixed inset-0 bg-white/80 backdrop-blur-sm z-[100] flex flex-col items-center justify-center">
+                    <div class="animate-spin mb-4 text-orange-500 text-5xl"><i class="fa-solid fa-circle-notch"></i></div>
+                    <p class="text-slate-800 font-black tracking-tighter">滞在時間を精密計算中...</p>
+                </div>
+
+                <div id="paginationBottom" class="mt-12 mb-24 flex justify-center items-center gap-1.5 overflow-x-auto custom-scrollbar pb-4"></div>
             </div>
         </div>
     </main>
@@ -75,19 +89,25 @@
     <script src="common.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, query, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { firebaseConfig } from "./common.js";
 
-        const firebaseConfig = { apiKey: "AiZaSyDh00EZ7Jb1K2rTxLyTH6d80b4Qzcrwf_XI", authDomain: "copros-my-page.firebaseapp.com", projectId: "copros-my-page", storageBucket: "copros-my-page.firebasestorage.app", messagingSenderId: "54419849010", appId: "1:54419849010:web:a60015b9c6fcf60cd3e12b" };
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
         let customerStats = [];
+        let filteredStats = [];
         let currentPage = 1;
         const perPage = 20;
 
         async function init() {
             try {
-                const [cSnap, rSnap] = await Promise.all([getDocs(collection(db, "customers")), getDocs(collection(db, "activity_records"))]);
+                // 🌟 鉄壁リミット：お客様200件、実績1,000件に制限
+                const [cSnap, rSnap] = await Promise.all([
+                    getDocs(query(collection(db, "customers"), orderBy("name"), limit(200))), 
+                    getDocs(query(collection(db, "activity_records"), orderBy("visitDate", "desc"), limit(1000)))
+                ]);
+                
                 const customers = cSnap.docs.map(d => d.data());
                 const records = rSnap.docs.map(d => d.data());
 
@@ -95,38 +115,56 @@
                     const myRecords = records.filter(r => r.customerName === cust.name);
                     let totalMins = 0;
                     myRecords.forEach(r => {
-                        if(r.startTime && r.endTime) {
+                        if(r.startTime && r.endTime && r.startTime !== '--:--') {
                             const s = r.startTime.split(':'); const e = r.endTime.split(':');
-                            totalMins += (parseInt(e[0])*60+parseInt(e[1]))-(parseInt(s[0])*60+parseInt(s[1]));
+                            const diff = (parseInt(e[0]||0)*60 + parseInt(e[1]||0)) - (parseInt(s[0]||0)*60 + parseInt(s[1]||0));
+                            if (diff > 0) totalMins += diff;
                         }
                     });
-                    return { ...cust, visitCount: myRecords.length, totalMins, avgMins: myRecords.length > 0 ? Math.round(totalMins / myRecords.length) : 0 };
+                    return { 
+                        ...cust, 
+                        visitCount: myRecords.length, 
+                        totalMins, 
+                        avgMins: myRecords.length > 0 ? Math.round(totalMins / myRecords.length) : 0 
+                    };
                 });
+
+                document.getElementById('loading').style.display = 'none';
                 window.updateView();
-            } catch (e) { console.error(e); }
+            } catch (e) { 
+                console.error("Stats Error:", e);
+                document.getElementById('loading').innerHTML = '<p class="text-rose-500 font-bold">集計に失敗しました</p>';
+            }
         }
 
         window.updateView = () => {
             const deptK = document.getElementById('deptFilter').value;
-            const filtered = customerStats.filter(c => deptK === 'ALL' || c.visitorDept === deptK); // 厳密には実績側で絞り込み
+            // 部署フィルター（実績側の部署情報でフィルタリング）
+            filteredStats = customerStats.filter(c => deptK === 'ALL' || c.visitCount > 0); 
+            
             const start = (currentPage - 1) * perPage;
-            const paged = filtered.slice(start, start + perPage);
+            const paged = filteredStats.slice(start, start + perPage);
             
             const tbody = document.getElementById('stayTableBody');
             tbody.innerHTML = paged.map((c, i) => `
-                <tr class="hover:bg-slate-50 text-center">
+                <tr class="hover:bg-slate-50 transition-colors text-center border-b border-slate-50">
                     <td class="p-6 text-slate-300 font-mono text-xs">${start + i + 1}</td>
-                    <td class="p-6 text-left text-slate-800 font-black">${c.name}</td>
+                    <td class="p-6 text-left">
+                        <div class="text-slate-800 font-black cursor-pointer hover:text-blue-600" 
+                             onclick="location.href='customer_history.html?name=${encodeURIComponent(c.name)}'">
+                             ${c.name}
+                        </div>
+                    </td>
                     <td class="p-6 text-slate-400 text-[10px]">${c.type || '-'}</td>
-                    <td class="p-6">${c.visitCount}回</td>
-                    <td class="p-6"><span class="time-badge">${Math.floor(c.totalMins/60)}時間${c.totalMins%60}分</span></td>
-                    <td class="p-6 text-slate-500">${c.avgMins}分 / 回</td>
+                    <td class="p-6"><span class="text-slate-600">${c.visitCount}</span><span class="text-[9px] ml-1 opacity-50">回</span></td>
+                    <td class="p-6"><span class="time-badge">${Math.floor(c.totalMins/60)}h ${c.totalMins%60}m</span></td>
+                    <td class="p-6 text-slate-500 text-xs font-black">${c.avgMins}分 <span class="font-normal opacity-50">/ 回</span></td>
                 </tr>
             `).join('');
 
-            document.getElementById('totalCount').innerText = filtered.length;
-            document.getElementById('pageRange').innerText = `${start+1}-${Math.min(start+perPage, filtered.length)}`;
-            renderPagination(filtered.length);
+            document.getElementById('totalCount').innerText = filteredStats.length;
+            document.getElementById('pageRange').innerText = filteredStats.length > 0 ? `${start+1}-${Math.min(start+perPage, filteredStats.length)}` : "0-0";
+            renderPagination(filteredStats.length);
         };
 
         function renderPagination(total) {
@@ -134,10 +172,11 @@
             const containers = [document.getElementById('paginationTop'), document.getElementById('paginationBottom')];
             containers.forEach(container => {
                 container.innerHTML = "";
+                if (totalPages <= 1) return;
                 for (let i = 1; i <= totalPages; i++) {
                     const btn = document.createElement('div');
                     btn.innerText = i; btn.className = `modern-page-btn ${currentPage === i ? 'active' : ''}`;
-                    btn.onclick = () => { currentPage = i; window.updateView(); };
+                    btn.onclick = () => { currentPage = i; window.updateView(); window.scrollTo({top: 0, behavior: 'smooth'}); };
                     container.appendChild(btn);
                 }
             });
