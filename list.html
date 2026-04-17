@@ -9,13 +9,8 @@
     <style>
         :root { --copros-blue: #004098; --copros-orange: #ff7e11; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
-        .filter-btn { transition: all 0.2s; cursor: pointer; }
-        .filter-btn.active { background: var(--copros-orange); color: white; box-shadow: 0 4px 12px rgba(255,126,17,0.3); }
-        .modern-page-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-weight: 800; font-size: 14px; transition: all 0.3s; color: #94a3b8; cursor: pointer; }
-        .modern-page-btn.active { background: #334155; color: white; }
-        .nav-arrow { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: white; color: var(--copros-orange); border: 1px solid #e2e8f0; cursor: pointer; }
-        .nav-arrow:hover:not(.disabled) { background: var(--copros-orange); color: white; }
-        .nav-arrow.disabled { opacity: 0.2; cursor: default; }
+        .filter-btn { transition: all 0.2s; cursor: pointer; border: 1px solid #e2e8f0; background: white; }
+        .filter-btn.active { background: var(--copros-orange); color: white; border-color: var(--copros-orange); box-shadow: 0 4px 12px rgba(255,126,17,0.3); }
         .table-container { border-radius: 1.5rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
         thead tr { background-color: #3c4b5a; }
         #detailSearchSection { display: none; }
@@ -37,7 +32,7 @@
                 <div class="flex justify-between items-end mb-10">
                     <div>
                         <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">お客様情報一覧</h1>
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Customer Management</p>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest text-emerald-500">Eco-Mode Active (Limit 20)</p>
                     </div>
                     <div class="flex gap-3 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100">
                         <button id="detailSearchToggle" class="px-5 py-2.5 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all flex items-center gap-2">
@@ -57,7 +52,7 @@
                 <!-- 詳細検索 -->
                 <div id="detailSearchSection" class="mb-8 p-8 bg-white rounded-3xl shadow-xl border border-blue-50">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs font-bold">
-                        <div class="space-y-2"><label class="text-slate-400">お客様名/カナ（前方一致）</label><input type="text" id="detailName" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-400" placeholder="キーワード"></div>
+                        <div class="space-y-2"><label class="text-slate-400">お客様名（前方一致）</label><input type="text" id="detailName" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-400" placeholder="キーワードを入力して検索を実行"></div>
                         <div class="space-y-2"><label class="text-slate-400">住所</label><input type="text" id="detailAddress" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-400" placeholder="市区町村など"></div>
                     </div>
                     <div class="flex justify-center gap-4 mt-8">
@@ -70,15 +65,10 @@
                 <div class="flex justify-between items-center mb-6 px-2">
                     <div class="flex items-center gap-6">
                         <div id="filterContainer" class="flex flex-wrap gap-1 p-1 bg-white rounded-xl border border-slate-200 shadow-sm font-black text-slate-400">
-                            <button class="filter-btn active px-4 py-1.5 rounded-lg text-xs" data-range="all">初期表示</button>
-                        </div>
-                        <div class="flex items-center gap-2 border-l-2 border-slate-200 pl-6 h-8">
-                            <span id="pageRange" class="text-xl font-black text-slate-800 tracking-tighter">0-0</span>
-                            <span class="text-slate-300 font-bold">/</span>
-                            <span id="totalCount" class="text-sm font-bold text-slate-400">0</span>
-                            <span class="text-[9px] font-black text-slate-300 uppercase tracking-widest ml-1 text-slate-400">件</span>
+                            <button class="filter-btn active px-4 py-1.5 rounded-lg text-xs transition-all" data-range="all">すべて</button>
                         </div>
                     </div>
+                    <!-- 次の20件ボタン -->
                     <div id="paginationTop" class="flex items-center gap-1.5"></div>
                 </div>
 
@@ -90,11 +80,11 @@
                                 <tr class="text-white text-[10px] font-black uppercase tracking-widest">
                                     <th class="p-6 text-center w-20 opacity-50">No</th>
                                     <th class="p-6">お客様名</th>
-                                    <th class="p-6 text-center w-48 opacity-70">実績</th>
-                                    <th class="p-6 text-center w-40 opacity-70">連絡先</th>
-                                    <th class="p-6 opacity-70">住所</th>
-                                    <th class="p-6 text-center w-28 opacity-70">訪問回数</th>
-                                    <th class="p-6 text-center w-40 opacity-70">最終訪問日</th>
+                                    <th class="p-6 text-center w-48">実績</th>
+                                    <th class="p-6 text-center w-40">連絡先</th>
+                                    <th class="p-6">住所</th>
+                                    <th class="p-6 text-center w-28">訪問回数</th>
+                                    <th class="p-6 text-center w-40">最終訪問日</th>
                                     <th class="p-6 text-center w-16 opacity-70"><i class="fa-solid fa-trash-can"></i></th>
                                 </tr>
                             </thead>
@@ -102,7 +92,7 @@
                         </table>
                     </div>
                 </div>
-                <div id="paginationBottom" class="mt-12 mb-24 flex justify-center items-center gap-1.5"></div>
+                <div id="paginationBottom" class="mt-8 mb-20 flex justify-center"></div>
             </div>
         </div>
     </main>
@@ -111,7 +101,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, query, where, limit, doc, writeBatch, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, query, where, limit, orderBy, startAfter, doc, writeBatch, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyC5L1V6jn3Q8i1bWFW03Gd25w_If6dklmY",
@@ -124,14 +114,13 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // 節約：オフラインキャッシュ有効化
-        try { enableIndexedDbPersistence(db); } catch (e) {}
+        // 節約：キャッシュ有効化
+        try { enableIndexedDbPersistence(db); } catch(e){}
 
-        let filteredData = []; // 現在の表示対象
-        let currentPage = 1;
-        const perPage = 20;
+        let lastDoc = null; 
+        let currentConstraints = [];
 
-        // 50音ボタン生成
+        // 50音
         const filterContainer = document.getElementById('filterContainer');
         ['あ','か','さ','た','な','は','ま','や','ら','わ'].forEach(k => {
             const btn = document.createElement('button');
@@ -141,42 +130,40 @@
             filterContainer.appendChild(btn);
         });
 
-        async function fetchCustomers(filterQuery = null) {
+        async function fetchDocs(isNext = false) {
             const tbody = document.getElementById('customerTable');
-            tbody.innerHTML = `<tr><td colspan="8" class="p-10 text-center text-slate-400"><i class="fas fa-spinner fa-spin mr-2"></i> 通信中...</td></tr>`;
+            if(!isNext) tbody.innerHTML = `<tr><td colspan="8" class="p-10 text-center text-slate-400"><i class="fas fa-spinner fa-spin mr-2"></i> 通信中...</td></tr>`;
 
             try {
-                const q = filterQuery || query(collection(db, "customers"), limit(50));
+                let qParams = [...currentConstraints, orderBy("name"), limit(20)];
+                if (isNext && lastDoc) qParams.push(startAfter(lastDoc));
+
+                const q = query(collection(db, "customers"), ...qParams);
                 const snap = await getDocs(q);
-                
-                filteredData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                filteredData.sort((a, b) => (a.kana || "").localeCompare(b.kana || "", 'ja'));
-                
-                currentPage = 1;
-                updateView();
+
+                if (snap.empty && !isNext) {
+                    tbody.innerHTML = `<tr><td colspan="8" class="p-10 text-center text-slate-400">データがありません</td></tr>`;
+                    return;
+                }
+
+                lastDoc = snap.docs[snap.docs.length - 1];
+                renderTable(snap.docs.map(d => ({ id: d.id, ...d.data() })), isNext);
+                renderPaginationUI(snap.docs.length === 20);
+
             } catch (e) {
-                tbody.innerHTML = `<tr><td colspan="8" class="p-10 text-center text-rose-400">データ取得エラー</td></tr>`;
+                console.error(e);
+                tbody.innerHTML = `<tr><td colspan="8" class="p-10 text-center text-rose-400">Firebaseリセット待ち（17時頃）</td></tr>`;
             }
         }
 
-        function updateView() {
-            const start = (currentPage - 1) * perPage;
-            const end = start + perPage;
-            const pagedData = filteredData.slice(start, end);
-            renderTable(pagedData, start);
-            renderPagination();
-            document.getElementById('totalCount').innerText = filteredData.length;
-            document.getElementById('pageRange').innerText = filteredData.length > 0 ? `${start + 1}-${Math.min(end, filteredData.length)}` : "0-0";
-        }
-
-        function renderTable(dataList, startIndex) {
+        function renderTable(dataList, append) {
             const tbody = document.getElementById('customerTable');
-            tbody.innerHTML = dataList.length ? "" : '<tr><td colspan="8" class="p-10 text-center text-slate-400">該当なし</td></tr>';
+            if(!append) tbody.innerHTML = "";
             dataList.forEach((data, index) => {
                 const row = `
                     <tr class="hover:bg-blue-50/40 transition-all border-b border-slate-50">
-                        <td class="p-6 text-center text-slate-300 font-mono text-xs">${startIndex + index + 1}</td>
-                        <td class="p-6"><div class="font-black text-slate-800 text-base leading-tight">${data.name || "未設定"}</div></td>
+                        <td class="p-6 text-center text-slate-300 font-mono text-xs">-</td>
+                        <td class="p-6"><div class="font-black text-slate-800 text-base leading-tight">${data.name || ""}</div></td>
                         <td class="p-6 text-center">
                             <div class="flex gap-1.5 justify-center">
                                 <button class="border-2 border-[#004098] text-[#004098] px-3 py-1.5 rounded-lg font-black text-[10px] hover:bg-[#004098] hover:text-white transition-all flex items-center gap-1" onclick="location.href='customer_history.html?name=${encodeURIComponent(data.name)}'"><i class="fa-solid fa-clock-rotate-left"></i>履歴</button>
@@ -188,89 +175,56 @@
                         <td class="p-6 text-center"><span class="inline-block bg-orange-50 text-[#ff7e11] px-3 py-1 rounded-full text-sm font-black border border-orange-100">${data.visitCount || 0}回</span></td>
                         <td class="p-6 text-center text-slate-400 font-bold text-[10px] uppercase">${data.lastVisit || "未登録"}</td>
                         <td class="p-6 text-center"><input type="checkbox" class="customer-check w-5 h-5 accent-rose-500 rounded-md cursor-pointer" data-id="${data.id}"></td>
-                    </tr>
-                `;
+                    </tr>`;
                 tbody.insertAdjacentHTML('beforeend', row);
             });
         }
 
-        function renderPagination() {
-            const totalPages = Math.ceil(filteredData.length / perPage);
-            const containers = [document.getElementById('paginationTop'), document.getElementById('paginationBottom')];
-            containers.forEach(container => {
-                container.innerHTML = "";
-                if (totalPages <= 1) return;
-                const prev = document.createElement('div');
-                prev.innerHTML = '<i class="fa-solid fa-arrow-left"></i>';
-                prev.className = `nav-arrow prev ${currentPage === 1 ? 'disabled' : ''}`;
-                prev.onclick = () => { if(currentPage > 1) { currentPage--; updateView(); scrollToTop(); } };
-                container.appendChild(prev);
-                for (let i = 1; i <= totalPages; i++) {
-                    if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
-                        const btn = document.createElement('div');
-                        btn.innerText = i;
-                        btn.className = `modern-page-btn ${currentPage === i ? 'active' : ''}`;
-                        btn.onclick = () => { currentPage = i; updateView(); scrollToTop(); };
-                        container.appendChild(btn);
-                    }
-                }
-                const next = document.createElement('div');
-                next.innerHTML = '<i class="fa-solid fa-arrow-right"></i>';
-                next.className = `nav-arrow next ${currentPage === totalPages ? 'disabled' : ''}`;
-                next.onclick = () => { if(currentPage < totalPages) { currentPage++; updateView(); scrollToTop(); } };
-                container.appendChild(next);
-            });
+        function renderPaginationUI(hasNext) {
+            const ui = `<button id="moreBtn" class="px-10 py-3 bg-slate-800 text-white rounded-2xl font-black text-xs hover:bg-black transition-all shadow-lg">もっと見る</button>`;
+            document.getElementById('paginationTop').innerHTML = hasNext ? ui : "";
+            document.getElementById('paginationBottom').innerHTML = hasNext ? ui : "";
+            if(hasNext) {
+                document.querySelectorAll('#moreBtn').forEach(b => b.onclick = () => fetchDocs(true));
+            }
         }
 
-        function scrollToTop() { window.scrollTo({top: 0, behavior: 'smooth'}); }
-
-        // 50音クエリ
-        const rangeMap = {
-            'あ': ['あ','い','う','え','お'], 'か': ['か','き','く','け','こ','が','ぎ','ぐ','げ','ご'],
-            'さ': ['さ','し','す','せ','そ','ざ','じ','ず','ぜ','ぞ'], 'た': ['た','ち','つ','て','と','だ','ぢ','づ','で','ど'],
-            'な': ['な','に','ぬ','ね','の'], 'は': ['は','ひ','ふ','へ','ほ','ば','び','ぶ','べ','ぼ','ぱ','ぴ','ぷ','ぺ','ぽ'],
-            'ま': ['ま','み','む','め','も'], 'や': ['や','ゆ','よ'], 'ら': ['ら','り','る','れ','ろ'], 'わ': ['わ','を','ん']
-        };
-
         document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.onclick = async () => {
+            btn.onclick = () => {
                 document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                const range = btn.dataset.range;
-                if (range === 'all') fetchCustomers();
-                else {
-                    const q = query(collection(db, "customers"), where("kana", ">=", rangeMap[range][0]), where("kana", "<=", rangeMap[range].slice(-1)[0] + "\uf8ff"), limit(300));
-                    fetchCustomers(q);
-                }
+                lastDoc = null;
+                const r = btn.dataset.range;
+                currentConstraints = (r === 'all') ? [] : [where("kana", ">=", r), where("kana", "<=", r + "\uf8ff")];
+                fetchDocs();
             };
         });
 
-        // 検索
         document.getElementById('execDetailSearch').onclick = () => {
-            const nameK = document.getElementById('detailName').value.trim();
-            if (!nameK) return alert("キーワードを入力してください");
-            const q = query(collection(db, "customers"), where("name", ">=", nameK), where("name", "<=", nameK + "\uf8ff"), limit(200));
-            fetchCustomers(q);
+            const n = document.getElementById('detailName').value.trim();
+            if(!n) return alert("名前を入れてください");
+            lastDoc = null;
+            currentConstraints = [where("name", ">=", n), where("name", "<=", n + "\uf8ff")];
+            fetchDocs();
         };
 
-        // 一括削除
         document.getElementById('bulkDeleteBtn').onclick = async () => {
-            const checked = document.querySelectorAll('.customer-check:checked');
-            if (checked.length === 0) return alert("選択してください");
-            if (!confirm(`${checked.length}件削除しますか？`)) return;
+            const chk = document.querySelectorAll('.customer-check:checked');
+            if(!chk.length) return alert("選択してください");
+            if(!confirm("削除しますか？")) return;
             const batch = writeBatch(db);
-            checked.forEach(el => batch.delete(doc(db, "customers", el.dataset.id)));
+            chk.forEach(el => batch.delete(doc(db, "customers", el.dataset.id)));
             await batch.commit();
             alert("削除完了");
-            fetchCustomers();
+            fetchDocs();
         };
 
         document.getElementById('detailSearchToggle').onclick = () => {
-            const sec = document.getElementById('detailSearchSection');
-            sec.style.display = (sec.style.display === 'block') ? 'none' : 'block';
+            const s = document.getElementById('detailSearchSection');
+            s.style.display = (s.style.display==='block')?'none':'block';
         };
 
-        fetchCustomers();
+        fetchDocs();
     </script>
 </body>
 </html>
