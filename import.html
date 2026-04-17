@@ -81,11 +81,11 @@
         const db = getFirestore(app);
 
         let currentMode = 'staffs';
-        const mapping = {
-            customers: "A:お客様名 | B:カナ | C:ランク | D:属性 | E:住所(ビル込) | F:電話 | G:累計訪問数 | H:最終訪問日",
-            staffs: "A:社員番号 | B:氏名 | C:パスワード | D:メール | E:権限 | F:有効 | G:部署",
-            activity_records: "A:お客様名 | B:ランク | C:属性 | D:先方担当 | E:開始日時 | F:終了日時 | K:内容 | L:訪問者 | M:同行者 | R:報告 | S:考え"
-        };
+       const mapping = {
+   　　　　 customers: "A:お客様名 | B:カナ | C:ランク | D:属性 | E:住所(ビル込) | F:電話 | G:回数 | H:最終訪問日",
+    　　　　staffs: "A:社員番号 | B:氏名 | C:パスワード | D:メール | E:権限 | F:有効 | G:部署",
+    　　　　activity_records: "A:お客様名 | B:ランク | C:属性 | E:先方担当 | F:開始日時 | G:終了日時 | H:内容 | I:訪問者 | J:同行者 | K〜M:定性1-3 | N:金額 | O:報告 | P:自分の考え"
+　　　　　　　　　　　　　};
 
         window.switchTab = (mode) => {
             currentMode = mode;
@@ -118,7 +118,7 @@
             if (!rawData) return alert("データがありません。");
             const rows = rawData.split('\n');
             const total = rows.length;
-            log(`${total}件の処理を開始...`, "#fbbf24");
+         log(`${total}件の処理を開始...`, "#fbbf24");
             document.getElementById('importBtn').disabled = true;
 
             for (let i = 0; i < rows.length; i++) {
@@ -128,7 +128,6 @@
                 try {
                     if (currentMode === 'customers') {
                         const name = col[0]?.trim();
-                        // 🌟 由紀さんのこだわった重複チェック
                         const q = query(collection(db, "customers"), where("name", "==", name), limit(1));
                         const snap = await getDocs(q);
                         
@@ -140,12 +139,12 @@
                                 type: col[3]?.trim() || "", 
                                 address: col[4]?.trim() || "", 
                                 tel: col[5]?.trim() || "", 
-                                visitCount: parseInt(col[6]?.trim()) || 0, // G列: 訪問回数
-                                lastVisit: col[7]?.trim() || "未訪問",      // H列: 最終訪問日
+                                visitCount: parseInt(col[6]?.trim()) || 0,
+                                lastVisit: col[7]?.trim() || "未訪問",
                                 updatedAt: serverTimestamp() 
                             };
                             await addDoc(collection(db, "customers"), data);
-                            log(`新規追加: ${name} (計${data.visitCount}回)`);
+                            log(`新規追加: ${name}`);
                         } else {
                             log(`スキップ(登録済): ${name}`, "#94a3b8");
                         }
@@ -156,15 +155,16 @@
                         await setDoc(doc(db, "staffs", docId), data);
                         if(i%5===0) log(`社員 [${data.name}] を更新/追加しました`);
                     }
-                    else {
-                        // 実績インポート（重複チェック付き）
-                        const cust = col[0]?.trim();
-                        const startFull = col[4]?.trim() || "";
-                        const datePart = startFull.split(' ')[0] ? startFull.split(' ')[0].replace(/\//g, '-') : "";
-                        const visitor = col[11]?.trim();
+                    else if (currentMode === 'activity_records') {
+                        const custName   = col[0]?.trim();
+                        const startFull  = col[5]?.trim() || ""; 
+                        const datePart   = startFull.split(' ')[0] ? startFull.split(' ')[0].replace(/\//g, '-') : "";
+                        const startTime  = startFull.split(' ')[1] || "00:00";
+                        const endTime    = (col[6]?.trim() || "").split(' ')[1] || "00:00";
+                        const visitor    = col[8]?.trim();
 
                         const q = query(collection(db, "activity_records"), 
-                            where("customerName", "==", cust), 
+                            where("customerName", "==", custName), 
                             where("visitDate", "==", datePart),
                             where("visitorName", "==", visitor),
                             limit(1));
@@ -172,24 +172,36 @@
 
                         if (snap.empty) {
                             const data = {
-                                customerName: cust, customerRank: col[1]?.trim(), customerType: col[2]?.trim(),
-                                visitDate: datePart, startTime: startFull.split(' ')[1] || "00:00",
-                                endTime: (col[5]?.trim() || "").split(' ')[1] || "00:00",
-                                visitContent: col[10]?.trim(), visitorName: visitor,
-                                visitorRole: "メイン", companion: col[12]?.trim(),
-                                customerReport: col[17]?.trim(), staffThoughts: col[18]?.trim(),
-                                createdAt: serverTimestamp()
+                                customerName:   custName,
+                                customerRank:   col[1]?.trim() || "",
+                                customerType:   col[2]?.trim() || "",
+                                customerStaff:  col[4]?.trim() || "",
+                                visitDate:      datePart,
+                                startTime:      startTime,
+                                endTime:        endTime,
+                                visitContent:   col[7]?.trim() || "",
+                                visitorName:    visitor,
+                                visitorRole:    "メイン",
+                                companion:      col[9]?.trim() || "",
+                                qualData1:      col[10]?.trim() || "",
+                                qualData2:      col[11]?.trim() || "",
+                                qualData3:      col[12]?.trim() || "",
+                                estimatedAmount: col[13]?.trim() || "0",
+                                customerReport: col[14]?.trim() || "",
+                                staffThoughts:  col[15]?.trim() || "",
+                                createdAt:      serverTimestamp()
                             };
                             await addDoc(collection(db, "activity_records"), data);
-                            log(`実績追加: ${cust} (${datePart})`);
+                            log(`実績追加: ${custName} (${datePart})`);
                         } else {
-                            log(`実績スキップ: ${cust}`, "#94a3b8");
+                            log(`実績スキップ: ${custName}`, "#94a3b8");
                         }
                     }
                 } catch (e) { log(`エラー: ${e.message}`, "#f87171"); }
 
                 const percent = Math.round(((i + 1) / total) * 100);
                 document.getElementById('progressPercent').innerText = `${percent}%`;
+            }
             }
             document.getElementById('importBtn').disabled = false;
             alert("すべての処理が完了しました！");
