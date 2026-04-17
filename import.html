@@ -9,7 +9,7 @@
     <style>
         :root { --copros-orange: #ff7e11; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
-        .form-card { background: white; border-radius: 2rem; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); }
+        .form-card { background: white; border-radius: 2rem; border: 1px solid #e2e8f0; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05); }
         .tab-btn { transition: all 0.3s; border-bottom: 3px solid transparent; opacity: 0.4; padding-bottom: 1rem; font-weight: 900; }
         .tab-btn.active { opacity: 1; }
         .tab-staffs.active { color: #0ea5e9; border-bottom-color: #0ea5e9; }
@@ -81,11 +81,11 @@
         const db = getFirestore(app);
 
         let currentMode = 'staffs';
-       const mapping = {
-   　　　　 customers: "A:お客様名 | B:カナ | C:ランク | D:属性 | E:住所(ビル込) | F:電話 | G:回数 | H:最終訪問日",
-    　　　　staffs: "A:社員番号 | B:氏名 | C:パスワード | D:メール | E:権限 | F:有効 | G:部署",
-    　　　　activity_records: "A:お客様名 | B:ランク | C:属性 | E:先方担当 | F:開始日時 | G:終了日時 | H:内容 | I:訪問者 | J:同行者 | K〜M:定性1-3 | N:金額 | O:報告 | P:自分の考え"
-　　　　　　　　　　　　　};
+        const mapping = {
+            customers: "A:名 | B:カナ | C:ランク | D:属性 | E:住所 | F:電話 | G:回数 | H:最終日",
+            staffs: "A:社員番号 | B:氏名 | C:パス | D:メール | E:権限 | F:有効 | G:部署",
+            activity_records: "A:お客様名 | B:ランク | C:属性 | E:担当 | F:開始 | G:終了 | H:内容 | I:訪問者 | J:同行者 | K-M:定性 | N:金額 | O:報告 | P:考え"
+        };
 
         window.switchTab = (mode) => {
             currentMode = mode;
@@ -96,13 +96,13 @@
             document.getElementById('columnMapping').innerText = mapping[mode];
 
             if (mode === 'staffs') {
-                btn.className = "flex-1 py-4 bg-sky-500 text-white rounded-2xl font-black shadow-lg hover:bg-sky-600";
+                btn.className = "flex-1 py-4 bg-sky-500 text-white rounded-2xl font-black shadow-lg";
                 btnText.innerText = "社員名簿を更新・追加";
             } else if (mode === 'customers') {
-                btn.className = "flex-1 py-4 bg-[#ff7e11] text-white rounded-2xl font-black shadow-lg hover:bg-[#e66a00]";
+                btn.className = "flex-1 py-4 bg-[#ff7e11] text-white rounded-2xl font-black shadow-lg";
                 btnText.innerText = "お客様名簿を新規分のみ追加";
             } else {
-                btn.className = "flex-1 py-4 bg-emerald-500 text-white rounded-2xl font-black shadow-lg hover:bg-emerald-600";
+                btn.className = "flex-1 py-4 bg-emerald-500 text-white rounded-2xl font-black shadow-lg";
                 btnText.innerText = "実績データを新規分のみ追加";
             }
         };
@@ -118,7 +118,7 @@
             if (!rawData) return alert("データがありません。");
             const rows = rawData.split('\n');
             const total = rows.length;
-         log(`${total}件の処理を開始...`, "#fbbf24");
+            log(`${total}件の処理を開始...`, "#fbbf24");
             document.getElementById('importBtn').disabled = true;
 
             for (let i = 0; i < rows.length; i++) {
@@ -130,7 +130,6 @@
                         const name = col[0]?.trim();
                         const q = query(collection(db, "customers"), where("name", "==", name), limit(1));
                         const snap = await getDocs(q);
-                        
                         if (snap.empty) {
                             const data = { 
                                 name, 
@@ -146,22 +145,22 @@
                             await addDoc(collection(db, "customers"), data);
                             log(`新規追加: ${name}`);
                         } else {
-                            log(`スキップ(登録済): ${name}`, "#94a3b8");
+                            log(`スキップ: ${name}`, "#94a3b8");
                         }
                     } 
                     else if (currentMode === 'staffs') {
                         const docId = col[0]?.trim();
                         const data = { id: docId, name: col[1]?.trim(), password: col[2]?.trim() || "1234", email: col[3]?.trim() || "", role: col[4]?.trim() || "一般", status: col[5]?.trim() || "有効", dept: col[6]?.trim() || "営業部", updatedAt: serverTimestamp() };
                         await setDoc(doc(db, "staffs", docId), data);
-                        if(i%5===0) log(`社員 [${data.name}] を更新/追加しました`);
+                        if(i%5===0) log(`社員 [${data.name}] 更新/追加`);
                     }
                     else if (currentMode === 'activity_records') {
-                        const custName   = col[0]?.trim();
-                        const startFull  = col[5]?.trim() || ""; 
-                        const datePart   = startFull.split(' ')[0] ? startFull.split(' ')[0].replace(/\//g, '-') : "";
-                        const startTime  = startFull.split(' ')[1] || "00:00";
-                        const endTime    = (col[6]?.trim() || "").split(' ')[1] || "00:00";
-                        const visitor    = col[8]?.trim();
+                        const custName = col[0]?.trim();
+                        const startFull = col[5]?.trim() || ""; 
+                        const datePart = startFull.split(' ')[0] ? startFull.split(' ')[0].replace(/\//g, '-') : "";
+                        const visitor = col[8]?.trim();
+                        const startTime = startFull.split(' ')[1] || "00:00";
+                        const endTime = (col[6]?.trim() || "").split(' ')[1] || "00:00";
 
                         const q = query(collection(db, "activity_records"), 
                             where("customerName", "==", custName), 
@@ -172,29 +171,29 @@
 
                         if (snap.empty) {
                             const data = {
-                                customerName:   custName,
-                                customerRank:   col[1]?.trim() || "",
-                                customerType:   col[2]?.trim() || "",
-                                customerStaff:  col[4]?.trim() || "",
-                                visitDate:      datePart,
-                                startTime:      startTime,
-                                endTime:        endTime,
-                                visitContent:   col[7]?.trim() || "",
-                                visitorName:    visitor,
-                                visitorRole:    "メイン",
-                                companion:      col[9]?.trim() || "",
-                                qualData1:      col[10]?.trim() || "",
-                                qualData2:      col[11]?.trim() || "",
-                                qualData3:      col[12]?.trim() || "",
+                                customerName: custName,
+                                customerRank: col[1]?.trim() || "",
+                                customerType: col[2]?.trim() || "",
+                                customerStaff: col[4]?.trim() || "",
+                                visitDate: datePart,
+                                startTime: startTime,
+                                endTime: endTime,
+                                visitContent: col[7]?.trim() || "",
+                                visitorName: visitor,
+                                visitorRole: "メイン",
+                                companion: col[9]?.trim() || "",
+                                qualData1: col[10]?.trim() || "",
+                                qualData2: col[11]?.trim() || "",
+                                qualData3: col[12]?.trim() || "",
                                 estimatedAmount: col[13]?.trim() || "0",
                                 customerReport: col[14]?.trim() || "",
-                                staffThoughts:  col[15]?.trim() || "",
-                                createdAt:      serverTimestamp()
+                                staffThoughts: col[15]?.trim() || "",
+                                createdAt: serverTimestamp()
                             };
                             await addDoc(collection(db, "activity_records"), data);
                             log(`実績追加: ${custName} (${datePart})`);
                         } else {
-                            log(`実績スキップ: ${custName}`, "#94a3b8");
+                            log(`スキップ: ${custName}`, "#94a3b8");
                         }
                     }
                 } catch (e) { log(`エラー: ${e.message}`, "#f87171"); }
@@ -202,9 +201,8 @@
                 const percent = Math.round(((i + 1) / total) * 100);
                 document.getElementById('progressPercent').innerText = `${percent}%`;
             }
-            }
             document.getElementById('importBtn').disabled = false;
-            alert("すべての処理が完了しました！");
+            alert("完了しました！");
         };
 
         switchTab('staffs');
