@@ -7,45 +7,51 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; }
+        :root { --copros-blue: #004098; --copros-orange: #ff7e11; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
-        .history-card { background: white; border-radius: 1rem; border: 1px solid #e2e8f0; transition: all 0.3s; overflow: hidden; margin-bottom: 1rem; }
+        .history-card { background: white; border-radius: 1rem; border: 1px solid #e2e8f0; transition: all 0.3s; overflow: hidden; margin-bottom: 1rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
         .history-header { padding: 1.2rem 1.5rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: #3c4b5a; color: white; transition: background 0.2s; }
         .history-header:hover { background: #2d3748; }
-        .history-body { display: none; padding: 1.5rem lg:padding: 2rem; background: white; border-top: 1px solid #f1f5f9; }
-        .detail-label { font-size: 0.75rem; font-weight: 900; color: #94a3b8; width: 100%; lg:width: 150px; shrink: 0; margin-bottom: 0.25rem; lg:margin-bottom: 0; }
+        .history-body { display: none; padding: 1.5rem; background: white; border-top: 1px solid #f1f5f9; }
+        .detail-label { font-size: 0.75rem; font-weight: 900; color: #94a3b8; width: 150px; shrink: 0; }
         .detail-content { font-size: 0.9rem; font-weight: 600; color: #334155; line-height: 1.6; }
-        .detail-row { display: flex; flex-direction: column; lg:flex-row padding: 0.8rem 0; border-bottom: 1px solid #f8fafc; }
+        .detail-row { display: flex; align-items: flex-start; padding: 0.8rem 0; border-bottom: 1px solid #f8fafc; }
         .detail-row:last-child { border-bottom: none; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
-<body class="flex h-screen overflow-hidden text-slate-700 font-sans">
+<body class="flex h-screen overflow-hidden text-slate-700">
 
     <div id="sidebar-placeholder"></div>
 
     <main class="flex-1 flex flex-col overflow-hidden">
         <div id="header-placeholder"></div>
 
-        <div class="flex-1 overflow-y-auto p-4 lg:p-8 custom-scrollbar">
+        <div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
             <div class="max-w-5xl mx-auto">
                 
                 <!-- ヘッドエリア -->
-                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-4">
+                <div class="flex justify-between items-end mb-10">
                     <div>
-                        <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-2">訪問実績履歴</h1>
-                        <p id="targetCustomerName" class="text-xl font-bold text-blue-600">読み込み中...</p>
+                        <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">訪問実績履歴</h1>
+                        <p id="targetCustomerName" class="text-xl font-bold text-[#004098]">読み込み中...</p>
                     </div>
-                    <div class="flex gap-2 w-full lg:w-auto">
-                        <button onclick="history.back()" class="flex-1 lg:flex-none px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-xs hover:bg-slate-50 transition-all">戻る</button>
-                        <button id="newRegBtn" class="flex-1 lg:flex-none px-8 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-xs hover:shadow-lg transition-all flex items-center justify-center gap-2">
-                            <i class="fa-solid fa-plus"></i> 新規登録
+                    <div class="flex gap-3">
+                        <button onclick="location.href='list.html'" class="px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-xs hover:bg-slate-50 transition-all">一覧に戻る</button>
+                        <button id="newRegBtn" class="px-8 py-2.5 bg-[#ff7e11] text-white rounded-xl font-bold text-xs hover:shadow-lg transition-all flex items-center gap-2">
+                            <i class="fa-solid fa-plus"></i> 実績登録
                         </button>
                     </div>
                 </div>
 
-                <!-- 履歴リストコンテナ -->
-                <div id="historyListContainer" class="space-y-3 pb-20">
-                    <p class="text-slate-400 font-bold p-10 text-center">データを取得しています...</p>
+                <!-- 履歴リスト -->
+                <div id="historyListContainer" class="space-y-4 pb-20">
+                    <div class="text-center p-20 bg-white rounded-3xl border border-dashed border-slate-200">
+                        <i class="fas fa-spinner fa-spin text-3xl text-slate-300 mb-4"></i>
+                        <p class="text-slate-400 font-bold">実績データを照合中...</p>
+                    </div>
                 </div>
 
             </div>
@@ -56,9 +62,17 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-        import { firebaseConfig } from "./common.js";
+        import { getFirestore, collection, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+        // V2最新設定を直接記述（確実性を優先）
+        const firebaseConfig = {
+            apiKey: "AIzaSyC5L1V6jn3Q8i1bWFW03Gd25w_If6dklmY",
+            authDomain: "copros-my-page-v2.firebaseapp.com",
+            projectId: "copros-my-page-v2",
+            storageBucket: "copros-my-page-v2.firebasestorage.app",
+            messagingSenderId: "595195904220",
+            appId: "1:595195904220:web:402fd4e8620e2f32673419"
+        };
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
@@ -71,27 +85,36 @@
                 return;
             }
             document.getElementById('targetCustomerName').innerText = customerName;
+            
+            // 登録ボタンをオレンジ色に合わせて挙動も統一
             document.getElementById('newRegBtn').onclick = () => location.href = `history.html?name=${encodeURIComponent(customerName)}`;
 
             try {
-                // 🌟 特定のお客様の実績を最新50件取得（V2 鉄壁リミット）
+                // インデックスエラーを避けるため、まずはシンプルなクエリで取得
                 const q = query(
                     collection(db, "activity_records"),
-                    where("customerName", "==", customerName),
-                    orderBy("visitDate", "desc"),
-                    limit(50)
+                    where("customerName", "==", customerName)
                 );
                 const snap = await getDocs(q);
                 
                 if (snap.empty) {
                     document.getElementById('historyListContainer').innerHTML = 
-                        '<p class="text-slate-400 font-bold p-10 bg-white rounded-2xl border border-dashed border-slate-200 text-center">まだ実績が登録されていません。</p>';
-                } else {
-                    renderHistory(snap.docs.map(doc => doc.data()));
+                        '<div class="text-center p-20 bg-white rounded-3xl border border-dashed border-slate-200"><p class="text-slate-400 font-bold">まだ実績が登録されていません。</p></div>';
+                    return;
                 }
+
+                let records = snap.docs.map(doc => doc.data());
+                // JS側で日付順（降順）にソート
+                records.sort((a, b) => (b.visitDate || "").localeCompare(a.visitDate || ""));
+
+                renderHistory(records);
             } catch (e) {
                 console.error("Load Error:", e);
-                document.getElementById('historyListContainer').innerHTML = '<p class="text-rose-400 p-10 text-center font-bold">データの読み込みに失敗しました。</p>';
+                document.getElementById('historyListContainer').innerHTML = `
+                    <div class="bg-rose-50 border border-rose-100 text-rose-600 p-10 rounded-3xl text-center">
+                        <p class="font-black mb-2">データの読み込みに失敗しました</p>
+                        <p class="text-[10px] font-mono opacity-70">${e.message}</p>
+                    </div>`;
             }
         }
 
@@ -103,33 +126,41 @@
                 const card = `
                     <div class="history-card">
                         <div class="history-header" onclick="window.toggleDetail(this)">
-                            <div class="flex items-center gap-4 lg:gap-6">
-                                <span class="text-xs lg:text-sm font-black tracking-widest">${(data.visitDate || '').replace(/-/g, '/')}</span>
-                                <span class="text-xs lg:text-sm font-bold opacity-80 truncate max-w-[150px]">${data.visitorName || '不明'}</span>
+                            <div class="flex items-center gap-6">
+                                <span class="text-sm font-black tracking-widest bg-white/20 px-3 py-1 rounded-full">${(data.visitDate || '').replace(/-/g, '/')}</span>
+                                <span class="text-sm font-bold opacity-90 underline underline-offset-4 decoration-orange-400">${data.visitorName || '担当者不明'}</span>
                             </div>
-                            <i class="fa-solid fa-chevron-down transition-transform duration-300 arrow-icon opacity-50"></i>
+                            <div class="flex items-center gap-4">
+                                <span class="text-[10px] font-bold opacity-60">詳細を見る</span>
+                                <i class="fa-solid fa-chevron-down transition-transform duration-300 arrow-icon opacity-50"></i>
+                            </div>
                         </div>
                         <div class="history-body">
-                            <div class="detail-row"><div class="detail-label">お客様先担当者</div><div class="detail-content">${data.customerStaff || '--'}</div></div>
-                            <div class="detail-row"><div class="detail-label">訪問時間</div><div class="detail-content">${data.startTime || '--:--'} 〜 ${data.endTime || '--:--'}</div></div>
-                            <div class="detail-row"><div class="detail-label">同行者</div><div class="detail-content">${data.companion || 'なし'}</div></div>
-                            <div class="detail-row">
-                                <div class="detail-label">定性データ</div>
-                                <div class="flex flex-wrap gap-2">
-                                    ${data.qualData1 ? `<span class="bg-blue-50 text-blue-600 px-2 py-1 rounded text-[10px] font-black border border-blue-100">${data.qualData1}</span>` : ''}
-                                    ${data.qualData2 ? `<span class="bg-slate-50 text-slate-500 px-2 py-1 rounded text-[10px] font-black border border-slate-100">${data.qualData2}</span>` : ''}
-                                    ${data.qualData3 ? `<span class="bg-emerald-50 text-emerald-600 px-2 py-1 rounded text-[10px] font-black border border-emerald-100">${data.qualData3}</span>` : ''}
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-12">
+                                <div class="detail-row"><div class="detail-label">お客様担当者</div><div class="detail-content">${data.customerStaff || '--'}</div></div>
+                                <div class="detail-row"><div class="detail-label">訪問時間</div><div class="detail-content">${data.startTime || '--:--'} 〜 ${data.endTime || '--:--'}</div></div>
+                                <div class="detail-row"><div class="detail-label">同行者</div><div class="detail-content">${data.companion || 'なし'}</div></div>
+                                <div class="detail-row">
+                                    <div class="detail-label">定性データ</div>
+                                    <div class="flex flex-wrap gap-2">
+                                        ${data.qualData1 ? `<span class="bg-blue-50 text-blue-600 px-2 py-0.5 rounded text-[10px] font-black border border-blue-100">${data.qualData1}</span>` : ''}
+                                        ${data.qualData2 ? `<span class="bg-slate-50 text-slate-500 px-2 py-0.5 rounded text-[10px] font-black border border-slate-100">${data.qualData2}</span>` : ''}
+                                        ${data.qualData3 ? `<span class="bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded text-[10px] font-black border border-emerald-100">${data.qualData3}</span>` : ''}
+                                    </div>
                                 </div>
                             </div>
-                            <div class="py-6">
-                                <p class="detail-label mb-3">お客様からの情報</p>
-                                <div class="p-4 bg-slate-50 rounded-xl detail-content whitespace-pre-wrap shadow-inner">${data.customerReport || '未入力'}</div>
+                            <div class="mt-6 p-5 bg-slate-50 rounded-2xl">
+                                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">お客様からの情報</p>
+                                <div class="detail-content whitespace-pre-wrap">${data.customerReport || '未入力'}</div>
                             </div>
-                            <div class="py-6 border-t border-slate-100">
-                                <p class="detail-label mb-3">自分・スタッフの考え</p>
-                                <div class="p-4 bg-blue-50/30 rounded-xl detail-content whitespace-pre-wrap shadow-inner">${data.staffThoughts || '未入力'}</div>
+                            <div class="mt-4 p-5 bg-blue-50/50 rounded-2xl border border-blue-100/50">
+                                <p class="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-3">自分・スタッフの考え</p>
+                                <div class="detail-content whitespace-pre-wrap">${data.staffThoughts || '未入力'}</div>
                             </div>
-                            <div class="detail-row"><div class="detail-label">次回訪問予定日</div><div class="detail-content text-orange-500 font-bold">${(data.nextVisitDate || '--').replace(/-/g, '/')}</div></div>
+                            <div class="mt-6 flex items-center justify-end gap-2 text-xs font-black">
+                                <span class="text-slate-400">次回訪問予定：</span>
+                                <span class="text-[#ff7e11] bg-orange-50 px-4 py-1 rounded-full border border-orange-100">${(data.nextVisitDate || '--').replace(/-/g, '/')}</span>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -141,10 +172,8 @@
             const body = el.nextElementSibling;
             const arrow = el.querySelector('.arrow-icon');
             const isOpen = body.style.display === 'block';
-            
-            // 全て閉じてから開く「厳格モード」にしたい場合はここで制御可能
             body.style.display = isOpen ? 'none' : 'block';
-            arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+            arrow.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
         };
 
         init();
