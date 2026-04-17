@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --copros-blue: #004098; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; }
+        :root { --copros-blue: #004098; --copros-orange: #ff7e11; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
         .filter-btn { transition: all 0.2s; cursor: pointer; }
         .filter-btn.active { background: var(--copros-orange); color: white; box-shadow: 0 4px 12px rgba(255,126,17,0.3); }
@@ -55,7 +55,7 @@
                     </div>
                 </div>
 
-                <!-- 詳細検索 -->
+                <!-- 詳細検索セクション (省略なし) -->
                 <div id="detailSearchSection" class="mb-8 p-8 bg-white rounded-3xl shadow-xl border border-blue-50">
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 text-xs font-bold">
                         <div class="space-y-2"><label class="text-slate-400">お客様名/カナ</label><input type="text" id="detailName" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-400" placeholder="キーワード"></div>
@@ -74,7 +74,6 @@
                     <div class="flex items-center gap-6">
                         <div id="filterContainer" class="flex flex-wrap gap-1 p-1 bg-white rounded-xl border border-slate-200 shadow-sm font-black text-slate-400">
                             <button class="filter-btn active px-4 py-1.5 rounded-lg text-xs transition-all" data-range="all">全件</button>
-                            <!-- JSで生成 -->
                         </div>
                         <div class="flex items-center gap-2 border-l-2 border-slate-200 pl-6 h-8">
                             <span id="pageRange" class="text-xl font-black text-slate-800 tracking-tighter">0-0</span>
@@ -93,13 +92,13 @@
                             <thead>
                                 <tr class="text-white text-[10px] font-black uppercase tracking-widest">
                                     <th class="p-6 text-center w-20 opacity-50">No</th>
-                                    <th class="p-6">お客様情報</th>
+                                    <th class="p-6">お客様名</th>
                                     <th class="p-6 text-center w-48 opacity-70">実績</th>
                                     <th class="p-6 text-center w-40 opacity-70">連絡先</th>
                                     <th class="p-6 opacity-70">住所</th>
                                     <th class="p-6 text-center w-28 opacity-70">訪問回数</th>
                                     <th class="p-6 text-center w-40 opacity-70">最終訪問日</th>
-                                    <th class="p-6 text-center w-16"><i class="fa-solid fa-check-double opacity-30"></i></th>
+                                    <th class="p-6 text-center w-16 opacity-70"><i class="fa-solid fa-trash-can"></i></th>
                                 </tr>
                             </thead>
                             <tbody id="customerTable" class="divide-y divide-slate-100 text-sm font-bold"></tbody>
@@ -107,7 +106,6 @@
                     </div>
                 </div>
 
-                <!-- 下部ナビ -->
                 <div id="paginationBottom" class="mt-12 mb-24 flex justify-center items-center gap-1.5"></div>
             </div>
         </div>
@@ -117,9 +115,8 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, query, limit, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, query, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // V2最新設定
         const firebaseConfig = {
             apiKey: "AIzaSyC5L1V6jn3Q8i1bWFW03Gd25w_If6dklmY",
             authDomain: "copros-my-page-v2.firebaseapp.com",
@@ -136,7 +133,7 @@
         let currentPage = 1;
         const perPage = 20;
 
-        // 50音ボタン生成
+        // 50音
         const filterContainer = document.getElementById('filterContainer');
         ['あ','か','さ','た','な','は','ま','や','ら','わ','他'].forEach(k => {
             const btn = document.createElement('button');
@@ -151,16 +148,10 @@
             tbody.innerHTML = `<tr><td colspan="8" class="p-10 text-center text-slate-400"><i class="fas fa-spinner fa-spin mr-2"></i> データを取得中...</td></tr>`;
 
             try {
-                // 安全なデータ取得（まずは1000件）
-                const q = query(collection(db, "customers"), limit(1000));
-                const snap = await getDocs(q);
-                
-                if (snap.empty) {
-                    tbody.innerHTML = `<tr><td colspan="8" class="p-10 text-center text-slate-400">データが1件も見つかりません。</td></tr>`;
-                    return;
-                }
-
+                // 【V2プロ仕様】全件読み込み（2700件ならJS側で処理するほうが高速）
+                const snap = await getDocs(collection(db, "customers"));
                 allData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
                 // カナ順ソート
                 allData.sort((a, b) => (a.kana || "").localeCompare(b.kana || "", 'ja'));
                 
@@ -169,15 +160,8 @@
                 setupSearch();
                 setupFilterEvents();
             } catch (e) { 
-                console.error("詳細エラー:", e);
-                tbody.innerHTML = `
-                    <tr><td colspan="8" class="p-10 text-center">
-                        <div class="text-rose-500 font-black mb-2">接続エラーが発生しました</div>
-                        <div class="text-[10px] text-slate-400 bg-slate-50 p-4 rounded-xl border border-slate-100 font-mono">
-                            ${e.message}<br>
-                            ※Firebaseの「Rules」が公開設定になっているか確認してください。
-                        </div>
-                    </td></tr>`;
+                console.error(e);
+                tbody.innerHTML = `<tr><td colspan="8" class="p-10 text-center text-rose-500 font-bold">エラー: ${e.message}</td></tr>`;
             }
         }
 
@@ -199,14 +183,11 @@
                 const row = `
                     <tr class="hover:bg-blue-50/40 transition-all border-b border-slate-50">
                         <td class="p-6 text-center text-slate-300 font-mono text-xs">${startIndex + index + 1}</td>
-                        <td class="p-6">
-                            <div class="font-black text-slate-800 text-base leading-tight">${data.name || "未設定"}</div>
-                            <div class="text-[10px] text-slate-400 font-bold">${data.kana || ""}</div>
-                        </td>
+                        <td class="p-6"><div class="font-black text-slate-800 text-base leading-tight">${data.name || "未設定"}</div></td>
                         <td class="p-6 text-center">
                             <div class="flex gap-1.5 justify-center">
-                                <button class="bg-slate-100 text-slate-500 px-4 py-2 rounded-lg font-black text-[10px] hover:bg-[#004098] hover:text-white transition-all shadow-sm" onclick="location.href='customer_history.html?name=${encodeURIComponent(data.name)}'">履歴</button>
-                                <button class="bg-[#ff7e11] text-white px-4 py-2 rounded-lg font-black text-[10px] hover:shadow-lg transition-all shadow-sm" onclick="location.href='history.html?name=${encodeURIComponent(data.name)}'">登録</button>
+                                <button class="bg-slate-100 text-slate-500 px-4 py-2 rounded-lg font-black text-[10px] hover:bg-slate-200 transition-all" onclick="location.href='customer_history.html?name=${encodeURIComponent(data.name)}'">履歴</button>
+                                <button class="bg-[#004098] text-white px-4 py-2 rounded-lg font-black text-[10px] hover:shadow-lg transition-all" onclick="location.href='history.html?name=${encodeURIComponent(data.name)}'">登録</button>
                             </div>
                         </td>
                         <td class="p-6 text-center text-slate-600 font-mono text-xs tracking-tighter">${data.tel || "-"}</td>
@@ -226,23 +207,19 @@
             containers.forEach(container => {
                 container.innerHTML = "";
                 if (totalPages <= 1) return;
-                const prev = document.createElement('div');
-                prev.innerHTML = '<i class="fa-solid fa-arrow-left"></i>';
+                const prev = document.createElement('div'); prev.innerHTML = '<i class="fa-solid fa-arrow-left"></i>';
                 prev.className = `nav-arrow prev ${currentPage === 1 ? 'disabled' : ''}`;
                 prev.onclick = () => { if(currentPage > 1) { currentPage--; updateView(); scrollToTop(); } };
                 container.appendChild(prev);
-                
                 const startPage = Math.max(1, currentPage - 1);
                 const endPage = Math.min(totalPages, startPage + 3);
                 for (let i = startPage; i <= endPage; i++) {
-                    const btn = document.createElement('div');
-                    btn.innerText = i;
+                    const btn = document.createElement('div'); btn.innerText = i;
                     btn.className = `modern-page-btn ${currentPage === i ? 'active' : ''}`;
                     btn.onclick = () => { currentPage = i; updateView(); scrollToTop(); };
                     container.appendChild(btn);
                 }
-                const next = document.createElement('div');
-                next.innerHTML = '<i class="fa-solid fa-arrow-right"></i>';
+                const next = document.createElement('div'); next.innerHTML = '<i class="fa-solid fa-arrow-right"></i>';
                 next.className = `nav-arrow next ${currentPage === totalPages ? 'disabled' : ''}`;
                 next.onclick = () => { if(currentPage < totalPages) { currentPage++; updateView(); scrollToTop(); } };
                 container.appendChild(next);
@@ -251,7 +228,6 @@
 
         function scrollToTop() { window.scrollTo({top: 0, behavior: 'smooth'}); }
 
-        // 検索ロジック
         function setupSearch() {
             const si = document.getElementById('headerSearchInput');
             if (si) {
@@ -263,13 +239,11 @@
             }
         }
 
-        // 詳細検索トグル
         document.getElementById('detailSearchToggle').onclick = () => {
             const sec = document.getElementById('detailSearchSection');
             sec.style.display = (sec.style.display === 'block') ? 'none' : 'block';
         };
 
-        // 詳細検索実行
         document.getElementById('execDetailSearch').onclick = () => {
             const nameK = document.getElementById('detailName').value.toLowerCase();
             const addrK = document.getElementById('detailAddress').value.toLowerCase();
@@ -297,40 +271,32 @@
             filteredData = [...allData]; currentPage = 1; updateView();
         };
 
-        // 50音フィルター
         function setupFilterEvents() {
             const rangeMap = {
                 'あ': /^[あ-おア-オ]/, 'か': /^[か-こカ-コが-ごガ-ゴ]/, 'さ': /^[さ-そサ-ソざ-ぞザ-ゾ]/,
                 'た': /^[た-とタ-トだ-どダ-ド]/, 'な': /^[な-のナ-ノ]/, 'は': /^[は-ほハ-ホば-ぼバ-ボぱ-ぽパ-ポ]/,
                 'ま': /^[ま-もマ-モ]/, 'や': /^[や-よヤ-ヨ]/, 'ら': /^[ら-ろラ-ロ]/, 'わ': /^[わ-んワ-ン]/
             };
-
             document.querySelectorAll('.filter-btn').forEach(btn => {
                 btn.onclick = () => {
                     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
                     btn.classList.add('active');
                     const range = btn.dataset.range;
-                    if (range === 'all') {
-                        filteredData = [...allData];
-                    } else if (range === '他') {
-                        filteredData = allData.filter(d => !Object.values(rangeMap).some(re => re.test(d.kana || d.name)));
-                    } else {
-                        const re = rangeMap[range];
-                        filteredData = allData.filter(d => re.test(d.kana || ""));
-                    }
+                    if (range === 'all') { filteredData = [...allData]; }
+                    else if (range === '他') { filteredData = allData.filter(d => !Object.values(rangeMap).some(re => re.test(d.kana || d.name))); }
+                    else { const re = rangeMap[range]; filteredData = allData.filter(d => re.test(d.kana || "")); }
                     currentPage = 1; updateView();
                 };
             });
         }
 
-        // 一括削除
         document.getElementById('bulkDeleteBtn').onclick = async () => {
             const checked = document.querySelectorAll('.customer-check:checked');
             if (checked.length === 0) return alert("削除するデータを選択してください。");
             if (!confirm(`${checked.length}件のデータを削除しますか？`)) return;
             const batch = writeBatch(db);
             checked.forEach(el => batch.delete(doc(db, "customers", el.dataset.id)));
-            try { await batch.commit(); alert("削除完了"); init(); } catch (e) { alert("失敗しました"); }
+            try { await batch.commit(); alert("削除完了"); init(); } catch (e) { alert("失敗"); }
         };
 
         init();
