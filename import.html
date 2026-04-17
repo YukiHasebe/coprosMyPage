@@ -9,18 +9,18 @@
     <style>
         :root { --copros-orange: #ff7e11; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
-        .form-card { background: white; border-radius: 2rem; border: 1px solid #e2e8f0; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05); }
-        .tab-btn { transition: all 0.3s; border-bottom: 4px solid transparent; opacity: 0.4; padding-bottom: 1rem; font-weight: 900; }
+        .form-card { background: white; border-radius: 2rem; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); }
+        .tab-btn { transition: all 0.3s; border-bottom: 3px solid transparent; opacity: 0.4; padding-bottom: 1rem; font-weight: 900; }
         .tab-btn.active { opacity: 1; }
         .tab-staffs.active { color: #0ea5e9; border-bottom-color: #0ea5e9; }
         .tab-customers.active { color: var(--copros-orange); border-bottom-color: var(--copros-orange); }
         .tab-records.active { color: #10b981; border-bottom-color: #10b981; }
-        .console-log { background: #1e293b; color: #10b981; font-family: 'Courier New', monospace; font-size: 0.7rem; border-radius: 1rem; padding: 1.5rem; height: 250px; overflow-y: auto; border: 4px solid #334155; }
+        .console-log { background: #1e293b; color: #10b981; font-family: 'Courier New', monospace; font-size: 0.7rem; border-radius: 1rem; padding: 1.5rem; height: 300px; overflow-y: auto; border: 4px solid #334155; }
         .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
-<body class="flex flex-col lg:flex-row h-screen overflow-hidden text-slate-700">
+<body class="flex flex-col lg:flex-row h-screen overflow-hidden text-slate-700 font-sans">
 
     <div id="sidebar-placeholder"></div>
 
@@ -31,7 +31,7 @@
             <div class="max-w-5xl mx-auto">
                 <div class="mb-8">
                     <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-2">データー一括登録</h1>
-                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Data Maintenance Tool (Safety Add Mode)</p>
+                    <nav class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Data Maintenance System</nav>
                 </div>
 
                 <div class="form-card p-6 lg:p-10 mb-8">
@@ -42,14 +42,17 @@
                     </div>
 
                     <div id="importGuide" class="p-4 lg:p-6 rounded-2xl mb-6 border bg-slate-50">
-                        <p class="font-bold text-xs mb-2 text-slate-500">コピーしたデータを貼り付けてください：</p>
-                        <div id="columnMapping" class="text-[9px] lg:text-[11px] font-mono font-black tracking-tight leading-relaxed break-all"></div>
-                        <p class="mt-4 text-[10px] text-rose-500 font-bold"><i class="fa-solid fa-shield-halved mr-1"></i>自動重複チェック有効：既存のデータはスキップまたは更新されます。</p>
+                        <p class="font-bold text-xs mb-2 text-slate-500 italic">Excelの列順を合わせて貼り付けてください：</p>
+                        <div id="columnMapping" class="text-[9px] lg:text-[11px] font-mono font-black tracking-tight leading-relaxed break-all bg-white p-3 rounded-lg border border-slate-200 shadow-inner"></div>
+                        <div class="mt-4 flex items-center gap-2 text-rose-500">
+                            <i class="fa-solid fa-shield-halved text-xs"></i>
+                            <p class="text-[10px] font-black uppercase tracking-tighter">自動重複チェック：既存のデータは自動的にスキップされます</p>
+                        </div>
                     </div>
 
-                    <textarea id="csvData" class="w-full h-48 lg:h-64 p-4 lg:p-6 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none font-mono text-[10px] mb-8 focus:bg-white transition-all" placeholder="Excelからコピーして貼り付け"></textarea>
+                    <textarea id="csvData" class="w-full h-48 lg:h-64 p-4 lg:p-6 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none font-mono text-[10px] mb-8 focus:bg-white focus:ring-4 focus:ring-slate-100 transition-all" placeholder="Excelのデータをコピーしてここに貼り付け"></textarea>
 
-                    <div class="flex flex-col lg:flex-row gap-4">
+                    <div class="flex gap-4">
                         <button id="importBtn" class="flex-1 py-4 text-white rounded-2xl font-black shadow-lg transition-all flex items-center justify-center gap-3 active:scale-95">
                             <i class="fa-solid fa-cloud-arrow-up"></i> <span id="btnText">インポート開始</span>
                         </button>
@@ -59,7 +62,7 @@
                 <div class="bg-white p-6 rounded-[1.5rem] border border-slate-200 shadow-sm mb-20">
                     <div class="flex justify-between items-center mb-4">
                         <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Process Log</span>
-                        <span id="progressPercent" class="text-xs font-mono font-bold text-emerald-500">Ready</span>
+                        <span id="progressPercent" class="text-xs font-mono font-bold text-emerald-500">READY</span>
                     </div>
                     <div id="statusLog" class="console-log custom-scrollbar">ログ待機中...</div>
                 </div>
@@ -79,7 +82,7 @@
 
         let currentMode = 'staffs';
         const mapping = {
-            customers: "A:お客様名 | B:カナ | C:ランク | D:属性 | E:郵便 | F:住所 | G:ビル | H:電話",
+            customers: "A:お客様名 | B:カナ | C:ランク | D:属性 | E:住所(ビル込) | F:電話 | G:累計訪問数 | H:最終訪問日",
             staffs: "A:社員番号 | B:氏名 | C:パスワード | D:メール | E:権限 | F:有効 | G:部署",
             activity_records: "A:お客様名 | B:ランク | C:属性 | D:先方担当 | E:開始日時 | F:終了日時 | K:内容 | L:訪問者 | M:同行者 | R:報告 | S:考え"
         };
@@ -93,13 +96,13 @@
             document.getElementById('columnMapping').innerText = mapping[mode];
 
             if (mode === 'staffs') {
-                btn.className = "flex-1 py-4 bg-sky-500 text-white rounded-2xl font-black shadow-lg";
+                btn.className = "flex-1 py-4 bg-sky-500 text-white rounded-2xl font-black shadow-lg hover:bg-sky-600";
                 btnText.innerText = "社員名簿を更新・追加";
             } else if (mode === 'customers') {
-                btn.className = "flex-1 py-4 bg-[#ff7e11] text-white rounded-2xl font-black shadow-lg";
+                btn.className = "flex-1 py-4 bg-[#ff7e11] text-white rounded-2xl font-black shadow-lg hover:bg-[#e66a00]";
                 btnText.innerText = "お客様名簿を新規分のみ追加";
             } else {
-                btn.className = "flex-1 py-4 bg-emerald-500 text-white rounded-2xl font-black shadow-lg";
+                btn.className = "flex-1 py-4 bg-emerald-500 text-white rounded-2xl font-black shadow-lg hover:bg-emerald-600";
                 btnText.innerText = "実績データを新規分のみ追加";
             }
         };
@@ -115,7 +118,7 @@
             if (!rawData) return alert("データがありません。");
             const rows = rawData.split('\n');
             const total = rows.length;
-            log(`全${total}件の分析・処理を開始します...`, "#fbbf24");
+            log(`${total}件の処理を開始...`, "#fbbf24");
             document.getElementById('importBtn').disabled = true;
 
             for (let i = 0; i < rows.length; i++) {
@@ -123,29 +126,38 @@
                 if (col.length < 2) continue;
 
                 try {
-                    if (currentMode === 'staffs') {
-                        // 社員はID固定なので上書きOK
-                        const docId = col[0]?.trim();
-                        const data = { id: docId, name: col[1]?.trim(), password: col[2]?.trim() || "1234", email: col[3]?.trim() || "", role: col[4]?.trim() || "一般", status: col[5]?.trim() || "有効", dept: col[6]?.trim() || "営業部", updatedAt: serverTimestamp() };
-                        await setDoc(doc(db, "staffs", docId), data);
-                        if(i%5===0) log(`社員 [${data.name}] を更新/追加しました`);
-                    } 
-                    else if (currentMode === 'customers') {
-                        // 🌟 重複チェック：同じ名前のお客様がいないか確認
+                    if (currentMode === 'customers') {
                         const name = col[0]?.trim();
+                        // 🌟 由紀さんのこだわった重複チェック
                         const q = query(collection(db, "customers"), where("name", "==", name), limit(1));
                         const snap = await getDocs(q);
                         
                         if (snap.empty) {
-                            const data = { name, kana: col[1]?.trim(), rank: col[2]?.trim(), type: col[3]?.trim(), zip: col[4]?.trim(), address: col[5]?.trim(), building: col[6]?.trim(), tel: col[7]?.trim(), visitCount: 0, lastVisit: "未訪問", updatedAt: serverTimestamp() };
+                            const data = { 
+                                name, 
+                                kana: col[1]?.trim() || "", 
+                                rank: col[2]?.trim() || "", 
+                                type: col[3]?.trim() || "", 
+                                address: col[4]?.trim() || "", 
+                                tel: col[5]?.trim() || "", 
+                                visitCount: parseInt(col[6]?.trim()) || 0, // G列: 訪問回数
+                                lastVisit: col[7]?.trim() || "未訪問",      // H列: 最終訪問日
+                                updatedAt: serverTimestamp() 
+                            };
                             await addDoc(collection(db, "customers"), data);
-                            log(`新規追加: ${name}`);
+                            log(`新規追加: ${name} (計${data.visitCount}回)`);
                         } else {
                             log(`スキップ(登録済): ${name}`, "#94a3b8");
                         }
                     } 
-                    else if (currentMode === 'activity_records') {
-                        // 🌟 重複チェック：同じ日時・お客様・訪問者の記録がないか確認
+                    else if (currentMode === 'staffs') {
+                        const docId = col[0]?.trim();
+                        const data = { id: docId, name: col[1]?.trim(), password: col[2]?.trim() || "1234", email: col[3]?.trim() || "", role: col[4]?.trim() || "一般", status: col[5]?.trim() || "有効", dept: col[6]?.trim() || "営業部", updatedAt: serverTimestamp() };
+                        await setDoc(doc(db, "staffs", docId), data);
+                        if(i%5===0) log(`社員 [${data.name}] を更新/追加しました`);
+                    }
+                    else {
+                        // 実績インポート（重複チェック付き）
                         const cust = col[0]?.trim();
                         const startFull = col[4]?.trim() || "";
                         const datePart = startFull.split(' ')[0] ? startFull.split(' ')[0].replace(/\//g, '-') : "";
@@ -161,16 +173,17 @@
                         if (snap.empty) {
                             const data = {
                                 customerName: cust, customerRank: col[1]?.trim(), customerType: col[2]?.trim(),
-                                customerStaff: col[3]?.trim(), visitDate: datePart,
-                                startTime: startFull.split(' ')[1] || "00:00", endTime: (col[5]?.trim() || "").split(' ')[1] || "00:00",
-                                visitContent: col[10]?.trim(), visitorName: visitor, visitorRole: "メイン",
-                                companion: col[12]?.trim(), customerReport: col[17]?.trim(), staffThoughts: col[18]?.trim(),
+                                visitDate: datePart, startTime: startFull.split(' ')[1] || "00:00",
+                                endTime: (col[5]?.trim() || "").split(' ')[1] || "00:00",
+                                visitContent: col[10]?.trim(), visitorName: visitor,
+                                visitorRole: "メイン", companion: col[12]?.trim(),
+                                customerReport: col[17]?.trim(), staffThoughts: col[18]?.trim(),
                                 createdAt: serverTimestamp()
                             };
                             await addDoc(collection(db, "activity_records"), data);
                             log(`実績追加: ${cust} (${datePart})`);
                         } else {
-                            log(`実績スキップ(登録済): ${cust}`, "#94a3b8");
+                            log(`実績スキップ: ${cust}`, "#94a3b8");
                         }
                     }
                 } catch (e) { log(`エラー: ${e.message}`, "#f87171"); }
@@ -179,7 +192,7 @@
                 document.getElementById('progressPercent').innerText = `${percent}%`;
             }
             document.getElementById('importBtn').disabled = false;
-            alert("処理が完了しました。ログを確認してください。");
+            alert("すべての処理が完了しました！");
         };
 
         switchTab('staffs');
