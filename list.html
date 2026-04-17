@@ -7,18 +7,21 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; }
+        :root { --copros-blue: #004098; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
-        .filter-btn { transition: all 0.2s; }
+        .filter-btn { transition: all 0.2s; cursor: pointer; }
         .filter-btn.active { background: var(--copros-orange); color: white; box-shadow: 0 4px 12px rgba(255,126,17,0.3); }
         .modern-page-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-weight: 800; font-size: 14px; transition: all 0.3s; color: #94a3b8; cursor: pointer; }
         .modern-page-btn.active { background: #334155; color: white; }
-        .nav-arrow { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: white; color: var(--copros-orange); border: 1px solid #e2e8f0; }
+        .nav-arrow { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: white; color: var(--copros-orange); border: 1px solid #e2e8f0; cursor: pointer; }
         .nav-arrow:hover:not(.disabled) { background: var(--copros-orange); color: white; }
         .nav-arrow.disabled { opacity: 0.2; cursor: default; }
         .table-container { border-radius: 1.5rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
         thead tr { background-color: #3c4b5a; }
         #detailSearchSection { display: none; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700">
@@ -66,16 +69,12 @@
                     </div>
                 </div>
 
-                <!-- ナビゲーション（左：絞り込み・件数 / 右：ページ切替） -->
+                <!-- ナビゲーション -->
                 <div class="flex justify-between items-center mb-6 px-2">
                     <div class="flex items-center gap-6">
-                        <div class="flex flex-wrap gap-1 p-1 bg-white rounded-xl border border-slate-200 shadow-sm font-black text-slate-400">
+                        <div id="filterContainer" class="flex flex-wrap gap-1 p-1 bg-white rounded-xl border border-slate-200 shadow-sm font-black text-slate-400">
                             <button class="filter-btn active px-4 py-1.5 rounded-lg text-xs transition-all" data-range="all">全件</button>
-                            <script>
-                                ['あ','か','さ','た','な','は','ま','や','ら','わ','他'].forEach(k => {
-                                    document.write(`<button class="filter-btn px-3 py-1.5 rounded-lg text-xs" data-range="${k}">${k}</button>`);
-                                });
-                            </script>
+                            <!-- JSで生成 -->
                         </div>
                         <div class="flex items-center gap-2 border-l-2 border-slate-200 pl-6 h-8">
                             <span id="pageRange" class="text-xl font-black text-slate-800 tracking-tighter">0-0</span>
@@ -118,10 +117,9 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, orderBy, query, doc, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, query, limit, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // Firebase設定
-               // Firebase設定（V2最新版に更新済み）
+        // V2最新設定
         const firebaseConfig = {
             apiKey: "AIzaSyC5L1V6jn3Q8i1bWFW03Gd25w_If6dklmY",
             authDomain: "copros-my-page-v2.firebaseapp.com",
@@ -138,24 +136,48 @@
         let currentPage = 1;
         const perPage = 20;
 
+        // 50音ボタン生成
+        const filterContainer = document.getElementById('filterContainer');
+        ['あ','か','さ','た','な','は','ま','や','ら','わ','他'].forEach(k => {
+            const btn = document.createElement('button');
+            btn.className = 'filter-btn px-3 py-1.5 rounded-lg text-xs';
+            btn.dataset.range = k;
+            btn.innerText = k;
+            filterContainer.appendChild(btn);
+        });
+
         async function init() {
             const tbody = document.getElementById('customerTable');
-            tbody.innerHTML = `<tr><td colspan="8" class="p-10 text-center text-slate-400"><i class="fas fa-spinner fa-spin mr-2"></i> データを読み込み中...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="8" class="p-10 text-center text-slate-400"><i class="fas fa-spinner fa-spin mr-2"></i> データを取得中...</td></tr>`;
+
             try {
-                // 安全のため orderBy は使わずに取得し、JS側でソートします
+                // 安全なデータ取得（まずは1000件）
                 const q = query(collection(db, "customers"), limit(1000));
                 const snap = await getDocs(q);
-                allData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 
-                // カナ順で並び替え
+                if (snap.empty) {
+                    tbody.innerHTML = `<tr><td colspan="8" class="p-10 text-center text-slate-400">データが1件も見つかりません。</td></tr>`;
+                    return;
+                }
+
+                allData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                // カナ順ソート
                 allData.sort((a, b) => (a.kana || "").localeCompare(b.kana || "", 'ja'));
                 
                 filteredData = [...allData];
                 updateView();
                 setupSearch();
+                setupFilterEvents();
             } catch (e) { 
-                console.error(e); 
-                tbody.innerHTML = `<tr><td colspan="8" class="p-10 text-center text-rose-400">エラーが発生しました。コンソールを確認してください。</td></tr>`;
+                console.error("詳細エラー:", e);
+                tbody.innerHTML = `
+                    <tr><td colspan="8" class="p-10 text-center">
+                        <div class="text-rose-500 font-black mb-2">接続エラーが発生しました</div>
+                        <div class="text-[10px] text-slate-400 bg-slate-50 p-4 rounded-xl border border-slate-100 font-mono">
+                            ${e.message}<br>
+                            ※Firebaseの「Rules」が公開設定になっているか確認してください。
+                        </div>
+                    </td></tr>`;
             }
         }
 
@@ -178,7 +200,7 @@
                     <tr class="hover:bg-blue-50/40 transition-all border-b border-slate-50">
                         <td class="p-6 text-center text-slate-300 font-mono text-xs">${startIndex + index + 1}</td>
                         <td class="p-6">
-                            <div class="font-black text-slate-800 text-base leading-tight">${data.name || ""}</div>
+                            <div class="font-black text-slate-800 text-base leading-tight">${data.name || "未設定"}</div>
                             <div class="text-[10px] text-slate-400 font-bold">${data.kana || ""}</div>
                         </td>
                         <td class="p-6 text-center">
@@ -209,6 +231,7 @@
                 prev.className = `nav-arrow prev ${currentPage === 1 ? 'disabled' : ''}`;
                 prev.onclick = () => { if(currentPage > 1) { currentPage--; updateView(); scrollToTop(); } };
                 container.appendChild(prev);
+                
                 const startPage = Math.max(1, currentPage - 1);
                 const endPage = Math.min(totalPages, startPage + 3);
                 for (let i = startPage; i <= endPage; i++) {
@@ -228,11 +251,25 @@
 
         function scrollToTop() { window.scrollTo({top: 0, behavior: 'smooth'}); }
 
+        // 検索ロジック
+        function setupSearch() {
+            const si = document.getElementById('headerSearchInput');
+            if (si) {
+                si.addEventListener('input', (e) => {
+                    const k = e.target.value.toLowerCase();
+                    filteredData = allData.filter(d => (d.name && d.name.toLowerCase().includes(k)) || (d.kana && d.kana.toLowerCase().includes(k)));
+                    currentPage = 1; updateView();
+                });
+            }
+        }
+
+        // 詳細検索トグル
         document.getElementById('detailSearchToggle').onclick = () => {
             const sec = document.getElementById('detailSearchSection');
             sec.style.display = (sec.style.display === 'block') ? 'none' : 'block';
         };
 
+        // 詳細検索実行
         document.getElementById('execDetailSearch').onclick = () => {
             const nameK = document.getElementById('detailName').value.toLowerCase();
             const addrK = document.getElementById('detailAddress').value.toLowerCase();
@@ -243,7 +280,7 @@
                 const matchAddr = !addrK || (d.address && d.address.toLowerCase().includes(addrK));
                 let matchDate = true;
                 if (startK || endK) {
-                    if (!d.lastVisit || d.lastVisit === "未訪問") matchDate = false;
+                    if (!d.lastVisit || d.lastVisit === "未登録") matchDate = false;
                     else {
                         const dDate = d.lastVisit.replace(/\//g, '-');
                         if (startK && dDate < startK) matchDate = false;
@@ -260,55 +297,40 @@
             filteredData = [...allData]; currentPage = 1; updateView();
         };
 
-        function setupSearch() {
-            const si = document.getElementById('headerSearchInput');
-            if (si) {
-                si.addEventListener('input', (e) => {
-                    const k = e.target.value.toLowerCase();
-                    filteredData = allData.filter(d => (d.name && d.name.toLowerCase().includes(k)) || (d.kana && d.kana.toLowerCase().includes(k)));
+        // 50音フィルター
+        function setupFilterEvents() {
+            const rangeMap = {
+                'あ': /^[あ-おア-オ]/, 'か': /^[か-こカ-コが-ごガ-ゴ]/, 'さ': /^[さ-そサ-ソざ-ぞザ-ゾ]/,
+                'た': /^[た-とタ-トだ-どダ-ド]/, 'な': /^[な-のナ-ノ]/, 'は': /^[は-ほハ-ホば-ぼバ-ボぱ-ぽパ-ポ]/,
+                'ま': /^[ま-もマ-モ]/, 'や': /^[や-よヤ-ヨ]/, 'ら': /^[ら-ろラ-ロ]/, 'わ': /^[わ-んワ-ン]/
+            };
+
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.onclick = () => {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    const range = btn.dataset.range;
+                    if (range === 'all') {
+                        filteredData = [...allData];
+                    } else if (range === '他') {
+                        filteredData = allData.filter(d => !Object.values(rangeMap).some(re => re.test(d.kana || d.name)));
+                    } else {
+                        const re = rangeMap[range];
+                        filteredData = allData.filter(d => re.test(d.kana || ""));
+                    }
                     currentPage = 1; updateView();
-                });
-            }
+                };
+            });
         }
 
-        // --- 改良：濁点・半濁点対応の50音判定 ---
-        const rangeMap = {
-            'あ': /^[あ-おア-オ]/,
-            'か': /^[か-こカ-コが-ごガ-ゴ]/,
-            'さ': /^[さ-そサ-ソざ-ぞザ-ゾ]/,
-            'た': /^[た-とタ-トだ-どダ-ド]/,
-            'な': /^[な-のナ-ノ]/,
-            'は': /^[は-ほハ-ホば-ぼバ-ボぱ-ぽパ-ポ]/,
-            'ま': /^[ま-もマ-モ]/,
-            'や': /^[や-よヤ-ヨ]/,
-            'ら': /^[ら-ろラ-ロ]/,
-            'わ': /^[わ-んワ-ン]/
-        };
-
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.onclick = () => {
-                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                const range = btn.dataset.range;
-                if (range === 'all') {
-                    filteredData = [...allData];
-                } else if (range === '他') {
-                    filteredData = allData.filter(d => !Object.values(rangeMap).some(re => re.test(d.kana || d.name)));
-                } else {
-                    const re = rangeMap[range];
-                    filteredData = allData.filter(d => re.test(d.kana || ""));
-                }
-                currentPage = 1; updateView();
-            };
-        });
-
+        // 一括削除
         document.getElementById('bulkDeleteBtn').onclick = async () => {
             const checked = document.querySelectorAll('.customer-check:checked');
             if (checked.length === 0) return alert("削除するデータを選択してください。");
             if (!confirm(`${checked.length}件のデータを削除しますか？`)) return;
             const batch = writeBatch(db);
             checked.forEach(el => batch.delete(doc(db, "customers", el.dataset.id)));
-            try { await batch.commit(); alert("削除が完了しました。"); init(); } catch (e) { alert("削除に失敗しました。"); }
+            try { await batch.commit(); alert("削除完了"); init(); } catch (e) { alert("失敗しました"); }
         };
 
         init();
