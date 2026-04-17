@@ -7,129 +7,210 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --copros-orange: #ff7e11; }
+        :root { --copros-blue: #004098; --copros-orange: #ff7e11; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
         .form-card { background: white; border-radius: 2rem; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); }
-        .tab-btn { transition: all 0.3s; border-bottom: 3px solid transparent; opacity: 0.4; padding-bottom: 1rem; font-weight: 900; }
+        .tab-btn { transition: all 0.3s; border-bottom: 3px solid transparent; opacity: 0.4; padding-bottom: 1rem; font-weight: 900; cursor: pointer; }
         .tab-btn.active { opacity: 1; }
         .tab-staffs.active { color: #0ea5e9; border-bottom-color: #0ea5e9; }
         .tab-customers.active { color: var(--copros-orange); border-bottom-color: var(--copros-orange); }
         .tab-records.active { color: #10b981; border-bottom-color: #10b981; }
-        .console-log { background: #1e293b; color: #10b981; font-family: 'Courier New', monospace; font-size: 0.7rem; border-radius: 1rem; padding: 1.5rem; height: 300px; overflow-y: auto; border: 4px solid #334155; }
-        .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
+        .console-log { background: #1e293b; color: #10b981; font-family: 'Courier New', monospace; font-size: 0.75rem; border-radius: 1rem; padding: 1.5rem; height: 300px; overflow-y: auto; border: 4px solid #334155; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
-<body class="flex flex-col lg:flex-row h-screen overflow-hidden text-slate-700 font-sans">
+<body class="flex h-screen overflow-hidden text-slate-700">
+
     <div id="sidebar-placeholder"></div>
+
     <main class="flex-1 flex flex-col overflow-hidden">
         <div id="header-placeholder"></div>
-        <div class="flex-1 overflow-y-auto p-4 lg:p-8 custom-scrollbar">
+
+        <div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
             <div class="max-w-5xl mx-auto">
-                <div class="mb-8">
-                    <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-2">データー一括登録</h1>
-                    <nav class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Data Final Sync</nav>
+                <div class="flex justify-between items-center mb-8">
+                    <div>
+                        <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">データー一括登録</h1>
+                        <nav class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Database Maintenance</nav>
+                    </div>
+                    <!-- 危険だが便利なリセットボタン -->
+                    <button id="clearRecordsBtn" class="px-4 py-2 text-rose-400 text-[10px] font-bold hover:bg-rose-50 rounded-xl transition-all">
+                        <i class="fa-solid fa-triangle-exclamation mr-1"></i>実績データのみ全消去
+                    </button>
                 </div>
-                <div class="form-card p-6 lg:p-10 mb-8">
-                    <div class="flex gap-6 lg:gap-10 border-b border-slate-100 mb-8 overflow-x-auto whitespace-nowrap">
+
+                <div class="form-card p-10 mb-8">
+                    <div class="flex gap-10 border-b border-slate-100 mb-8">
                         <button onclick="switchTab('staffs')" id="tab-staffs" class="tab-btn tab-staffs active">社員名簿</button>
-                        <button onclick="switchTab('customers')" id="tab-customers" class="tab-btn tab-customers">お客様名簿 (重複スキップ)</button>
-                        <button onclick="switchTab('activity_records')" id="tab-records" class="tab-btn tab-records">実績データ (全件追加)</button>
+                        <button onclick="switchTab('customers')" id="tab-customers" class="tab-btn tab-customers">お客様名簿</button>
+                        <button onclick="switchTab('activity_records')" id="tab-records" class="tab-btn tab-records">実績データ (Excel列対応済)</button>
                     </div>
-                    <div id="importGuide" class="p-4 lg:p-6 rounded-2xl mb-6 border bg-slate-50">
-                        <div id="columnMapping" class="text-[9px] lg:text-[11px] font-mono font-black tracking-tight leading-relaxed break-all bg-white p-3 rounded-lg border border-slate-200 shadow-inner"></div>
+
+                    <div id="importGuide" class="p-6 rounded-2xl mb-6 border bg-slate-50">
+                        <p class="text-[10px] font-black text-slate-400 mb-3 uppercase">Excelの列順序</p>
+                        <div id="columnMapping" class="text-[11px] font-mono font-black tracking-tight leading-relaxed text-slate-600"></div>
                     </div>
-                    <textarea id="csvData" class="w-full h-48 lg:h-64 p-4 lg:p-6 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none font-mono text-[10px] mb-8 focus:bg-white transition-all" placeholder="Excelのデータを貼り付け"></textarea>
-                    <button id="importBtn" class="w-full py-4 text-white rounded-2xl font-black shadow-lg transition-all flex items-center justify-center gap-3 active:scale-95"><i class="fa-solid fa-cloud-arrow-up"></i> <span id="btnText">インポート開始</span></button>
+
+                    <textarea id="csvData" class="w-full h-64 p-6 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none font-mono text-xs mb-8 focus:bg-white transition-all shadow-inner" placeholder="Excelのデータを項目名(1行目)なしで貼り付けてください"></textarea>
+
+                    <button id="importBtn" class="w-full py-5 text-white rounded-2xl font-black shadow-lg transition-all flex items-center justify-center gap-3 active:scale-95">
+                        <i class="fa-solid fa-cloud-arrow-up text-xl"></i>
+                        <span id="btnText" class="text-lg">インポート開始</span>
+                    </button>
                 </div>
-                <div class="bg-white p-6 rounded-[1.5rem] border border-slate-200 shadow-sm mb-20">
+
+                <div class="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm mb-20">
                     <div class="flex justify-between items-center mb-4">
-                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Process Log</span>
-                        <span id="progressPercent" class="text-xs font-mono font-bold text-emerald-500">READY</span>
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Processing Log</span>
+                        <span id="progressPercent" class="text-sm font-mono font-bold text-emerald-500">READY</span>
                     </div>
                     <div id="statusLog" class="console-log custom-scrollbar">ログ待機中...</div>
                 </div>
             </div>
         </div>
     </main>
+
     <script type="module" src="common.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, doc, setDoc, addDoc, serverTimestamp, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-        import { firebaseConfig } from "./common.js";
+        import { getFirestore, collection, doc, setDoc, addDoc, serverTimestamp, getDocs, query, where, limit, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyC5L1V6jn3Q8i1bWFW03Gd25w_If6dklmY",
+            authDomain: "copros-my-page-v2.firebaseapp.com",
+            projectId: "copros-my-page-v2",
+            storageBucket: "copros-my-page-v2.firebasestorage.app",
+            messagingSenderId: "595195904220",
+            appId: "1:595195904220:web:402fd4e8620e2f32673419"
+        };
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+
         let currentMode = 'staffs';
         const mapping = {
-            customers: "A:名 | B:カナ | C:ランク | D:属性 | E:住所 | F:電話 | G:回数 | H:最終日",
-            staffs: "A:社員番号 | B:氏名 | C:パス | D:メール | E:権限 | F:有効 | G:部署",
-            activity_records: "A:名 | B:ランク | C:属性 | D:担当 | E:開始 | F:終了 | G:内容 | H:訪問者 | I:同行者 | J-L:定性 | M:金額 | N:報告 | O:考え"
+            customers: "A:お客様名 | B:カナ | C:ランク | D:属性 | E:住所 | F:電話 | G:訪問回数 | H:最終訪問日",
+            staffs: "A:社員番号 | B:氏名 | C:パスワード | D:メール | E:権限 | F:状態 | G:部署",
+            activity_records: "A:お客様名 | B:ランク | C:属性 | D:客先担当 | E:開始日時 | F:終了日時 | G:内容 | H:訪問者 | I:同行者 | J:定性1 | K:定性2 | L:定性3 | M:金額 | N:報告 | O:考え"
         };
+
         window.switchTab = (mode) => {
             currentMode = mode;
             const btn = document.getElementById('importBtn');
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(`tab-${mode === 'activity_records' ? 'records' : mode}`).classList.add('active');
+            const activeTabId = mode === 'activity_records' ? 'tab-records' : `tab-${mode}`;
+            document.getElementById(activeTabId).classList.add('active');
             document.getElementById('columnMapping').innerText = mapping[mode];
-            if (mode === 'staffs') btn.className = "w-full py-4 bg-sky-500 text-white rounded-2xl font-black shadow-lg";
-            else if (mode === 'customers') btn.className = "w-full py-4 bg-[#ff7e11] text-white rounded-2xl font-black shadow-lg";
-            else btn.className = "w-full py-4 bg-emerald-500 text-white rounded-2xl font-black shadow-lg";
+            
+            if (mode === 'staffs') btn.className = "w-full py-5 bg-sky-500 text-white rounded-2xl font-black shadow-lg";
+            else if (mode === 'customers') btn.className = "w-full py-5 bg-[#ff7e11] text-white rounded-2xl font-black shadow-lg";
+            else btn.className = "w-full py-5 bg-emerald-500 text-white rounded-2xl font-black shadow-lg";
         };
+
         function log(msg, color = "#10b981") {
             const div = document.getElementById('statusLog');
             div.innerHTML += `<div style="color: ${color}">> ${msg}</div>`;
             div.scrollTop = div.scrollHeight;
         }
+
+        // インポート実行
         document.getElementById('importBtn').onclick = async () => {
             const rawData = document.getElementById('csvData').value.trim();
-            if (!rawData) return alert("データがありません。");
+            if (!rawData) return alert("データがありません。Excelから貼り付けてください。");
+            
             const rows = rawData.split('\n');
             const total = rows.length;
             log(`${total}件の処理を開始...`, "#fbbf24");
             document.getElementById('importBtn').disabled = true;
+
             for (let i = 0; i < rows.length; i++) {
                 const col = rows[i].split('\t');
                 if (col.length < 2) continue;
+
                 try {
                     if (currentMode === 'customers') {
                         const name = col[0]?.trim();
-                        if (!name) continue;
-                        const q = query(collection(db, "customers"), where("name", "==", name), limit(1));
-                        const snap = await getDocs(q);
-                        if (snap.empty) {
-                            const data = { name, kana: col[1]?.trim() || "", rank: col[2]?.trim() || "", type: col[3]?.trim() || "", address: col[4]?.trim() || "", tel: col[5]?.trim() || "", visitCount: parseInt(col[6]?.trim()) || 0, lastVisit: col[7]?.trim() || "未訪問", updatedAt: serverTimestamp() };
-                            await addDoc(collection(db, "customers"), data);
-                            log(`新規顧客: ${name}`);
-                        } else { log(`スキップ: ${name}`, "#94a3b8"); }
-                    } 
-                    else if (currentMode === 'staffs') {
-                        const docId = col[0]?.trim();
-                        if (!docId) continue;
-                        const data = { id: docId, name: col[1]?.trim() || "不明", password: col[2]?.trim() || "1234", email: col[3]?.trim() || "", role: col[4]?.trim() || "一般", status: col[5]?.trim() || "有効", dept: col[6]?.trim() || "営業部", updatedAt: serverTimestamp() };
-                        await setDoc(doc(db, "staffs", docId), data);
-                        log(`社員: ${data.name} OK`);
-                    }
-                    else if (currentMode === 'activity_records') {
-                        const custName = col[0]?.trim() || "名称不明";
-                        const startFull = col[4]?.trim() || ""; 
-                        const datePart = startFull.split(' ')[0] ? startFull.split(' ')[0].replace(/\//g, '-') : "2026-01-01";
                         const data = {
-                            customerName: custName, customerRank: col[1]?.trim() || "", customerType: col[2]?.trim() || "", customerStaff: col[3]?.trim() || "",
-                            visitDate: datePart, startTime: startFull.split(' ')[1] || "00:00", endTime: (col[5]?.trim() || "").split(' ')[1] || "00:00",
-                            visitContent: col[6]?.trim() || "", visitorName: col[7]?.trim() || "不明", visitorRole: "メイン", companion: col[8]?.trim() || "",
-                            qualData1: col[9]?.trim() || "", qualData2: col[10]?.trim() || "", qualData3: col[11]?.trim() || "",
-                            estimatedAmount: col[12]?.trim() || "0", customerReport: col[13]?.trim() || "", staffThoughts: col[14]?.trim() || "",
+                            name: name,
+                            kana: col[1]?.trim() || "",
+                            rank: col[2]?.trim() || "",
+                            type: col[3]?.trim() || "",
+                            address: col[4]?.trim() || "",
+                            tel: col[5]?.trim() || "",
+                            visitCount: parseInt(col[6]?.trim()) || 0,
+                            lastVisit: col[7]?.trim() || "未登録",
+                            updatedAt: serverTimestamp()
+                        };
+                        await addDoc(collection(db, "customers"), data);
+                        log(`登録: ${name}`);
+                    } 
+                    else if (currentMode === 'activity_records') {
+                        const custName = col[0]?.trim(); // A列: お客様名
+                        const startFull = col[4]?.trim() || ""; // E列: 訪問開始日時
+                        
+                        // 日付の整形 (2026/1/5 10:00 -> 2026-01-05)
+                        const datePart = startFull.split(' ')[0] ? startFull.split(' ')[0].replace(/\//g, '-') : "";
+                        const startTime = startFull.split(' ')[1] || "00:00";
+                        const endTime = (col[5]?.trim() || "").split(' ')[1] || "00:00";
+
+                        const data = {
+                            customerName: custName,
+                            customerRank: col[1]?.trim() || "",
+                            customerType: col[2]?.trim() || "",
+                            customerStaff: col[3]?.trim() || "",
+                            visitDate: datePart,
+                            startTime: startTime,
+                            endTime: endTime,
+                            visitContent: col[6]?.trim() || "",
+                            visitorName: col[7]?.trim() || "不明",
+                            companion: col[8]?.trim() || "",
+                            qualData1: col[9]?.trim() || "",
+                            qualData2: col[10]?.trim() || "",
+                            qualData3: col[11]?.trim() || "",
+                            estimatedAmount: col[12]?.trim() || "0",
+                            customerReport: col[13]?.trim() || "",
+                            staffThoughts: col[14]?.trim() || "",
                             createdAt: serverTimestamp()
                         };
                         await addDoc(collection(db, "activity_records"), data);
                         log(`実績追加: ${custName} (${datePart})`);
                     }
-                } catch (e) { log(`行 ${i+1}: 処理継続中...`, "#f87171"); }
+                    else if (currentMode === 'staffs') {
+                        const docId = col[0]?.trim();
+                        const data = {
+                            id: docId,
+                            name: col[1]?.trim() || "",
+                            password: col[2]?.trim() || "1234",
+                            email: col[3]?.trim() || "",
+                            role: col[4]?.trim() || "一般",
+                            status: col[5]?.trim() || "有効",
+                            dept: col[6]?.trim() || "営業部",
+                            updatedAt: serverTimestamp()
+                        };
+                        await setDoc(doc(db, "staffs", docId), data);
+                        log(`社員登録: ${data.name}`);
+                    }
+                } catch (e) {
+                    log(`エラー行 ${i+1}: ${e.message}`, "#f87171");
+                }
                 document.getElementById('progressPercent').innerText = `${Math.round(((i + 1) / total) * 100)}%`;
             }
             document.getElementById('importBtn').disabled = false;
-            alert("完了しました！");
+            alert("インポートが完了しました！");
         };
+
+        // 実績データの全消去（デバッグ用）
+        document.getElementById('clearRecordsBtn').onclick = async () => {
+            if (!confirm("これまでの「実績データ」をすべて消去しますか？（お客様名簿は消えません）")) return;
+            log("実績データの全消去を開始...", "#f87171");
+            const snap = await getDocs(collection(db, "activity_records"));
+            const batch = writeBatch(db);
+            snap.docs.forEach(d => batch.delete(d.ref));
+            await batch.commit();
+            log("全消去が完了しました。最新のExcelデータを貼り付けてください。");
+            alert("消去完了");
+        };
+
         switchTab('staffs');
     </script>
 </body>
