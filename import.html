@@ -36,18 +36,14 @@
 
                 <div class="form-card p-6 lg:p-10 mb-8">
                     <div class="flex gap-6 lg:gap-10 border-b border-slate-100 mb-8 overflow-x-auto whitespace-nowrap">
-                        <button onclick="switchTab('staffs')" id="tab-staffs" class="tab-btn tab-staffs active">社員名簿 (更新/追加)</button>
-                        <button onclick="switchTab('customers')" id="tab-customers" class="tab-btn tab-customers">お客様名簿 (追加のみ)</button>
-                        <button onclick="switchTab('activity_records')" id="tab-records" class="tab-btn tab-records">実績データ (追加のみ)</button>
+                        <button onclick="switchTab('staffs')" id="tab-staffs" class="tab-btn tab-staffs active">社員名簿</button>
+                        <button onclick="switchTab('customers')" id="tab-customers" class="tab-btn tab-customers">お客様名簿</button>
+                        <button onclick="switchTab('activity_records')" id="tab-records" class="tab-btn tab-records">実績データ</button>
                     </div>
 
                     <div id="importGuide" class="p-4 lg:p-6 rounded-2xl mb-6 border bg-slate-50">
                         <p class="font-bold text-xs mb-2 text-slate-500 italic">Excelの列順を合わせて貼り付けてください：</p>
                         <div id="columnMapping" class="text-[9px] lg:text-[11px] font-mono font-black tracking-tight leading-relaxed break-all bg-white p-3 rounded-lg border border-slate-200 shadow-inner"></div>
-                        <div class="mt-4 flex items-center gap-2 text-rose-500">
-                            <i class="fa-solid fa-shield-halved text-xs"></i>
-                            <p class="text-[10px] font-black uppercase tracking-tighter">自動重複チェック有効</p>
-                        </div>
                     </div>
 
                     <textarea id="csvData" class="w-full h-48 lg:h-64 p-4 lg:p-6 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none font-mono text-[10px] mb-8 focus:bg-white transition-all" placeholder="Excelのデータをコピーしてここに貼り付け"></textarea>
@@ -84,7 +80,7 @@
         const mapping = {
             customers: "A:名 | B:カナ | C:ランク | D:属性 | E:住所 | F:電話 | G:回数 | H:最終日",
             staffs: "A:社員番号 | B:氏名 | C:パス | D:メール | E:権限 | F:有効 | G:部署",
-            activity_records: "A:お客様名 | B:ランク | C:属性 | D:担当 | E:開始 | F:終了 | G:内容 | H:訪問者 | I:同行者 | J-L:定性 | M:金額 | N:報告 | O:考え"
+            activity_records: "A:お客様名 | B:ランク | C:属性 | D:担当者 | E:開始日時 | F:終了日時 | G:内容 | H:訪問者 | I:同行者 | J-L:定性1-3 | M:金額 | N:報告 | O:考え"
         };
 
         window.switchTab = (mode) => {
@@ -97,13 +93,13 @@
 
             if (mode === 'staffs') {
                 btn.className = "flex-1 py-4 bg-sky-500 text-white rounded-2xl font-black shadow-lg";
-                btnText.innerText = "社員名簿を更新・追加";
+                btnText.innerText = "社員名簿をインポート";
             } else if (mode === 'customers') {
                 btn.className = "flex-1 py-4 bg-[#ff7e11] text-white rounded-2xl font-black shadow-lg";
-                btnText.innerText = "お客様名簿を新規分のみ追加";
+                btnText.innerText = "お客様名簿をインポート";
             } else {
                 btn.className = "flex-1 py-4 bg-emerald-500 text-white rounded-2xl font-black shadow-lg";
-                btnText.innerText = "実績データを新規分のみ追加";
+                btnText.innerText = "実績データを全て追加インポート";
             }
         };
 
@@ -118,16 +114,17 @@
             if (!rawData) return alert("データがありません。");
             const rows = rawData.split('\n');
             const total = rows.length;
-            log(`${total}件の処理を開始...`, "#fbbf24");
+            log(`${total}件の処理を開始します...`, "#fbbf24");
             document.getElementById('importBtn').disabled = true;
 
             for (let i = 0; i < rows.length; i++) {
                 const col = rows[i].split('\t');
-                if (col.length < 2) continue;
+                if (col.length < 2) continue; // 空行スキップ
 
                 try {
                     if (currentMode === 'customers') {
                         const name = col[0]?.trim();
+                        if (!name) continue;
                         const q = query(collection(db, "customers"), where("name", "==", name), limit(1));
                         const snap = await getDocs(q);
                         if (snap.empty) {
@@ -138,64 +135,65 @@
                                 lastVisit: col[7]?.trim() || "未訪問", updatedAt: serverTimestamp() 
                             };
                             await addDoc(collection(db, "customers"), data);
+                            log(`新規追加: ${name}`);
+                        } else {
+                            log(`スキップ(登録済): ${name}`, "#94a3b8");
                         }
                     } 
                     else if (currentMode === 'staffs') {
                         const docId = col[0]?.trim();
-                        const data = { id: docId, name: col[1]?.trim(), password: col[2]?.trim() || "1234", email: col[3]?.trim() || "", role: col[4]?.trim() || "一般", status: col[5]?.trim() || "有効", dept: col[6]?.trim() || "営業部", updatedAt: serverTimestamp() };
+                        if (!docId) continue;
+                        const data = { id: docId, name: col[1]?.trim() || "不明", password: col[2]?.trim() || "1234", email: col[3]?.trim() || "", role: col[4]?.trim() || "一般", status: col[5]?.trim() || "有効", dept: col[6]?.trim() || "営業部", updatedAt: serverTimestamp() };
                         await setDoc(doc(db, "staffs", docId), data);
+                        if(i%5===0) log(`社員 [${data.name}] 更新/追加`);
                     }
                     else if (currentMode === 'activity_records') {
-                        // 🌟 由紀さんの最新画像に基づいた正確なマッピング
-                        const custName   = col[0]?.trim();  // A列
-                        const startFull  = col[4]?.trim() || ""; // E列: 開始日時
-                        const endFull    = col[5]?.trim() || ""; // F列: 終了日時
-                        const datePart   = startFull.split(' ')[0] ? startFull.split(' ')[0].replace(/\//g, '-') : "";
-                        const startTime  = startFull.split(' ')[1] || "00:00";
-                        const endTime    = endFull.split(' ')[1] || "00:00";
-                        const visitor    = col[7]?.trim();  // H列: 訪問者
-
-                        const q = query(collection(db, "activity_records"), 
-                            where("customerName", "==", custName), 
-                            where("visitDate", "==", datePart),
-                            where("visitorName", "==", visitor),
-                            limit(1));
-                        const snap = await getDocs(q);
-
-                        if (snap.empty) {
-                            const data = {
-                                customerName:   custName,
-                                customerRank:   col[1]?.trim() || "", // B列
-                                customerType:   col[2]?.trim() || "", // C列
-                                customerStaff:  col[3]?.trim() || "", // D列
-                                visitDate:      datePart,             // E列の日付
-                                startTime:      startTime,            // E列の時間
-                                endTime:        endTime,              // F列の時間
-                                visitContent:   col[6]?.trim() || "", // G列
-                                visitorName:    visitor,              // H列
-                                visitorRole:    "メイン",
-                                companion:      col[8]?.trim() || "", // I列
-                                qualData1:      col[9]?.trim() || "", // J列
-                                qualData2:      col[10]?.trim() || "", // K列
-                                qualData3:      col[11]?.trim() || "", // L列
-                                estimatedAmount: col[12]?.trim() || "0", // M列
-                                customerReport: col[13]?.trim() || "", // N列
-                                staffThoughts:  col[14]?.trim() || "", // O列
-                                createdAt:      serverTimestamp()
-                            };
-                            await addDoc(collection(db, "activity_records"), data);
-                            log(`実績追加: ${custName} (${datePart})`);
-                        } else {
-                            log(`スキップ: ${custName}`, "#94a3b8");
+                        // 🌟 実績インポート：由紀さんの要望通り「スキップなし」で全て追加
+                        const custName = col[0]?.trim();
+                        const startFull = col[4]?.trim() || "";
+                        if (!custName || !startFull) {
+                            log(`行 ${i+1}: 必須データ不足のためスキップ`, "#f87171");
+                            continue;
                         }
+
+                        const datePart = startFull.split(' ')[0] ? startFull.split(' ')[0].replace(/\//g, '-') : "";
+                        const startTime = startFull.split(' ')[1] || "00:00";
+                        const endTime = (col[5]?.trim() || "").split(' ')[1] || "00:00";
+
+                        const data = {
+                            customerName:   custName,
+                            customerRank:   col[1]?.trim() || "",
+                            customerType:   col[2]?.trim() || "",
+                            customerStaff:  col[3]?.trim() || "",
+                            visitDate:      datePart,
+                            startTime:      startTime,
+                            endTime:        endTime,
+                            visitContent:   col[6]?.trim() || "",
+                            visitorName:    col[7]?.trim() || "不明",
+                            visitorRole:    "メイン",
+                            companion:      col[8]?.trim() || "",
+                            qualData1:      col[9]?.trim() || "",
+                            qualData2:      col[10]?.trim() || "",
+                            qualData3:      col[11]?.trim() || "",
+                            estimatedAmount: col[12]?.trim() || "0",
+                            customerReport: col[13]?.trim() || "",
+                            staffThoughts:  col[14]?.trim() || "",
+                            createdAt:      serverTimestamp()
+                        };
+                        
+                        await addDoc(collection(db, "activity_records"), data);
+                        log(`実績追加: ${custName} (${datePart})`);
                     }
-                } catch (e) { log(`エラー: ${e.message}`, "#f87171"); }
+                } catch (e) { 
+                    log(`行 ${i+1} でエラー: データ形式を確認してください`, "#f87171");
+                    console.error(e);
+                }
 
                 const percent = Math.round(((i + 1) / total) * 100);
                 document.getElementById('progressPercent').innerText = `${percent}%`;
             }
             document.getElementById('importBtn').disabled = false;
-            alert("インポート完了！");
+            alert("インポートが完了しました！");
         };
 
         switchTab('staffs');
