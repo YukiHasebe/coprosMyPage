@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8"><title>お客様情報一覧 | CP My Page</title>
+    <meta charset="UTF-8">
+    <title>お客様情報一覧 | CP My Page</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --copros-orange: #ff7e11; }
+        :root { --copros-orange: #ff7e11; --copros-navy: #004098; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
         /* 由紀オーナーこだわりのオレンジ */
         .filter-btn.active { background: var(--copros-orange) !important; color: white !important; box-shadow: 0 4px 12px rgba(255,126,17,0.3); }
@@ -17,55 +18,105 @@
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700">
+    <!-- サイドバー（common.jsから注入） -->
     <div id="sidebar-placeholder"></div>
+
     <main class="flex-1 flex flex-col overflow-hidden">
+        <!-- ヘッダー（common.jsから注入） -->
         <div id="header-placeholder"></div>
+
         <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1400px] mx-auto">
+                
+                <!-- タイトルエリア -->
                 <div class="flex justify-between items-end mb-10">
                     <div>
                         <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">お客様情報一覧</h1>
                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">CRM Management V2</p>
                     </div>
                     <div class="flex gap-3 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100">
-                        <button id="detailSearchToggle" class="px-5 py-2.5 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 flex items-center gap-2"><i class="fa-solid fa-sliders text-blue-400"></i>詳細検索</button>
+                        <button id="detailSearchToggle" class="px-5 py-2.5 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 flex items-center gap-2">
+                            <i class="fa-solid fa-sliders text-blue-400"></i>詳細検索
+                        </button>
                         <div class="w-px h-6 bg-slate-100 my-auto"></div>
-                        <button onclick="location.href='add.html'" class="px-6 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-sm hover:shadow-lg flex items-center gap-2"><i class="fa-solid fa-plus-circle"></i>新規登録</button>
+                        <button onclick="location.href='add.html'" class="px-6 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-sm hover:shadow-lg flex items-center gap-2">
+                            <i class="fa-solid fa-plus-circle"></i>新規登録
+                        </button>
                         <div class="w-px h-6 bg-slate-100 my-auto"></div>
-                        <button id="bulkDeleteBtn" class="px-5 py-2.5 text-rose-400 rounded-xl font-bold text-sm hover:bg-rose-50 flex items-center gap-2"><i class="fa-solid fa-trash-can"></i>一括削除</button>
+                        <button id="bulkDeleteBtn" class="px-5 py-2.5 text-rose-400 rounded-xl font-bold text-sm hover:bg-rose-50 flex items-center gap-2">
+                            <i class="fa-solid fa-trash-can"></i>一括削除
+                        </button>
                     </div>
                 </div>
 
-                <!-- 詳細検索セクション -->
+                <!-- 詳細検索セクション（画像4枚目を完全再現） -->
                 <div id="detailSearchSection" class="hidden mb-8 p-8 bg-white rounded-3xl shadow-xl border border-blue-50">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs font-bold">
-                        <div class="space-y-2"><label class="text-slate-400">お客様名（漢字・カナ）</label><input type="text" id="detailName" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="例：コプロス"></div>
-                        <div class="space-y-2"><label class="text-slate-400">住所</label><input type="text" id="detailAddress" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="例：福岡市"></div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-xs font-bold">
+                        <div class="space-y-2">
+                            <label class="text-slate-400">お客様名</label>
+                            <input type="text" id="detailName" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="漢字・カナ対応">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-slate-400">住所</label>
+                            <input type="text" id="detailAddress" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="市区町村など">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-slate-400">顧客ランク</label>
+                            <select id="detailRank" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
+                                <option value="">選択無し</option>
+                                <option value="Aa">Aaランク</option>
+                                <option value="Ab">Abランク</option>
+                                <option value="Ba">Baランク</option>
+                                <option value="Bb">Bbランク</option>
+                                <option value="C">Cランク</option>
+                            </select>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-slate-400">属性・区分</label>
+                            <select id="detailType" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
+                                <option value="">選択無し</option>
+                                <option value="ケコム">ケコム</option>
+                                <option value="既存">既存</option>
+                                <option value="新規">新規</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-2 space-y-2">
+                            <label class="text-slate-400">最終訪問期間</label>
+                            <div class="flex items-center gap-2">
+                                <input type="date" id="startDate" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
+                                <span class="text-slate-300">〜</span>
+                                <input type="date" id="endDate" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
+                            </div>
+                        </div>
                     </div>
                     <div class="flex justify-center gap-4 mt-8">
                         <button id="execSearch" class="bg-[#334155] text-white px-12 py-3 rounded-xl font-bold shadow-lg hover:bg-slate-700 transition-all">検索実行</button>
-                        <button id="clearSearch" class="text-slate-400 px-8 py-3 font-bold hover:text-slate-600">リセット</button>
+                        <button id="clearSearch" class="text-slate-400 px-8 py-3 font-bold hover:text-slate-600">条件クリア</button>
                     </div>
                 </div>
 
+                <!-- 50音フィルター ＆ カウンター -->
                 <div class="flex justify-between items-center mb-6">
                     <div class="flex items-center gap-6">
                         <div id="syllabaryFilter" class="flex gap-1 p-1 bg-white rounded-xl border border-slate-200 shadow-sm font-black">
                             <button class="filter-btn active px-4 py-1.5 rounded-lg text-xs" data-range="all">全件</button>
                             <script>
-                                const kana = ['あ','か','さ','た','な','は','ま','や','ら','わ'];
-                                kana.forEach(k => document.write(`<button class="filter-btn px-3 py-1.5 rounded-lg text-xs text-slate-400 hover:bg-slate-50" data-range="${k}">${k}</button>`));
+                                const kanaGroups = ['あ','か','さ','た','な','は','ま','や','ら','わ'];
+                                kanaGroups.forEach(k => document.write(`<button class="filter-btn px-3 py-1.5 rounded-lg text-xs text-slate-400 hover:bg-slate-50 transition-colors" data-range="${k}">${k}</button>`));
                             </script>
                         </div>
-                        <div class="text-slate-400 font-bold text-sm"><span id="pageRange" class="text-slate-800 text-xl tracking-tighter">0-0</span> / <span id="totalCount">0</span> Customers</div>
+                        <div class="text-slate-400 font-bold text-sm">
+                            <span id="pageRange" class="text-slate-800 text-xl tracking-tighter">0-0</span> / <span id="totalCount">0</span> Customers
+                        </div>
                     </div>
                 </div>
 
+                <!-- メインテーブル -->
                 <div class="table-container overflow-x-auto mb-20">
                     <table class="w-full text-left border-collapse min-w-[1100px]">
                         <thead>
                             <tr class="text-white text-[10px] font-black uppercase text-center">
-                                <th class="p-6 w-16 opacity-50">No</th>
+                                <th class="p-6 w-16 opacity-50 border-r border-white/10">No</th>
                                 <th class="p-6 text-left">お客様情報</th>
                                 <th class="p-6 w-48">実績</th>
                                 <th class="p-6">電話番号</th>
@@ -75,8 +126,8 @@
                                 <th class="p-6 w-16"><i class="fa-solid fa-check-double opacity-30"></i></th>
                             </tr>
                         </thead>
-                        <tbody id="customerTable" class="divide-y divide-slate-100 text-sm font-bold">
-                            <!-- JSで挿入 -->
+                        <tbody id="customerTable" class="divide-y divide-slate-100 text-sm font-bold bg-white">
+                            <!-- JSでデータが挿入されます -->
                         </tbody>
                     </table>
                 </div>
@@ -86,70 +137,76 @@
 
     <script type="module">
         import { db } from "./common.js";
-        import { collection, getDocs, orderBy, query, limit, where, doc, deleteDoc, writeBatch, startAt, endAt } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, getDocs, orderBy, query, limit, where, startAt, endAt, doc, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        let currentData = [];
+        // 🌟 50音検索用カタカナマップ（Firebaseのデータ「kana」がカタカナのため）
+        const kanaMap = {
+            'あ': { s: 'ア', e: 'イ' }, 'か': { s: 'カ', e: 'サ' }, 'さ': { s: 'サ', e: 'タ' },
+            'た': { s: 'タ', e: 'ナ' }, 'な': { s: 'ナ', e: 'ハ' }, 'は': { s: 'ハ', e: 'マ' },
+            'ま': { s: 'マ', e: 'ヤ' }, 'や': { s: 'ヤ', e: 'ラ' }, 'ら': { s: 'ラ', e: 'ワ' },
+            'わ': { s: 'ワ', e: 'ン' }
+        };
 
-        // 初期表示（省エネ：100件限定）
         async function fetchCustomers(filterChar = 'all') {
             const tbody = document.getElementById('customerTable');
-            tbody.innerHTML = `<tr><td colspan="8" class="p-10 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i>読み込み中...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="8" class="p-16 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin text-2xl mb-4 block"></i>データを読み込み中...</td></tr>`;
 
             try {
                 let q;
                 const customersRef = collection(db, "customers");
 
                 if (filterChar === 'all') {
-                    q = query(customersRef, orderBy("name"), limit(100));
+                    q = query(customersRef, orderBy("name"), limit(100)); // 省エネ100件
                 } else {
-                    // 🌟 50音検索ロジック（nameKanaの先頭文字で範囲指定）
-                    // 例：「あ」を選択したら、「あ」〜「い」の直前までを検索
-                    const endChar = String.fromCharCode(filterChar.charCodeAt(0) + 1);
-                    q = query(customersRef, orderBy("nameKana"), startAt(filterChar), endAt(endChar), limit(100));
+                    const range = kanaMap[filterChar];
+                    q = query(customersRef, orderBy("kana"), startAt(range.s), endAt(range.e + "\uf8ff"), limit(100));
                 }
 
                 const snap = await getDocs(q);
-                currentData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderTable(currentData);
+                const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderTable(data);
             } catch (e) {
-                console.error("Fetch Error:", e);
-                tbody.innerHTML = `<tr><td colspan="8" class="p-10 text-center text-rose-400">データの取得に失敗しました。</td></tr>`;
+                console.error(e);
+                tbody.innerHTML = `<tr><td colspan="8" class="p-16 text-center text-rose-400">取得に失敗しました。</td></tr>`;
             }
         }
 
-        // テーブル描画（デザイン復元）
         function renderTable(dataList) {
             const tbody = document.getElementById('customerTable');
             if (dataList.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="p-10 text-center text-slate-400">該当するお客様は見つかりませんでした。</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="p-16 text-center text-slate-400">該当するデータが見つかりませんでした。</td></tr>`;
+                document.getElementById('totalCount').innerText = "0";
+                document.getElementById('pageRange').innerText = "0-0";
                 return;
             }
 
             tbody.innerHTML = dataList.map((data, i) => `
-                <tr class="hover:bg-blue-50/40 border-b border-slate-50 transition-colors">
-                    <td class="p-6 text-center text-slate-300 font-mono text-xs">${i+1}</td>
+                <tr class="hover:bg-blue-50/50 border-b border-slate-50 transition-all duration-200">
+                    <td class="p-6 text-center text-slate-300 font-mono text-xs border-r border-slate-50">${i+1}</td>
                     <td class="p-6 text-left">
-                        <div class="font-black text-slate-800">${data.name || '不明'}</div>
-                        <div class="text-[10px] text-slate-400 font-normal">${data.nameKana || ''}</div>
+                        <div class="font-black text-slate-800 text-base mb-0.5">${data.name || '不明'}</div>
+                        <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">${data.kana || ''}</div>
                     </td>
                     <td class="p-6">
                         <div class="flex gap-1 justify-center">
                             <button onclick="location.href='customer_history.html?name=${encodeURIComponent(data.name)}'" class="bg-slate-100 text-slate-500 px-3 py-1.5 rounded-lg text-[10px] font-black hover:bg-[#004098] hover:text-white transition-all">履歴</button>
-                            <button onclick="location.href='history.html?name=${encodeURIComponent(data.name)}'" class="bg-[#004098] text-white px-3 py-1.5 rounded-lg text-[10px] font-black hover:bg-orange-500 transition-all">実績</button>
+                            <button onclick="location.href='history.html?name=${encodeURIComponent(data.name)}'" class="bg-[#004098] text-white px-3 py-1.5 rounded-lg text-[10px] font-black hover:bg-[#ff7e11] hover:shadow-lg transition-all">登録</button>
                         </div>
                     </td>
                     <td class="p-6 text-center text-slate-500 font-mono text-xs">${data.tel || '-'}</td>
-                    <td class="p-6 text-left text-xs text-slate-400 truncate max-w-[200px]">${data.address || '-'}</td>
-                    <td class="p-6 text-center"><span class="bg-orange-50 text-[#ff7e11] px-3 py-1 rounded-full text-xs font-black border border-orange-100">${data.visitCount || 0}回</span></td>
+                    <td class="p-6 text-left text-xs text-slate-400 truncate max-w-[220px] font-medium">${data.address || '-'}</td>
+                    <td class="p-6 text-center">
+                        <span class="bg-orange-50 text-[#ff7e11] px-3 py-1 rounded-full text-xs font-black border border-orange-100">${data.visitCount || 0}回</span>
+                    </td>
                     <td class="p-6 text-center text-slate-400 text-[10px] font-bold uppercase">${data.lastVisit || '未訪問'}</td>
-                    <td class="p-6 text-center"><input type="checkbox" class="customer-check w-5 h-5 accent-rose-500 rounded-md" data-id="${data.id}"></td>
+                    <td class="p-6 text-center"><input type="checkbox" class="customer-check w-5 h-5 accent-rose-500 rounded-md cursor-pointer" data-id="${data.id}"></td>
                 </tr>`).join('');
 
             document.getElementById('totalCount').innerText = dataList.length;
             document.getElementById('pageRange').innerText = dataList.length > 0 ? `1-${dataList.length}` : "0-0";
         }
 
-        // 50音ボタンのイベント設定
+        // 50音ボタン制御
         document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.onclick = () => {
                 document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -158,70 +215,68 @@
             };
         });
 
-        // 詳細検索実行
-        document.getElementById('execSearch').onclick = async () => {
-            const nameVal = document.getElementById('detailName').value.trim();
-            const addrVal = document.getElementById('detailAddress').value.trim();
-            
-            if (!nameVal && !addrVal) {
-                alert("検索条件を入力してください");
-                return;
-            }
-
-            const tbody = document.getElementById('customerTable');
-            tbody.innerHTML = `<tr><td colspan="8" class="p-10 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i>検索中...</td></tr>`;
-
-            try {
-                let q = query(collection(db, "customers"), limit(50));
-                if (nameVal) q = query(collection(db, "customers"), where("name", ">=", nameVal), where("name", "<=", nameVal + "\uf8ff"), limit(50));
-                // 複合検索はIndexが必要になるため、まずは名前で絞り込みます
-                
-                const snap = await getDocs(q);
-                let filtered = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                
-                // 住所でのさらに絞り込み（メモリ内フィルタリング：省エネ）
-                if (addrVal) {
-                    filtered = filtered.filter(d => (d.address || "").includes(addrVal));
-                }
-                
-                renderTable(filtered);
-            } catch (e) {
-                console.error(e);
-                alert("検索中にエラーが発生しました");
-            }
-        };
-
         // 詳細検索トグル
         document.getElementById('detailSearchToggle').onclick = () => {
             const s = document.getElementById('detailSearchSection');
             s.classList.toggle('hidden');
         };
 
-        // 一括削除（プロ仕様）
+        // 詳細検索実行（データに合わせて、name, kana, rank, typeでフィルタリング）
+        document.getElementById('execSearch').onclick = async () => {
+            const nameVal = document.getElementById('detailName').value.trim();
+            const addrVal = document.getElementById('detailAddress').value.trim();
+            const rankVal = document.getElementById('detailRank').value;
+            const typeVal = document.getElementById('detailType').value;
+            const startVal = document.getElementById('startDate').value;
+            const endVal = document.getElementById('endDate').value;
+
+            const tbody = document.getElementById('customerTable');
+            tbody.innerHTML = `<tr><td colspan="8" class="p-16 text-center text-slate-400">検索中...</td></tr>`;
+
+            try {
+                // 省エネのため、直近の300件程度を取得してフロントでフィルタ
+                const q = query(collection(db, "customers"), limit(500));
+                const snap = await getDocs(q);
+                let results = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                if (nameVal) results = results.filter(d => (d.name||"").includes(nameVal) || (d.kana||"").includes(nameVal));
+                if (addrVal) results = results.filter(d => (d.address||"").includes(addrVal));
+                if (rankVal) results = results.filter(d => d.rank === rankVal);
+                if (typeVal) results = results.filter(d => d.type === typeVal);
+                if (startVal) results = results.filter(d => d.lastVisit >= startVal);
+                if (endVal) results = results.filter(d => d.lastVisit <= endVal);
+
+                renderTable(results);
+            } catch (e) {
+                console.error(e);
+                alert("検索に失敗しました。");
+            }
+        };
+
+        // クリアボタン
+        document.getElementById('clearSearch').onclick = () => {
+            document.querySelectorAll('#detailSearchSection input, #detailSearchSection select').forEach(el => el.value = "");
+            fetchCustomers();
+        };
+
+        // 一括削除
         document.getElementById('bulkDeleteBtn').onclick = async () => {
             const checked = document.querySelectorAll('.customer-check:checked');
             if (checked.length === 0) return alert("削除するお客様を選択してください");
-            if (!confirm(`${checked.length}件のデータを完全に削除しますか？`)) return;
+            if (!confirm(`${checked.length}件を完全に削除します。よろしいですか？`)) return;
 
             try {
                 const batch = writeBatch(db);
                 checked.forEach(el => batch.delete(doc(db, "customers", el.dataset.id)));
                 await batch.commit();
-                alert("削除が完了しました");
+                alert("削除しました。");
                 fetchCustomers();
             } catch (e) {
-                alert("削除に失敗しました");
+                alert("削除に失敗しました。");
             }
         };
 
-        // リセット
-        document.getElementById('clearSearch').onclick = () => {
-            document.getElementById('detailName').value = "";
-            document.getElementById('detailAddress').value = "";
-            fetchCustomers();
-        };
-
-        // 初回起動
+        // 初回ロード
         fetchCustomers();
     </script>
 </body>
