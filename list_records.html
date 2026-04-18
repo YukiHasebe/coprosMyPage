@@ -9,41 +9,25 @@
     <style>
         :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
-        
         .filter-btn { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); white-space: nowrap; }
         .filter-btn.active { background: var(--copros-orange); color: white; box-shadow: 0 4px 12px rgba(255,126,17,0.3); transform: translateY(-1px); }
-
         .modern-page-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-weight: 800; font-size: 12px; transition: all 0.3s; color: #94a3b8; cursor: pointer; border: 1px solid transparent; }
         .modern-page-btn.active { background: #334155; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-
         .table-container { border-radius: 1.5rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
         thead tr { background-color: #3c4b5a; }
-        
         #detailSearchSection { display: none; animation: fadeIn 0.3s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
-
-        .scope-select { 
-            background: #e2e8f0; border: none; padding: 0.4rem 1rem; border-radius: 0.75rem; 
-            font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; appearance: none;
-            cursor: pointer; transition: all 0.2s;
-        }
-        .scope-select:hover { background: #cbd5e1; }
-        
-        /* スクロールバーのカスタマイズ */
+        .scope-select { background: #e2e8f0; border: none; padding: 0.4rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; appearance: none; cursor: pointer; transition: all 0.2s; }
         .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700">
-
     <div id="sidebar-placeholder"></div>
-
     <main class="flex-1 flex flex-col overflow-hidden">
         <div id="header-placeholder"></div>
-
         <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1400px] mx-auto">
-                
                 <!-- ヘッドエリア -->
                 <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 lg:mb-10 gap-6">
                     <div class="flex items-end gap-4 lg:gap-6">
@@ -61,7 +45,6 @@
                             </select>
                         </div>
                     </div>
-
                     <div class="flex gap-2 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100 w-full lg:w-auto">
                         <button id="detailSearchToggle" class="flex-1 lg:flex-none px-4 py-2.5 text-slate-500 rounded-xl font-bold text-xs hover:bg-slate-50 transition-all flex items-center justify-center gap-2">
                             <i class="fa-solid fa-sliders text-blue-400"></i>絞り込み
@@ -129,15 +112,9 @@
         </div>
     </main>
 
-    <script type="module" src="common.js"></script>
-
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, orderBy, query, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-        import { firebaseConfig } from "./common.js";
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+        import { db } from "./common.js";
+        import { collection, getDocs, orderBy, query, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let allRecords = [];
         let filteredData = [];
@@ -147,12 +124,12 @@
 
         async function init() {
             try {
-                // 🌟 197万回防止：最新100件リミット
-                const q = query(collection(db, "activity_records"), orderBy("visitDate", "desc"), limit(100));
+                // 🌟 読み取り回数制限：全件2200件を毎回読み込まず、最新300件に制限
+                const q = query(collection(db, "activity_records"), orderBy("visitDate", "desc"), limit(300));
                 const snap = await getDocs(q);
                 allRecords = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 window.updateView();
-            } catch (e) { console.error("Firebaseリセット待ち", e); }
+            } catch (e) { console.error("Firebase Error", e); }
         }
 
         window.updateView = () => {
@@ -187,26 +164,27 @@
             tbody.innerHTML = "";
             dataList.forEach((data, index) => {
                 const duration = calculateDuration(data.startTime, data.endTime);
+                // 🌟 省エネ：1件ごとにFirebaseを叩かない
                 const visitCount = allRecords.filter(r => r.customerName === data.customerName).length;
                 tbody.insertAdjacentHTML('beforeend', `
-                    <tr class="hover:bg-blue-50/40 transition-all border-b border-slate-50">
+                    <tr class="hover:bg-blue-50/40 transition-all border-b border-slate-50 text-center">
                         <td class="p-6 text-center text-slate-300 font-mono text-xs">${startIndex + index + 1}</td>
-                        <td class="p-6">
-                            <div class="text-base text-slate-800 leading-tight cursor-pointer hover:text-blue-600 font-black" 
+                        <td class="p-6 text-left">
+                            <div class="text-base text-slate-800 cursor-pointer hover:text-blue-600 font-black" 
                                  onclick="location.href='customer_history.html?name=${encodeURIComponent(data.customerName || '')}'">
                                  ${data.customerName || '名称未設定'}
                             </div>
                         </td>
                         <td class="p-6 text-center"><span class="bg-slate-100 text-slate-500 px-4 py-1.5 rounded-full text-xs">${visitCount}回</span></td>
-                        <td class="p-6">
+                        <td class="p-6 text-left">
                             <div class="text-slate-800 font-mono">${(data.visitDate || '').replace(/-/g, '/')}</div>
                             <div class="text-[10px] text-slate-400 mt-1">${data.startTime || '--:--'} 〜 ${data.endTime || '--:--'} 
                                 <span class="text-blue-500 font-black ml-2">${duration ? '滞在: '+duration : ''}</span>
                             </div>
                         </td>
-                        <td class="p-6">
+                        <td class="p-6 text-left">
                             <div class="text-slate-700">${data.visitorName || '未登録'}</div>
-                            <div class="text-[9px] text-slate-400 font-black uppercase mt-0.5">${data.visitorRole || 'メイン'}</div>
+                            <div class="text-[9px] text-slate-400 font-black mt-0.5">${data.visitorDept || ''}</div>
                         </td>
                         <td class="p-6"><div class="text-orange-500 text-xs font-bold">${(data.nextVisitDate || '--').replace(/-/g, '/')}</div></td>
                         <td class="p-6 text-center">
