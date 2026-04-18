@@ -20,7 +20,7 @@
         .year-btn { padding: 0.5rem 1rem; border-radius: 0.75rem; font-weight: 900; font-size: 0.75rem; transition: all 0.2s; border: 1px solid #e2e8f0; background: white; color: #64748b; white-space: nowrap; }
         .year-btn:hover { background: #f8fafc; color: var(--copros-orange); }
 
-        /* 左側固定カラム（PC時のみ有効） */
+        /* 🌟 由紀オーナーこだわりの左側カラム固定 */
         @media (min-width: 1024px) {
             .sticky-rank { position: sticky; left: 0; background: white; z-index: 10; border-right: 1px solid #f1f5f9; min-width: 50px; }
             .sticky-name { position: sticky; left: 50px; background: white; z-index: 10; border-right: 2px solid #f1f5f9; min-width: 200px; }
@@ -51,7 +51,7 @@
                     <div class="flex items-end gap-4 lg:gap-6">
                         <div>
                             <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-2">月別実績一覧</h1>
-                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Monthly Sales Performance Matrix</p>
+                            <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Monthly Sales Performance Matrix</nav>
                         </div>
                         <div class="mb-2">
                             <select id="deptFilter" onchange="window.updateTable()" class="scope-select shadow-inner">
@@ -66,9 +66,9 @@
 
                     <div class="flex flex-wrap gap-2 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100 items-center w-full lg:w-auto justify-center">
                         <div class="flex items-center gap-2 px-2 border-r border-slate-100">
-                            <button onclick="changeYear(-1)" class="year-btn">前年</button>
+                            <button onclick="window.changeYear(-1)" class="year-btn">前年</button>
                             <span id="displayYear" class="text-xs lg:text-sm font-black text-slate-700 px-2 min-w-[80px] text-center">2026年度</span>
-                            <button onclick="changeYear(1)" class="year-btn">翌年</button>
+                            <button onclick="window.changeYear(1)" class="year-btn">翌年</button>
                         </div>
                         <button class="px-6 py-2.5 bg-slate-800 text-white rounded-xl font-bold text-xs shadow-lg hover:bg-black transition-all flex items-center gap-2">
                             <i class="fa-solid fa-file-csv text-blue-400"></i>CSV出力
@@ -91,8 +91,8 @@
                                 <th class="p-4 bg-slate-900 w-20">合計</th>
                             </tr>
                         </thead>
-                        <tbody id="monthlyTableBody" class="text-[11px] lg:text-xs font-bold divide-y divide-slate-50">
-                            <!-- JSで挿入 -->
+                        <tbody id="monthlyTableBody" class="text-[11px] lg:text-xs font-bold divide-y divide-slate-50 bg-white">
+                            <!-- JS注入 -->
                         </tbody>
                     </table>
                 </div>
@@ -106,15 +106,9 @@
         </div>
     </main>
 
-   <script type="module" src="common.js"></script>
-
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-        import { firebaseConfig } from "./common.js";
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+        import { db } from "./common.js";
+        import { collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let currentYear = 2026;
         let allCustomers = [];
@@ -122,29 +116,32 @@
 
         async function init() {
             try {
-                // 🌟 鉄壁リミット：お客様は200件、実績は最新の1,000件に制限
+                // 🌟 鉄壁リミット ＆ メモリ内集計
+                // 全件取得を避けつつ、主要なお客様と最新実績を取得
                 const [cSnap, rSnap] = await Promise.all([
-                    getDocs(query(collection(db, "customers"), orderBy("name"), limit(200))),
-                    getDocs(query(collection(db, "activity_records"), orderBy("visitDate", "desc"), limit(1000)))
+                    getDocs(query(collection(db, "customers"), orderBy("name"), limit(250))),
+                    getDocs(query(collection(db, "activity_records"), orderBy("visitDate", "desc"), limit(800)))
                 ]);
-                allCustomers = cSnap.docs.map(d => d.data());
+                allCustomers = cSnap.docs.map(d => ({ id: d.id, ...d.data() }));
                 allRecords = rSnap.docs.map(d => d.data());
+                
                 document.getElementById('loading').style.display = 'none';
-                renderTable();
+                window.renderTable();
             } catch (e) { 
-                console.error("Stats Load Error:", e);
-                document.getElementById('loading').innerHTML = '<p class="text-rose-500 font-bold">集計に失敗しました</p>';
+                console.error("Stats Error:", e);
+                document.getElementById('loading').innerHTML = '<p class="text-rose-500 font-bold">集計失敗。Firebase上限の可能性があります。</p>';
             }
         }
 
-        window.updateTable = () => renderTable();
+        window.updateTable = () => window.renderTable();
 
-        function renderTable() {
+        window.renderTable = () => {
             const tbody = document.getElementById('monthlyTableBody');
             tbody.innerHTML = "";
             document.getElementById('displayYear').innerText = `${currentYear}年度`;
             const selectedDept = document.getElementById('deptFilter').value;
 
+            // 年度（4月〜翌3月）の定義
             const fiscalMonths = [
                 {y: currentYear, m: 4}, {y: currentYear, m: 5}, {y: currentYear, m: 6},
                 {y: currentYear, m: 7}, {y: currentYear, m: 8}, {y: currentYear, m: 9},
@@ -152,6 +149,7 @@
                 {y: currentYear + 1, m: 1}, {y: currentYear + 1, m: 2}, {y: currentYear + 1, m: 3}
             ];
 
+            // 部署フィルタリング（メモリ内）
             let displayRecords = selectedDept === 'ALL' ? allRecords : allRecords.filter(r => r.visitorDept === selectedDept);
 
             allCustomers.forEach(cust => {
@@ -162,8 +160,8 @@
                 fiscalMonths.forEach(fm => {
                     const count = displayRecords.filter(r => {
                         if (!r.visitDate) return false;
-                        const d = new Date(r.visitDate);
-                        return r.customerName === cust.name && d.getFullYear() === fm.y && (d.getMonth() + 1) === fm.m;
+                        const d = r.visitDate.split('-'); // "YYYY-MM-DD"形式を想定
+                        return r.customerName === cust.name && parseInt(d[0]) === fm.y && parseInt(d[1]) === fm.m;
                     }).length;
                     
                     if (count > 0) {
@@ -175,28 +173,25 @@
                     }
                 });
 
-                // 部署フィルター時は、その部署の実績があるお客様のみ表示
+                // 表示条件：全社表示なら全顧客、部署指定なら実績がある顧客のみ
                 if (selectedDept === 'ALL' || hasDataInYear) {
                     tbody.insertAdjacentHTML('beforeend', `
-                        <tr class="hover:bg-slate-50 transition-colors border-b border-slate-50">
-                            <td class="p-4 text-center sticky-rank text-[10px] text-slate-400 font-black bg-white">${cust.rank || '-'}</td>
-                            <td class="p-4 sticky-name text-slate-800 font-black truncate max-w-[200px] cursor-pointer hover:text-blue-600 bg-white" 
+                        <tr class="hover:bg-slate-50 transition-colors border-b border-slate-50 text-center">
+                            <td class="p-4 sticky-rank text-[10px] text-slate-400 font-black bg-white">${cust.rank || '-'}</td>
+                            <td class="p-4 sticky-name text-left text-slate-800 font-black truncate max-w-[200px] cursor-pointer hover:text-blue-600 bg-white" 
                                 onclick="location.href='customer_history.html?name=${encodeURIComponent(cust.name)}'">
                                 ${cust.name}
                             </td>
-                            <td class="p-4 text-slate-400 text-[10px] text-center">${cust.type || '-'}</td>
+                            <td class="p-4 text-slate-400 text-[10px]">${cust.type || '-'}</td>
                             ${monthlyHtml}
-                            <td class="p-4 text-center bg-slate-50 font-black text-slate-700">${rowTotal}</td>
+                            <td class="p-4 bg-slate-50 font-black text-slate-700">${rowTotal}</td>
                         </tr>
                     `);
                 }
             });
-        }
-
-        window.changeYear = (val) => { 
-            currentYear += val; 
-            renderTable(); 
         };
+
+        window.changeYear = (val) => { currentYear += val; window.renderTable(); };
 
         init();
     </script>
