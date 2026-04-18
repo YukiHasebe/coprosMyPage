@@ -14,6 +14,7 @@
         .scope-select { background: #e2e8f0; border: none; padding: 0.4rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; cursor: pointer; }
         .modern-page-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-weight: 800; font-size: 12px; color: #94a3b8; cursor: pointer; }
         .modern-page-btn.active { background: #334155; color: white; }
+        /* 🌟 由紀オーナーこだわりのタイムバッジ */
         .time-badge { background: #fff7ed; color: var(--copros-orange); padding: 4px 12px; border-radius: 20px; font-weight: 900; border: 1px solid #ffedd5; white-space: nowrap; }
         .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
@@ -31,7 +32,7 @@
                     <div class="flex items-end gap-4 lg:gap-6">
                         <div>
                             <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-2">滞在時間分析</h1>
-                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Customer Engagement Time Analysis</p>
+                            <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Customer Engagement Time Analysis</nav>
                         </div>
                         <div class="mb-2">
                             <select id="deptFilter" onchange="window.updateView()" class="scope-select shadow-inner">
@@ -70,12 +71,13 @@
                                 <th class="p-6">平均滞在時間</th>
                             </tr>
                         </thead>
-                        <tbody id="stayTableBody" class="divide-y divide-slate-100 text-[11px] lg:text-sm font-bold">
-                            <!-- JSで挿入 -->
+                        <tbody id="stayTableBody" class="divide-y divide-slate-100 text-[11px] lg:text-sm font-bold bg-white">
+                            <!-- JS注入 -->
                         </tbody>
                     </table>
                 </div>
 
+                <!-- 🌟 由紀オーナーこだわりのローディング演出 -->
                 <div id="loading" class="fixed inset-0 bg-white/80 backdrop-blur-sm z-[100] flex flex-col items-center justify-center">
                     <div class="animate-spin mb-4 text-orange-500 text-5xl"><i class="fa-solid fa-circle-notch"></i></div>
                     <p class="text-slate-800 font-black tracking-tighter">滞在時間を精密計算中...</p>
@@ -86,14 +88,9 @@
         </div>
     </main>
 
-    <script type="module" src="common.js"></script>
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, query, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-        import { firebaseConfig } from "./common.js";
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+        import { db } from "./common.js";
+        import { collection, getDocs, query, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let customerStats = [];
         let filteredStats = [];
@@ -102,15 +99,16 @@
 
         async function init() {
             try {
-                // 🌟 鉄壁リミット：お客様200件、実績1,000件に制限
+                // 🌟 鉄壁・省エネ：お客様200件、最新実績500件に制限
                 const [cSnap, rSnap] = await Promise.all([
                     getDocs(query(collection(db, "customers"), orderBy("name"), limit(200))), 
-                    getDocs(query(collection(db, "activity_records"), orderBy("visitDate", "desc"), limit(1000)))
+                    getDocs(query(collection(db, "activity_records"), orderBy("visitDate", "desc"), limit(500)))
                 ]);
                 
                 const customers = cSnap.docs.map(d => d.data());
                 const records = rSnap.docs.map(d => d.data());
 
+                // メモリ内で集計（通信回数を劇的に削減）
                 customerStats = customers.map(cust => {
                     const myRecords = records.filter(r => r.customerName === cust.name);
                     let totalMins = 0;
@@ -133,13 +131,13 @@
                 window.updateView();
             } catch (e) { 
                 console.error("Stats Error:", e);
-                document.getElementById('loading').innerHTML = '<p class="text-rose-500 font-bold">集計に失敗しました</p>';
+                document.getElementById('loading').innerHTML = '<p class="text-rose-500 font-bold">集計失敗。Firebase上限の可能性があります。</p>';
             }
         }
 
         window.updateView = () => {
             const deptK = document.getElementById('deptFilter').value;
-            // 部署フィルター（実績側の部署情報でフィルタリング）
+            // 部署フィルター
             filteredStats = customerStats.filter(c => deptK === 'ALL' || c.visitCount > 0); 
             
             const start = (currentPage - 1) * perPage;
@@ -148,7 +146,7 @@
             const tbody = document.getElementById('stayTableBody');
             tbody.innerHTML = paged.map((c, i) => `
                 <tr class="hover:bg-slate-50 transition-colors text-center border-b border-slate-50">
-                    <td class="p-6 text-slate-300 font-mono text-xs">${start + i + 1}</td>
+                    <td class="p-6 text-slate-300 font-mono text-xs border-r border-slate-50">${start + i + 1}</td>
                     <td class="p-6 text-left">
                         <div class="text-slate-800 font-black cursor-pointer hover:text-blue-600" 
                              onclick="location.href='customer_history.html?name=${encodeURIComponent(c.name)}'">
