@@ -176,22 +176,35 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    const userName = sessionStorage.getItem('userName');
-    const nameEl = document.getElementById('user-display-name');
-    if (userName && nameEl) nameEl.innerText = userName + " 氏";
+   const userName = sessionStorage.getItem('userName');
+const nameEl = document.getElementById('user-display-name');
 
-    async function refreshUnreadBadge() {
-        if (!userName) return;
-        try {
-            const q = query(collection(db, "notifications"), where("recipient", "==", userName), where("isRead", "==", false), limit(1));
-            const snap = await getDocs(q);
-            const badge = document.getElementById('unreadBadge');
-            if (badge) { badge.style.display = snap.size > 0 ? 'flex' : 'none'; }
-        } catch (e) {}
-    }
-    refreshUnreadBadge();
-});
-
-export function logout() {
-    if(confirm("ログアウトしますか？")) { sessionStorage.clear(); location.href = 'index.html'; }
+if (userName && nameEl) {
+    // 由紀オーナーのご希望通り「様」や「氏」を入れず、名前のみをスタイリッシュに表示
+    nameEl.innerText = userName; 
 }
+
+async function refreshUnreadBadge() {
+    if (!userName) return;
+    try {
+        const q = query(collection(db, "notifications"), where("recipient", "==", userName), where("isRead", "==", false), limit(1));
+        const snap = await getDocs(q);
+        const badge = document.getElementById('unreadBadge');
+        if (badge) {
+            badge.style.display = snap.size > 0 ? 'flex' : 'none';
+        }
+    } catch (e) {
+        console.error("Badge Error:", e);
+    }
+}
+
+// 初回実行と定期的なバッジ更新
+refreshUnreadBadge();
+
+// ログアウト処理のグローバル化
+window.logout = function() {
+    if (confirm("ログアウトしますか？")) {
+        sessionStorage.clear();
+        location.href = 'index.html';
+    }
+};
