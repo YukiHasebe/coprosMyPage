@@ -20,6 +20,7 @@
 
         .event-label { font-size: 9px; font-weight: 800; padding: 2px 5px; border-radius: 4px; margin-bottom: 2px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; border-left: 3px solid; transition: transform 0.2s; }
         .event-label:hover { transform: translateX(2px); filter: brightness(0.9); }
+        /* 🌟 由紀オーナーこだわりの3色出し分け */
         .label-result { border-left-color: var(--copros-orange); background: #fff7ed; color: #ea580c; }
         .label-next { border-left-color: var(--next-green); background: #f0fdf4; color: #16a34a; }
         .label-appoint { border-left-color: var(--appoint-blue); background: #eff6ff; color: #1d4ed8; }
@@ -64,27 +65,26 @@
                         </div>
                     </div>
 
-                    <!-- 凡例・ナビ -->
                     <div class="flex flex-wrap gap-2 lg:gap-4 items-center bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100 font-black text-[9px] lg:text-[10px] w-full lg:w-auto justify-center">
                         <div class="flex items-center gap-3 px-3 border-r border-slate-100">
-                            <label class="flex items-center gap-1 cursor-pointer text-orange-600"><input type="checkbox" id="showRes" checked onchange="renderCalendar()" class="accent-orange-500"> 実績</label>
-                            <label class="flex items-center gap-1 cursor-pointer text-emerald-600"><input type="checkbox" id="showNext" checked onchange="renderCalendar()" class="accent-emerald-500"> 次回</label>
-                            <label class="flex items-center gap-1 cursor-pointer text-blue-600"><input type="checkbox" id="showApp" checked onchange="renderCalendar()" class="accent-blue-500"> アポ</label>
+                            <label class="flex items-center gap-1 cursor-pointer text-orange-600"><input type="checkbox" id="showRes" checked onchange="window.renderCalendar()" class="accent-orange-500"> 実績</label>
+                            <label class="flex items-center gap-1 cursor-pointer text-emerald-600"><input type="checkbox" id="showNext" checked onchange="window.renderCalendar()" class="accent-emerald-500"> 次回</label>
+                            <label class="flex items-center gap-1 cursor-pointer text-blue-600"><input type="checkbox" id="showApp" checked onchange="window.renderCalendar()" class="accent-blue-500"> アポ</label>
                         </div>
                         <div class="flex items-center gap-1">
-                            <button onclick="changeMonth(-1)" class="p-2 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-chevron-left"></i></button>
-                            <button onclick="setToday()" class="px-4 py-1.5 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-all font-bold">今日</button>
-                            <button onclick="changeMonth(1)" class="p-2 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-chevron-right"></i></button>
+                            <button onclick="window.changeMonth(-1)" class="p-2 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-chevron-left"></i></button>
+                            <button onclick="window.setToday()" class="px-4 py-1.5 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-all font-bold">今日</button>
+                            <button onclick="window.changeMonth(1)" class="p-2 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-chevron-right"></i></button>
                         </div>
                     </div>
                 </div>
 
-                <!-- 月クイック切替 (スマホ対応) -->
+                <!-- 月クイック切替 -->
                 <div class="flex overflow-x-auto p-1 bg-white rounded-2xl border border-slate-200 shadow-sm mb-6 custom-scrollbar whitespace-nowrap">
-                    <script>for(let i=1; i<=12; i++) document.write(`<button onclick="jumpMonth(${i})" id="month-btn-${i}" class="month-btn">${i}月</button>`);</script>
+                    <script>for(let i=1; i<=12; i++) document.write(`<button onclick="window.jumpMonth(${i})" id="month-btn-${i}" class="month-btn">${i}月</button>`);</script>
                 </div>
 
-                <!-- カレンダーグリッド -->
+                <!-- カレンダー本体 -->
                 <div class="bg-white p-2 lg:p-4 rounded-[1.5rem] lg:rounded-[2rem] shadow-xl border border-slate-200">
                     <div class="grid grid-cols-7 mb-2 lg:mb-4 font-black text-[9px] lg:text-[10px] text-slate-400 uppercase text-center">
                         <div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div class="text-rose-400">Sat</div><div class="text-rose-600">Sun</div>
@@ -95,56 +95,43 @@
         </div>
     </main>
 
-    <script type="module" src="common.js"></script>
-
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-        import { firebaseConfig } from "./common.js";
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+        import { db } from "./common.js";
+        import { collection, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let currentDate = new Date();
         let loadedData = { records: [], appoints: [] };
-        let lastLoadedMonth = ""; // キャッシュ管理用
+        let lastLoadedMonth = ""; 
 
         async function init() {
             await fetchMonthData();
             window.renderCalendar();
         }
 
-        // 🌟 V2 鉄壁ロジック：表示する月だけを読み込む（197万回防止）
+        // 🌟 鉄壁・省エネ：表示中の月だけをピンポイント取得（197万回対策）
         async function fetchMonthData() {
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth() + 1;
             const monthKey = `${year}-${month}`;
-            if (lastLoadedMonth === monthKey) return; // 読み込み済みならスキップ
+            if (lastLoadedMonth === monthKey) return;
 
             const startStr = `${year}-${String(month).padStart(2, '0')}-01`;
             const endStr = `${year}-${String(month).padStart(2, '0')}-31`;
 
             try {
-                // 実績(visitDate)と次回予定(nextVisitDate)の両方を月範囲で絞り込み
-                const qRecords = query(collection(db, "activity_records"), 
-                    where("visitDate", ">=", startStr), 
-                    where("visitDate", "<=", endStr),
-                    limit(300) // 1ヶ月に300件以上はない想定
-                );
-                
-                const qAppoints = query(collection(db, "appointments"),
-                    where("appointDate", ">=", startStr),
-                    where("appointDate", "<=", endStr),
-                    limit(200)
-                );
+                // 実績・アポイントを当月分に絞って取得
+                const qRecords = query(collection(db, "activity_records"), where("visitDate", ">=", startStr), where("visitDate", "<=", endStr), limit(200));
+                const qNext = query(collection(db, "activity_records"), where("nextVisitDate", ">=", startStr), where("nextVisitDate", "<=", endStr), limit(200));
+                const qAppoints = query(collection(db, "appointments"), where("appointDate", ">=", startStr), where("appointDate", "<=", endStr), limit(200));
 
-                const [rSnap, aSnap] = await Promise.all([getDocs(qRecords), getDocs(qAppoints)]);
+                const [rSnap, nSnap, aSnap] = await Promise.all([getDocs(qRecords), getDocs(qNext), getDocs(qAppoints)]);
                 
-                loadedData.records = rSnap.docs.map(d => d.data());
+                // 実績と次回予定を統合
+                loadedData.records = [...new Map([...rSnap.docs, ...nSnap.docs].map(doc => [doc.id, doc.data()])).values()];
                 loadedData.appoints = aSnap.docs.map(d => d.data());
+                
                 lastLoadedMonth = monthKey;
-                console.log(`${monthKey} のデータを読み込みました`);
-            } catch (e) { console.error("Data fetch error:", e); }
+            } catch (e) { console.error("Calendar Load Error:", e); }
         }
 
         window.renderCalendar = () => {
@@ -166,14 +153,16 @@
             const showNext = document.getElementById('showNext').checked;
             const showApp = document.getElementById('showApp').checked;
 
+            // 空白埋め
             for(let i=0; i<startOffset; i++) grid.insertAdjacentHTML('beforeend', '<div class="calendar-day other-month"></div>');
 
+            // 日付描画
             for(let d=1; d<=daysInMonth; d++) {
                 const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
                 const isToday = new Date().toISOString().split('T')[0] === dateStr;
-                
                 let eventsHtml = "";
                 
+                // 内部フィルタリング（通信0回）
                 if (showRes) {
                     loadedData.records.filter(r => r.visitDate === dateStr && (selectedDept === 'ALL' || r.visitorDept === selectedDept)).forEach(r => {
                         eventsHtml += `<div class="event-label label-result" onclick="location.href='customer_history.html?name=${encodeURIComponent(r.customerName)}'">実績: ${r.customerName}</div>`;
@@ -199,21 +188,9 @@
             }
         }
 
-        window.changeMonth = async (val) => { 
-            currentDate.setMonth(currentDate.getMonth() + val); 
-            await fetchMonthData();
-            window.renderCalendar(); 
-        };
-        window.jumpMonth = async (m) => { 
-            currentDate.setMonth(m - 1); 
-            await fetchMonthData();
-            window.renderCalendar(); 
-        };
-        window.setToday = async () => { 
-            currentDate = new Date(); 
-            await fetchMonthData();
-            window.renderCalendar(); 
-        };
+        window.changeMonth = async (val) => { currentDate.setMonth(currentDate.getMonth() + val); await fetchMonthData(); window.renderCalendar(); };
+        window.jumpMonth = async (m) => { currentDate.setMonth(m - 1); await fetchMonthData(); window.renderCalendar(); };
+        window.setToday = async () => { currentDate = new Date(); await fetchMonthData(); window.renderCalendar(); };
 
         init();
     </script>
