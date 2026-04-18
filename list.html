@@ -34,7 +34,6 @@
                     </div>
                 </div>
 
-                <!-- 詳細検索：add.htmlと同期済み -->
                 <div id="detailSearchSection" class="hidden mb-8 p-8 bg-white rounded-3xl shadow-xl border border-blue-50">
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-xs font-bold">
                         <div class="space-y-2"><label class="text-slate-400">お客様名</label><input type="text" id="detailName" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="漢字・カナ検索"></div>
@@ -94,22 +93,22 @@
         import { db } from "./common.js";
         import { collection, getDocs, orderBy, query, limit, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        let allData = []; // 🌟 ここに500件を保持する
+        let allData = [];
         const rangeMap = { 'あ': /^[あ-おア-オ]/, 'か': /^[か-こカ-コが-ごガ-ゴ]/, 'さ': /^[さ-そサ-ソざ-ぞザ-ゾ]/, 'た': /^[た-とタ-トだ-どダ-ド]/, 'な': /^[な-のナ-ノ]/, 'は': /^[は-ほハ-ホば-ぼバ-ボぱ-ぽパ-ポ]/, 'ま': /^[ま-もマ-モ]/, 'や': /^[や-よヤ-ヨ]/, 'ら': /^[ら-ろラ-ロ]/, 'わ': /^[わ-んワ-ン]/ };
 
-        // 🌟 初期読み込み：新着順に500件（これで新しく登録した「テスト」も入る）
+        // 🌟 初期読み込み：最新の100件に制限（オーナーの指示により100件へ戻しました）
         async function init() {
             const tbody = document.getElementById('customerTable');
             tbody.innerHTML = `<tr><td colspan="8" class="p-16 text-center text-slate-400 font-bold">読み込み中...</td></tr>`;
             try {
-                // 更新日（updatedAt）が新しい順に500件
-                const q = query(collection(db, "customers"), orderBy("updatedAt", "desc"), limit(500));
+                // 更新日が新しい順に100件だけ取得
+                const q = query(collection(db, "customers"), orderBy("updatedAt", "desc"), limit(100));
                 const snap = await getDocs(q);
                 allData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 renderTable(allData);
             } catch (e) {
                 console.error(e);
-                tbody.innerHTML = `<tr><td colspan="8" class="p-16 text-center text-rose-400">取得失敗。Firebase設定を確認してください。</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="p-16 text-center text-rose-400">データ取得に失敗しました。</td></tr>`;
             }
         }
 
@@ -139,21 +138,19 @@
             document.getElementById('pageRange').innerText = `1-${dataList.length}`;
         }
 
-        // 🌟 検索 ＆ 50音ボタン：Firebaseには問い合わせず、手元の500件から瞬時に探す（超省エネ）
+        // 🌟 フィルタリング（手元の100件内で行うため通信は発生しません）
         function localFilter() {
-            const n = document.getElementById('detailName').value.trim().toLowerCase();
-            const a = document.getElementById('detailAddress').value.trim();
+            const n = (document.getElementById('detailName').value || "").trim().toLowerCase();
+            const a = (document.getElementById('detailAddress').value || "").trim();
             const r = document.getElementById('detailRank').value;
             const t = document.getElementById('detailType').value;
             const range = document.querySelector('.filter-btn.active').dataset.range;
 
             let res = allData;
-
             if (n) res = res.filter(d => (d.name||"").toLowerCase().includes(n) || (d.kana||"").toLowerCase().includes(n));
             if (a) res = res.filter(d => (d.address||"").includes(a));
             if (r) res = res.filter(d => d.rank === r);
             if (t) res = res.filter(d => d.type === t);
-
             if (range !== 'all') {
                 if (range === '他') res = res.filter(d => !Object.values(rangeMap).some(re => re.test(d.kana || d.name)));
                 else res = res.filter(d => rangeMap[range].test(d.kana || d.name));
@@ -170,7 +167,6 @@
             };
         });
 
-        // その他（リセット・削除など）
         document.getElementById('detailSearchToggle').onclick = () => document.getElementById('detailSearchSection').classList.toggle('hidden');
         document.getElementById('clearSearch').onclick = () => { document.querySelectorAll('#detailSearchSection input, select').forEach(e => e.value = ""); renderTable(allData); };
         document.getElementById('bulkDeleteBtn').onclick = async () => {
