@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, query, where, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// 🌟 由紀さんのV2プロジェクト専用
+// 🌟 由紀さんのV2プロジェクト専用設定（省エネ・直結モード）
 export const firebaseConfig = {
-    apiKey: "AIzaSyC5L1V6jn3Q8i1bWFW03Gd25w_If6dklmY",
+    apiKey: "AIzaSyC5L1V6jn3Q8i1bWFWO3Gd25w_If6dklmY",
     authDomain: "copros-my-page-v2.firebaseapp.com",
     projectId: "copros-my-page-v2",
     storageBucket: "copros-my-page-v2.firebasestorage.app",
@@ -11,8 +11,9 @@ export const firebaseConfig = {
     appId: "1:595195904220:web:402fd4e8620e2f32673419"
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+// Firebase初期化（各画面で再利用できるようexport）
+export const app = initializeApp(firebaseConfig);
+export const db = getFirestore(app);
 
 document.addEventListener('DOMContentLoaded', () => {
     const hp = document.getElementById('header-placeholder');
@@ -21,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const currentFile = window.location.pathname.split("/").pop() || 'index.html';
 
-    // ヘッダー注入
+    // ヘッダー注入（デザイン完全維持）
     hp.innerHTML = `
         <header class="h-16 bg-[#3c4b5a] flex items-center justify-between px-6 text-white shadow-lg shrink-0 z-50 sticky top-0">
             <div class="flex items-center gap-6">
@@ -39,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </header>
     `;
 
-    // サイドバー注入 (220px固定・由紀さんデザイン)
+    // サイドバー注入（220px固定・厳格モード）
     sp.innerHTML = `
         <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 z-40 hidden lg:hidden"></div>
         <aside id="main-sidebar" class="sidebar flex flex-col shrink-0 fixed lg:static inset-y-0 left-0 z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-300" style="width: 220px; background-color: #1a1a1a; color: white; height: 100vh;">
@@ -62,41 +63,51 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="submenu hidden bg-black/20"><div class="py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='notice_list.html'">お知らせ管理</div><div class="py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='staff_list.html'">組織員情報登録</div><div class="py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='import.html'">インポート</div></div>
                 </div>
             </nav>
-            <div class="p-6 border-t border-gray-800 bg-[#1a1a1a]"><button onclick="logout()" class="flex items-center gap-3 text-gray-500 hover:text-rose-400 font-bold w-full"><i class="fa-solid fa-power-off"></i><span>ログアウト</span></button></div>
+            <div class="p-6 border-t border-gray-800 bg-[#1a1a1a]"><button id="logout-btn" class="flex items-center gap-3 text-gray-500 hover:text-rose-400 font-bold w-full"><i class="fa-solid fa-power-off"></i><span>ログアウト</span></button></div>
         </aside>
     `;
 
-    // ロジック復元
+    // UI制御ロジック
     const mt = document.getElementById('mobile-toggle');
-    const sc = document.getElementById('sidebar-close');
     const so = document.getElementById('sidebar-overlay');
     const ms = document.getElementById('main-sidebar');
     const control = (open) => { if(open){ ms.classList.remove('-translate-x-full'); so.classList.remove('hidden'); } else { ms.classList.add('-translate-x-full'); so.classList.add('hidden'); } };
     if(mt) mt.onclick = () => control(true);
-    if(sc) sc.onclick = () => control(false);
     if(so) so.onclick = () => control(false);
 
     document.querySelectorAll('.group-header').forEach(h => { h.onclick = () => { const s = h.nextElementSibling; const a = h.querySelector('.arrow'); s.classList.toggle('hidden'); if(a) a.style.transform = s.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)'; }; });
 
-    // ハイライト
+    // 現在地のハイライト（プロ仕様）
     document.querySelectorAll('[onclick], .item-link').forEach(el => {
         const action = el.getAttribute('onclick') || "";
         if (action.includes(`'${currentFile}'`)) {
             el.classList.add('text-[#87ceeb]', 'font-black');
             const pg = el.closest('.nav-group');
-            if(pg){ pg.querySelector('.submenu').classList.remove('hidden'); pg.querySelector('.arrow').style.transform = 'rotate(180deg)'; pg.querySelector('.icon-to-color').classList.add('text-[#87ceeb]'); }
+            if(pg){ 
+                pg.querySelector('.submenu').classList.remove('hidden'); 
+                pg.querySelector('.arrow').style.transform = 'rotate(180deg)'; 
+                pg.querySelector('.icon-to-color').classList.add('text-[#87ceeb]'); 
+            }
             else if(el.classList.contains('item-link')) el.querySelector('.icon-to-color').classList.add('text-[#87ceeb]');
         }
     });
 
+    // ユーザー名表示
     const un = sessionStorage.getItem('userName');
     if(un && document.getElementById('user-display-name')) document.getElementById('user-display-name').innerText = un + " 氏";
 
-    async function refresh() {
-        if(!un) return;
-        try { const q = query(collection(db, "notifications"), where("recipient", "==", un), where("isRead", "==", false), limit(1)); const snap = await getDocs(q); if(snap.size > 0) document.getElementById('unreadBadge').style.display = 'flex'; } catch(e){}
-    }
-    refresh();
-});
+    // ログアウト処理
+    const lo = document.getElementById('logout-btn');
+    if(lo) lo.onclick = () => { if(confirm("ログアウトしますか？")){ sessionStorage.clear(); location.href = 'index.html'; } };
 
-export function logout() { if(confirm("ログアウトしますか？")){ sessionStorage.clear(); location.href = 'index.html'; } }
+    // 通知バッジ（超省エネ：1件でもあれば即終了）
+    async function refreshBadge() {
+        if(!un) return;
+        try { 
+            const q = query(collection(db, "notifications"), where("recipient", "==", un), where("isRead", "==", false), limit(1)); 
+            const snap = await getDocs(q); 
+            if(!snap.empty) document.getElementById('unreadBadge').style.display = 'flex'; 
+        } catch(e){ console.error("Badge error:", e); }
+    }
+    refreshBadge();
+});
