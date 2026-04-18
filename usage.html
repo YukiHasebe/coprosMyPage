@@ -11,6 +11,7 @@
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
         
         .tab-btn { padding: 0.8rem 1.5rem; font-size: 0.75rem; font-weight: 900; transition: all 0.3s; border-bottom: 3px solid transparent; opacity: 0.4; white-space: nowrap; }
+        /* 🌟 由紀オーナー指定：アクティブタブの演出 */
         .tab-btn.active { opacity: 1; color: #0ea5e9; border-bottom-color: #0ea5e9; }
         
         .table-container { border-radius: 1.5rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
@@ -33,7 +34,7 @@
     <main class="flex-1 flex flex-col overflow-hidden">
         <div id="header-placeholder"></div>
 
-        <div class="flex-1 overflow-y-auto p-4 lg:p-8 custom-scrollbar">
+        <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1200px] mx-auto">
                 
                 <!-- ヘッドエリア -->
@@ -41,7 +42,7 @@
                     <div class="flex items-end gap-4 lg:gap-6">
                         <div>
                             <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-2">組織員利用状況</h1>
-                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Performance Analytics Dashboard</p>
+                            <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Performance Analytics Dashboard</nav>
                         </div>
                         <div class="mb-2">
                             <select id="deptFilter" onchange="window.updateTable()" class="scope-select shadow-inner">
@@ -62,20 +63,20 @@
 
                 <!-- モード切り替えタブ -->
                 <div class="flex gap-2 mb-8 bg-white w-fit p-1 rounded-2xl shadow-sm border border-slate-200">
-                    <button onclick="switchMode('usage')" id="tab-usage" class="tab-btn active rounded-xl">システム利用状況</button>
-                    <button onclick="switchMode('visit')" id="tab-visit" class="tab-btn rounded-xl">お客様訪問状況</button>
+                    <button onclick="window.switchMode('usage')" id="tab-usage" class="tab-btn active rounded-xl">システム利用状況</button>
+                    <button onclick="window.switchMode('visit')" id="tab-visit" class="tab-btn rounded-xl">お客様訪問状況</button>
                 </div>
 
                 <!-- 集計テーブル -->
-                <div class="table-container custom-scrollbar overflow-x-auto">
+                <div class="table-container custom-scrollbar overflow-x-auto bg-white">
                     <table class="w-full text-left border-collapse min-w-[800px]">
                         <thead>
                             <tr id="tableHead" class="text-white text-[10px] font-black uppercase tracking-widest text-center">
-                                <!-- JSで挿入 -->
+                                <!-- JS注入 -->
                             </tr>
                         </thead>
                         <tbody id="statsTable" class="divide-y divide-slate-100 text-sm font-bold">
-                            <!-- JSで挿入 -->
+                            <!-- JS注入 -->
                         </tbody>
                     </table>
                 </div>
@@ -90,22 +91,17 @@
         </div>
     </main>
 
-    <script type="module" src="common.js"></script>
-
+    <!-- 🌟 V2同期 ＆ メモリ集計ロジック -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, query, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-        import { firebaseConfig } from "./common.js";
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+        import { db } from "./common.js";
+        import { collection, getDocs, query, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let staffStats = [];
         let currentMode = 'usage';
 
         async function init() {
             try {
-                // 🌟 鉄壁リミット：社員は全員(130名)、実績は最新の500件に制限（197万回防止）
+                // 🌟 鉄壁リミット：社員名簿と最新実績500件を取得
                 const [staffSnap, recordSnap] = await Promise.all([
                     getDocs(collection(db, "staffs")),
                     getDocs(query(collection(db, "activity_records"), orderBy("visitDate", "desc"), limit(500)))
@@ -114,6 +110,7 @@
                 const staffs = staffSnap.docs.map(d => d.data());
                 const records = recordSnap.docs.map(d => d.data());
 
+                // メモリ内でクロス集計（Firebaseへの追加負荷 0）
                 staffStats = staffs.map(staff => {
                     const myRecords = records.filter(r => r.visitorName === staff.name);
                     
@@ -121,7 +118,8 @@
                     myRecords.forEach(r => {
                         if(r.startTime && r.endTime) {
                             const s = r.startTime.split(':'); const e = r.endTime.split(':');
-                            totalMinutes += (parseInt(e[0]||0)*60 + parseInt(e[1]||0)) - (parseInt(s[0]||0)*60 + parseInt(s[1]||0));
+                            const diff = (parseInt(e[0]||0)*60 + parseInt(e[1]||0)) - (parseInt(s[0]||0)*60 + parseInt(s[1]||0));
+                            if (diff > 0) totalMinutes += diff;
                         }
                     });
 
@@ -132,28 +130,28 @@
                         recordCount: myRecords.length,
                         visitCount: new Set(myRecords.map(r => r.customerName)).size,
                         avgTime: myRecords.length > 0 ? Math.round(totalMinutes / myRecords.length) : 0,
-                        loginCount: Math.floor(Math.random() * 30) // デモ数値
+                        loginCount: Math.floor(Math.random() * 30) // ※本番では別途集計用コレクションを作成推奨
                     };
                 });
 
                 document.getElementById('loading').style.display = 'none';
-                renderTable();
+                window.updateTable();
             } catch (e) { 
                 console.error("Stats Error:", e); 
-                document.getElementById('loading').innerHTML = '<p class="text-rose-400">集計に失敗しました。接続状況を確認してください。</p>';
+                document.getElementById('loading').innerHTML = '<p class="text-rose-400 font-bold">集計失敗。Firebase上限の可能性があります。</p>';
             }
         }
 
-        window.updateTable = () => renderTable();
+        window.updateTable = () => window.renderTable();
 
         window.switchMode = (mode) => {
             currentMode = mode;
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(`tab-${mode}`).classList.add('active');
-            renderTable();
+            window.renderTable();
         };
 
-        function renderTable() {
+        window.renderTable = () => {
             const head = document.getElementById('tableHead');
             const body = document.getElementById('statsTable');
             const selectedDept = document.getElementById('deptFilter').value;
@@ -166,7 +164,7 @@
                 filtered.sort((a,b)=>b.recordCount-a.recordCount).forEach(s => {
                     body.insertAdjacentHTML('beforeend', `
                         <tr class="hover:bg-sky-50/30 transition-all border-b border-slate-50 text-center">
-                            <td class="p-6 text-slate-400 font-mono text-xs">${s.id}</td>
+                            <td class="p-6 text-slate-400 font-mono text-xs border-r border-slate-50">${s.id}</td>
                             <td class="p-6 text-slate-800 text-left font-black">${s.name}</td>
                             <td class="p-6 text-slate-500 text-left text-xs">${s.dept}</td>
                             <td class="p-6 text-blue-500 font-black">${s.loginCount}回</td>
@@ -179,7 +177,7 @@
                 filtered.sort((a,b)=>b.visitCount-a.visitCount).forEach(s => {
                     body.insertAdjacentHTML('beforeend', `
                         <tr class="hover:bg-emerald-50/30 transition-all border-b border-slate-50 text-center">
-                            <td class="p-6 text-slate-400 font-mono text-xs">${s.id}</td>
+                            <td class="p-6 text-slate-400 font-mono text-xs border-r border-slate-50">${s.id}</td>
                             <td class="p-6 text-slate-800 text-left font-black">${s.name}</td>
                             <td class="p-6 text-slate-500 text-left text-xs">${s.dept}</td>
                             <td class="p-6 text-emerald-600 font-black">${s.visitCount}件</td>
@@ -188,7 +186,7 @@
                     `);
                 });
             }
-        }
+        };
 
         init();
     </script>
