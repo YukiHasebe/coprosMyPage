@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, collection, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// 🌟 由紀オーナー専用：Firebase V2 プロジェクト設定
+// 🌟 由紀オーナー専用：Firebase V2 設定
 export const firebaseConfig = {
     apiKey: "AIzaSyC5L1V6jn3Q8i1bWFWO3Gd25w_If6dklmY",
     authDomain: "copros-my-page-v2.firebaseapp.com",
@@ -11,7 +11,6 @@ export const firebaseConfig = {
     appId: "1:595195904220:web:402fd4e8620e2f32673419"
 };
 
-// Firebase初期化（各画面で再利用）
 export const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
@@ -22,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const currentFile = window.location.pathname.split("/").pop() || 'index.html';
 
-    // 1. ヘッダー注入（由紀オーナー指定：プロ仕様・敬称なし）
+    // 1. ヘッダー注入（プロ仕様：様・殿なしのログイン名表示）
     hp.innerHTML = `
         <header class="h-16 bg-[#3c4b5a] flex items-center justify-between px-6 text-white shadow-lg shrink-0 z-50 sticky top-0">
             <div class="flex items-center gap-6">
@@ -42,13 +41,13 @@ document.addEventListener('DOMContentLoaded', () => {
         </header>
     `;
 
-    // 2. サイドバー注入（220px固定・厳格モード）
+    // 2. サイドバー注入（220px固定・全17画面対応の完全メニュー）
     sp.innerHTML = `
         <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 z-40 hidden lg:hidden"></div>
         <aside id="main-sidebar" class="sidebar flex flex-col shrink-0 fixed lg:static inset-y-0 left-0 z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-300" style="width: 220px; background-color: #1a1a1a; color: white; height: 100vh;">
             <div class="h-16 flex items-center px-6 text-gray-500 font-black tracking-widest text-xs border-b border-gray-800 uppercase">Menu</div>
             <nav class="flex-1 overflow-y-auto py-2 custom-scrollbar text-[13px]">
-                <!-- お客様 -->
+                <!-- お客様グループ -->
                 <div class="nav-group">
                     <div class="group-header flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-white/5 transition-colors">
                         <div class="flex items-center gap-3"><i class="fa-solid fa-users w-5 icon-to-color"></i><span>お客様</span></div>
@@ -59,9 +58,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='add.html'">お客様情報登録</div>
                     </div>
                 </div>
-                <!-- 実績 -->
+                <!-- 実績グループ -->
                 <div class="nav-group">
-                    <div class="group-header flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-white/5">
+                    <div class="group-header flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-white/5 transition-colors">
                         <div class="flex items-center gap-3"><i class="fa-solid fa-file-invoice w-5 icon-to-color"></i><span>実績</span></div>
                         <i class="fa-solid fa-chevron-down text-[10px] opacity-30 arrow transition-transform"></i>
                     </div>
@@ -70,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='list_records.html'">実績一覧</div>
                     </div>
                 </div>
-                <!-- 単一リンク -->
+                <!-- 各種単一リンク -->
                 <div class="px-6 py-3 flex items-center gap-3 hover:bg-white/5 cursor-pointer item-link" onclick="location.href='calendar.html'"><i class="fa-solid fa-calendar-days w-5 icon-to-color"></i><span>カレンダー</span></div>
                 <div class="px-6 py-3 flex items-center justify-between hover:bg-white/5 cursor-pointer item-link" onclick="location.href='kairan.html'">
                     <div class="flex items-center gap-3"><i class="fa-solid fa-envelope-open-text w-5 icon-to-color"></i><span>回覧一覧</span></div>
@@ -79,7 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="px-6 py-3 flex items-center gap-3 hover:bg-white/5 cursor-pointer item-link" onclick="location.href='map.html'"><i class="fa-solid fa-map-location-dot w-5 icon-to-color"></i><span>地図</span></div>
                 <div class="px-6 py-3 flex items-center gap-3 hover:bg-white/5 cursor-pointer item-link mb-4" onclick="location.href='appoint.html'"><i class="fa-solid fa-clock w-5 icon-to-color"></i><span>アポイント</span></div>
                 
-                <!-- 集計 -->
+                <!-- 集計グループ -->
                 <div class="nav-group">
                     <div class="group-header flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-white/5 border-t border-gray-800 pt-6">
                         <div class="flex items-center gap-3"><i class="fa-solid fa-chart-line w-5 icon-to-color"></i><span>集計</span></div>
@@ -89,11 +88,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='usage.html'">組織員利用状況</div>
                         <div class="py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='monthly_list.html'">月別一覧</div>
                         <div class="py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='customer_stay_time.html'">お客様別滞在時間</div>
+                        <div class="py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='monthly_stay_time.html'">月別滞在時間一覧</div>
                         <div class="py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='view_graph.html'">実績グラフ出力</div>
                     </div>
                 </div>
 
-                <!-- マスタ -->
+                <!-- マスタ管理グループ -->
                 <div class="nav-group">
                     <div class="group-header flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-white/5 border-t border-gray-800 pt-6">
                         <div class="flex items-center gap-3"><i class="fa-solid fa-gear w-5 icon-to-color"></i><span>マスタ管理</span></div>
@@ -107,14 +107,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </nav>
             <div class="p-6 border-t border-gray-800 bg-[#1a1a1a]">
-                <button id="logout-btn" class="flex items-center gap-3 text-gray-500 hover:text-rose-400 font-bold w-full transition-colors">
-                    <i class="fa-solid fa-power-off"></i><span>ログアウト</span>
-                </button>
+                <button id="logout-btn" class="flex items-center gap-3 text-gray-500 hover:text-rose-400 font-bold w-full transition-colors"><i class="fa-solid fa-power-off"></i><span>ログアウト</span></button>
             </div>
         </aside>
     `;
 
-    // 3. UIロジック（モバイルトグル・アコーディオン）
+    // 🌟 ログイン名（userName）の反映
+    const savedName = sessionStorage.getItem('userName');
+    if (savedName && document.getElementById('user-display-name')) {
+        document.getElementById('user-display-name').innerText = savedName.replace(/[様殿]$/, "");
+    }
+
+    // UI制御ロジック
     const mt = document.getElementById('mobile-toggle');
     const so = document.getElementById('sidebar-overlay');
     const ms = document.getElementById('main-sidebar');
@@ -131,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     });
 
-    // 4. 現在地のハイライト（水色：#87ceeb）
+    // 現在地のハイライト（水色：#87ceeb）
     document.querySelectorAll('[onclick], .item-link').forEach(el => {
         const action = el.getAttribute('onclick') || "";
         if (action.includes(`'${currentFile}'`)) {
@@ -147,26 +151,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 5. ユーザー名表示（「様」なし）
-    const un = sessionStorage.getItem('userName');
-    if(un && document.getElementById('user-display-name')) {
-        document.getElementById('user-display-name').innerText = un;
-    }
-
-    // 6. ログアウト処理
+    // ログアウト処理
     const lo = document.getElementById('logout-btn');
     if(lo) lo.onclick = () => { if(confirm("ログアウトしますか？")){ sessionStorage.clear(); location.href = 'index.html'; } };
 
-    // 7. 通知バッジ更新（超省エネ：1件取得のみ）
+    // 通知バッジ（省エネ）
     async function refreshBadge() {
-        if(!un) return;
+        if(!savedName) return;
         try { 
-            const q = query(collection(db, "notifications"), where("recipient", "==", un), where("isRead", "==", false), limit(1)); 
+            const q = query(collection(db, "notifications"), where("recipient", "==", savedName), where("isRead", "==", false), limit(1)); 
             const snap = await getDocs(q); 
-            if(!snap.empty) {
-                const badge = document.getElementById('unreadBadge');
-                if(badge) badge.style.display = 'flex';
-            }
+            if(!snap.empty) document.getElementById('unreadBadge').style.display = 'flex';
         } catch(e){}
     }
     refreshBadge();
