@@ -25,7 +25,7 @@
     <main class="flex-1 flex flex-col overflow-hidden">
         <div id="header-placeholder"></div>
 
-        <div class="flex-1 overflow-y-auto p-4 lg:p-8 custom-scrollbar">
+        <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1200px] mx-auto">
                 
                 <!-- ヘッドエリア -->
@@ -33,7 +33,7 @@
                     <div class="flex items-end gap-4 lg:gap-6">
                         <div>
                             <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-2">実績グラフ出力</h1>
-                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Performance Data Analysis</p>
+                            <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Performance Data Analysis</nav>
                         </div>
                         <div class="mb-2">
                             <select id="deptFilter" onchange="window.updateCharts()" class="scope-select shadow-inner">
@@ -46,12 +46,12 @@
                         </div>
                     </div>
                     <div class="flex gap-2 bg-white p-1 rounded-xl shadow-sm border border-slate-200 overflow-x-auto w-full lg:w-auto">
-                        <button onclick="switchChart('trend')" id="btn-trend" class="tab-btn active flex-1">月別推移</button>
-                        <button onclick="switchChart('quality')" id="btn-quality" class="tab-btn flex-1">内容分析</button>
+                        <button onclick="window.switchChart('trend')" id="btn-trend" class="tab-btn active flex-1">月別推移</button>
+                        <button onclick="window.switchChart('quality')" id="btn-quality" class="tab-btn flex-1">内容分析</button>
                     </div>
                 </div>
 
-                <!-- サマリーカード (スマホ対応) -->
+                <!-- サマリーカード -->
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 lg:gap-6 mb-8 text-center">
                     <div class="stat-card">
                         <p class="text-[10px] font-black text-slate-400 mb-1 uppercase">Total Visits</p>
@@ -67,7 +67,7 @@
                     </div>
                 </div>
 
-                <!-- グラフエリア -->
+                <!-- グラフ本体 -->
                 <div class="bg-white p-6 lg:p-10 rounded-[2rem] lg:rounded-[2.5rem] shadow-2xl border border-slate-100 min-h-[400px] flex flex-col items-center justify-center relative mb-20">
                     <div id="qualityControls" class="mb-8 hidden w-full max-w-md">
                         <select id="qualityType" onchange="window.updateCharts()" class="scope-select bg-slate-50 font-black w-full border border-slate-200">
@@ -83,22 +83,15 @@
 
                 <div id="loading" class="fixed inset-0 bg-white/80 backdrop-blur-sm z-[100] flex flex-col items-center justify-center">
                     <div class="animate-spin mb-4 text-blue-500 text-5xl"><i class="fa-solid fa-circle-notch"></i></div>
-                    <p class="text-slate-800 font-black tracking-tighter">データを解析中...</p>
+                    <p class="text-slate-800 font-black tracking-tighter">実績データを解析中...</p>
                 </div>
-
             </div>
         </div>
     </main>
 
-    <script type="module" src="common.js"></script>
-
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, query, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-        import { firebaseConfig } from "./common.js";
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+        import { db } from "./common.js";
+        import { collection, getDocs, query, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let allRecords = [];
         let chartInstance = null;
@@ -106,15 +99,15 @@
 
         async function init() {
             try {
-                // 🌟 鉄壁リミット：最新の1,000件を取得（197万回防止）
+                // 🌟 鉄壁リミット：最新1,000件の実績を取得してメモリ解析
                 const q = query(collection(db, "activity_records"), orderBy("visitDate", "desc"), limit(1000));
                 const snap = await getDocs(q);
                 allRecords = snap.docs.map(d => d.data());
                 document.getElementById('loading').style.display = 'none';
                 window.updateCharts();
             } catch (e) { 
-                console.error("Chart Load Error:", e);
-                document.getElementById('loading').innerHTML = '<p class="text-rose-500 font-bold">データの取得に失敗しました</p>';
+                console.error("Chart Error:", e);
+                document.getElementById('loading').innerHTML = '<p class="text-rose-500 font-bold">データ解析に失敗しました</p>';
             }
         }
 
@@ -122,6 +115,7 @@
             const dept = document.getElementById('deptFilter').value;
             const filtered = dept === 'ALL' ? allRecords : allRecords.filter(r => r.visitorDept === dept);
 
+            // サマリー計算（メモリ内処理：Firebase負荷 0）
             let totalMins = 0;
             filtered.forEach(r => {
                 if(r.startTime && r.endTime) {
@@ -143,8 +137,9 @@
             const counts = new Array(12).fill(0);
             data.forEach(r => {
                 if(!r.visitDate) return;
-                const m = new Date(r.visitDate).getMonth();
-                const fiscalIdx = (m >= 3) ? m - 3 : m + 9;
+                const d = r.visitDate.split('-');
+                const m = parseInt(d[1]);
+                const fiscalIdx = (m >= 4) ? m - 4 : m + 8;
                 if (fiscalIdx >= 0 && fiscalIdx < 12) counts[fiscalIdx]++;
             });
             
@@ -168,7 +163,10 @@
         function renderQualityChart(data) {
             const field = document.getElementById('qualityType').value;
             const counts = {};
-            data.forEach(r => { const v = r[field] || "未設定"; counts[v] = (counts[v] || 0) + 1; });
+            data.forEach(r => { 
+                const v = r[field] || "未設定"; 
+                if(v !== "") counts[v] = (counts[v] || 0) + 1; 
+            });
             
             if (chartInstance) chartInstance.destroy();
             const ctx = document.getElementById('mainChart').getContext('2d');
