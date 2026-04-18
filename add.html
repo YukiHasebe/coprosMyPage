@@ -132,15 +132,10 @@
         </div>
     </main>
 
-    <script type="module" src="common.js"></script>
-
+    <!-- 🌟 V2直結ロジック（common.jsからdbを継承） -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-        import { firebaseConfig } from "./common.js";
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+        import { db } from "./common.js";
+        import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         document.getElementById('saveBtn').onclick = async () => {
             const form = document.getElementById('customerForm');
@@ -153,6 +148,7 @@
             btn.disabled = true;
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>登録中...';
 
+            // 🌟 由紀オーナーの指定データ構造（V2）
             const data = {
                 category: document.querySelector('input[name="category"]:checked').value,
                 name: document.getElementById('name').value,
@@ -165,16 +161,18 @@
                 tel: document.getElementById('tel').value,
                 visitCount: 0,
                 lastVisit: "未訪問",
-                createdAt: serverTimestamp()
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp()
             };
 
             try {
+                // 🌟 新プロジェクトV2の'customers'コレクションへ追加
                 await addDoc(collection(db, "customers"), data);
                 alert("新しいお客様を登録しました！");
                 location.href = 'list.html';
             } catch (e) {
                 console.error(e);
-                alert("保存に失敗しました。");
+                alert("保存に失敗しました。Firebaseの権限設定（ルール）を確認してください。");
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up mr-2"></i>登録を実行';
             }
