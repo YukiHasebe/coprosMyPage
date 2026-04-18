@@ -14,6 +14,8 @@
         .form-input[readonly] { background-color: #f1f5f9; color: #94a3b8; cursor: not-allowed; border-style: dashed; }
         .label-text { font-size: 0.8rem; font-weight: 800; color: #475569; margin-bottom: 0.4rem; display: block; }
         .section-card { background: white; border-radius: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04); padding: 1.5rem; lg:padding: 2.5rem; margin-bottom: 2rem; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700 font-sans">
@@ -28,7 +30,7 @@
                 <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-4">
                     <div>
                         <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-2">組織員情報登録・編集</h1>
-                        <nav class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Staff Account Setup</nav>
+                        <nav class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Staff Account Setup V2</nav>
                     </div>
                     <div class="flex gap-2 w-full lg:w-auto">
                         <button onclick="location.href='staff_list.html'" class="flex-1 lg:flex-none px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-xs hover:bg-slate-50 transition-all shadow-sm">戻る</button>
@@ -84,15 +86,10 @@
         </div>
     </main>
 
-    <script type="module" src="common.js"></script>
-
+    <!-- 🌟 V2同期ロジック -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-        import { firebaseConfig } from "./common.js";
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+        import { db } from "./common.js";
+        import { doc, setDoc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const params = new URLSearchParams(window.location.search);
         const editId = params.get('id');
@@ -100,11 +97,12 @@
         async function init() {
             if (editId) {
                 try {
+                    // ドキュメントID（社員コード）で直接取得
                     const snap = await getDoc(doc(db, "staffs", editId));
                     if (snap.exists()) {
                         const d = snap.data();
                         document.getElementById('staffId').value = d.id;
-                        document.getElementById('staffId').readOnly = true;
+                        document.getElementById('staffId').readOnly = true; // 🌟 編集時はID変更不可
                         document.getElementById('staffName').value = d.name;
                         document.getElementById('staffEmail').value = d.email || '';
                         document.getElementById('staffPass').value = d.password;
@@ -137,6 +135,7 @@
             };
 
             try {
+                // V2のstaffsコレクションへ保存（IDをドキュメントIDとして使用）
                 await setDoc(doc(db, "staffs", id), data);
                 alert("組織員情報を保存しました！");
                 location.href = 'staff_list.html';
@@ -144,7 +143,7 @@
                 console.error("Save Error:", e);
                 alert("保存に失敗しました。");
                 btn.disabled = false;
-                btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up mr-1"></i> 情報を保存する';
+                btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> 情報を保存';
             }
         };
 
