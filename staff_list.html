@@ -10,6 +10,7 @@
         :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
         .filter-btn { transition: all 0.2s; white-space: nowrap; }
+        /* 🌟 由紀オーナー指定：アクティブ時の水色表示 */
         .filter-btn.active { background: #0ea5e9; color: white; box-shadow: 0 4px 12px rgba(14,165,233,0.3); }
         .table-container { border-radius: 1.5rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
         thead tr { background-color: #3c4b5a; }
@@ -27,13 +28,13 @@
     <main class="flex-1 flex flex-col overflow-hidden">
         <div id="header-placeholder"></div>
 
-        <div class="flex-1 overflow-y-auto p-4 lg:p-8 custom-scrollbar">
+        <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1400px] mx-auto">
                 
                 <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-4">
                     <div>
                         <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-2">組織員情報一覧</h1>
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Organization Staff Management</p>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Organization Staff Management V2</p>
                     </div>
                     <div class="flex gap-2 w-full lg:w-auto">
                         <button onclick="location.href='staff_add.html'" class="flex-1 lg:flex-none px-6 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-xs hover:shadow-lg transition-all flex items-center justify-center gap-2">
@@ -42,7 +43,6 @@
                     </div>
                 </div>
 
-                <!-- 絞り込みツール (スマホ対応スクロール) -->
                 <div class="flex flex-col lg:flex-row justify-between items-center mb-6 gap-4 px-2">
                     <div class="flex items-center gap-4 w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0 custom-scrollbar">
                         <div class="flex gap-1 p-1 bg-white rounded-xl border border-slate-200 shadow-sm">
@@ -73,7 +73,7 @@
                                 <th class="p-6 text-center w-16 opacity-30"><i class="fa-solid fa-trash-can"></i></th>
                             </tr>
                         </thead>
-                        <tbody id="staffTable" class="divide-y divide-slate-100 text-sm font-bold">
+                        <tbody id="staffTable" class="divide-y divide-slate-100 text-sm font-bold bg-white">
                             <tr><td colspan="7" class="p-10 text-center text-slate-400">データを読み込み中...</td></tr>
                         </tbody>
                     </table>
@@ -82,28 +82,23 @@
         </div>
     </main>
 
-    <script type="module" src="common.js"></script>
-
+    <!-- 🌟 V2同期ロジック -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, doc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-        import { firebaseConfig } from "./common.js";
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+        import { db } from "./common.js";
+        import { collection, getDocs, doc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let allStaffs = [];
 
         async function init() {
             try {
-                // 🌟 197万回防止：社員名簿は全件取得するが orderBy で制御
+                // 社員情報は130名前後なので、全件取得してJSでソート・検索（省エネ）
                 const snap = await getDocs(query(collection(db, "staffs"), orderBy("id")));
                 allStaffs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderTable(allStaffs);
                 document.getElementById('totalCount').innerText = allStaffs.length;
             } catch (e) { 
                 console.error("Staff Load Error:", e);
-                document.getElementById('staffTable').innerHTML = '<tr><td colspan="7" class="p-10 text-center text-rose-400">読み込みに失敗しました。</td></tr>';
+                document.getElementById('staffTable').innerHTML = '<tr><td colspan="7" class="p-10 text-center text-rose-400 font-bold">読み込み失敗。上限の可能性があります。</td></tr>';
             }
         }
 
@@ -128,13 +123,13 @@
                             </div>
                         </td>
                         <td class="p-6 text-slate-500">${data.dept || '未設定'}</td>
-                        <td class="p-6 text-slate-500 font-medium truncate max-w-[200px]">${data.email || '--'}</td>
+                        <td class="p-6 text-slate-500 font-medium truncate max-w-[200px] font-mono">${data.email || '--'}</td>
                         <td class="p-6 text-center text-[10px] font-black uppercase text-slate-400">${data.role || '一般'}</td>
                         <td class="p-6 text-center">
                             <span class="status-badge ${statusOn ? 'status-on' : 'status-off'}">${data.status || '有効'}</span>
                         </td>
                         <td class="p-6 text-center">
-                            <button onclick="window.deleteStaff('${data.id}', '${data.name}')" class="text-slate-200 hover:text-rose-500 transition-colors">
+                            <button onclick="window.deleteStaff('${data.id}', '${data.name}')" class="text-slate-200 hover:text-rose-500 transition-colors" title="削除">
                                 <i class="fa-solid fa-trash-can"></i>
                             </button>
                         </td>
@@ -147,17 +142,18 @@
             if(!confirm(`${name}さんを削除してもよろしいですか？`)) return;
             try {
                 await deleteDoc(doc(db, "staffs", id));
-                alert("削除しました。");
                 init();
             } catch (e) { alert("削除に失敗しました。"); }
         };
 
-        // --- 50音フィルターの実装 ---
+        // 50音フィルターのイベント
         document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.onclick = () => {
                 document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 const range = btn.dataset.range;
+                
+                // 🌟 フリガナ（kana）または 氏名（name）の先頭文字で判別
                 const rangeMap = { 'あ': /^[あ-おア-オ]/, 'か': /^[か-こカ-コが-ごガ-ゴ]/, 'さ': /^[さ-そサ-ソざ-ぞザ-ゾ]/, 'た': /^[た-とタ-トだ-どダ-ド]/, 'な': /^[な-のナ-ノ]/, 'は': /^[は-ほハ-ホば-ぼバ-ボぱ-ぽパ-ポ]/, 'ま': /^[ま-もマ-モ]/, 'や': /^[や-よヤ-ヨ]/, 'ら': /^[ら-ろラ-ロ]/, 'わ': /^[わ-んワ-ン]/ };
                 
                 let filtered = allStaffs;
