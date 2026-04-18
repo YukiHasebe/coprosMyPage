@@ -36,6 +36,7 @@
         <div class="flex-1 overflow-y-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-4xl mx-auto">
                 
+                <!-- ヘッドエリア -->
                 <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-4">
                     <div>
                         <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-2">お客様情報登録</h1>
@@ -45,7 +46,7 @@
                         <button onclick="location.href='list.html'" class="flex-1 lg:flex-none px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-xs hover:bg-slate-50 transition-all">
                             <i class="fa-solid fa-arrow-left mr-2"></i>戻る
                         </button>
-                        <button id="saveBtn" class="flex-1 lg:flex-none px-10 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-xs hover:scale-105 transition-all shadow-lg active:scale-95">
+                        <button id="saveBtnTop" class="flex-1 lg:flex-none px-10 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-sm hover:shadow-lg transition-all shadow-md active:scale-95">
                             <i class="fa-solid fa-cloud-arrow-up mr-2"></i>登録を実行
                         </button>
                     </div>
@@ -70,11 +71,11 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div>
                                     <label class="label-text">お客様名 <span class="text-rose-500">*</span></label>
-                                    <input type="text" id="name" placeholder="株式会社コプロス" class="form-input" required>
+                                    <input type="text" id="name" placeholder="例：株式会社コプロス" class="form-input" required>
                                 </div>
                                 <div>
                                     <label class="label-text">お客様名カナ <span class="text-rose-500">*</span></label>
-                                    <input type="text" id="kana" placeholder="コプロス" class="form-input" required>
+                                    <input type="text" id="kana" placeholder="例：コプロス" class="form-input" required>
                                     <p class="text-[10px] text-slate-400 mt-2 font-bold leading-relaxed">※50音検索用。株式会社等は除いて入力してください。</p>
                                 </div>
                                 <div>
@@ -101,19 +102,10 @@
                         <!-- 所在地情報 -->
                         <div>
                             <p class="section-title">所在地情報</p>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-                                <div class="md:col-span-1">
-                                    <label class="label-text">郵便番号</label>
-                                    <input type="text" id="zip" placeholder="000-0000" class="form-input">
-                                </div>
-                                <div class="md:col-span-2">
-                                    <label class="label-text">住所 <span class="text-rose-500">*</span></label>
-                                    <input type="text" id="address" placeholder="山口県下関市..." class="form-input" required>
-                                </div>
-                                <div class="md:col-span-3">
-                                    <label class="label-text">ビル・建物名</label>
-                                    <input type="text" id="building" placeholder="コプロスビル 3F" class="form-input">
-                                </div>
+                            <div class="w-full">
+                                <label class="label-text">住所 <span class="text-rose-500">*</span></label>
+                                <input type="text" id="address" placeholder="例：山口県下関市竹崎町3-13-2 コプロスビル3F" class="form-input" required>
+                                <p class="text-[10px] text-slate-400 mt-2 font-bold">※ビル名や部屋番号まで続けて入力してください。</p>
                             </div>
                         </div>
 
@@ -122,8 +114,15 @@
                             <p class="section-title">連絡先</p>
                             <div class="w-full md:w-1/2">
                                 <label class="label-text">電話番号 <span class="text-rose-500">*</span></label>
-                                <input type="tel" id="tel" placeholder="0832331632" class="form-input" required>
+                                <input type="tel" id="tel" placeholder="例：0832331632" class="form-input" required>
                             </div>
+                        </div>
+
+                        <!-- 🌟 画面下部のボタン（実績登録画面とサイズを統一） -->
+                        <div class="pt-12 border-t border-slate-100 flex justify-center">
+                            <button type="button" id="saveBtnBottom" class="w-full max-w-xs py-4 bg-[#004098] text-white rounded-xl font-black text-sm hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-3">
+                                <i class="fa-solid fa-cloud-arrow-up"></i> 登録を実行する
+                            </button>
                         </div>
 
                     </form>
@@ -132,33 +131,31 @@
         </div>
     </main>
 
-    <!-- 🌟 V2直結ロジック（common.jsからdbを継承） -->
     <script type="module">
         import { db } from "./common.js";
         import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        document.getElementById('saveBtn').onclick = async () => {
+        const handleSave = async () => {
             const form = document.getElementById('customerForm');
             if (!form.checkValidity()) {
                 form.reportValidity();
                 return;
             }
 
-            const btn = document.getElementById('saveBtn');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>登録中...';
+            const btns = [document.getElementById('saveBtnTop'), document.getElementById('saveBtnBottom')];
+            btns.forEach(b => {
+                b.disabled = true;
+                b.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>登録中...';
+            });
 
-            // 🌟 由紀オーナーの指定データ構造（V2）
             const data = {
                 category: document.querySelector('input[name="category"]:checked').value,
-                name: document.getElementById('name').value,
-                kana: document.getElementById('kana').value,
+                name: document.getElementById('name').value.trim(),
+                kana: document.getElementById('kana').value.trim(),
                 rank: document.getElementById('rank').value,
                 type: document.getElementById('type').value,
-                zip: document.getElementById('zip').value,
-                address: document.getElementById('address').value,
-                building: document.getElementById('building').value,
-                tel: document.getElementById('tel').value,
+                address: document.getElementById('address').value.trim(),
+                tel: document.getElementById('tel').value.trim(),
                 visitCount: 0,
                 lastVisit: "未訪問",
                 createdAt: serverTimestamp(),
@@ -166,17 +163,21 @@
             };
 
             try {
-                // 🌟 新プロジェクトV2の'customers'コレクションへ追加
                 await addDoc(collection(db, "customers"), data);
                 alert("新しいお客様を登録しました！");
                 location.href = 'list.html';
             } catch (e) {
                 console.error(e);
-                alert("保存に失敗しました。Firebaseの権限設定（ルール）を確認してください。");
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up mr-2"></i>登録を実行';
+                alert("保存に失敗しました。");
+                btns.forEach(b => {
+                    b.disabled = false;
+                    b.innerHTML = '<i class="fa-solid fa-cloud-arrow-up mr-2"></i>登録を実行';
+                });
             }
         };
+
+        document.getElementById('saveBtnTop').onclick = handleSave;
+        document.getElementById('saveBtnBottom').onclick = handleSave;
     </script>
 </body>
 </html>
