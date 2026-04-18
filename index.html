@@ -34,34 +34,54 @@
         <div class="bg-white/10 px-6 py-3 flex items-center gap-2 text-white text-[10px] font-black uppercase tracking-widest"><i class="fa-solid fa-bullhorn text-orange-400"></i>Important Notices</div>
         <div id="noticeContainer" class="p-2 max-h-[200px] overflow-y-auto"></div>
     </div>
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-        const firebaseConfig = { apiKey: "AIzaSyC5L1V6jn3Q8i1bWFW03Gd25w_If6dklmY", authDomain: "copros-my-page-v2.firebaseapp.com", projectId: "copros-my-page-v2", storageBucket: "copros-my-page-v2.firebasestorage.app", messagingSenderId: "595195904220", appId: "1:595195904220:web:402fd4e8620e2f32673419" };
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        async function loadNotices() {
-            try {
-                const q = query(collection(db, "notices"), orderBy("createdAt", "desc"), limit(5));
-                const snap = await getDocs(q);
-                const container = document.getElementById('noticeContainer');
-                const today = new Date().toISOString().split('T')[0];
-                const active = snap.docs.filter(d => { const data = d.data(); return today >= data.startDate && today <= data.endDate; });
-                if (active.length > 0) { container.innerHTML = active.map(d => `<div class="p-4 border-b border-white/5"><h4 class="text-sky-300 font-black text-sm">${d.data().title}</h4><p class="text-gray-300 text-xs">${d.data().content}</p></div>`).join(''); }
-                else { container.innerHTML = '<p class="text-gray-500 text-[10px] p-6 text-center font-bold">現在、掲載中のお知らせはありません。</p>'; }
-            } catch (e) { console.warn(e); }
-        }
-        loadNotices();
-        document.getElementById('loginForm').onsubmit = async (e) => {
-            e.preventDefault();
-            const q = query(collection(db, "staffs"), where("id", "==", document.getElementById('userId').value.trim()), limit(1));
+   <!-- index.html の script 部分を以下に差し替え -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyC5L1V6jn3Q8i1bWFWO3Gd25w_If6dklmY",
+        authDomain: "copros-my-page-v2.firebaseapp.com",
+        projectId: "copros-my-page-v2",
+        storageBucket: "copros-my-page-v2.firebasestorage.app",
+        messagingSenderId: "595195904220",
+        appId: "1:595195904220:web:402fd4e8620e2f32673419"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    document.getElementById('loginForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const userId = document.getElementById('userId').value.trim();
+        const password = document.getElementById('password').value;
+
+        try {
+            const q = query(collection(db, "staffs"), where("id", "==", userId), limit(1));
             const snap = await getDocs(q);
-            if (!snap.empty && snap.docs[0].data().password === document.getElementById('password').value) {
-                sessionStorage.setItem('userName', snap.docs[0].data().name);
-                sessionStorage.setItem('userDept', snap.docs[0].data().dept || '未設定');
-                location.href = 'list.html';
-            } else { alert("認証に失敗しました。"); }
-        };
-    </script>
+
+            if (!snap.empty) {
+                const userData = snap.docs[0].data();
+                if (userData.password === password) {
+                    // 🌟 由紀オーナーこだわりのポップアップ演出
+                    alert(`${userData.name}さん、お疲れ様です！`);
+                    
+                    // セッションに保存（common.jsでこれを使う）
+                    sessionStorage.setItem('userName', userData.name);
+                    sessionStorage.setItem('userDept', userData.dept || '未設定');
+                    
+                    location.href = 'list.html';
+                } else {
+                    alert("パスワードが間違っています。");
+                }
+            } else {
+                alert("ユーザーIDが見つかりません。");
+            }
+        } catch (error) {
+            console.error(error);
+            alert("通信エラーが発生しました。");
+        }
+    };
+</script>
 </body>
 </html>
