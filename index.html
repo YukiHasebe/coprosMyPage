@@ -9,12 +9,14 @@
     <style>
         body { background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%); min-height: 100vh; }
         .login-card { backdrop-filter: blur(10px); background-color: rgba(255, 255, 255, 0.95); border-top: 5px solid #ff7e11; }
+        /* お知らせボードの幅と高さを固定して統一感を出す */
         .notice-board { max-width: 28rem; width: 100%; margin-top: 2rem; background: rgba(255,255,255,0.05); border-radius: 1.5rem; border: 1px solid rgba(255,255,255,0.1); }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
     </style>
 </head>
 <body class="flex flex-col items-center justify-center p-6">
+    <!-- ログインフォーム -->
     <div class="login-card p-10 rounded-xl shadow-2xl w-full max-w-md">
         <div class="text-center mb-10">
             <h1 class="text-3xl font-extrabold text-[#2c5282]">株式会社コプロス</h1>
@@ -25,28 +27,26 @@
                 <label class="block text-xs font-bold text-gray-600 mb-1">ユーザーID</label>
                 <div class="relative">
                     <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400"><i class="fa-solid fa-user"></i></span>
-                    <input type="text" id="userId" placeholder="社員番号を入力" class="w-full border border-gray-300 pl-10 p-3 rounded-lg outline-none font-bold focus:border-[#ff7e11]" required>
+                    <input type="text" id="userId" placeholder="社員番号を入力" class="w-full border border-gray-300 pl-10 p-3 rounded-lg outline-none font-bold" required>
                 </div>
             </div>
             <div>
                 <label class="block text-xs font-bold text-gray-600 mb-1">パスワード</label>
                 <div class="relative">
                     <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400"><i class="fa-solid fa-lock"></i></span>
-                    <input type="password" id="password" placeholder="Password" class="w-full border border-gray-300 pl-10 p-3 rounded-lg outline-none font-bold focus:border-[#ff7e11]" required>
+                    <input type="password" id="password" placeholder="Password" class="w-full border border-gray-300 pl-10 p-3 rounded-lg outline-none font-bold" required>
                 </div>
             </div>
-            <button type="submit" class="w-full bg-[#ff7e11] hover:bg-[#e66a00] text-white py-4 rounded-lg font-bold shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2">
-                ログイン <i class="fa-solid fa-right-to-bracket"></i>
-            </button>
+            <button type="submit" class="w-full bg-[#ff7e11] hover:bg-[#e66a00] text-white py-4 rounded-lg font-bold shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2">ログイン <i class="fa-solid fa-right-to-bracket"></i></button>
         </form>
     </div>
 
+    <!-- お知らせボード -->
     <div class="notice-board shadow-2xl overflow-hidden">
-        <div class="bg-white/10 px-6 py-3 flex items-center gap-2 text-white text-[10px] font-black uppercase tracking-widest">
-            <i class="fa-solid fa-bullhorn text-orange-400"></i>Important Notices
-        </div>
-        <div id="noticeContainer" class="p-2 max-h-[300px] overflow-y-auto custom-scrollbar min-h-[100px] flex flex-col transition-all">
-            <p class="text-white/20 text-[10px] p-10 text-center font-bold">読み込み中...</p>
+        <div class="bg-white/10 px-6 py-3 flex items-center gap-2 text-white text-[10px] font-black uppercase tracking-widest"><i class="fa-solid fa-bullhorn text-orange-400"></i>Important Notices</div>
+        <!-- 🌟 縦幅を最大250pxに固定 ＆ スクロール対応 -->
+        <div id="noticeContainer" class="p-2 max-h-[250px] overflow-y-auto custom-scrollbar min-h-[100px] flex flex-col justify-center">
+            <p class="text-white/20 text-[10px] p-6 text-center font-bold">読み込み中...</p>
         </div>
     </div>
 
@@ -65,7 +65,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // お知らせ表示ロジック
+        // 🌟 お知らせ読み込み
         async function loadNotices() {
             const container = document.getElementById('noticeContainer');
             try {
@@ -78,24 +78,30 @@
                 });
 
                 if (active.length > 0) {
+                    container.classList.remove('justify-center');
                     container.innerHTML = active.map(d => {
                         const data = d.data();
-                        return `<div class="p-4 border-b border-white/5 hover:bg-white/5 cursor-pointer transition-all" onclick="location.href='notice_list.html'">
-                                    <div class="flex justify-between items-start mb-1">
-                                        <h4 class="text-sky-300 font-black text-sm">${data.title}</h4>
-                                        <span class="text-[8px] text-slate-500 font-mono">${data.startDate.replace(/-/g,'/')}</span>
-                                    </div>
-                                    <p class="text-gray-400 text-xs line-clamp-2">${data.content}</p>
-                                </div>`;
+                        return `
+                            <div class="p-4 border-b border-white/5 hover:bg-white/5 cursor-pointer transition-all" onclick="location.href='notice_list.html'">
+                                <div class="flex justify-between items-start mb-1">
+                                    <h4 class="text-sky-300 font-black text-sm">${data.title}</h4>
+                                    <span class="text-[8px] text-slate-500 font-mono">${data.startDate.replace(/-/g,'/')}</span>
+                                </div>
+                                <p class="text-gray-400 text-xs line-clamp-2">${data.content}</p>
+                            </div>`;
                     }).join('');
                 } else {
-                    container.innerHTML = `<div class="flex-1 flex flex-col items-center justify-center p-8 text-center"><p class="text-gray-500 text-[10px] font-black tracking-widest uppercase italic">現在、新しいお知らせはありません</p></div>`;
+                    // 🌟 お知らせがない時の「なし」表示
+                    container.classList.add('justify-center');
+                    container.innerHTML = '<p class="text-gray-500 text-[10px] p-6 text-center font-bold tracking-widest uppercase italic">現在、新しいお知らせはありません</p>';
                 }
-            } catch (e) { container.innerHTML = '<p class="text-rose-400 text-[10px] p-6 text-center">データの取得に失敗しました</p>'; }
+            } catch (e) {
+                container.innerHTML = '<p class="text-rose-400 text-[10px] text-center">読み込み失敗</p>';
+            }
         }
         loadNotices();
 
-        // ログイン処理 ＆ 🌟未読通知カウント機能
+        // 🌟 ログイン処理 ＆ 個別通知カウント
         document.getElementById('loginForm').onsubmit = async (e) => {
             e.preventDefault();
             const userId = document.getElementById('userId').value.trim();
@@ -108,31 +114,32 @@
                 if (!snap.empty) {
                     const userData = snap.docs[0].data();
                     if (userData.password === password) {
-                        
-                        // 🌟 1. ログイン成功直後に、その人宛の未読通知をカウント
-                        const qNoti = query(
-                            collection(db, "notifications"), 
-                            where("recipient", "==", userData.name), 
-                            where("isRead", "==", false)
-                        );
+                        // 🌟 ログイン成功：相手への通知があるか確認
+                        const qNoti = query(collection(db, "notifications"), 
+                                            where("recipient", "==", userData.name), 
+                                            where("isRead", "==", false));
                         const snapNoti = await getDocs(qNoti);
                         const count = snapNoti.size;
 
-                        // 🌟 2. ポップアップメッセージの作成
                         let msg = `${userData.name}さん、お疲れ様です！`;
                         if (count > 0) {
                             msg += `\n\n📢 未読の回覧が ${count} 件届いています。`;
                         }
-                        alert(msg);
                         
-                        // セッション保存
+                        alert(msg); // 🌟 ここで通知件数も報告！
+                        
                         sessionStorage.setItem('userName', userData.name);
                         sessionStorage.setItem('userDept', userData.dept || '未設定');
-                        
                         location.href = 'list.html';
-                    } else { alert("パスワードが間違っています。"); }
-                } else { alert("ユーザーIDが見つかりません。"); }
-            } catch (error) { alert("通信エラーが発生しました。"); }
+                    } else {
+                        alert("パスワードが間違っています。");
+                    }
+                } else {
+                    alert("ユーザーIDが見つかりません。");
+                }
+            } catch (error) {
+                alert("通信エラーが発生しました。");
+            }
         };
     </script>
 </body>
