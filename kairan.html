@@ -93,7 +93,7 @@
                         <td class="p-6 text-center text-slate-300 font-mono text-xs">
                             <i class="fa-solid fa-circle-plus mr-2 cursor-pointer text-blue-400" onclick="window.toggleRow(this)"></i>${i + 1}
                         </td>
-                        <td class="p-6 text-[10px] text-slate-400 font-black text-center">【実績回覧】</td>
+                        <td class="p-6 text-[10px] text-slate-400 font-black text-center">【${data.type || '実績回覧'}】</td>
                         <td class="p-6 text-center cursor-pointer text-blue-600 underline" onclick="window.markReadAndToggle('${data.id}', this)">
                             ${data.visitDate || '--'}
                         </td>
