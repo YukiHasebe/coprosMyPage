@@ -96,124 +96,72 @@
     </main>
 
     <script type="module">
-        import { db } from "./common.js";
-        import { collection, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { db } from "./common.js";
+    import { collection, getDocs, query, where, limit, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        let currentDate = new Date();
-        let loadedData = { records: [], appoints: [] };
-        let lastLoadedMonth = ""; 
+    let currentDate = new Date();
+    let loadedData = { records: [], appoints: [] };
+    let lastLoadedMonth = ""; 
 
-        async function init() {
-            await fetchMonthData();
-            window.renderCalendar();
+    async function init() { await fetchMonthData(); window.renderCalendar(); }
+
+    async function fetchMonthData() {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth() + 1;
+        const monthKey = `${year}-${month}`;
+        if (lastLoadedMonth === monthKey) return;
+        const startStr = `${year}-${String(month).padStart(2, '0')}-01`;
+        const endStr = `${year}-${String(month).padStart(2, '0')}-31`;
+        try {
+            const qRecords = query(collection(db, "activity_records"), where("visitDate", ">=", startStr), where("visitDate", "<=", endStr), limit(300));
+            const qAppoints = query(collection(db, "appointments"), where("appointDate", ">=", startStr), where("appointDate", "<=", endStr), limit(200));
+            const [rSnap, aSnap] = await getDocs(qRecords), getDocs(qAppoints);
+            loadedData.records = rSnap.docs.map(d => d.data());
+            // 🌟 削除用に ID を含めて取得
+            loadedData.appoints = aSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+            lastLoadedMonth = monthKey;
+        } catch (e) { console.error(e); }
+    }
+
+    // 🌟 アポ取り消し ＆ 通知連動削除
+    window.deleteAppoint = async (id, cust, date) => {
+        if(!confirm("このアポを削除しますか？通知も自動で消去されます。")) return;
+        try {
+            const batch = writeBatch(db);
+            batch.delete(doc(db, "appointments", id));
+            const q = query(collection(db, "notifications"), where("customerName", "==", cust), where("visitDate", "==", date), where("type", "==", "アポ回覧"));
+            const snap = await getDocs(q);
+            snap.forEach(d => batch.delete(d.ref));
+            await batch.commit(); alert("完了"); location.reload();
+        } catch (e) { alert("失敗"); }
+    };
+
+    window.renderCalendar = () => {
+        const grid = document.getElementById('calendarGrid');
+        grid.innerHTML = "";
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        const selectedDept = document.getElementById('deptFilter').value;
+        document.getElementById('currentMonthDisplay').innerText = `${year}年 ${month + 1}月`;
+        const firstDay = new Date(year, month, 1).getDay();
+        const startOffset = (firstDay === 0) ? 6 : firstDay - 1;
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const showRes = document.getElementById('showRes').checked, showNext = document.getElementById('showNext').checked, showApp = document.getElementById('showApp').checked;
+
+        for(let i=0; i<startOffset; i++) grid.insertAdjacentHTML('beforeend', '<div class="calendar-day other-month"></div>');
+        for(let d=1; d<=daysInMonth; d++) {
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            let eventsHtml = "";
+            if (showRes) loadedData.records.filter(r => r.visitDate === dateStr && (selectedDept === 'ALL' || r.visitorDept === selectedDept)).forEach(r => { eventsHtml += `<div class="event-label label-result" onclick="location.href='customer_history.html?name=${encodeURIComponent(r.customerName)}'">実績: ${r.customerName}</div>`; });
+            if (showNext) loadedData.records.filter(r => r.nextVisitDate === dateStr).forEach(r => { eventsHtml += `<div class="event-label label-next">次回: ${r.visitorName}</div>`; });
+            // 🌟 199行目の修正：クリックで削除
+            if (showApp) loadedData.appoints.filter(a => a.appointDate === dateStr).forEach(a => { eventsHtml += `<div class="event-label label-appoint" onclick="window.deleteAppoint('${a.id}','${a.customerName}','${a.appointDate}')">アポ: ${a.customerName}</div>`; });
+
+            grid.insertAdjacentHTML('beforeend', `<div class="calendar-day"><div class="day-header"><span class="day-num">${d}</span></div><div class="max-h-[80px] overflow-y-auto">${eventsHtml}</div></div>`);
         }
-
-        // 🌟 鉄壁・省エネ：表示中の月だけをピンポイント取得（197万回対策）
-        async function fetchMonthData() {
-            const year = currentDate.getFullYear();
-            const month = currentDate.getMonth() + 1;
-            const monthKey = `${year}-${month}`;
-            if (lastLoadedMonth === monthKey) return;
-
-            const startStr = `${year}-${String(month).padStart(2, '0')}-01`;
-            const endStr = `${year}-${String(month).padStart(2, '0')}-31`;
-
-            try {
-                // 実績・アポイントを当月分に絞って取得
-                const qRecords = query(collection(db, "activity_records"), where("visitDate", ">=", startStr), where("visitDate", "<=", endStr), limit(200));
-                const qNext = query(collection(db, "activity_records"), where("nextVisitDate", ">=", startStr), where("nextVisitDate", "<=", endStr), limit(200));
-                const qAppoints = query(collection(db, "appointments"), where("appointDate", ">=", startStr), where("appointDate", "<=", endStr), limit(200));
-
-                const [rSnap, nSnap, aSnap] = await Promise.all([getDocs(qRecords), getDocs(qNext), getDocs(qAppoints)]);
-                
-                // 実績と次回予定を統合
-                loadedData.records = [...new Map([...rSnap.docs, ...nSnap.docs].map(doc => [doc.id, doc.data()])).values()];
-                loadedData.appoints = aSnap.docs.map(d => d.data());
-                
-                lastLoadedMonth = monthKey;
-            } catch (e) { console.error("Calendar Load Error:", e); }
-        }
-
-                // 🌟 アポイントの取り消し ＆ 通知の連動削除ロジック
-        window.deleteAppoint = async (appointId, custName, appDate) => {
-            if(!confirm("このアポイントを取り消しますか？通知済みの回覧も自動で削除されます。")) return;
-            try {
-                const { writeBatch, doc, query, collection, where, getDocs } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
-                const batch = writeBatch(db);
-                // 1. アポ本体を消す
-                batch.delete(doc(db, "appointments", appointId));
-                // 2. 連動する通知を探して消す
-                const q = query(collection(db, "notifications"), 
-                                where("customerName", "==", custName),
-                                where("visitDate", "==", appDate),
-                                where("type", "==", "アポ回覧"));
-                const snap = await getDocs(q);
-                snap.forEach(d => batch.delete(d.ref));
-                await batch.commit();
-                alert("取り消しが完了しました。");
-                location.reload();
-            } catch (e) { alert("エラーが発生しました。"); }
-        };
-        
-        window.renderCalendar = () => {
-            const grid = document.getElementById('calendarGrid');
-            grid.innerHTML = "";
-            const year = currentDate.getFullYear();
-            const month = currentDate.getMonth();
-            const selectedDept = document.getElementById('deptFilter').value;
-
-            document.getElementById('currentMonthDisplay').innerText = `${year}年 ${month + 1}月`;
-            document.querySelectorAll('.month-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(`month-btn-${month + 1}`).classList.add('active');
-
-            const firstDay = new Date(year, month, 1).getDay();
-            const startOffset = (firstDay === 0) ? 6 : firstDay - 1;
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            
-            const showRes = document.getElementById('showRes').checked;
-            const showNext = document.getElementById('showNext').checked;
-            const showApp = document.getElementById('showApp').checked;
-
-            // 空白埋め
-            for(let i=0; i<startOffset; i++) grid.insertAdjacentHTML('beforeend', '<div class="calendar-day other-month"></div>');
-
-            // 日付描画
-            for(let d=1; d<=daysInMonth; d++) {
-                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-                const isToday = new Date().toISOString().split('T')[0] === dateStr;
-                let eventsHtml = "";
-                
-                // 内部フィルタリング（通信0回）
-                if (showRes) {
-                    loadedData.records.filter(r => r.visitDate === dateStr && (selectedDept === 'ALL' || r.visitorDept === selectedDept)).forEach(r => {
-                        eventsHtml += `<div class="event-label label-result" onclick="location.href='customer_history.html?name=${encodeURIComponent(r.customerName)}'">実績: ${r.customerName}</div>`;
-                    });
-                }
-                if (showNext) {
-                    loadedData.records.filter(r => r.nextVisitDate === dateStr && (selectedDept === 'ALL' || r.visitorDept === selectedDept)).forEach(r => {
-                        eventsHtml += `<div class="event-label label-next" onclick="location.href='customer_history.html?name=${encodeURIComponent(r.customerName)}'">次回: ${r.visitorName}</div>`;
-                    });
-                }
-                if (showApp) {
-                    loadedData.appoints.filter(a => a.appointDate === dateStr).forEach(a => {
-                        eventsHtml += `<div class="event-label label-appoint" onclick="location.href='customer_history.html?name=${encodeURIComponent(a.customerName)}'">アポ: ${a.customerName}</div>`;
-                    });
-                }
-
-                grid.insertAdjacentHTML('beforeend', `
-                    <div class="calendar-day ${isToday ? 'is-today' : ''}">
-                        <div class="day-header"><span class="day-num">${d}</span><i class="fa-solid fa-plus text-slate-200 hover:text-blue-500 cursor-pointer" onclick="location.href='history.html?date=${dateStr}'"></i></div>
-                        <div class="max-h-[70px] lg:max-h-[90px] overflow-y-auto custom-scrollbar">${eventsHtml}</div>
-                    </div>
-                `);
-            }
-        }
-
-        window.changeMonth = async (val) => { currentDate.setMonth(currentDate.getMonth() + val); await fetchMonthData(); window.renderCalendar(); };
-        window.jumpMonth = async (m) => { currentDate.setMonth(m - 1); await fetchMonthData(); window.renderCalendar(); };
-        window.setToday = async () => { currentDate = new Date(); await fetchMonthData(); window.renderCalendar(); };
-
-        init();
-    </script>
+    }
+    window.changeMonth = async (v) => { currentDate.setMonth(currentDate.getMonth() + v); await fetchMonthData(); window.renderCalendar(); };
+    init();
+</script>
 </body>
 </html>
