@@ -134,6 +134,27 @@
             } catch (e) { console.error("Calendar Load Error:", e); }
         }
 
+                // 🌟 アポイントの取り消し ＆ 通知の連動削除ロジック
+        window.deleteAppoint = async (appointId, custName, appDate) => {
+            if(!confirm("このアポイントを取り消しますか？通知済みの回覧も自動で削除されます。")) return;
+            try {
+                const { writeBatch, doc, query, collection, where, getDocs } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
+                const batch = writeBatch(db);
+                // 1. アポ本体を消す
+                batch.delete(doc(db, "appointments", appointId));
+                // 2. 連動する通知を探して消す
+                const q = query(collection(db, "notifications"), 
+                                where("customerName", "==", custName),
+                                where("visitDate", "==", appDate),
+                                where("type", "==", "アポ回覧"));
+                const snap = await getDocs(q);
+                snap.forEach(d => batch.delete(d.ref));
+                await batch.commit();
+                alert("取り消しが完了しました。");
+                location.reload();
+            } catch (e) { alert("エラーが発生しました。"); }
+        };
+        
         window.renderCalendar = () => {
             const grid = document.getElementById('calendarGrid');
             grid.innerHTML = "";
