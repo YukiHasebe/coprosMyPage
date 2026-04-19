@@ -9,14 +9,15 @@
     <style>
         body { background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%); min-height: 100vh; }
         .login-card { backdrop-filter: blur(10px); background-color: rgba(255, 255, 255, 0.95); border-top: 5px solid #ff7e11; }
-        /* お知らせボードの幅と高さを固定して統一感を出す */
         .notice-board { max-width: 28rem; width: 100%; margin-top: 2rem; background: rgba(255,255,255,0.05); border-radius: 1.5rem; border: 1px solid rgba(255,255,255,0.1); }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
+        /* 🌟 通知がある時の強調アニメーション */
+        .notification-flash { animation: flash 2s infinite; }
+        @keyframes flash { 0%, 100% { background-color: rgba(255,126,17,0.1); } 50% { background-color: rgba(255,126,17,0.3); } }
     </style>
 </head>
 <body class="flex flex-col items-center justify-center p-6">
-    <!-- ログインフォーム -->
     <div class="login-card p-10 rounded-xl shadow-2xl w-full max-w-md">
         <div class="text-center mb-10">
             <h1 class="text-3xl font-extrabold text-[#2c5282]">株式会社コプロス</h1>
@@ -37,16 +38,19 @@
                     <input type="password" id="password" placeholder="Password" class="w-full border border-gray-300 pl-10 p-3 rounded-lg outline-none font-bold" required>
                 </div>
             </div>
-            <button type="submit" class="w-full bg-[#ff7e11] hover:bg-[#e66a00] text-white py-4 rounded-lg font-bold shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2">ログイン <i class="fa-solid fa-right-to-bracket"></i></button>
+            <button type="submit" id="loginBtn" class="w-full bg-[#ff7e11] hover:bg-[#e66a00] text-white py-4 rounded-lg font-bold shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2">
+                ログイン <i class="fa-solid fa-right-to-bracket"></i>
+            </button>
         </form>
     </div>
 
     <!-- お知らせボード -->
     <div class="notice-board shadow-2xl overflow-hidden">
-        <div class="bg-white/10 px-6 py-3 flex items-center gap-2 text-white text-[10px] font-black uppercase tracking-widest"><i class="fa-solid fa-bullhorn text-orange-400"></i>Important Notices</div>
-        <!-- 🌟 縦幅を最大250pxに固定 ＆ スクロール対応 -->
-        <div id="noticeContainer" class="p-2 max-h-[250px] overflow-y-auto custom-scrollbar min-h-[100px] flex flex-col justify-center">
-            <p class="text-white/20 text-[10px] p-6 text-center font-bold">読み込み中...</p>
+        <div class="bg-white/10 px-6 py-3 flex items-center gap-2 text-white text-[10px] font-black uppercase tracking-widest">
+            <i class="fa-solid fa-bullhorn text-orange-400"></i>Important Notices
+        </div>
+        <div id="noticeContainer" class="p-2 max-h-[300px] overflow-y-auto custom-scrollbar min-h-[100px] flex flex-col justify-center">
+            <p class="text-white/20 text-[10px] p-10 text-center font-bold italic">情報を照合中...</p>
         </div>
     </div>
 
@@ -65,8 +69,8 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // 🌟 お知らせ読み込み
-        async function loadNotices() {
+        // 普通のお知らせを読み込む関数
+        async function loadGeneralNotices() {
             const container = document.getElementById('noticeContainer');
             try {
                 const q = query(collection(db, "notices"), orderBy("startDate", "desc"), limit(5));
@@ -79,31 +83,25 @@
 
                 if (active.length > 0) {
                     container.classList.remove('justify-center');
-                    container.innerHTML = active.map(d => {
-                        const data = d.data();
-                        return `
-                            <div class="p-4 border-b border-white/5 hover:bg-white/5 cursor-pointer transition-all" onclick="location.href='notice_list.html'">
-                                <div class="flex justify-between items-start mb-1">
-                                    <h4 class="text-sky-300 font-black text-sm">${data.title}</h4>
-                                    <span class="text-[8px] text-slate-500 font-mono">${data.startDate.replace(/-/g,'/')}</span>
-                                </div>
-                                <p class="text-gray-400 text-xs line-clamp-2">${data.content}</p>
-                            </div>`;
-                    }).join('');
+                    container.innerHTML = active.map(d => `
+                        <div class="p-4 border-b border-white/5">
+                            <h4 class="text-sky-300 font-black text-sm">${d.data().title}</h4>
+                            <p class="text-gray-400 text-xs line-clamp-2">${d.data().content}</p>
+                        </div>`).join('');
                 } else {
-                    // 🌟 お知らせがない時の「なし」表示
-                    container.classList.add('justify-center');
-                    container.innerHTML = '<p class="text-gray-500 text-[10px] p-6 text-center font-bold tracking-widest uppercase italic">現在、新しいお知らせはありません</p>';
+                    container.innerHTML = '<p class="text-gray-500 text-[10px] p-6 text-center font-bold tracking-widest uppercase">現在、新しいお知らせはありません</p>';
                 }
-            } catch (e) {
-                container.innerHTML = '<p class="text-rose-400 text-[10px] text-center">読み込み失敗</p>';
-            }
+            } catch (e) { container.innerHTML = '<p class="text-rose-400 text-center text-xs p-4">データの取得に失敗しました</p>'; }
         }
-        loadNotices();
+        loadGeneralNotices();
 
-        // 🌟 ログイン処理 ＆ 個別通知カウント
+        // ログイン処理
         document.getElementById('loginForm').onsubmit = async (e) => {
             e.preventDefault();
+            const btn = document.getElementById('loginBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>照合中...';
+
             const userId = document.getElementById('userId').value.trim();
             const password = document.getElementById('password').value;
 
@@ -114,32 +112,38 @@
                 if (!snap.empty) {
                     const userData = snap.docs[0].data();
                     if (userData.password === password) {
-                        // 🌟 ログイン成功：相手への通知があるか確認
+                        
+                        // 🌟 1. 自分宛の未読通知を数える
                         const qNoti = query(collection(db, "notifications"), 
                                             where("recipient", "==", userData.name), 
                                             where("isRead", "==", false));
                         const snapNoti = await getDocs(qNoti);
                         const count = snapNoti.size;
 
-                        let msg = `${userData.name}さん、お疲れ様です！`;
+                        // 🌟 2. インフォメーションボードに書き込む（移動する前に！）
+                        const container = document.getElementById('noticeContainer');
                         if (count > 0) {
-                            msg += `\n\n📢 未読の回覧が ${count} 件届いています。`;
+                            container.innerHTML = `
+                                <div class="p-6 notification-flash border-b border-orange-500/30 text-center">
+                                    <p class="text-orange-400 font-black text-base mb-1">📢 お知らせがあります</p>
+                                    <p class="text-white text-xs font-bold">あなた宛に未読の回覧が ${count} 件届いています。</p>
+                                </div>
+                            ` + container.innerHTML;
                         }
-                        
-                        alert(msg); // 🌟 ここで通知件数も報告！
-                        
-                        sessionStorage.setItem('userName', userData.name);
-                        sessionStorage.setItem('userDept', userData.dept || '未設定');
-                        location.href = 'list.html';
-                    } else {
-                        alert("パスワードが間違っています。");
-                    }
-                } else {
-                    alert("ユーザーIDが見つかりません。");
-                }
-            } catch (error) {
-                alert("通信エラーが発生しました。");
-            }
+
+                        // 🌟 3. ボードが書き換わった後にポップアップを出す
+                        // これにより、ユーザーはポップアップの背後でボードが変わったのを確認できます
+                        setTimeout(() => {
+                            alert(`${userData.name}さん、お疲れ様です！`);
+                            
+                            sessionStorage.setItem('userName', userData.name);
+                            sessionStorage.setItem('userDept', userData.dept || '未設定');
+                            location.href = 'list.html';
+                        }, 100);
+
+                    } else { alert("パスワードが違います"); btn.disabled = false; btn.innerText = "ログイン"; }
+                } else { alert("ユーザーIDが見つかりません"); btn.disabled = false; btn.innerText = "ログイン"; }
+            } catch (error) { alert("通信エラーが発生しました"); btn.disabled = false; btn.innerText = "ログイン"; }
         };
     </script>
 </body>
