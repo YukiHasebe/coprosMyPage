@@ -177,35 +177,48 @@
         };
     }
 
-    window.openStaffModal = (target) => {
+       window.openStaffModal = (target) => {
         currentTarget = target;
         document.getElementById('modalTitle').innerText = target === 'visitor' ? '訪問予定者を選択' : '回覧者を選択';
         document.getElementById('staffModal').style.display = 'flex';
-        modalSelected = []; renderStaffList();
+        
+        // 🌟 現在表示されている名前を「選択中」として読み戻す
+        const currentContent = (target === 'visitor') ? document.getElementById('visitorName').value : document.getElementById('circularDisplay').innerText;
+        modalSelected = (currentContent && currentContent !== '未選択') ? currentContent.split(', ') : [];
+        
+        window.renderStaffList();
     };
+
     window.closeModal = () => document.getElementById('staffModal').style.display = 'none';
+
     window.renderStaffList = () => {
         const keyword = document.getElementById('staffKeyword').value.toLowerCase();
         const dept = document.getElementById('staffDeptFilter').value;
         const container = document.getElementById('staffList');
         const filtered = allStaffs.filter(s => (!keyword || s.name.includes(keyword)) && (!dept || s.dept === dept));
-        container.innerHTML = filtered.map(s => `<div class="staff-item ${modalSelected.includes(s.name) ? 'selected' : ''}" onclick="toggleStaffSelection('${s.name}')"><span>${s.name}</span><span class="text-[9px] opacity-40 font-black">${s.dept || ''}</span></div>`).join('');
+        
+        container.innerHTML = filtered.map(s => `
+            <div class="staff-item ${modalSelected.includes(s.name) ? 'selected' : ''}" onclick="window.toggleStaffSelection('${s.name}')">
+                <span>${s.name}</span><span class="text-[9px] opacity-40 uppercase font-black">${s.dept || ''}</span>
+            </div>`).join('');
     };
+
     window.toggleStaffSelection = (name) => {
-        if (currentTarget === 'visitor') modalSelected = [name];
-        else {
+        if (currentTarget === 'visitor') {
+            modalSelected = [name];
+        } else {
             if (modalSelected.includes(name)) modalSelected = modalSelected.filter(n => n !== name);
             else modalSelected.push(name);
         }
-        renderStaffList();
+        window.renderStaffList();
     };
+
     window.applySelection = () => {
         const names = modalSelected.join(', ');
         if (currentTarget === 'visitor') document.getElementById('visitorName').value = names;
         if (currentTarget === 'circular') document.getElementById('circularDisplay').innerText = names || '未選択';
-        closeModal();
+        window.closeModal();
     };
-
     const handleRegister = async () => {
         const form = document.getElementById('appointForm');
         if (!form.checkValidity()) { form.reportValidity(); return; }
