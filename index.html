@@ -9,14 +9,12 @@
     <style>
         body { background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%); min-height: 100vh; }
         .login-card { backdrop-filter: blur(10px); background-color: rgba(255, 255, 255, 0.95); border-top: 5px solid #ff7e11; }
-        /* 🌟 お知らせボード：ログインカードと幅を揃え、デザインを洗練 */
         .notice-board { max-width: 28rem; width: 100%; margin-top: 2rem; background: rgba(255,255,255,0.05); border-radius: 1.5rem; border: 1px solid rgba(255,255,255,0.1); }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
     </style>
 </head>
 <body class="flex flex-col items-center justify-center p-6">
-    <!-- ログインカード -->
     <div class="login-card p-10 rounded-xl shadow-2xl w-full max-w-md">
         <div class="text-center mb-10">
             <h1 class="text-3xl font-extrabold text-[#2c5282]">株式会社コプロス</h1>
@@ -43,13 +41,11 @@
         </form>
     </div>
 
-    <!-- 🌟 お知らせボード（縦幅固定・空の状態対応） -->
     <div class="notice-board shadow-2xl overflow-hidden">
         <div class="bg-white/10 px-6 py-3 flex items-center gap-2 text-white text-[10px] font-black uppercase tracking-widest">
             <i class="fa-solid fa-bullhorn text-orange-400"></i>Important Notices
         </div>
         <div id="noticeContainer" class="p-2 max-h-[300px] overflow-y-auto custom-scrollbar min-h-[100px] flex flex-col transition-all">
-            <!-- JSで挿入：読み込み中の表示 -->
             <p class="text-white/20 text-[10px] p-10 text-center font-bold">読み込み中...</p>
         </div>
     </div>
@@ -58,7 +54,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // Firebase V2 設定
         const firebaseConfig = {
             apiKey: "AIzaSyC5L1V6jn3Q8i1bWFWO3Gd25w_If6dklmY",
             authDomain: "copros-my-page-v2.firebaseapp.com",
@@ -70,15 +65,13 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // 🌟 お知らせ読み込み（期間・空の状態を判別）
+        // お知らせ表示ロジック
         async function loadNotices() {
             const container = document.getElementById('noticeContainer');
             try {
                 const q = query(collection(db, "notices"), orderBy("startDate", "desc"), limit(5));
                 const snap = await getDocs(q);
                 const today = new Date().toISOString().split('T')[0];
-
-                // 掲載期間内のものだけ表示
                 const active = snap.docs.filter(d => {
                     const data = d.data();
                     return today >= data.startDate && today <= data.endDate;
@@ -87,30 +80,22 @@
                 if (active.length > 0) {
                     container.innerHTML = active.map(d => {
                         const data = d.data();
-                        return `
-                            <div class="p-4 border-b border-white/5 hover:bg-white/5 cursor-pointer transition-all" onclick="location.href='notice_list.html'">
-                                <div class="flex justify-between items-start mb-1">
-                                    <h4 class="text-sky-300 font-black text-sm">${data.title}</h4>
-                                    <span class="text-[8px] text-slate-500 font-mono">${data.startDate.replace(/-/g,'/')}</span>
-                                </div>
-                                <p class="text-gray-400 text-xs line-clamp-2 font-medium">${data.content}</p>
-                            </div>`;
+                        return `<div class="p-4 border-b border-white/5 hover:bg-white/5 cursor-pointer transition-all" onclick="location.href='notice_list.html'">
+                                    <div class="flex justify-between items-start mb-1">
+                                        <h4 class="text-sky-300 font-black text-sm">${data.title}</h4>
+                                        <span class="text-[8px] text-slate-500 font-mono">${data.startDate.replace(/-/g,'/')}</span>
+                                    </div>
+                                    <p class="text-gray-400 text-xs line-clamp-2">${data.content}</p>
+                                </div>`;
                     }).join('');
                 } else {
-                    // 🌟 お知らせがない場合
-                    container.innerHTML = `
-                        <div class="flex-1 flex flex-col items-center justify-center p-8 text-center">
-                            <p class="text-gray-500 text-[10px] font-black tracking-widest uppercase italic">現在、新しいお知らせはありません</p>
-                        </div>`;
+                    container.innerHTML = `<div class="flex-1 flex flex-col items-center justify-center p-8 text-center"><p class="text-gray-500 text-[10px] font-black tracking-widest uppercase italic">現在、新しいお知らせはありません</p></div>`;
                 }
-            } catch (e) {
-                console.warn(e);
-                container.innerHTML = '<p class="text-rose-400 text-[10px] p-6 text-center">データの取得に失敗しました</p>';
-            }
+            } catch (e) { container.innerHTML = '<p class="text-rose-400 text-[10px] p-6 text-center">データの取得に失敗しました</p>'; }
         }
         loadNotices();
 
-        // ログイン処理（ポップアップ ＆ V2同期）
+        // ログイン処理 ＆ 🌟未読通知カウント機能
         document.getElementById('loginForm').onsubmit = async (e) => {
             e.preventDefault();
             const userId = document.getElementById('userId').value.trim();
@@ -123,24 +108,31 @@
                 if (!snap.empty) {
                     const userData = snap.docs[0].data();
                     if (userData.password === password) {
-                        // 🌟 お疲れ様ポップアップ演出
-                        alert(`${userData.name}さん、お疲れ様です！`);
                         
-                        // セッション情報を保存
+                        // 🌟 1. ログイン成功直後に、その人宛の未読通知をカウント
+                        const qNoti = query(
+                            collection(db, "notifications"), 
+                            where("recipient", "==", userData.name), 
+                            where("isRead", "==", false)
+                        );
+                        const snapNoti = await getDocs(qNoti);
+                        const count = snapNoti.size;
+
+                        // 🌟 2. ポップアップメッセージの作成
+                        let msg = `${userData.name}さん、お疲れ様です！`;
+                        if (count > 0) {
+                            msg += `\n\n📢 未読の回覧が ${count} 件届いています。`;
+                        }
+                        alert(msg);
+                        
+                        // セッション保存
                         sessionStorage.setItem('userName', userData.name);
                         sessionStorage.setItem('userDept', userData.dept || '未設定');
                         
                         location.href = 'list.html';
-                    } else {
-                        alert("パスワードが間違っています。");
-                    }
-                } else {
-                    alert("ユーザーIDが見つかりません。");
-                }
-            } catch (error) {
-                console.error(error);
-                alert("通信エラーが発生しました。");
-            }
+                    } else { alert("パスワードが間違っています。"); }
+                } else { alert("ユーザーIDが見つかりません。"); }
+            } catch (error) { alert("通信エラーが発生しました。"); }
         };
     </script>
 </body>
