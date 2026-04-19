@@ -9,17 +9,15 @@
         :root { --copros-blue: #004098; --copros-orange: #ff7e11; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
         #map { height: calc(100vh - 124px); width: 100%; z-index: 1; position: relative; }
-        
         .search-bar-area { background: white; padding: 10px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: center; gap: 8px; z-index: 50; }
         .search-input { width: 100%; max-width: 400px; padding: 8px 16px; border-radius: 10px; border: 1px solid #cbd5e1; font-weight: 800; }
         .search-btn { background: var(--copros-blue); color: white; padding: 8px 20px; border-radius: 10px; font-weight: 900; }
-
-        /* 🌟 ボタンの配置を検索バーのすぐ下（地図の右上）へ */
+        
         .map-control { position: absolute; top: 15px; right: 15px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
-        .control-btn { background: white; width: 42px; height: 42px; border-radius: 10px; display: flex; items-center: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.15); border: 1px solid #e2e8f0; color: #475569; transition: all 0.2s; }
-        .control-btn:hover { background: var(--copros-orange); color: white; transform: scale(1.05); }
+        .control-btn { background: white; width: 42px; height: 42px; border-radius: 10px; display: flex; items-center: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.15); border: 1px solid #e2e8f0; color: #475569; }
+        .control-btn:hover { background: var(--copros-orange); color: white; }
 
-        #geo-log { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); z-index: 1001; background: rgba(0,0,0,0.7); color: #fff; padding: 8px 20px; border-radius: 25px; font-size: 11px; font-weight: 800; display: none; backdrop-filter: blur(4px); }
+        #geo-log { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); z-index: 1001; background: rgba(51,65,85,0.9); color: white; padding: 8px 20px; border-radius: 25px; font-size: 11px; font-weight: 800; display: none; backdrop-filter: blur(4px); }
         .popup-card { min-width: 180px; padding: 5px; }
     </style>
 </head>
@@ -31,14 +29,12 @@
             <input type="text" id="mapSearchInput" class="search-input" placeholder="地域名やお客様名で検索">
             <button onclick="window.execMapSearch()" class="search-btn">検索</button>
         </div>
-
         <div id="map">
-            <!-- 🌟 地図の中にログとボタンを配置 -->
             <div id="geo-log"></div>
             <div class="map-control">
-                <button onclick="window.locateMe()" class="control-btn" title="現在地"><i class="fa-solid fa-location-crosshairs text-lg"></i></button>
-                <button onclick="window.initMap('recent')" class="control-btn" title="再読み込み"><i class="fa-solid fa-arrows-rotate text-lg"></i></button>
-                <button onclick="window.zoomToJapan()" class="control-btn" title="全体表示"><i class="fa-solid fa-map text-lg"></i></button>
+                <button onclick="window.locateMe()" class="control-btn" title="現在地"><i class="fa-solid fa-location-crosshairs"></i></button>
+                <button onclick="window.initMap('recent')" class="control-btn" title="再読込"><i class="fa-solid fa-arrows-rotate"></i></button>
+                <button onclick="window.zoomToJapan()" class="control-btn" title="全体"><i class="fa-solid fa-map"></i></button>
             </div>
         </div>
     </main>
@@ -58,67 +54,70 @@
             el.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-2"></i>${msg}`;
         }
 
-        // 🌟 住所解析（身分証明を追加して拒否を回避）
-        async function getCoords(address) {
+        // 🌟 住所解析（住所を最優先し、失敗したらログを出す）
+        async function getCoords(address, name) {
             try {
-                // Nominatim APIのルールを守るため User-Agent を模倣
-                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent('日本 ' + address)}`, {
-                    headers: { 'Accept-Language': 'ja' }
-                });
+                // 住所から「日本 」というキーワードを付けて検索
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent('日本 ' + address)}`);
                 const data = await res.json();
                 if (data && data.length > 0) {
                     return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
                 }
-            } catch (e) { console.error("Geocode error:", e); }
+            } catch (e) { console.warn("Geocode error:", name); }
             return null;
         }
 
         function addPin(c) {
             const color = (c.rank && c.rank.startsWith('A')) ? '#ff7e11' : '#0ea5e9';
             const icon = L.divIcon({ 
-                html: `<div style="background-color:${color}; width:16px; height:16px; border-radius:50%; border:2px solid white; box-shadow:0 3px 8px rgba(0,0,0,0.3);"></div>`, 
-                className: '', iconSize: [16, 16] 
+                html: `<div style="background-color:${color}; width:14px; height:14px; border-radius:50%; border:2px solid white; box-shadow:0 3px 8px rgba(0,0,0,0.3);"></div>`, 
+                className: '', iconSize: [14, 14] 
             });
             L.marker([c.lat, c.lng], { icon }).addTo(markersLayer)
-             .bindPopup(`<div class="popup-card"><h3 class="font-black">${c.name}</h3><p class="text-[10px] text-slate-500">${c.address}</p></div>`);
+             .bindPopup(`<div class="popup-card"><h3 class="font-black text-sm">${c.name}</h3><p class="text-[9px] text-slate-500">${c.address}</p></div>`);
         }
 
         window.initMap = async (mode = 'recent', keyword = '') => {
             markersLayer.clearLayers();
-            log("お客様データを読込中...");
+            log("お客様データを取得中...");
             try {
-                let q = query(collection(db, "customers"), limit(50));
-                if (mode === 'search') q = query(collection(db, "customers"), where("name", ">=", keyword), where("name", "<=", keyword + "\uf8ff"), limit(20));
-                
-                const snap = await getDocs(q);
-                const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                // 🌟 インデックスエラーを回避しつつ、なるべく「近日」を出すためにlimitを100に設定
+                let q = query(collection(db, "customers"), limit(100));
 
+                if (mode === 'search') {
+                    q = query(collection(db, "customers"), where("name", ">=", keyword), where("name", "<=", keyword + "\uf8ff"), limit(30));
+                }
+
+                const snap = await getDocs(q);
+                let list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+                // 🌟 JS側で「近日順」に並び替える（インデックス不要でエコ！）
+                list.sort((a, b) => (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0));
+
+                let geoCount = 0;
                 for (const c of list) {
                     if (c.lat && c.lng) {
                         addPin(c);
-                    } else if (c.address && c.address !== "未登録") {
-                        log(`${c.name} を解析中...`);
-                        const coords = await getCoords(c.address);
+                    } else if (c.address && c.address !== "未登録" && geoCount < 5) {
+                        // 🌟 1回に最大5件まで解析
+                        log(`${c.name} の住所を解析中...`);
+                        const coords = await getCoords(c.address, c.name);
                         if (coords) {
                             addPin({ ...c, ...coords });
-                            // 🌟 座標が見つかったらFirebaseを更新（これ重要）
                             await updateDoc(doc(db, "customers", c.id), coords);
+                            geoCount++;
                         }
-                        await new Promise(r => setTimeout(r, 1500)); // 1.5秒待機（安全策）
+                        await new Promise(r => setTimeout(r, 1500));
                     }
                 }
-                document.getElementById('geo-log').style.display = 'none';
-                
-                // ピンがあればその周辺を表示
+
                 const allMarkers = markersLayer.getLayers();
                 if (allMarkers.length > 0) {
                     const group = new L.featureGroup(allMarkers);
-                    map.fitBounds(group.getBounds().pad(0.1));
+                    map.fitBounds(group.getBounds().pad(0.2));
                 }
-            } catch (e) { 
-                console.error(e);
-                log("エラー: 画面を更新してください");
-            }
+            } catch (e) { console.error(e); }
+            document.getElementById('geo-log').style.display = 'none';
         };
 
         window.execMapSearch = () => {
