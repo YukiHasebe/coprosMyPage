@@ -13,11 +13,10 @@
         .search-input { width: 100%; max-width: 400px; padding: 8px 16px; border-radius: 10px; border: 1px solid #cbd5e1; font-weight: 800; font-size: 13px; }
         .search-btn { background: var(--copros-blue); color: white; padding: 8px 20px; border-radius: 10px; font-weight: 900; font-size: 13px; }
         .map-control { position: absolute; top: 15px; right: 15px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
-        .control-btn { background: white; width: 42px; height: 42px; border-radius: 10px; display: flex; items-center: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.15); border: 1px solid #e2e8f0; color: #475569; transition: all 0.2s; }
-        .control-btn:hover { background: var(--copros-orange); color: white; transform: scale(1.05); }
-        #geo-log { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); z-index: 1001; background: rgba(0,0,0,0.7); color: #fff; padding: 8px 20px; border-radius: 25px; font-size: 11px; font-weight: 800; display: none; backdrop-filter: blur(4px); }
-        .popup-card { min-width: 200px; padding: 5px; }
-        .nav-btn { background: var(--copros-blue); color: white; padding: 8px; border-radius: 6px; width: 100%; display: block; text-align: center; font-weight: 900; font-size: 11px; margin-top: 8px; text-decoration: none; }
+        .control-btn { background: white; width: 42px; height: 42px; border-radius: 10px; display: flex; items-center: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.15); border: 1px solid #e2e8f0; color: #475569; }
+        .control-btn:hover { background: var(--copros-orange); color: white; }
+        #geo-log { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); z-index: 1001; background: rgba(0,0,0,0.8); color: #00ff00; padding: 8px 20px; border-radius: 25px; font-size: 11px; font-weight: 800; display: none; }
+        .popup-card { min-width: 180px; padding: 5px; }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700 font-sans">
@@ -31,9 +30,9 @@
         <div id="map">
             <div id="geo-log"></div>
             <div class="map-control">
-                <button onclick="window.locateMe()" class="control-btn" title="現在地"><i class="fa-solid fa-location-crosshairs text-lg"></i></button>
-                <button onclick="window.initMap('recent')" class="control-btn" title="最新100件を表示"><i class="fa-solid fa-sync text-lg"></i></button>
-                <button onclick="window.zoomToJapan()" class="control-btn" title="全体を表示"><i class="fa-solid fa-map text-lg"></i></button>
+                <button onclick="window.locateMe()" class="control-btn" title="現在地"><i class="fa-solid fa-location-crosshairs"></i></button>
+                <button onclick="window.initMap('recent')" class="control-btn" title="近日100件を表示"><i class="fa-solid fa-sync"></i></button>
+                <button onclick="window.zoomToJapan()" class="control-btn" title="全体表示"><i class="fa-solid fa-map"></i></button>
             </div>
         </div>
     </main>
@@ -53,86 +52,80 @@
             el.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-2"></i>${msg}`;
         }
 
-        // 🌟 住所を解析しやすく「お掃除」する関数
+        // 🌟 住所お掃除（もっとも重要な部分）
         function cleanAddress(addr) {
             if (!addr) return "";
-            // ビル名、階数、様、などを削除して番地までにする
-            return addr.split(/[\s　]|ビル|館|階|F|様/)[0];
+            // ビル名、階、号室などをバッサリ消して、番地（数字）までにする
+            let cleaned = addr.split(/[\s　]|ビル|館|階|F|様|号室/)[0];
+            // もし「-」で終わっていたら削除（例：1-1-1- などを防ぐ）
+            return cleaned.replace(/-+$/, "");
         }
 
-        async function getCoords(address) {
-            const cleaned = cleanAddress(address);
-            try {
-                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent('日本 ' + cleaned)}`);
-                const data = await res.json();
-                if (data && data.length > 0) {
-                    return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
-                }
-            } catch (e) { console.warn("Geocode error for:", cleaned); }
-            return null;
+        // 🌟 執念の3段階解析
+        async function getCoords(address, name) {
+            const attempt = async (queryStr) => {
+                try {
+                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent('日本 ' + queryStr)}&limit=1`, { headers: { "Accept-Language": "ja" } });
+                    const data = await res.json();
+                    return (data && data.length > 0) ? { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) } : null;
+                } catch (e) { return null; }
+            };
+
+            // 1手目: お掃除住所
+            let res = await attempt(cleanAddress(address));
+            // 2手目: それでもダメなら、市区町村だけ（番地を削る）
+            if (!res) res = await attempt(address.substring(0, 10));
+            // 3手目: それでもダメなら、会社名
+            if (!res) res = await attempt(name);
+
+            return res;
         }
 
-        function addPin(c, id) {
-            if (!c.lat || !c.lng) return;
+        function addPin(c) {
             const color = (c.rank && c.rank.startsWith('A')) ? '#ff7e11' : '#0ea5e9';
-            const icon = L.divIcon({ 
-                html: `<div style="background-color:${color}; width:16px; height:16px; border-radius:50%; border:2px solid white; box-shadow:0 3px 8px rgba(0,0,0,0.3);"></div>`, 
-                className: '', iconSize: [16, 16] 
-            });
+            const icon = L.divIcon({ html: `<div style="background-color:${color}; width:14px; height:14px; border-radius:50%; border:2px solid white; box-shadow:0 3px 8px rgba(0,0,0,0.3);"></div>`, className: '', iconSize: [14, 14] });
             L.marker([c.lat, c.lng], { icon }).addTo(markersLayer)
-             .bindPopup(`
-                <div class="popup-card">
-                    <h3 class="font-black text-sm">${c.name}</h3>
-                    <p class="text-[9px] text-slate-500 mb-2">${c.address}</p>
-                    <a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(c.address)}" target="_blank" class="nav-btn">ナビ開始</a>
-                    <button onclick="location.href='history.html?name=${encodeURIComponent(c.name)}'" class="text-center block w-full text-[10px] text-blue-500 font-bold mt-2 underline">実績を登録</button>
-                </div>`);
+                .bindPopup(`<div class="popup-card"><h3 class="font-black text-xs">${c.name}</h3><p class="text-[9px]">${c.address}</p></div>`);
         }
 
         window.initMap = async (mode = 'recent', keyword = '') => {
             markersLayer.clearLayers();
-            log("お客様データを検索中...");
+            log("お客様データを抽出中...");
             try {
-                let q = query(collection(db, "customers"), limit(100));
-
-                if (mode === 'search' && keyword) {
-                    // 名前または住所での検索（前方一致）
-                    // 🌟 住所でも検索に引っかかるようにロジックを工夫
-                    const snap = await getDocs(query(collection(db, "customers"), limit(500)));
-                    let list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                    list = list.filter(c => (c.name||"").includes(keyword) || (c.address||"").includes(keyword)).slice(0, 100);
-                    processList(list);
+                // 近日100件（インデックス不要の全取得後JSソートで対応）
+                const snap = await getDocs(query(collection(db, "customers"), limit(300)));
+                let list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                
+                if (mode === 'search') {
+                    list = list.filter(c => (c.name||"").includes(keyword) || (c.address||"").includes(keyword));
                 } else {
-                    const snap = await getDocs(q);
-                    processList(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+                    list.sort((a,b) => (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0));
                 }
-            } catch (e) { console.error(e); }
-        };
+                
+                list = list.slice(0, 100); // 常に最大100件に制限
 
-        async function processList(list) {
-            let geoCount = 0;
-            for (const c of list) {
-                if (c.lat && c.lng) {
-                    addPin(c);
-                } else if (c.address && c.address !== "未登録" && geoCount < 10) {
-                    log(`${c.name} の住所を解析中...`);
-                    const coords = await getCoords(c.address);
-                    if (coords) {
-                        addPin({ ...c, ...coords });
-                        await updateDoc(doc(db, "customers", c.id), coords);
-                        geoCount++;
+                let geoCount = 0;
+                for (const c of list) {
+                    if (c.lat && c.lng) {
+                        addPin(c);
+                    } else if (c.address && c.address !== "未登録" && geoCount < 10) {
+                        log(`${c.name} を特定中...`);
+                        const coords = await getCoords(c.address, c.name);
+                        if (coords) {
+                            addPin({ ...c, ...coords });
+                            await updateDoc(doc(db, "customers", c.id), coords);
+                            geoCount++;
+                        }
+                        await new Promise(r => setTimeout(r, 1200));
                     }
-                    await new Promise(r => setTimeout(r, 1200));
                 }
-            }
-            document.getElementById('geo-log').style.display = 'none';
-            
-            const allMarkers = markersLayer.getLayers();
-            if (allMarkers.length > 0) {
-                const group = new L.featureGroup(allMarkers);
-                map.fitBounds(group.getBounds().pad(0.1));
-            }
-        }
+
+                if (markersLayer.getLayers().length > 0) {
+                    map.fitBounds(new L.featureGroup(markersLayer.getLayers()).getBounds().pad(0.1));
+                }
+                document.getElementById('geo-log').style.display = 'none';
+            } catch (e) { log("エラー：通信が制限されています"); }
+        };
 
         window.execMapSearch = () => {
             const val = document.getElementById('mapSearchInput').value.trim();
