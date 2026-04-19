@@ -10,27 +10,28 @@
     <style>
         :root { --copros-blue: #004098; --copros-orange: #ff7e11; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
-        #map { height: calc(100vh - 64px); width: 100%; z-index: 1; }
         
-        .search-container { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; width: 90%; max-width: 500px; display: flex; gap: 8px; }
-        .search-input { flex: 1; padding: 12px 20px; border-radius: 15px; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px rgba(0,0,0,0.1); outline: none; font-weight: 800; font-size: 14px; background: white; }
-        .search-btn { background: var(--copros-blue); color: white; padding: 12px 20px; border-radius: 15px; font-weight: 900; box-shadow: 0 10px 25px rgba(0,64,152,0.2); transition: all 0.2s; }
-        .search-btn:hover { opacity: 0.9; transform: scale(1.05); }
+        /* 🌟 地図の高さ：ヘッダー(64px)と検索バー分を引く */
+        #map { height: calc(100vh - 124px); width: 100%; z-index: 1; }
 
-        .map-control { position: absolute; top: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
-        .control-btn { background: white; width: 44px; height: 44px; border-radius: 12px; display: flex; items-center: center; justify-content: center; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; transition: all 0.2s; color: #475569; }
+        /* 🌟 検索バー：ヘッダーの下にピタッと配置 */
+        .search-bar-area { background: white; padding: 10px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: center; gap: 8px; z-index: 50; }
+        .search-input { width: 100%; max-width: 400px; padding: 8px 16px; border-radius: 10px; border: 1px solid #cbd5e1; outline: none; font-weight: 800; font-size: 13px; }
+        .search-btn { background: var(--copros-blue); color: white; padding: 8px 20px; border-radius: 10px; font-weight: 900; font-size: 13px; }
+
+        /* 🌟 右側アイコン：重ならない位置に調整 */
+        .map-control { position: absolute; top: 80px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
+        .control-btn { background: white; width: 40px; height: 40px; border-radius: 10px; display: flex; items-center: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; color: #475569; }
         .control-btn:hover { background: var(--copros-orange); color: white; }
 
-        .leaflet-popup-content-wrapper { border-radius: 1.2rem; padding: 5px; box-shadow: 0 15px 30px rgba(0,0,0,0.1); }
-        .popup-card { min-width: 220px; padding: 10px; }
-        .nav-btn { background: var(--copros-blue); color: white; padding: 10px; border-radius: 8px; width: 100%; display: block; text-align: center; font-weight: 900; font-size: 12px; margin-top: 10px; text-decoration: none; }
+        .leaflet-popup-content-wrapper { border-radius: 1rem; }
+        .popup-card { min-width: 200px; padding: 5px; }
+        .nav-btn { background: var(--copros-blue); color: white; padding: 8px; border-radius: 6px; width: 100%; display: block; text-align: center; font-weight: 900; font-size: 11px; margin-top: 8px; text-decoration: none; }
         
-        /* 🌟 凡例（Legend）：多色ピン対応版 */
-        .map-legend { position: absolute; bottom: 30px; left: 20px; z-index: 1000; background: white; padding: 12px; border-radius: 1rem; box-shadow: 0 4px 15px rgba(0,0,0,0.1); font-size: 10px; font-weight: 900; border: 1px solid #e2e8f0; }
-        .legend-item { display: flex; items-center: center; gap: 8px; margin-bottom: 4px; }
-        .dot { width: 10px; height: 10px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.1); }
-
-        #geo-loader { position: absolute; top: 80px; left: 50%; transform: translateX(-50%); z-index: 1001; background: rgba(51,65,85,0.9); color: white; padding: 10px 25px; border-radius: 30px; font-size: 11px; font-weight: 800; display: none; backdrop-filter: blur(4px); box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
+        .map-legend { position: absolute; bottom: 20px; left: 20px; z-index: 1000; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 0.8rem; font-size: 9px; font-weight: 900; border: 1px solid #e2e8f0; }
+        .legend-item { display: flex; items-center: center; gap: 6px; margin-bottom: 3px; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; }
+        #geo-loader { position: absolute; top: 130px; left: 50%; transform: translateX(-50%); z-index: 1001; background: #334155; color: white; padding: 6px 15px; border-radius: 20px; font-size: 10px; font-weight: 800; display: none; }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700">
@@ -40,29 +41,26 @@
     <main class="flex-1 flex flex-col overflow-hidden relative">
         <div id="header-placeholder"></div>
 
-        <!-- エリア・お客様名検索 -->
-        <div class="search-container">
-            <input type="text" id="mapSearchInput" class="search-input" placeholder="地域名(山口県など)やお客様名...">
-            <button onclick="window.execMapSearch()" class="search-btn"><i class="fa-solid fa-magnifying-glass"></i></button>
+        <!-- 🌟 検索バー（ヘッダーと分離して配置） -->
+        <div class="search-bar-area shadow-sm">
+            <input type="text" id="mapSearchInput" class="search-input" placeholder="地域名(山口県など)やお客様名で検索">
+            <button onclick="window.execMapSearch()" class="search-btn"><i class="fa-solid fa-magnifying-glass mr-1"></i>検索</button>
         </div>
 
         <div id="geo-loader">解析中...</div>
 
         <!-- 地図コントロール -->
         <div class="map-control">
-            <button onclick="window.locateMe()" title="現在地を表示" class="control-btn"><i class="fa-solid fa-location-crosshairs text-lg"></i></button>
-            <button onclick="window.initMap('recent')" title="最近の100件を表示" class="control-btn"><i class="fa-solid fa-clock-rotate-left text-lg"></i></button>
-            <button onclick="window.zoomToJapan()" title="日本全体を表示" class="control-btn"><i class="fa-solid fa-map-location-dot text-lg"></i></button>
+            <button onclick="window.locateMe()" title="現在地" class="control-btn"><i class="fa-solid fa-location-crosshairs"></i></button>
+            <button onclick="window.initMap('recent')" title="最近の100件" class="control-btn"><i class="fa-solid fa-sync"></i></button>
+            <button onclick="window.zoomToJapan()" title="全体" class="control-btn"><i class="fa-solid fa-map"></i></button>
         </div>
 
-        <!-- 🌟 凡例（由紀オーナー指定の多色対応） -->
         <div class="map-legend">
-            <p class="text-slate-400 mb-2 uppercase tracking-widest text-[8px]">Pin Legend</p>
             <div class="legend-item"><div class="dot" style="background:#ff4500"></div><span>最重要 (Aa)</span></div>
             <div class="legend-item"><div class="dot" style="background:#ffa500"></div><span>重要 (A系)</span></div>
             <div class="legend-item"><div class="dot" style="background:#0ea5e9"></div><span>一般 (B系)</span></div>
             <div class="legend-item"><div class="dot" style="background:#004098"></div><span>取引先</span></div>
-            <div class="legend-item"><div class="dot" style="background:#94a3b8"></div><span>その他</span></div>
         </div>
 
         <div id="map"></div>
@@ -71,9 +69,8 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script type="module">
         import { db } from "./common.js";
-        import { collection, getDocs, query, limit, updateDoc, doc, orderBy, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, getDocs, query, limit, updateDoc, doc, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // 地図初期化
         const map = L.map('map', { zoomControl: false }).setView([35.6812, 139.7671], 5);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OSM' }).addTo(map);
         let markersLayer = L.layerGroup().addTo(map);
@@ -81,7 +78,6 @@
         window.locateMe = () => { map.locate({setView: true, maxZoom: 15}); };
         window.zoomToJapan = () => { map.setView([35.6812, 139.7671], 5); };
 
-        // 🌟 ランク別の詳細な色分け（エコには影響しません！）
         function getPinColor(rank) {
             if (!rank) return '#94a3b8';
             if (rank === 'Aa') return '#ff4500';
@@ -95,24 +91,11 @@
             if (!c.lat || !c.lng) return;
             const color = getPinColor(c.rank);
             const icon = L.divIcon({ 
-                html: `<div style="background-color:${color}; width:16px; height:16px; border-radius:50%; border:2px solid white; box-shadow:0 2px 8px rgba(0,0,0,0.3);"></div>`,
-                className: '', iconSize: [16, 16] 
+                html: `<div style="background-color:${color}; width:14px; height:14px; border-radius:50%; border:2px solid white; box-shadow:0 2px 5px rgba(0,0,0,0.3);"></div>`,
+                className: '', iconSize: [14, 14] 
             });
             L.marker([c.lat, c.lng], { icon }).addTo(markersLayer)
-                .bindPopup(`
-                    <div class="popup-card">
-                        <h3 class="text-base font-black text-slate-800 mb-1">${c.name}</h3>
-                        <p class="text-[10px] text-slate-500 mb-3">${c.address}</p>
-                        <div class="flex gap-2 mb-3">
-                            <span class="bg-slate-100 px-2 py-0.5 rounded text-[9px] font-black uppercase">Rank: ${c.rank || '--'}</span>
-                        </div>
-                        <a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(c.address)}" target="_blank" class="nav-btn">
-                            <i class="fa-solid fa-location-arrow mr-1"></i> ナビ開始
-                        </a>
-                        <button onclick="location.href='history.html?name=${encodeURIComponent(c.name)}'" class="text-center block w-full text-[10px] text-blue-500 font-bold mt-3 underline">
-                            訪問実績を登録
-                        </button>
-                    </div>`);
+                .bindPopup(`<div class="popup-card"><h3 class="font-black text-sm">${c.name}</h3><p class="text-[9px] mb-2">${c.address}</p><a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(c.address)}" target="_blank" class="nav-btn">ナビ開始</a></div>`);
         }
 
         async function getCoords(address) {
@@ -123,22 +106,18 @@
             } catch (e) { return null; }
         }
 
-        // 🌟 検索・表示メイン（常に最大100件限定の超エコ仕様）
+        // 🌟 確実にピンを出すため、orderByを一旦削除してシンプルなクエリに変更
         window.initMap = async (mode = 'recent', keyword = '') => {
             markersLayer.clearLayers();
             const loader = document.getElementById('geo-loader');
             loader.style.display = 'block';
-            loader.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>データを取得中...';
 
             try {
-                let q;
-                const ref = collection(db, "customers");
+                let q = query(collection(db, "customers"), limit(100)); // 🌟 最も確実なクエリ
 
-                if (mode === 'recent') {
-                    q = query(ref, orderBy("updatedAt", "desc"), limit(100));
-                } else {
-                    // エリア検索（前方一致）
-                    q = query(ref, where("address", ">=", keyword), where("address", "<=", keyword + "\uf8ff"), limit(100));
+                if (mode === 'search' && keyword) {
+                    // 名前での検索（前方一致）
+                    q = query(collection(db, "customers"), where("name", ">=", keyword), where("name", "<=", keyword + "\uf8ff"), limit(50));
                 }
 
                 const snap = await getDocs(q);
@@ -150,9 +129,8 @@
                     else if (c.address && c.address !== "未登録") needsGeo.push({ id: d.id, data: c });
                 });
 
-                // 未解析のピンを5件だけ解析（1.5秒ルール順守）
+                // 住所解析を5件だけ実行
                 if (needsGeo.length > 0) {
-                    loader.innerHTML = `<i class="fa-solid fa-magic fa-bounce mr-2"></i>新規ピンを ${Math.min(needsGeo.length, 5)} 件解析中...`;
                     for (let i = 0; i < Math.min(needsGeo.length, 5); i++) {
                         const target = needsGeo[i];
                         const coords = await getCoords(target.data.address);
@@ -160,15 +138,9 @@
                             addPin({ ...target.data, ...coords }, target.id);
                             await updateDoc(doc(db, "customers", target.id), coords);
                         }
-                        await new Promise(r => setTimeout(r, 1500));
+                        await new Promise(r => setTimeout(r, 1200));
                     }
                 }
-                
-                if (mode === 'search' && markersLayer.getLayers().length > 0) {
-                    const firstMarker = markersLayer.getLayers()[0];
-                    map.setView(firstMarker.getLatLng(), 11);
-                }
-
             } catch (e) { console.error(e); }
             loader.style.display = 'none';
         };
@@ -177,11 +149,6 @@
             const val = document.getElementById('mapSearchInput').value.trim();
             if (val) window.initMap('search', val);
         };
-
-        map.on('locationfound', (e) => {
-            L.circle(e.latlng, e.accuracy / 2).addTo(map);
-            L.marker(e.latlng).addTo(map).bindPopup("<b>あなたの現在地</b>").openPopup();
-        });
 
         window.initMap('recent');
     </script>
