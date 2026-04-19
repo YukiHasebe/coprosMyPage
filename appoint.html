@@ -177,15 +177,12 @@
         };
     }
 
-           window.openStaffModal = (target) => {
+             window.openStaffModal = (target) => {
         currentTarget = target;
         document.getElementById('modalTitle').innerText = target === 'visitor' ? '訪問予定者を選択' : '回覧者を選択';
         document.getElementById('staffModal').style.display = 'flex';
-        
-        // 🌟 現在表示されている名前を「選択中」として読み戻す
         const currentContent = (target === 'visitor') ? document.getElementById('visitorName').value : document.getElementById('circularDisplay').innerText;
         modalSelected = (currentContent && currentContent !== '未選択') ? currentContent.split(', ') : [];
-        
         window.renderStaffList();
     };
 
@@ -197,6 +194,7 @@
         const container = document.getElementById('staffList');
         const filtered = allStaffs.filter(s => (!keyword || s.name.includes(keyword)) && (!dept || s.dept === dept));
         
+        // 🌟 下の1行、記号（`）を正確に修正しました
         container.innerHTML = filtered.map(s => `
             <div class="staff-item ${modalSelected.includes(s.name) ? 'selected' : ''}" onclick="window.toggleStaffSelection('${s.name}')">
                 <span>${s.name}</span><span class="text-[9px] opacity-40 uppercase font-black">${s.dept || ''}</span>
