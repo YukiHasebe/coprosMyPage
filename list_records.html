@@ -215,22 +215,50 @@
             document.getElementById('pageRange').innerText = `1-${dataList.length}`;
         }
 
-        // 🌟 削除ロジック
-        document.getElementById('bulkDeleteBtn').onclick = async () => {
-            const checked = document.querySelectorAll('.record-check:checked');
-            if (checked.length === 0) return alert("削除する実績を選択してください。");
-            if (!confirm(`${checked.length}件の実績を完全に削除します。よろしいですか？`)) return;
-            const btn = document.getElementById('bulkDeleteBtn');
-            btn.disabled = true;
-            try {
-                const batch = writeBatch(db);
-                checked.forEach(el => batch.delete(doc(db, "activity_records", el.dataset.id)));
-                await batch.commit();
-                alert("削除しました。");
-                init();
-            } catch (e) { alert("削除に失敗しました。"); }
-            finally { btn.disabled = false; }
-        };
+           // 🌟 実績削除 ＆ 名簿データの巻き戻し連動
+    document.getElementById('bulkDeleteBtn').onclick = async () => {
+        const checked = document.querySelectorAll('.record-check:checked');
+        if (checked.length === 0) return alert("削除する実績を選択してください。");
+        if (!confirm(`${checked.length}件の実績を完全に削除します。お客様名簿の回数も自動調整されます。`)) return;
+
+        const btn = document.getElementById('bulkDeleteBtn');
+        btn.disabled = true;
+        try {
+            const batch = writeBatch(db);
+            const targetCustomers = new Set();
+
+            checked.forEach(el => {
+                const id = el.dataset.id;
+                // 表示中の全実績から、削除対象のお客様名を特定
+                const record = allRecords.find(r => r.id === id);
+                if (record) targetCustomers.add(record.customerName);
+                batch.delete(doc(db, "activity_records", id));
+            });
+
+            await batch.commit(); // まず実績を消す
+
+            // 削除されたお客様ごとに名簿を再集計
+            for (const custName of targetCustomers) {
+                const q = query(collection(db, "activity_records"), where("customerName", "==", custName));
+                const snap = await getDocs(q);
+                const remaining = snap.docs.map(d => d.data()).sort((a,b) => (b.visitDate||"").localeCompare(a.visitDate||""));
+                
+                const qCust = query(collection(db, "customers"), where("name", "==", custName), limit(1));
+                const snapCust = await getDocs(qCust);
+                
+                if (!snapCust.empty) {
+                    const cDoc = snapCust.docs[0];
+                    await updateDoc(cDoc.ref, {
+                        visitCount: remaining.length,
+                        lastVisit: remaining.length > 0 ? remaining[0].visitDate.replace(/-/g,'/') : "未訪問"
+                    });
+                }
+            }
+            alert("削除と名簿の再集計が完了しました。");
+            init();
+        } catch (e) { console.error(e); alert("削除に失敗しました。"); }
+        finally { btn.disabled = false; }
+    };
 
         // 🌟 詳細検索トグル
         document.getElementById('detailSearchToggle').onclick = () => {
