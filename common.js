@@ -118,12 +118,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const lo = document.getElementById('logout-btn');
     if(lo) lo.onclick = () => { if(confirm("ログアウトしますか？")){ sessionStorage.clear(); location.href = 'index.html'; } };
 
-    async function refreshBadge() {
+        async function refreshBadge() {
         if(!rawName) return;
         try { 
-            const q = query(collection(db, "notifications"), where("recipient", "==", rawName), where("isRead", "==", false), limit(1)); 
+            // 全ての未読通知を取得して件数を数える
+            const q = query(collection(db, "notifications"), 
+                            where("recipient", "==", rawName), 
+                            where("isRead", "==", false)); 
             const snap = await getDocs(q); 
-            if(!snap.empty) document.getElementById('unreadBadge').style.display = 'flex';
+            const badge = document.getElementById('unreadBadge');
+            if(!snap.empty && badge) {
+                badge.innerText = snap.size; // 🌟 ここを件数に変更！
+                badge.style.display = 'flex';
+            } else if(badge) {
+                badge.style.display = 'none';
+            }
         } catch(e){}
     }
     refreshBadge();
