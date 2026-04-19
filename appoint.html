@@ -177,7 +177,7 @@
         };
     }
 
-       window.openStaffModal = (target) => {
+           window.openStaffModal = (target) => {
         currentTarget = target;
         document.getElementById('modalTitle').innerText = target === 'visitor' ? '訪問予定者を選択' : '回覧者を選択';
         document.getElementById('staffModal').style.display = 'flex';
@@ -219,7 +219,8 @@
         if (currentTarget === 'circular') document.getElementById('circularDisplay').innerText = names || '未選択';
         window.closeModal();
     };
-    const handleRegister = async () => {
+
+       const handleRegister = async () => {
         const form = document.getElementById('appointForm');
         if (!form.checkValidity()) { form.reportValidity(); return; }
         const btn = document.getElementById('submitBtnTop');
