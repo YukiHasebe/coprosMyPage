@@ -167,35 +167,49 @@
         </div>
     </div>
 
-   <script type="module">
+  <script type="module">
     import { db } from "./common.js";
     import { collection, getDocs, addDoc, serverTimestamp, query, orderBy, where, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     let allStaffs = [];
     let currentTarget = ''; 
-    let modalSelected = []; // 同行者や回覧者で選択された名前を保持
+    let modalSelected = [];
 
     async function init() {
-        // 🌟 2. 訪問者のデフォルト値を「ログイン名」に設定
+        // 🌟 1. 訪問者のデフォルト値をログイン名に設定
         const loginUser = sessionStorage.getItem('userName') || "";
         document.getElementById('visitorName').value = loginUser;
         document.getElementById('visitDate').valueAsDate = new Date();
 
         try {
-            // 社員名簿は130名程度なので全件取得（ポップアップ選択を爆速にするため）
+            // 社員名簿の取得（ポップアップ用）
             const sSnap = await getDocs(query(collection(db, "staffs"), orderBy("id")));
             allStaffs = sSnap.docs.map(doc => ({ ...doc.data() }));
 
-            // 部署フィルターの構築
             const depts = [...new Set(allStaffs.map(s => s.dept).filter(Boolean))];
             const deptSelect = document.getElementById('staffDeptFilter');
             depts.forEach(d => deptSelect.insertAdjacentHTML('beforeend', `<option value="${d}">${d}</option>`));
 
             setupCustomerSearch();
+
+            // 🌟 2. URLパラメータからお客様名を取得して自動セット（お客様一覧からの遷移対応）
+            const params = new URLSearchParams(window.location.search);
+            const nameParam = params.get('name');
+            if (nameParam) {
+                document.getElementById('customerSearch').value = nameParam;
+                // 🌟 そのお客様のランクと属性をV2からピンポイントで取得（超省エネ）
+                const q = query(collection(db, "customers"), where("name", "==", nameParam), limit(1));
+                const snap = await getDocs(q);
+                if (!snap.empty) {
+                    const d = snap.docs[0].data();
+                    document.getElementById('autoRank').value = d.rank || '--';
+                    document.getElementById('autoType').value = d.type || '--';
+                }
+            }
         } catch (e) { console.error("Init Error:", e); }
     }
 
-    // 🌟 1. お客様名の全件検索（省エネ・デバウンス処理済）
+    // 🌟 3. お客様名の全件検索（省エネ・デバウンス処理）
     function setupCustomerSearch() {
         const input = document.getElementById('customerSearch');
         const box = document.getElementById('customerSuggestions');
@@ -206,7 +220,6 @@
             const val = input.value.trim();
             if (val.length < 1) { box.style.display = 'none'; return; }
 
-            // 🌟 500ms（0.5秒）入力が止まってからFirebaseに1回だけ問い合わせる（省エネ）
             timeout = setTimeout(async () => {
                 try {
                     const q = query(
@@ -224,7 +237,7 @@
                         `).join('');
                         box.style.display = 'block';
                     } else { box.style.display = 'none'; }
-                } catch (e) { console.error("Search Error:", e); }
+                } catch (e) { console.error(e); }
             }, 500);
         };
 
@@ -244,7 +257,7 @@
         currentTarget = target;
         document.getElementById('modalTitle').innerText = target === 'visitor' ? '訪問者を選択' : (target === 'companion' ? '同行者を選択' : '回覧者を選択');
         document.getElementById('staffModal').style.display = 'flex';
-        modalSelected = []; // 毎回リセット
+        modalSelected = [];
         renderStaffList();
     };
 
@@ -262,7 +275,7 @@
     };
 
     window.toggleStaffSelection = (name) => {
-        if (currentTarget === 'visitor') { modalSelected = [name]; } // 訪問者は一人だけ
+        if (currentTarget === 'visitor') { modalSelected = [name]; }
         else {
             if (modalSelected.includes(name)) modalSelected = modalSelected.filter(n => n !== name);
             else modalSelected.push(name);
@@ -282,7 +295,7 @@
     document.getElementById('staffKeyword').oninput = renderStaffList;
     document.getElementById('staffDeptFilter').onchange = renderStaffList;
 
-    // 🌟 3. 実績登録 ＆ 通知作成（バッジ・お知らせ連動）
+    // 🌟 4. 実績登録 ＆ 通知一括作成（バッジ連動）
     const handleRegister = async () => {
         const form = document.getElementById('historyForm');
         if (!form.checkValidity()) { form.reportValidity(); return; }
@@ -293,9 +306,7 @@
         const visitor = document.getElementById('visitorName').value;
         const customer = document.getElementById('customerSearch').value;
         const visitDate = document.getElementById('visitDate').value;
-        
-        // 🌟 回覧者に選ばれた人たちのリストを取得
-        const circularNames = document.getElementById('circularDisplay').innerText.split(', ').filter(n => n !== '未選択');
+        const circularNames = document.getElementById('circularDisplay').innerText.split(', ').filter(n => n !== '未選択' && n !== '');
 
         const recordData = {
             customerName: customer,
@@ -318,24 +329,23 @@
         };
 
         try {
-            // 実績の保存
             await addDoc(collection(db, "activity_records"), recordData);
 
-            // 🌟 回覧通知の作成（相手のサイドバーにバッジがつく）
+            // 🌟 回覧通知ドキュメントを人数分作成
             for (const name of circularNames) {
                 await addDoc(collection(db, "notifications"), {
                     recipient: name,
                     visitorName: visitor,
                     customerName: customer,
                     visitDate: visitDate,
-                    content: document.getElementById('customerReport').value.substring(0, 100), // 最初の100文字を通知に
+                    content: document.getElementById('customerReport').value.substring(0, 100),
                     isRead: false,
                     createdAt: serverTimestamp(),
                     type: "実績回覧"
                 });
             }
 
-            alert("実績の登録と回覧通知が完了しました！");
+            alert("登録が完了し、回覧通知を送信しました！");
             location.href = 'list_records.html';
         } catch (e) {
             console.error(e);
