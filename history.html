@@ -167,152 +167,187 @@
         </div>
     </div>
 
-    <script type="module">
-        import { db } from "./common.js";
-        import { collection, getDocs, addDoc, serverTimestamp, query, orderBy, where, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+   <script type="module">
+    import { db } from "./common.js";
+    import { collection, getDocs, addDoc, serverTimestamp, query, orderBy, where, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        let allCustomers = [];
-        let allStaffs = [];
-        let currentTarget = ''; 
-        let modalSelected = [];
+    let allStaffs = [];
+    let currentTarget = ''; 
+    let modalSelected = []; // 同行者や回覧者で選択された名前を保持
 
-        async function init() {
-            document.getElementById('visitorName').value = sessionStorage.getItem('userName') || '未ログイン';
-            document.getElementById('visitDate').valueAsDate = new Date();
+    async function init() {
+        // 🌟 2. 訪問者のデフォルト値を「ログイン名」に設定
+        const loginUser = sessionStorage.getItem('userName') || "";
+        document.getElementById('visitorName').value = loginUser;
+        document.getElementById('visitDate').valueAsDate = new Date();
 
-            try {
-                // 🌟 省エネ：100件ずつマスター読み込み
-                const [cSnap, sSnap] = await Promise.all([
-                    getDocs(query(collection(db, "customers"), orderBy("name"), limit(100))),
-                    getDocs(query(collection(db, "staffs"), limit(150)))
-                ]);
-                
-                allCustomers = cSnap.docs.map(doc => ({ ...doc.data() }));
-                allStaffs = sSnap.docs.map(doc => ({ ...doc.data() }));
+        try {
+            // 社員名簿は130名程度なので全件取得（ポップアップ選択を爆速にするため）
+            const sSnap = await getDocs(query(collection(db, "staffs"), orderBy("id")));
+            allStaffs = sSnap.docs.map(doc => ({ ...doc.data() }));
 
-                const depts = [...new Set(allStaffs.map(s => s.dept).filter(Boolean))];
-                depts.forEach(d => document.getElementById('staffDeptFilter').insertAdjacentHTML('beforeend', `<option value="${d}">${d}</option>`));
+            // 部署フィルターの構築
+            const depts = [...new Set(allStaffs.map(s => s.dept).filter(Boolean))];
+            const deptSelect = document.getElementById('staffDeptFilter');
+            depts.forEach(d => deptSelect.insertAdjacentHTML('beforeend', `<option value="${d}">${d}</option>`));
 
-                setupCustomerAutocomplete();
+            setupCustomerSearch();
+        } catch (e) { console.error("Init Error:", e); }
+    }
 
-                // 遷移パラメータ対応
-                const params = new URLSearchParams(window.location.search);
-                const nameParam = params.get('name');
-                if (nameParam) {
-                    document.getElementById('customerSearch').value = nameParam;
-                    const customer = allCustomers.find(c => c.name === nameParam);
-                    if (customer) {
-                        document.getElementById('autoRank').value = customer.rank || '--';
-                        document.getElementById('autoType').value = customer.type || '--';
-                    }
-                }
-            } catch (e) { console.error("Init Error:", e); }
-        }
+    // 🌟 1. お客様名の全件検索（省エネ・デバウンス処理済）
+    function setupCustomerSearch() {
+        const input = document.getElementById('customerSearch');
+        const box = document.getElementById('customerSuggestions');
+        let timeout = null;
 
-        function setupCustomerAutocomplete() {
-            const input = document.getElementById('customerSearch');
-            const box = document.getElementById('customerSuggestions');
-            input.oninput = () => {
-                const val = input.value.toLowerCase();
-                if (!val) { box.style.display = 'none'; return; }
-                const filtered = allCustomers.filter(c => (c.name||"").includes(val) || (c.kana||"").includes(val)).slice(0, 10);
-                box.innerHTML = filtered.map(c => `<div class="suggestion-item" data-rank="${c.rank||'--'}" data-type="${c.type||'--'}">${c.name}</div>`).join('');
-                box.style.display = filtered.length ? 'block' : 'none';
-            };
-            box.onclick = (e) => {
-                const item = e.target.closest('.suggestion-item');
-                if (item) {
-                    input.value = item.innerText;
-                    document.getElementById('autoRank').value = item.dataset.rank;
-                    document.getElementById('autoType').value = item.dataset.type;
-                    box.style.display = 'none';
-                }
-            };
-        }
+        input.oninput = () => {
+            clearTimeout(timeout);
+            const val = input.value.trim();
+            if (val.length < 1) { box.style.display = 'none'; return; }
 
-        window.openStaffModal = (target) => {
-            currentTarget = target;
-            document.getElementById('modalTitle').innerText = target === 'visitor' ? '訪問者を選択' : (target === 'companion' ? '同行者を選択' : '回覧者を選択');
-            document.getElementById('staffModal').style.display = 'flex';
-            modalSelected = [];
-            window.renderStaffList();
+            // 🌟 500ms（0.5秒）入力が止まってからFirebaseに1回だけ問い合わせる（省エネ）
+            timeout = setTimeout(async () => {
+                try {
+                    const q = query(
+                        collection(db, "customers"), 
+                        where("name", ">=", val), 
+                        where("name", "<=", val + "\uf8ff"), 
+                        limit(10)
+                    );
+                    const snap = await getDocs(q);
+                    const filtered = snap.docs.map(d => d.data());
+                    
+                    if (filtered.length > 0) {
+                        box.innerHTML = filtered.map(c => `
+                            <div class="suggestion-item" data-rank="${c.rank||'--'}" data-type="${c.type||'--'}">${c.name}</div>
+                        `).join('');
+                        box.style.display = 'block';
+                    } else { box.style.display = 'none'; }
+                } catch (e) { console.error("Search Error:", e); }
+            }, 500);
         };
 
-        window.closeModal = () => document.getElementById('staffModal').style.display = 'none';
-
-        window.renderStaffList = () => {
-            const keyword = document.getElementById('staffKeyword').value.toLowerCase();
-            const dept = document.getElementById('staffDeptFilter').value;
-            const container = document.getElementById('staffList');
-            const filtered = allStaffs.filter(s => (!keyword || s.name.includes(keyword)) && (!dept || s.dept === dept));
-            container.innerHTML = filtered.map(s => `
-                <div class="staff-item ${modalSelected.includes(s.name) ? 'selected' : ''}" onclick="window.toggleStaffSelection('${s.name}')">
-                    <span>${s.name}</span><span class="text-[9px] opacity-40 uppercase font-black">${s.dept || ''}</span>
-                </div>`).join('');
-        };
-
-        window.toggleStaffSelection = (name) => {
-            if (currentTarget === 'visitor') modalSelected = [name];
-            else {
-                if (modalSelected.includes(name)) modalSelected = modalSelected.filter(n => n !== name);
-                else modalSelected.push(name);
+        box.onclick = (e) => {
+            const item = e.target.closest('.suggestion-item');
+            if (item) {
+                input.value = item.innerText;
+                document.getElementById('autoRank').value = item.dataset.rank;
+                document.getElementById('autoType').value = item.dataset.type;
+                box.style.display = 'none';
             }
-            window.renderStaffList();
+        };
+    }
+
+    // --- 社員選択ポップアップ制御 ---
+    window.openStaffModal = (target) => {
+        currentTarget = target;
+        document.getElementById('modalTitle').innerText = target === 'visitor' ? '訪問者を選択' : (target === 'companion' ? '同行者を選択' : '回覧者を選択');
+        document.getElementById('staffModal').style.display = 'flex';
+        modalSelected = []; // 毎回リセット
+        renderStaffList();
+    };
+
+    window.closeModal = () => document.getElementById('staffModal').style.display = 'none';
+
+    window.renderStaffList = () => {
+        const keyword = document.getElementById('staffKeyword').value.toLowerCase();
+        const dept = document.getElementById('staffDeptFilter').value;
+        const container = document.getElementById('staffList');
+        const filtered = allStaffs.filter(s => (!keyword || s.name.includes(keyword)) && (!dept || s.dept === dept));
+        container.innerHTML = filtered.map(s => `
+            <div class="staff-item ${modalSelected.includes(s.name) ? 'selected' : ''}" onclick="toggleStaffSelection('${s.name}')">
+                <span>${s.name}</span><span class="text-[9px] opacity-40 uppercase font-black">${s.dept || ''}</span>
+            </div>`).join('');
+    };
+
+    window.toggleStaffSelection = (name) => {
+        if (currentTarget === 'visitor') { modalSelected = [name]; } // 訪問者は一人だけ
+        else {
+            if (modalSelected.includes(name)) modalSelected = modalSelected.filter(n => n !== name);
+            else modalSelected.push(name);
+        }
+        renderStaffList();
+    };
+
+    window.applySelection = () => {
+        const names = modalSelected.join(', ');
+        if (currentTarget === 'visitor') document.getElementById('visitorName').value = names;
+        if (currentTarget === 'companion') document.getElementById('companionDisplay').value = names;
+        if (currentTarget === 'circular') document.getElementById('circularDisplay').innerText = names || '未選択';
+        closeModal();
+    };
+
+    window.clearModalSelection = () => { modalSelected = []; renderStaffList(); };
+    document.getElementById('staffKeyword').oninput = renderStaffList;
+    document.getElementById('staffDeptFilter').onchange = renderStaffList;
+
+    // 🌟 3. 実績登録 ＆ 通知作成（バッジ・お知らせ連動）
+    const handleRegister = async () => {
+        const form = document.getElementById('historyForm');
+        if (!form.checkValidity()) { form.reportValidity(); return; }
+
+        const btns = [document.getElementById('submitBtnTop'), document.getElementById('submitBtnBottom')];
+        btns.forEach(b => { b.disabled = true; b.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>処理中...'; });
+
+        const visitor = document.getElementById('visitorName').value;
+        const customer = document.getElementById('customerSearch').value;
+        const visitDate = document.getElementById('visitDate').value;
+        
+        // 🌟 回覧者に選ばれた人たちのリストを取得
+        const circularNames = document.getElementById('circularDisplay').innerText.split(', ').filter(n => n !== '未選択');
+
+        const recordData = {
+            customerName: customer,
+            customerRank: document.getElementById('autoRank').value,
+            customerType: document.getElementById('autoType').value,
+            visitDate: visitDate,
+            startTime: document.getElementById('startTime').value,
+            endTime: document.getElementById('endTime').value,
+            visitorName: visitor,
+            visitorDept: sessionStorage.getItem('userDept') || "未設定",
+            visitorRole: document.querySelector('input[name="visitorRole"]:checked').value,
+            companion: document.getElementById('companionDisplay').value,
+            qualData1: document.getElementById('qualData1').value,
+            qualData2: document.getElementById('qualData2').value,
+            qualData3: document.getElementById('qualData3').value,
+            customerStaff: document.getElementById('customerStaff').value,
+            customerReport: document.getElementById('customerReport').value,
+            staffThoughts: document.getElementById('staffThoughts').value,
+            createdAt: serverTimestamp()
         };
 
-        window.applySelection = () => {
-            const names = modalSelected.join(', ');
-            if (currentTarget === 'visitor') document.getElementById('visitorName').value = names;
-            if (currentTarget === 'companion') document.getElementById('companionDisplay').value = names;
-            if (currentTarget === 'circular') document.getElementById('circularDisplay').innerText = names || '未選択';
-            window.closeModal();
-        };
+        try {
+            // 実績の保存
+            await addDoc(collection(db, "activity_records"), recordData);
 
-        window.clearModalSelection = () => { modalSelected = []; window.renderStaffList(); };
-        document.getElementById('staffKeyword').oninput = window.renderStaffList;
-        document.getElementById('staffDeptFilter').onchange = window.renderStaffList;
+            // 🌟 回覧通知の作成（相手のサイドバーにバッジがつく）
+            for (const name of circularNames) {
+                await addDoc(collection(db, "notifications"), {
+                    recipient: name,
+                    visitorName: visitor,
+                    customerName: customer,
+                    visitDate: visitDate,
+                    content: document.getElementById('customerReport').value.substring(0, 100), // 最初の100文字を通知に
+                    isRead: false,
+                    createdAt: serverTimestamp(),
+                    type: "実績回覧"
+                });
+            }
 
-        const handleRegister = async () => {
-            const form = document.getElementById('historyForm');
-            if (!form.checkValidity()) { form.reportValidity(); return; }
+            alert("実績の登録と回覧通知が完了しました！");
+            location.href = 'list_records.html';
+        } catch (e) {
+            console.error(e);
+            alert("保存に失敗しました。");
+            btns.forEach(b => { b.disabled = false; b.innerHTML = '登録を実行'; });
+        }
+    };
 
-            const vName = document.getElementById('visitorName').value;
-            const staffInfo = allStaffs.find(s => s.name === vName);
-            const vDept = staffInfo ? (staffInfo.dept || "未設定") : (sessionStorage.getItem('userDept') || "未設定");
+    document.getElementById('submitBtnTop').onclick = handleRegister;
+    document.getElementById('submitBtnBottom').onclick = handleRegister;
 
-            const data = {
-                customerName: document.getElementById('customerSearch').value,
-                customerRank: document.getElementById('autoRank').value,
-                customerType: document.getElementById('autoType').value,
-                visitDate: document.getElementById('visitDate').value,
-                startTime: document.getElementById('startTime').value,
-                endTime: document.getElementById('endTime').value,
-                visitorName: vName,
-                visitorDept: vDept,
-                visitorRole: document.querySelector('input[name="visitorRole"]:checked').value,
-                companion: document.getElementById('companionDisplay').value,
-                qualData1: document.getElementById('qualData1').value,
-                qualData2: document.getElementById('qualData2').value,
-                qualData3: document.getElementById('qualData3').value,
-                customerStaff: document.getElementById('customerStaff').value,
-                customerReport: document.getElementById('customerReport').value,
-                staffThoughts: document.getElementById('staffThoughts').value,
-                circularUsers: document.getElementById('circularDisplay').innerText,
-                emailCircular: document.getElementById('emailCircular').checked,
-                createdAt: serverTimestamp()
-            };
-
-            try {
-                await addDoc(collection(db, "activity_records"), data);
-                alert("実績を登録しました！");
-                location.href = 'list_records.html';
-            } catch (e) { alert("保存失敗"); }
-        };
-
-        document.getElementById('submitBtnTop').onclick = handleRegister;
-        document.getElementById('submitBtnBottom').onclick = handleRegister;
-
-        init();
-    </script>
+    init();
+</script>
 </body>
 </html>
