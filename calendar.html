@@ -5,7 +5,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --copros-blue: #87ceeb; --copros-orange: #ff7e11; --appoint-blue: #3b82f6; --next-green: #10b981; }
+        :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; --appoint-blue: #3b82f6; --next-green: #10b981; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); background: #e2e8f0; gap: 1px; border: 1px solid #e2e8f0; border-radius: 1rem; overflow: hidden; }
         .calendar-day { background: white; min-height: 100px; lg:min-height: 130px; padding: 0.4rem; position: relative; overflow: hidden; }
@@ -13,13 +13,15 @@
         .day-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; }
         .day-num { font-weight: 900; font-size: 0.85rem; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
         .is-today .day-num { background: var(--copros-orange); color: white; border-radius: 50%; }
-        .event-label { font-size: 9px; font-weight: 800; padding: 2px 5px; border-radius: 4px; margin-bottom: 2px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; border-left: 3px solid; }
+        .event-label { font-size: 9px; font-weight: 800; padding: 2px 5px; border-radius: 4px; margin-bottom: 2px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; border-left: 3px solid; transition: all 0.2s; }
         .label-result { border-left-color: var(--copros-orange); background: #fff7ed; color: #ea580c; }
         .label-next { border-left-color: var(--next-green); background: #f0fdf4; color: #16a34a; }
         .label-appoint { border-left-color: var(--appoint-blue); background: #eff6ff; color: #1d4ed8; }
         .month-btn { padding: 0.5rem 0.2rem; border-radius: 0.75rem; font-size: 0.7rem; font-weight: 900; transition: all 0.2s; flex: 1; text-align: center; }
         .month-btn.active { background: #334155; color: white; }
         .scope-select { background: #e2e8f0; border: none; padding: 0.4rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; appearance: none; cursor: pointer; }
+        .custom-scrollbar::-webkit-scrollbar { width: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700">
@@ -28,7 +30,7 @@
         <div id="header-placeholder"></div>
         <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1400px] mx-auto">
-                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
+                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 lg:mb-8 gap-4">
                     <div class="flex items-end gap-4 lg:gap-6">
                         <div><h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-1">カレンダー</h1><p id="currentMonthDisplay" class="text-[10px] font-black text-slate-400 uppercase tracking-widest">--</p></div>
                         <select id="deptFilter" onchange="window.renderCalendar()" class="scope-select shadow-inner">
@@ -51,7 +53,7 @@
                     <script>for(let i=1; i<=12; i++) document.write(`<button onclick="window.jumpMonth(${i})" id="month-btn-${i}" class="month-btn">${i}月</button>`);</script>
                 </div>
                 <div class="bg-white p-2 lg:p-4 rounded-[2rem] shadow-xl border border-slate-200">
-                    <div class="grid grid-cols-7 mb-4 font-black text-[10px] text-slate-400 uppercase text-center">
+                    <div class="grid grid-cols-7 mb-4 font-black text-[9px] text-slate-400 uppercase text-center">
                         <div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div class="text-rose-400">Sat</div><div class="text-rose-600">Sun</div>
                     </div>
                     <div id="calendarGrid" class="calendar-grid"></div>
@@ -59,7 +61,6 @@
             </div>
         </div>
     </main>
-
     <script type="module" src="common.js"></script>
     <script type="module">
         import { db } from "./common.js";
@@ -70,35 +71,43 @@
 
         async function init() { await fetchMonthData(); window.renderCalendar(); }
 
+        // 🌟 どんな日付形式でもマッチさせる正規化関数
+        function formatDate(str) {
+            if (!str) return "";
+            const d = new Date(str.replace(/\//g, '-'));
+            return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+        }
+
         async function fetchMonthData() {
             const year = currentDate.getFullYear(), month = currentDate.getMonth() + 1;
-            const startStr = `${year}-${String(month).padStart(2, '0')}-01`, endStr = `${year}-${String(month).padStart(2, '0')}-31`;
+            // 🌟 1桁月にも対応するための広い検索
             try {
-                // 🌟 過去実績も正しく取得するため、visitDate または nextVisitDate が当月のものを取得
-                const qRes = query(collection(db, "activity_records"), where("visitDate", ">=", startStr), where("visitDate", "<=", endStr), limit(400));
-                const qNext = query(collection(db, "activity_records"), where("nextVisitDate", ">=", startStr), where("nextVisitDate", "<=", endStr), limit(400));
-                const qApp = query(collection(db, "appointments"), where("appointDate", ">=", startStr), where("appointDate", "<=", endStr), limit(300));
+                const qRes = query(collection(db, "activity_records"), limit(500));
+                const qApp = query(collection(db, "appointments"), limit(300));
+                const [rSnap, aSnap] = await Promise.all([getDocs(qRes), getDocs(qApp)]);
                 
-                const [rSnap, nSnap, aSnap] = await Promise.all([getDocs(qRes), getDocs(qNext), getDocs(qApp)]);
-                // 重複排除して結合
-                const resMap = new Map();
-                [...rSnap.docs, ...nSnap.docs].forEach(d => resMap.set(d.id, d.data()));
-                loadedData.records = Array.from(resMap.values());
-                loadedData.appoints = aSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+                // 🌟 メモリ内で当月分だけを抽出（日付形式のズレを吸収）
+                loadedData.records = rSnap.docs.map(d => d.data()).filter(r => {
+                    const d = new Date((r.visitDate || "").replace(/\//g, '-'));
+                    const n = new Date((r.nextVisitDate || "").replace(/\//g, '-'));
+                    return (d.getFullYear() === year && d.getMonth()+1 === month) || (n.getFullYear() === year && n.getMonth()+1 === month);
+                });
+                loadedData.appoints = aSnap.docs.map(d => ({ id: d.id, ...d.data() })).filter(a => {
+                    const d = new Date((a.appointDate || "").replace(/\//g, '-'));
+                    return d.getFullYear() === year && d.getMonth()+1 === month;
+                });
             } catch (e) { console.error(e); }
         }
 
-        // 🌟 アポ詳細 ＆ 削除機能
         window.showAppointDetail = async (id, cust, date, subject) => {
-            const msg = `【アポイント詳細】\nお客様: ${cust}\n内容: ${subject || 'なし'}\n\nこのアポを削除しますか？`;
-            if(confirm(msg)) {
+            if(confirm(`【アポ詳細】\n顧客: ${cust}\n内容: ${subject || 'なし'}\n\nこのアポを削除しますか？`)) {
                 try {
                     const batch = writeBatch(db);
                     batch.delete(doc(db, "appointments", id));
-                    const q = query(collection(db, "notifications"), where("customerName", "==", cust), where("visitDate", "==", date), where("type", "==", "アポ回覧"));
+                    const q = query(collection(db, "notifications"), where("customerName", "==", cust), where("visitDate", "==", date));
                     const snap = await getDocs(q);
                     snap.forEach(d => batch.delete(d.ref));
-                    await batch.commit(); alert("取り消し完了"); location.reload();
+                    await batch.commit(); alert("完了"); location.reload();
                 } catch (e) { alert("失敗"); }
             }
         };
@@ -109,7 +118,7 @@
             const dept = document.getElementById('deptFilter').value;
             document.getElementById('currentMonthDisplay').innerText = `${year}年 ${month + 1}月`;
             document.querySelectorAll('.month-btn').forEach(b => b.classList.remove('active'));
-            const mBtn = document.getElementById(`month-btn-${month + 1}`); if(mBtn) mBtn.classList.add('active');
+            if(document.getElementById(`month-btn-${month + 1}`)) document.getElementById(`month-btn-${month + 1}`).classList.add('active');
 
             const firstDay = new Date(year, month, 1).getDay();
             const startOffset = (firstDay === 0) ? 6 : firstDay - 1;
@@ -118,27 +127,27 @@
             for(let i=0; i<startOffset; i++) grid.insertAdjacentHTML('beforeend', '<div class="calendar-day other-month"></div>');
 
             for(let d=1; d<=daysInMonth; d++) {
-                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-                const isToday = new Date().toISOString().split('T')[0] === dateStr;
+                const dayDate = new Date(year, month, d);
+                const compareStr = formatDate(dayDate);
+                const isToday = formatDate(new Date()) === compareStr;
                 let eventsHtml = "";
 
                 if (document.getElementById('showRes').checked) {
-                    loadedData.records.filter(r => r.visitDate === dateStr && (dept === 'ALL' || r.visitorDept === dept)).forEach(r => {
+                    loadedData.records.filter(r => formatDate(r.visitDate) === compareStr && (dept === 'ALL' || r.visitorDept === dept)).forEach(r => {
                         eventsHtml += `<div class="event-label label-result" onclick="location.href='customer_history.html?name=${encodeURIComponent(r.customerName)}'">実績: ${r.customerName}</div>`;
                     });
                 }
                 if (document.getElementById('showNext').checked) {
-                    loadedData.records.filter(r => r.nextVisitDate === dateStr && (dept === 'ALL' || r.visitorDept === dept)).forEach(r => {
-                        eventsHtml += `<div class="event-label label-next" onclick="location.href='customer_history.html?name=${encodeURIComponent(r.customerName)}'">次回: ${r.visitorName}</div>`;
+                    loadedData.records.filter(r => formatDate(r.nextVisitDate) === compareStr && (dept === 'ALL' || r.visitorDept === dept)).forEach(r => {
+                        eventsHtml += `<div class="event-label label-next">次回: ${r.visitorName}</div>`;
                     });
                 }
                 if (document.getElementById('showApp').checked) {
-                    loadedData.appoints.filter(a => a.appointDate === dateStr).forEach(a => {
-                        // 🌟 修正：クリックで詳細表示＆削除選択
+                    loadedData.appoints.filter(a => formatDate(a.appointDate) === compareStr).forEach(a => {
                         eventsHtml += `<div class="event-label label-appoint" onclick="window.showAppointDetail('${a.id}','${a.customerName}','${a.appointDate}','${a.subject}')">アポ: ${a.customerName}</div>`;
                     });
                 }
-                grid.insertAdjacentHTML('beforeend', `<div class="calendar-day ${isToday ? 'is-today' : ''}"><div class="day-header"><span class="day-num">${d}</span></div><div class="max-h-[80px] overflow-y-auto custom-scrollbar">${eventsHtml}</div></div>`);
+                grid.insertAdjacentHTML('beforeend', `<div class="calendar-day ${isToday ? 'is-today' : ''}"><div class="day-header"><span class="day-num">${d}</span></div><div class="max-h-[85px] overflow-y-auto custom-scrollbar">${eventsHtml}</div></div>`);
             }
         };
 
