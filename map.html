@@ -10,31 +10,30 @@
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
         #map { height: calc(100vh - 124px); width: 100%; z-index: 1; position: relative; }
         .search-bar-area { background: white; padding: 10px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: center; gap: 8px; z-index: 50; }
-        .search-input { width: 100%; max-width: 400px; padding: 8px 16px; border-radius: 10px; border: 1px solid #cbd5e1; font-weight: 800; }
-        .search-btn { background: var(--copros-blue); color: white; padding: 8px 20px; border-radius: 10px; font-weight: 900; }
-        
+        .search-input { width: 100%; max-width: 400px; padding: 8px 16px; border-radius: 10px; border: 1px solid #cbd5e1; font-weight: 800; font-size: 13px; }
+        .search-btn { background: var(--copros-blue); color: white; padding: 8px 20px; border-radius: 10px; font-weight: 900; font-size: 13px; }
         .map-control { position: absolute; top: 15px; right: 15px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
-        .control-btn { background: white; width: 42px; height: 42px; border-radius: 10px; display: flex; items-center: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.15); border: 1px solid #e2e8f0; color: #475569; }
-        .control-btn:hover { background: var(--copros-orange); color: white; }
-
-        #geo-log { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); z-index: 1001; background: rgba(51,65,85,0.9); color: white; padding: 8px 20px; border-radius: 25px; font-size: 11px; font-weight: 800; display: none; backdrop-filter: blur(4px); }
-        .popup-card { min-width: 180px; padding: 5px; }
+        .control-btn { background: white; width: 42px; height: 42px; border-radius: 10px; display: flex; items-center: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.15); border: 1px solid #e2e8f0; color: #475569; transition: all 0.2s; }
+        .control-btn:hover { background: var(--copros-orange); color: white; transform: scale(1.05); }
+        #geo-log { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); z-index: 1001; background: rgba(0,0,0,0.7); color: #fff; padding: 8px 20px; border-radius: 25px; font-size: 11px; font-weight: 800; display: none; backdrop-filter: blur(4px); }
+        .popup-card { min-width: 200px; padding: 5px; }
+        .nav-btn { background: var(--copros-blue); color: white; padding: 8px; border-radius: 6px; width: 100%; display: block; text-align: center; font-weight: 900; font-size: 11px; margin-top: 8px; text-decoration: none; }
     </style>
 </head>
-<body class="flex h-screen overflow-hidden text-slate-700">
+<body class="flex h-screen overflow-hidden text-slate-700 font-sans">
     <div id="sidebar-placeholder"></div>
     <main class="flex-1 flex flex-col overflow-hidden relative">
         <div id="header-placeholder"></div>
         <div class="search-bar-area shadow-sm">
-            <input type="text" id="mapSearchInput" class="search-input" placeholder="地域名やお客様名で検索">
+            <input type="text" id="mapSearchInput" class="search-input" placeholder="地域名(下関市など)やお客様名で検索">
             <button onclick="window.execMapSearch()" class="search-btn">検索</button>
         </div>
         <div id="map">
             <div id="geo-log"></div>
             <div class="map-control">
-                <button onclick="window.locateMe()" class="control-btn" title="現在地"><i class="fa-solid fa-location-crosshairs"></i></button>
-                <button onclick="window.initMap('recent')" class="control-btn" title="再読込"><i class="fa-solid fa-arrows-rotate"></i></button>
-                <button onclick="window.zoomToJapan()" class="control-btn" title="全体"><i class="fa-solid fa-map"></i></button>
+                <button onclick="window.locateMe()" class="control-btn" title="現在地"><i class="fa-solid fa-location-crosshairs text-lg"></i></button>
+                <button onclick="window.initMap('recent')" class="control-btn" title="最新100件を表示"><i class="fa-solid fa-sync text-lg"></i></button>
+                <button onclick="window.zoomToJapan()" class="control-btn" title="全体を表示"><i class="fa-solid fa-map text-lg"></i></button>
             </div>
         </div>
     </main>
@@ -54,71 +53,86 @@
             el.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-2"></i>${msg}`;
         }
 
-        // 🌟 住所解析（住所を最優先し、失敗したらログを出す）
-        async function getCoords(address, name) {
+        // 🌟 住所を解析しやすく「お掃除」する関数
+        function cleanAddress(addr) {
+            if (!addr) return "";
+            // ビル名、階数、様、などを削除して番地までにする
+            return addr.split(/[\s　]|ビル|館|階|F|様/)[0];
+        }
+
+        async function getCoords(address) {
+            const cleaned = cleanAddress(address);
             try {
-                // 住所から「日本 」というキーワードを付けて検索
-                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent('日本 ' + address)}`);
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent('日本 ' + cleaned)}`);
                 const data = await res.json();
                 if (data && data.length > 0) {
                     return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
                 }
-            } catch (e) { console.warn("Geocode error:", name); }
+            } catch (e) { console.warn("Geocode error for:", cleaned); }
             return null;
         }
 
-        function addPin(c) {
+        function addPin(c, id) {
+            if (!c.lat || !c.lng) return;
             const color = (c.rank && c.rank.startsWith('A')) ? '#ff7e11' : '#0ea5e9';
             const icon = L.divIcon({ 
-                html: `<div style="background-color:${color}; width:14px; height:14px; border-radius:50%; border:2px solid white; box-shadow:0 3px 8px rgba(0,0,0,0.3);"></div>`, 
-                className: '', iconSize: [14, 14] 
+                html: `<div style="background-color:${color}; width:16px; height:16px; border-radius:50%; border:2px solid white; box-shadow:0 3px 8px rgba(0,0,0,0.3);"></div>`, 
+                className: '', iconSize: [16, 16] 
             });
             L.marker([c.lat, c.lng], { icon }).addTo(markersLayer)
-             .bindPopup(`<div class="popup-card"><h3 class="font-black text-sm">${c.name}</h3><p class="text-[9px] text-slate-500">${c.address}</p></div>`);
+             .bindPopup(`
+                <div class="popup-card">
+                    <h3 class="font-black text-sm">${c.name}</h3>
+                    <p class="text-[9px] text-slate-500 mb-2">${c.address}</p>
+                    <a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(c.address)}" target="_blank" class="nav-btn">ナビ開始</a>
+                    <button onclick="location.href='history.html?name=${encodeURIComponent(c.name)}'" class="text-center block w-full text-[10px] text-blue-500 font-bold mt-2 underline">実績を登録</button>
+                </div>`);
         }
 
         window.initMap = async (mode = 'recent', keyword = '') => {
             markersLayer.clearLayers();
-            log("お客様データを取得中...");
+            log("お客様データを検索中...");
             try {
-                // 🌟 インデックスエラーを回避しつつ、なるべく「近日」を出すためにlimitを100に設定
                 let q = query(collection(db, "customers"), limit(100));
 
-                if (mode === 'search') {
-                    q = query(collection(db, "customers"), where("name", ">=", keyword), where("name", "<=", keyword + "\uf8ff"), limit(30));
-                }
-
-                const snap = await getDocs(q);
-                let list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-                // 🌟 JS側で「近日順」に並び替える（インデックス不要でエコ！）
-                list.sort((a, b) => (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0));
-
-                let geoCount = 0;
-                for (const c of list) {
-                    if (c.lat && c.lng) {
-                        addPin(c);
-                    } else if (c.address && c.address !== "未登録" && geoCount < 5) {
-                        // 🌟 1回に最大5件まで解析
-                        log(`${c.name} の住所を解析中...`);
-                        const coords = await getCoords(c.address, c.name);
-                        if (coords) {
-                            addPin({ ...c, ...coords });
-                            await updateDoc(doc(db, "customers", c.id), coords);
-                            geoCount++;
-                        }
-                        await new Promise(r => setTimeout(r, 1500));
-                    }
-                }
-
-                const allMarkers = markersLayer.getLayers();
-                if (allMarkers.length > 0) {
-                    const group = new L.featureGroup(allMarkers);
-                    map.fitBounds(group.getBounds().pad(0.2));
+                if (mode === 'search' && keyword) {
+                    // 名前または住所での検索（前方一致）
+                    // 🌟 住所でも検索に引っかかるようにロジックを工夫
+                    const snap = await getDocs(query(collection(db, "customers"), limit(500)));
+                    let list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    list = list.filter(c => (c.name||"").includes(keyword) || (c.address||"").includes(keyword)).slice(0, 100);
+                    processList(list);
+                } else {
+                    const snap = await getDocs(q);
+                    processList(snap.docs.map(d => ({ id: d.id, ...d.data() })));
                 }
             } catch (e) { console.error(e); }
-            document.getElementById('geo-log').style.display = 'none';
         };
+
+        async function processList(list) {
+            let geoCount = 0;
+            for (const c of list) {
+                if (c.lat && c.lng) {
+                    addPin(c);
+                } else if (c.address && c.address !== "未登録" && geoCount < 10) {
+                    log(`${c.name} の住所を解析中...`);
+                    const coords = await getCoords(c.address);
+                    if (coords) {
+                        addPin({ ...c, ...coords });
+                        await updateDoc(doc(db, "customers", c.id), coords);
+                        geoCount++;
+                    }
+                    await new Promise(r => setTimeout(r, 1200));
+                }
+            }
+            document.getElementById('geo-log').style.display = 'none';
+            
+            const allMarkers = markersLayer.getLayers();
+            if (allMarkers.length > 0) {
+                const group = new L.featureGroup(allMarkers);
+                map.fitBounds(group.getBounds().pad(0.1));
+            }
+        }
 
         window.execMapSearch = () => {
             const val = document.getElementById('mapSearchInput').value.trim();
