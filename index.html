@@ -113,28 +113,30 @@
                     const userData = snap.docs[0].data();
                     if (userData.password === password) {
                         
-                        // 🌟 1. 自分宛の未読通知を数える
+                                                // 🌟 1. 自分宛の未読通知を数える
                         const qNoti = query(collection(db, "notifications"), 
                                             where("recipient", "==", userData.name), 
                                             where("isRead", "==", false));
                         const snapNoti = await getDocs(qNoti);
                         const count = snapNoti.size;
 
-                        // 🌟 2. インフォメーションボードに書き込む（移動する前に！）
                         const container = document.getElementById('noticeContainer');
+                        
                         if (count > 0) {
+                            // 🌟 2. 通知がある場合、中身を「通知エリア」だけに書き換える（「なし」を消去）
                             container.innerHTML = `
                                 <div class="p-6 notification-flash border-b border-orange-500/30 text-center">
                                     <p class="text-orange-400 font-black text-base mb-1">📢 お知らせがあります</p>
                                     <p class="text-white text-xs font-bold">あなた宛に未読の回覧が ${count} 件届いています。</p>
                                 </div>
-                            ` + container.innerHTML;
+                            `;
                         }
 
                         // 🌟 3. ボードが書き換わった後にポップアップを出す
-                        // これにより、ユーザーはポップアップの背後でボードが変わったのを確認できます
                         setTimeout(() => {
-                            alert(`${userData.name}さん、お疲れ様です！`);
+                            let msg = `${userData.name}さん、お疲れ様です！`;
+                            if (count > 0) msg += `\n\n📢 未読の回覧が ${count} 件届いています。`;
+                            alert(msg);
                             
                             sessionStorage.setItem('userName', userData.name);
                             sessionStorage.setItem('userDept', userData.dept || '未設定');
