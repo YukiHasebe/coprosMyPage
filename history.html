@@ -295,13 +295,13 @@
     document.getElementById('staffKeyword').oninput = renderStaffList;
     document.getElementById('staffDeptFilter').onchange = renderStaffList;
 
-    // 🌟 4. 実績登録 ＆ 通知一括作成（バッジ連動）
+        // 🌟 4. 実績登録 ＆ 通知一括作成 ＆ 名簿自動更新
     const handleRegister = async () => {
         const form = document.getElementById('historyForm');
         if (!form.checkValidity()) { form.reportValidity(); return; }
 
         const btns = [document.getElementById('submitBtnTop'), document.getElementById('submitBtnBottom')];
-        btns.forEach(b => { b.disabled = true; b.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>処理中...'; });
+        btns.forEach(b => { b.disabled = true; b.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>連動更新中...'; });
 
         const visitor = document.getElementById('visitorName').value;
         const customer = document.getElementById('customerSearch').value;
@@ -329,23 +329,32 @@
         };
 
         try {
+            // ① 実績を保存
             await addDoc(collection(db, "activity_records"), recordData);
 
-            // 🌟 回覧通知ドキュメントを人数分作成
-            for (const name of circularNames) {
-                await addDoc(collection(db, "notifications"), {
-                    recipient: name,
-                    visitorName: visitor,
-                    customerName: customer,
-                    visitDate: visitDate,
-                    content: document.getElementById('customerReport').value.substring(0, 100),
-                    isRead: false,
-                    createdAt: serverTimestamp(),
-                    type: "実績回覧"
+            // ② 名簿側を自動更新（訪問回数+1、最終訪問日を今日に）
+            const qCust = query(collection(db, "customers"), where("name", "==", customer), limit(1));
+            const snapCust = await getDocs(qCust);
+            if (!snapCust.empty) {
+                const cDoc = snapCust.docs[0];
+                const currentCount = cDoc.data().visitCount || 0;
+                await updateDoc(doc(db, "customers", cDoc.id), {
+                    lastVisit: visitDate.replace(/-/g, '/'),
+                    visitCount: currentCount + 1,
+                    updatedAt: serverTimestamp()
                 });
             }
 
-            alert("登録が完了し、回覧通知を送信しました！");
+            // ③ 通知を送信
+            for (const name of circularNames) {
+                await addDoc(collection(db, "notifications"), {
+                    recipient: name, visitorName: visitor, customerName: customer,
+                    visitDate: visitDate, content: recordData.customerReport.substring(0, 50),
+                    isRead: false, createdAt: serverTimestamp(), type: "実績回覧"
+                });
+            }
+
+            alert("実績を登録し、お客様名簿を更新しました！");
             location.href = 'list_records.html';
         } catch (e) {
             console.error(e);
