@@ -11,7 +11,7 @@
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
         .table-container { border-radius: 1.5rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
         thead tr { background-color: #3c4b5a; }
-        /* 🌟 由紀オーナーこだわりの未読オレンジ背景 */
+        /* 🌟 未読時のオレンジ背景 */
         .row-unread { background-color: #fff7ed; }
         .status-badge { padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 900; white-space: nowrap; }
         .status-unread { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
@@ -41,7 +41,7 @@
                 <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-4">
                     <div>
                         <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-2">回覧一覧</h1>
-                        <nav class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Notification & Feedback</nav>
+                        <nav class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Notification & Feedback System</nav>
                     </div>
                     <div class="flex flex-wrap gap-2 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100 w-full lg:w-auto justify-center">
                         <button id="detailSearchToggle" class="flex-1 lg:flex-none px-4 py-2.5 text-slate-500 rounded-xl font-bold text-xs hover:bg-slate-50 flex items-center justify-center gap-2">
@@ -71,7 +71,7 @@
                 </div>
 
                 <!-- 件数表示 -->
-                <div class="flex flex-col sm:row justify-between items-center mb-6 gap-4 px-2">
+                <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4 px-2">
                     <div class="flex items-center gap-2 border-slate-200 h-8">
                         <span id="pageRange" class="text-xl font-black text-slate-800 tracking-tighter">0-0</span>
                         <span class="text-slate-300 font-bold">/</span>
@@ -106,7 +106,7 @@
         </div>
     </main>
 
-    <!-- 🌟 V2同期 ＆ 省エネロジック -->
+    <!-- 🌟 V2同期 ＆ 省エネ ＆ 通知連動スクリプト -->
     <script type="module">
         import { db } from "./common.js";
         import { collection, getDocs, query, where, orderBy, doc, updateDoc, limit, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -118,25 +118,29 @@
         const perPage = 20;
 
         async function init() {
-            if (!myName) return;
+            if (!myName) {
+                document.getElementById('kairanTable').innerHTML = '<tr><td colspan="7" class="p-20 text-center">ログインしてください。</td></tr>';
+                return;
+            }
+            
             const tbody = document.getElementById('kairanTable');
-            tbody.innerHTML = `<tr><td colspan="7" class="p-10 text-center text-slate-400">読み込み中...</td></tr>`;
+            tbody.innerHTML = '<tr><td colspan="7" class="p-20 text-center"><i class="fas fa-spinner fa-spin mr-2"></i>回覧を読み込み中...</td></tr>';
 
             try {
-                // 🌟 省エネ：自分宛の通知を最新100件に制限
+                // 🌟 V2: 自分宛の通知を最新50件取得
                 const q = query(
                     collection(db, "notifications"), 
                     where("recipient", "==", myName), 
                     orderBy("createdAt", "desc"),
-                    limit(100)
+                    limit(50)
                 );
                 const snap = await getDocs(q);
                 allKairan = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 filteredData = [...allKairan];
                 window.updateView();
             } catch (e) { 
-                console.error("Kairan Load Error:", e);
-                tbody.innerHTML = `<tr><td colspan="7" class="p-10 text-center text-rose-400">データの取得に失敗しました。</td></tr>`;
+                console.error(e);
+                tbody.innerHTML = '<tr><td colspan="7" class="p-20 text-center text-rose-400">取得に失敗しました。</td></tr>';
             }
         }
 
@@ -153,7 +157,7 @@
             const tbody = document.getElementById('kairanTable');
             tbody.innerHTML = "";
             if (dataList.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="p-10 text-center text-slate-400">回覧データはありません。</td></tr>`;
+                tbody.innerHTML = '<tr><td colspan="7" class="p-20 text-center text-slate-400">回覧はありません。</td></tr>';
                 return;
             }
 
@@ -177,11 +181,11 @@
                     </tr>
                     <tr class="detail-area"><td colspan="7">
                         <div class="bg-white p-6 lg:p-8 rounded-2xl border border-blue-50 m-4 shadow-inner">
-                            <div class="flex justify-between items-center mb-4">
-                                <nav class="text-[10px] font-black text-blue-400 uppercase tracking-widest">Activity Detail</nav>
-                                <span class="text-[10px] text-slate-300 font-mono">${data.id}</span>
-                            </div>
+                            <nav class="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-3">Activity Detail</nav>
                             <div class="whitespace-pre-wrap leading-relaxed text-slate-700 font-bold text-sm">${data.content || '詳細内容なし'}</div>
+                            <div class="mt-4 pt-4 border-t border-slate-50 text-right">
+                                <button onclick="location.href='customer_history.html?name=${encodeURIComponent(data.customerName)}'" class="text-[10px] bg-slate-800 text-white px-4 py-2 rounded-lg font-black hover:bg-black transition-all">全履歴を確認</button>
+                            </div>
                         </div>
                     </td></tr>
                 `;
@@ -192,13 +196,15 @@
         window.markReadAndToggle = async (id, el) => {
             const tr = el.closest('tr');
             try {
+                // 🌟 既読に更新（Firebase通信）
                 await updateDoc(doc(db, "notifications", id), { isRead: true });
                 tr.classList.remove('row-unread');
                 const badge = tr.querySelector('.status-badge');
-                badge.innerText = '既読';
-                badge.className = 'status-badge status-read';
+                if(badge) { badge.innerText = '既読'; badge.className = 'status-badge status-read'; }
+                
+                // バッジの更新を即座に反映させるためにサイドバーをリロード（簡易版：本来は再取得）
                 window.toggleRow(tr.querySelector('.fa-circle-plus'));
-            } catch (e) { console.error("Mark Read Error:", e); }
+            } catch (e) { console.error(e); }
         };
 
         window.toggleRow = (icon) => {
@@ -219,17 +225,11 @@
                 if (totalPages <= 1) return;
                 for (let i = 1; i <= totalPages; i++) {
                     const btn = document.createElement('div');
-                    btn.innerText = i;
-                    btn.className = `modern-page-btn ${currentPage === i ? 'active' : ''}`;
+                    btn.innerText = i; btn.className = `modern-page-btn ${currentPage === i ? 'active' : ''}`;
                     btn.onclick = () => { currentPage = i; window.updateView(); window.scrollTo({top: 0, behavior: 'smooth'}); };
                     container.appendChild(btn);
                 }
             });
-        };
-
-        document.getElementById('detailSearchToggle').onclick = () => {
-            const sec = document.getElementById('detailSearchSection');
-            sec.style.display = (sec.style.display === 'block') ? 'none' : 'block';
         };
 
         window.execSearch = () => {
@@ -237,7 +237,6 @@
             const visiK = document.getElementById('searchVisitor').value.toLowerCase();
             const statusK = document.getElementById('searchStatus').value;
             const dateK = document.getElementById('searchDate').value;
-
             filteredData = allKairan.filter(d => {
                 const mCust = !custK || (d.customerName||"").toLowerCase().includes(custK);
                 const mVisi = !visiK || (d.visitorName||"").toLowerCase().includes(visiK);
@@ -254,17 +253,17 @@
         };
 
         window.markAllAsRead = async () => {
-            const unreadItems = allKairan.filter(d => !d.isRead);
-            if (unreadItems.length === 0) return alert("未読の回覧はありません。");
-            if (!confirm(`${unreadItems.length}件の回覧をすべて既読にしますか？`)) return;
+            const unreads = allKairan.filter(d => !d.isRead);
+            if (unreads.length === 0) return alert("未読はありません。");
+            if (!confirm(`${unreads.length}件をすべて既読にしますか？`)) return;
+            const batch = writeBatch(db);
+            unreads.forEach(item => batch.update(doc(db, "notifications", item.id), { isRead: true }));
+            await batch.commit(); alert("完了しました。"); init();
+        };
 
-            try {
-                const batch = writeBatch(db);
-                unreadItems.forEach(item => batch.update(doc(db, "notifications", item.id), { isRead: true }));
-                await batch.commit();
-                alert("すべて既読にしました。");
-                init();
-            } catch (e) { alert("更新に失敗しました。"); }
+        document.getElementById('detailSearchToggle').onclick = () => {
+            const sec = document.getElementById('detailSearchSection');
+            sec.style.display = (sec.style.display === 'block') ? 'none' : 'block';
         };
 
         init();
