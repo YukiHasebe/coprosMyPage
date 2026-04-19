@@ -14,9 +14,8 @@
         .search-btn { background: var(--copros-blue); color: white; padding: 8px 20px; border-radius: 10px; font-weight: 900; font-size: 13px; }
         .map-control { position: absolute; top: 15px; right: 15px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
         .control-btn { background: white; width: 42px; height: 42px; border-radius: 10px; display: flex; items-center: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.15); border: 1px solid #e2e8f0; color: #475569; }
-        .control-btn:hover { background: var(--copros-orange); color: white; }
-        #geo-log { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); z-index: 1001; background: rgba(0,0,0,0.8); color: #00ff00; padding: 8px 20px; border-radius: 25px; font-size: 11px; font-weight: 800; display: none; }
-        .popup-card { min-width: 180px; padding: 5px; }
+        #geo-log { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); z-index: 1001; background: rgba(0,0,0,0.8); color: #fff; padding: 10px 20px; border-radius: 25px; font-size: 11px; font-weight: 800; display: none; text-align: center; }
+        .popup-card { min-width: 200px; padding: 5px; }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700 font-sans">
@@ -30,9 +29,9 @@
         <div id="map">
             <div id="geo-log"></div>
             <div class="map-control">
-                <button onclick="window.locateMe()" class="control-btn" title="現在地"><i class="fa-solid fa-location-crosshairs"></i></button>
-                <button onclick="window.initMap('recent')" class="control-btn" title="近日100件を表示"><i class="fa-solid fa-sync"></i></button>
-                <button onclick="window.zoomToJapan()" class="control-btn" title="全体表示"><i class="fa-solid fa-map"></i></button>
+                <button onclick="window.locateMe()" class="control-btn" title="現在地"><i class="fa-solid fa-location-crosshairs text-lg"></i></button>
+                <button onclick="window.initMap('recent')" class="control-btn" title="再読込"><i class="fa-solid fa-arrows-rotate text-lg"></i></button>
+                <button onclick="window.zoomToJapan()" class="control-btn" title="全体"><i class="fa-solid fa-map text-lg"></i></button>
             </div>
         </div>
     </main>
@@ -46,85 +45,90 @@
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OSM' }).addTo(map);
         let markersLayer = L.layerGroup().addTo(map);
 
-        function log(msg) {
+        function log(msg, isError = false) {
             const el = document.getElementById('geo-log');
             el.style.display = 'block';
-            el.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-2"></i>${msg}`;
+            el.style.color = isError ? '#ff4b4b' : '#fff';
+            el.innerHTML = `<i class="fa-solid ${isError ? 'fa-circle-exclamation' : 'fa-spinner fa-spin'} mr-2"></i>${msg}`;
         }
 
-        // 🌟 住所お掃除（もっとも重要な部分）
-        function cleanAddress(addr) {
-            if (!addr) return "";
-            // ビル名、階、号室などをバッサリ消して、番地（数字）までにする
-            let cleaned = addr.split(/[\s　]|ビル|館|階|F|様|号室/)[0];
-            // もし「-」で終わっていたら削除（例：1-1-1- などを防ぐ）
-            return cleaned.replace(/-+$/, "");
-        }
+        // 🌟 執念の解析関数（住所をどんどん短くして再試行する）
+        async function getCoords(address) {
+            if (!address) return null;
+            // 住所を「スペース」や「ビル名」で細かく切る
+            const parts = address.split(/[\s　]|ビル|館|階|F|様|号室/);
+            
+            // 試行する検索ワードのリストを作成
+            const searchWords = [
+                parts[0] + (parts[1] || ""), // 1. 県＋市＋番地（できればここまで）
+                parts[0],                    // 2. 最初のカタマリだけ
+                address.substring(0, 15)      // 3. 先頭15文字だけ
+            ];
 
-        // 🌟 執念の3段階解析
-        async function getCoords(address, name) {
-            const attempt = async (queryStr) => {
+            for (let word of searchWords) {
+                if (word.length < 5) continue; // 短すぎる言葉は無視
                 try {
-                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent('日本 ' + queryStr)}&limit=1`, { headers: { "Accept-Language": "ja" } });
+                    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent('日本 ' + word)}&limit=1`;
+                    const res = await fetch(url, { headers: { "Accept-Language": "ja" } });
                     const data = await res.json();
-                    return (data && data.length > 0) ? { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) } : null;
-                } catch (e) { return null; }
-            };
-
-            // 1手目: お掃除住所
-            let res = await attempt(cleanAddress(address));
-            // 2手目: それでもダメなら、市区町村だけ（番地を削る）
-            if (!res) res = await attempt(address.substring(0, 10));
-            // 3手目: それでもダメなら、会社名
-            if (!res) res = await attempt(name);
-
-            return res;
+                    if (data && data.length > 0) {
+                        return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+                    }
+                    // 🌟 サービスの負荷制限を守るために2秒待機
+                    await new Promise(r => setTimeout(r, 2000));
+                } catch (e) { console.error(e); }
+            }
+            return null;
         }
 
         function addPin(c) {
             const color = (c.rank && c.rank.startsWith('A')) ? '#ff7e11' : '#0ea5e9';
-            const icon = L.divIcon({ html: `<div style="background-color:${color}; width:14px; height:14px; border-radius:50%; border:2px solid white; box-shadow:0 3px 8px rgba(0,0,0,0.3);"></div>`, className: '', iconSize: [14, 14] });
+            const icon = L.divIcon({ html: `<div style="background-color:${color}; width:16px; height:16px; border-radius:50%; border:2px solid white; box-shadow:0 3px 8px rgba(0,0,0,0.3);"></div>`, className: '', iconSize: [16, 16] });
             L.marker([c.lat, c.lng], { icon }).addTo(markersLayer)
-                .bindPopup(`<div class="popup-card"><h3 class="font-black text-xs">${c.name}</h3><p class="text-[9px]">${c.address}</p></div>`);
+                .bindPopup(`<b>${c.name}</b><br><small>${c.address}</small>`);
         }
 
         window.initMap = async (mode = 'recent', keyword = '') => {
             markersLayer.clearLayers();
-            log("お客様データを抽出中...");
+            log("名簿からお客様を探しています...");
             try {
-                // 近日100件（インデックス不要の全取得後JSソートで対応）
-                const snap = await getDocs(query(collection(db, "customers"), limit(300)));
+                const snap = await getDocs(query(collection(db, "customers"), limit(100)));
                 let list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                
-                if (mode === 'search') {
+
+                if (mode === 'search' && keyword) {
                     list = list.filter(c => (c.name||"").includes(keyword) || (c.address||"").includes(keyword));
                 } else {
                     list.sort((a,b) => (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0));
                 }
-                
-                list = list.slice(0, 100); // 常に最大100件に制限
 
-                let geoCount = 0;
+                let successCount = 0;
+                let failCount = 0;
+
                 for (const c of list) {
                     if (c.lat && c.lng) {
                         addPin(c);
-                    } else if (c.address && c.address !== "未登録" && geoCount < 10) {
-                        log(`${c.name} を特定中...`);
-                        const coords = await getCoords(c.address, c.name);
+                        successCount++;
+                    } else if (c.address && c.address !== "未登録" && successCount < 5) {
+                        log(`${c.name} の位置を特定中...`);
+                        const coords = await getCoords(c.address);
                         if (coords) {
                             addPin({ ...c, ...coords });
                             await updateDoc(doc(db, "customers", c.id), coords);
-                            geoCount++;
+                            successCount++;
+                        } else {
+                            failCount++;
                         }
-                        await new Promise(r => setTimeout(r, 1200));
                     }
                 }
 
-                if (markersLayer.getLayers().length > 0) {
-                    map.fitBounds(new L.featureGroup(markersLayer.getLayers()).getBounds().pad(0.1));
+                if (successCount > 0) {
+                    const group = new L.featureGroup(markersLayer.getLayers());
+                    map.fitBounds(group.getBounds().pad(0.2));
+                    document.getElementById('geo-log').style.display = 'none';
+                } else {
+                    log("ピンを立てられませんでした。住所を簡略化してください。", true);
                 }
-                document.getElementById('geo-log').style.display = 'none';
-            } catch (e) { log("エラー：通信が制限されています"); }
+            } catch (e) { log("通信エラーが発生しました。", true); }
         };
 
         window.execMapSearch = () => {
