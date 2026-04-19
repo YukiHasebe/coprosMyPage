@@ -9,18 +9,25 @@
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        :root { --copros-blue: #87ceeb; --copros-orange: #ff7e11; }
+        :root { --copros-blue: #004098; --copros-orange: #ff7e11; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
         #map { height: calc(100vh - 64px); width: 100%; z-index: 1; }
         
         .map-control { position: absolute; top: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
-        .control-btn { background: white; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; transition: all 0.2s; color: #475569; }
+        .control-btn { background: white; width: 44px; height: 44px; border-radius: 12px; display: flex; items-center: center; justify-content: center; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; transition: all 0.2s; color: #475569; }
         .control-btn:hover { background: var(--copros-orange); color: white; transform: scale(1.05); }
 
-        .leaflet-popup-content-wrapper { border-radius: 1.2rem; padding: 5px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
-        .popup-card { min-width: 200px; padding: 10px; }
-        .nav-btn { background: #004098; color: white; padding: 8px; border-radius: 8px; width: 100%; display: block; text-align: center; font-weight: 900; font-size: 11px; margin-top: 10px; transition: all 0.2s; text-decoration: none; }
-        .nav-btn:hover { opacity: 0.9; box-shadow: 0 4px 12px rgba(0,64,152,0.3); }
+        .leaflet-popup-content-wrapper { border-radius: 1.2rem; padding: 5px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+        .popup-card { min-width: 220px; padding: 10px; }
+        .nav-btn { background: var(--copros-blue); color: white; padding: 10px; border-radius: 8px; width: 100%; display: block; text-align: center; font-weight: 900; font-size: 12px; margin-top: 10px; text-decoration: none; }
+        
+        /* 凡例 */
+        .map-legend { position: absolute; bottom: 30px; left: 20px; z-index: 1000; background: white; padding: 12px; border-radius: 1rem; box-shadow: 0 4px 15px rgba(0,0,0,0.1); font-size: 10px; font-weight: 900; border: 1px solid #e2e8f0; }
+        .legend-item { display: flex; items-center: center; gap: 8px; margin-bottom: 4px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; }
+
+        /* 🌟 住所解析中のローディング表示 */
+        #geo-loader { position: absolute; top: 80px; left: 50%; transform: translateX(-50%); z-index: 1001; background: #334155; color: white; padding: 8px 20px; border-radius: 20px; font-size: 11px; font-weight: 800; display: none; box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700">
@@ -30,10 +37,19 @@
     <main class="flex-1 flex flex-col overflow-hidden relative">
         <div id="header-placeholder"></div>
 
-        <!-- 🌟 由紀オーナーこだわりのプロ仕様コントロール -->
+        <div id="geo-loader"><i class="fa-solid fa-magnifying-glass-location fa-bounce mr-2"></i>住所を解析してピンを立てています...</div>
+
         <div class="map-control">
             <button onclick="window.locateMe()" title="現在地を表示" class="control-btn"><i class="fa-solid fa-location-crosshairs text-lg"></i></button>
             <button onclick="window.zoomToJapan()" title="全体を表示" class="control-btn"><i class="fa-solid fa-map-location-dot text-lg"></i></button>
+        </div>
+
+        <!-- 🌟 ランク別凡例 -->
+        <div class="map-legend">
+            <p class="text-slate-400 mb-2 uppercase tracking-widest text-[8px]">Pin Legend</p>
+            <div class="legend-item"><div class="dot" style="background:#ff7e11"></div><span>重要顧客 (Aa/Ab)</span></div>
+            <div class="legend-item"><div class="dot" style="background:#0ea5e9"></div><span>一般顧客 (Ba以下)</span></div>
+            <div class="legend-item"><div class="dot" style="background:#94a3b8"></div><span>取引先・他</span></div>
         </div>
 
         <div id="map"></div>
@@ -42,53 +58,94 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script type="module">
         import { db } from "./common.js";
-        import { collection, getDocs, query, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, getDocs, query, limit, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // 地図の初期化 (日本中心)
         const map = L.map('map', { zoomControl: false }).setView([35.6812, 139.7671], 5);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(map);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OSM' }).addTo(map);
 
         window.locateMe = () => { map.locate({setView: true, maxZoom: 15}); };
         window.zoomToJapan = () => { map.setView([35.6812, 139.7671], 5); };
 
-        async function init() {
+        // 🌟 ランクに合わせてピンの色を変える関数
+        function getPinColor(rank) {
+            if (!rank) return '#94a3b8';
+            if (rank.startsWith('A')) return '#ff7e11'; // オレンジ
+            if (rank.startsWith('B')) return '#0ea5e9'; // 水色
+            return '#94a3b8'; // グレー
+        }
+
+        // 🌟 住所から座標を取得する魔法の関数
+        async function getCoords(address) {
             try {
-                // 🌟 省エネ：一度に読み込むお客様を150件に制限
-                // ※現在はc.lat, c.lngがあるデータのみピンを立てます。
-                const q = query(collection(db, "customers"), limit(150));
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`);
+                const data = await res.json();
+                if (data && data.length > 0) {
+                    return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+                }
+            } catch (e) { console.error(e); }
+            return null;
+        }
+
+        async function init() {
+            const loader = document.getElementById('geo-loader');
+            try {
+                // 🌟 省エネ：最新の100件を表示
+                const q = query(collection(db, "customers"), limit(100));
                 const snap = await getDocs(q);
                 
-                snap.forEach(doc => {
-                    const c = doc.data();
-                    if (c.lat && c.lng) {
-                        const marker = L.marker([c.lat, c.lng]).addTo(map);
-                        marker.bindPopup(`
-                            <div class="popup-card">
-                                <p class="text-[10px] font-black text-slate-400 uppercase mb-1">Customer Info</p>
-                                <h3 class="text-base font-black text-slate-800 mb-1">${c.name}</h3>
-                                <p class="text-[10px] text-slate-500 mb-3"><i class="fa-solid fa-location-dot mr-1 text-rose-400"></i>${c.address || '住所未登録'}</p>
-                                <div class="flex gap-2">
-                                    <span class="bg-orange-50 text-orange-600 px-2 py-0.5 rounded text-[10px] font-black border border-orange-100">RANK: ${c.rank || '--'}</span>
-                                    <span class="bg-blue-50 text-blue-600 px-2 py-0.5 rounded text-[10px] font-black border border-blue-100">${c.type || '--'}</span>
-                                </div>
-                                <a href="history.html?name=${encodeURIComponent(c.name)}" class="nav-btn">
-                                    <i class="fa-solid fa-pen-nib mr-1"></i> 実績を登録
-                                </a>
-                                <a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(c.address)}" target="_blank" class="text-center block text-[9px] text-blue-500 font-bold mt-2 underline">
-                                    Googleマップでナビ開始
-                                </a>
-                            </div>
-                        `);
+                for (const d of snap.docs) {
+                    const c = d.data();
+                    let lat = c.lat;
+                    let lng = c.lng;
+
+                    // 🌟 座標がない場合、住所から取得を試みる
+                    if (!lat || !lng) {
+                        if (c.address && c.address !== "未登録") {
+                            loader.style.display = 'block';
+                            const coords = await getCoords(c.address);
+                            if (coords) {
+                                lat = coords.lat;
+                                lng = coords.lng;
+                                // 🌟 Firebaseに保存（次回からは解析不要にする）
+                                await updateDoc(doc(db, "customers", d.id), { lat, lng });
+                            }
+                            // API負荷を考え、少しだけ待機（マナー）
+                            await new Promise(r => setTimeout(r, 500));
+                        }
                     }
-                });
-            } catch (e) { console.error("Map Error:", e); }
+
+                    if (lat && lng) {
+                        const color = getPinColor(c.rank);
+                        const markerHtml = `
+                            <div style="background-color:${color}; width:16px; height:16px; border-radius:50%; border:2px solid white; box-shadow:0 2px 5px rgba(0,0,0,0.3);"></div>
+                        `;
+                        const icon = L.divIcon({ html: markerHtml, className: '', iconSize: [16, 16] });
+
+                        L.marker([lat, lng], { icon }).addTo(map)
+                            .bindPopup(`
+                                <div class="popup-card">
+                                    <h3 class="text-base font-black text-slate-800 mb-1">${c.name}</h3>
+                                    <p class="text-[10px] text-slate-500 mb-2">${c.address}</p>
+                                    <div class="flex gap-2 mb-3">
+                                        <span class="bg-slate-100 px-2 py-0.5 rounded text-[9px] font-black uppercase">Rank: ${c.rank || '--'}</span>
+                                    </div>
+                                    <a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(c.address)}" target="_blank" class="nav-btn">
+                                        <i class="fa-solid fa-location-arrow mr-1"></i> ここへの経路を案内
+                                    </a>
+                                    <button onclick="location.href='history.html?name=${encodeURIComponent(c.name)}'" class="text-center block w-full text-[10px] text-blue-500 font-bold mt-3 underline">
+                                        訪問実績を登録する
+                                    </button>
+                                </div>
+                            `);
+                    }
+                }
+                loader.style.display = 'none';
+            } catch (e) { console.error(e); loader.style.display = 'none'; }
         }
 
         map.on('locationfound', (e) => {
             L.circle(e.latlng, e.accuracy / 2).addTo(map);
-            L.marker(e.latlng).addTo(map).bindPopup("<b>現在地</b>").openPopup();
+            L.marker(e.latlng).addTo(map).bindPopup("<b>あなたの現在地</b>").openPopup();
         });
 
         init();
