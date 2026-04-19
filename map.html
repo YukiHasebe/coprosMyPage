@@ -9,19 +9,15 @@
         :root { --copros-blue: #004098; --copros-orange: #ff7e11; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
         #map { height: calc(100vh - 124px); width: 100%; z-index: 1; position: relative; }
-        
         .search-bar-area { background: white; padding: 10px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: center; gap: 8px; z-index: 50; }
         .search-input { width: 100%; max-width: 400px; padding: 8px 16px; border-radius: 10px; border: 1px solid #cbd5e1; font-weight: 800; font-size: 13px; }
         .search-btn { background: var(--copros-blue); color: white; padding: 8px 20px; border-radius: 10px; font-weight: 900; }
-
-        /* 🌟 ボタンをアイコンから「日本語」に変更：おじさま親切設計 */
         .map-control { position: absolute; top: 10px; right: 10px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
         .text-control-btn { background: white; padding: 8px 15px; border-radius: 10px; font-weight: 900; font-size: 11px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); border: 1px solid #e2e8f0; color: #475569; transition: all 0.2s; text-align: center; }
         .text-control-btn:hover { background: var(--copros-orange); color: white; }
-        .btn-orange { border-color: var(--copros-orange); color: var(--copros-orange); }
-
-        #geo-log { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); z-index: 1001; background: rgba(0,0,0,0.8); color: #fff; padding: 10px 20px; border-radius: 25px; font-size: 11px; font-weight: 800; display: none; text-align: center; width: 80%; max-width: 400px; }
-        .popup-card { min-width: 200px; padding: 5px; }
+        #geo-log { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); z-index: 1001; background: rgba(0,0,0,0.85); color: #fff; padding: 12px 25px; border-radius: 30px; font-size: 12px; font-weight: 800; display: none; text-align: center; width: 90%; max-width: 500px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .popup-card { min-width: 220px; padding: 5px; }
+        .last-visit-badge { font-size: 9px; padding: 2px 8px; border-radius: 4px; font-weight: 900; margin-top: 5px; display: inline-block; }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700 font-sans">
@@ -29,16 +25,15 @@
     <main class="flex-1 flex flex-col overflow-hidden relative">
         <div id="header-placeholder"></div>
         <div class="search-bar-area shadow-sm">
-            <input type="text" id="mapSearchInput" class="search-input" placeholder="地域名で検索">
+            <input type="text" id="mapSearchInput" class="search-input" placeholder="地名やお客様名で検索">
             <button onclick="window.execMapSearch()" class="search-btn">検索</button>
         </div>
         <div id="map">
             <div id="geo-log"></div>
-            <!-- 🌟 日本語ボタンに変更 -->
             <div class="map-control">
-                <button onclick="window.locateMe()" class="text-control-btn"><i class="fa-solid fa-location-crosshairs mr-1"></i>現在地を表示</button>
-                <button onclick="window.repairPins()" class="text-control-btn btn-orange"><i class="fa-solid fa-wrench mr-1"></i>ピンを10件作成</button>
-                <button onclick="window.initMap()" class="text-control-btn"><i class="fa-solid fa-sync mr-1"></i>再読み込み</button>
+                <button onclick="window.locateMe()" class="text-control-btn"><i class="fa-solid fa-location-crosshairs mr-1"></i>現在地</button>
+                <button onclick="window.repairPins()" class="text-control-btn" style="border-color:#ff7e11; color:#ff7e11"><i class="fa-solid fa-magic mr-1"></i>ピンを10件作成</button>
+                <button onclick="window.initMap()" class="text-control-btn"><i class="fa-solid fa-sync mr-1"></i>再読込</button>
             </div>
         </div>
     </main>
@@ -46,46 +41,68 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script type="module">
         import { db } from "./common.js";
-        import { collection, getDocs, query, limit, updateDoc, doc, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, getDocs, query, limit, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const map = L.map('map', { zoomControl: false }).setView([35.6812, 139.7671], 5);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OSM' }).addTo(map);
+        L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', { attribution: '© 国土地理院' }).addTo(map);
         let markersLayer = L.layerGroup().addTo(map);
 
         function log(msg) {
             const el = document.getElementById('geo-log');
             el.style.display = 'block';
-            el.innerHTML = msg;
+            el.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles fa-bounce mr-2"></i>${msg}`;
         }
 
-        // 🌟 最も成功率の高い「住所解析」関数
+        // 🌟 日本の住所に強い「国土地理院系」の解析エンジン
         async function getCoords(address) {
             if (!address || address === "未登録") return null;
-            // 住所を「県・市・番地」までに短くする
-            const cleaned = address.split(/[\s　]|ビル|館|階|F|様|号室/)[0].replace(/-+$/, "");
+            // 住所を「丁目・番地」まで削る（ビル名を完全に排除）
+            const cleaned = address.replace(/[0-9]+F$/i, "").split(/[\s　]|ビル|館|様/)[0];
             try {
-                // 1.5秒待機（無料サービスのルールを死守）
-                await new Promise(r => setTimeout(r, 1500));
-                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent('日本 ' + cleaned)}&limit=1`);
+                const res = await fetch(`https://msearch.gsi.go.jp/address-search/AddressSearch?q=${encodeURIComponent(cleaned)}`);
                 const data = await res.json();
                 if (data && data.length > 0) {
-                    return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+                    // 国土地理院APIは [lng, lat] の順で返ってくるので注意
+                    return { lat: data[0].geometry.coordinates[1], lng: data[0].geometry.coordinates[0] };
                 }
             } catch (e) { console.error(e); }
             return null;
         }
 
         function addPin(c) {
-            const color = (c.rank && c.rank.startsWith('A')) ? '#ff7e11' : '#0ea5e9';
-            const icon = L.divIcon({ html: `<div style="background-color:${color}; width:16px; height:16px; border-radius:50%; border:2px solid white; box-shadow:0 3px 8px rgba(0,0,0,0.3);"></div>`, className: '', iconSize: [16, 16] });
+            // 🌟 最終訪問日に合わせた色分け（由紀オーナーの理想）
+            let color = '#94a3b8'; // デフォルト：グレー
+            if (c.lastVisit && c.lastVisit !== "未訪問") {
+                const diffDays = (new Date() - new Date(c.lastVisit.replace(/\//g, '-'))) / (1000 * 60 * 60 * 24);
+                if (diffDays < 30) color = '#0ea5e9'; // 1ヶ月以内：青（ホット）
+                else if (diffDays > 90) color = '#ef4444'; // 3ヶ月以上：赤（ご無沙汰）
+                else color = '#ff7e11'; // その間：オレンジ
+            }
+
+            const icon = L.divIcon({ 
+                html: `<div style="background-color:${color}; width:16px; height:16px; border-radius:50%; border:2px solid white; box-shadow:0 3px 10px rgba(0,0,0,0.3);"></div>`, 
+                className: '', iconSize: [16, 16] 
+            });
+            
             L.marker([c.lat, c.lng], { icon }).addTo(markersLayer)
-                .bindPopup(`<b>${c.name}</b><br><small>${c.address}</small>`);
+                .bindPopup(`
+                    <div class="popup-card">
+                        <h3 class="font-black text-sm mb-1">${c.name}</h3>
+                        <p class="text-[10px] text-slate-500 leading-tight">${c.address}</p>
+                        <div class="last-visit-badge" style="background:${color}20; color:${color}">
+                            最終訪問: ${c.lastVisit || '未登録'}
+                        </div>
+                        <div class="flex gap-2 mt-3">
+                            <a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(c.address)}" target="_blank" class="flex-1 bg-slate-800 text-white text-[10px] py-2 rounded text-center font-black">ナビ</a>
+                            <button onclick="location.href='customer_history.html?name=${encodeURIComponent(c.name)}'" class="flex-1 bg-blue-50 text-blue-600 text-[10px] py-2 rounded font-black border border-blue-100">履歴</button>
+                        </div>
+                    </div>
+                `);
         }
 
-        // 🌟 1. 初期表示：すでにピンがある人だけを高速表示
         window.initMap = async () => {
             markersLayer.clearLayers();
-            log("<i class='fa-solid fa-spinner fa-spin mr-2'></i>名簿を読み込み中...");
+            log("名簿からお客様を呼び出しています...");
             const q = query(collection(db, "customers"), limit(300));
             const snap = await getDocs(q);
             const list = snap.docs.map(d => d.data());
@@ -93,43 +110,31 @@
             list.filter(c => c.lat && c.lng).forEach(c => addPin(c));
             
             if (markersLayer.getLayers().length > 0) {
-                const group = new L.featureGroup(markersLayer.getLayers());
-                map.fitBounds(group.getBounds().pad(0.1));
+                map.fitBounds(new L.featureGroup(markersLayer.getLayers()).getBounds().pad(0.1));
             }
             document.getElementById('geo-log').style.display = 'none';
         };
 
-        // 🌟 2. ピンを修理する：ボタンを押した時だけ住所からピンを10件作る
         window.repairPins = async () => {
-            const btn = document.querySelector('.btn-orange');
-            btn.disabled = true;
-            log("ピンがない人を10件探しています...");
-            
+            log("住所からピンを10件作成しています。少々お待ちください...");
             const snap = await getDocs(query(collection(db, "customers"), limit(500)));
-            const noPinDocs = snap.docs.filter(d => !d.data().lat).slice(0, 10);
+            const noPins = snap.docs.filter(d => !d.data().lat).slice(0, 10);
 
-            if (noPinDocs.length === 0) {
-                log("全てのピンが作成済みです！");
-                setTimeout(() => document.getElementById('geo-log').style.display = 'none', 3000);
-                btn.disabled = false;
-                return;
-            }
-
-            for (const d of noPinDocs) {
+            for (const d of noPins) {
                 const c = d.data();
-                log(`「${c.name}」の住所をピンに変換中...`);
+                log(`「${c.name}」の位置を特定中...`);
                 const coords = await getCoords(c.address);
                 if (coords) {
                     await updateDoc(doc(db, "customers", d.id), coords);
                     addPin({ ...c, ...coords });
                 }
+                await new Promise(r => setTimeout(r, 1000));
             }
             log("10件の解析が完了しました！");
-            btn.disabled = false;
-            setTimeout(() => document.getElementById('geo-log').style.display = 'none', 3000);
+            setTimeout(() => document.getElementById('geo-log').style.display = 'none', 2000);
         };
 
-        window.execMapSearch = () => { window.initMap(); /* 簡易検索 */ };
+        window.execMapSearch = () => { window.initMap(); };
         window.locateMe = () => map.locate({setView: true, maxZoom: 15});
         window.zoomToJapan = () => map.setView([35.6812, 139.7671], 5);
 
