@@ -150,7 +150,7 @@
                 
                 let eventsHtml = "";
 
-                // 実績 (visitDate)
+                 // 実績 (visitDate)
                 if (document.getElementById('showRes').checked) {
                     loadedData.records
                         .filter(r => formatDateKey(r.visitDate) === targetKey && (dept === 'ALL' || r.visitorDept === dept))
@@ -168,10 +168,11 @@
                         });
                 }
 
-                // アポ (appointDate)
+                // アポ (appointDate) 
+                // ※アポデータに部署(visitorDept)があればフィルタリング、なければ全表示
                 if (document.getElementById('showApp').checked) {
                     loadedData.appoints
-                        .filter(a => formatDateKey(a.appointDate) === targetKey && (dept === 'ALL' || a.visitorDept === dept))
+                        .filter(a => formatDateKey(a.appointDate) === targetKey && (dept === 'ALL' || !a.visitorDept || a.visitorDept === dept))
                         .forEach(a => {
                             eventsHtml += `<div class="event-label label-appoint" onclick="window.showAppointDetail('${a.id}','${a.customerName}','${a.appointDate}','${a.subject}')">アポ: ${a.customerName}</div>`;
                         });
