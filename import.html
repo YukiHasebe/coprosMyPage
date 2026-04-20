@@ -1,9 +1,7 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>データ一括登録 | CP My Page</title>
+    <meta charset="UTF-8"><title>データ一括登録 | CP My Page</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -22,10 +20,8 @@
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700">
 <div id="sidebar-placeholder"></div>
-
 <main class="flex-1 flex flex-col overflow-hidden">
     <div id="header-placeholder"></div>
-
     <div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
         <div class="max-w-5xl mx-auto">
             <div class="flex justify-between items-center mb-8">
@@ -33,7 +29,7 @@
                     <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">データー一括登録</h1>
                     <nav class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Database Maintenance V2</nav>
                 </div>
-                <button id="clearRecordsBtn" class="px-4 py-2 text-rose-400 text-[10px] font-bold hover:bg-rose-50 rounded-xl transition-all">
+                <button id="clearRecordsBtn" class="px-4 py-2 text-rose-400 text-[10px] font-bold hover:bg-rose-50 rounded-xl">
                     <i class="fa-solid fa-triangle-exclamation mr-1"></i>実績データのみ全消去
                 </button>
             </div>
@@ -42,19 +38,18 @@
                 <div class="flex gap-10 border-b border-slate-100 mb-8">
                     <button onclick="window.switchTab('staffs')" id="tab-staffs" class="tab-btn tab-staffs active">社員名簿</button>
                     <button onclick="window.switchTab('customers')" id="tab-customers" class="tab-btn tab-customers">お客様名簿</button>
-                    <button onclick="window.switchTab('activity_records')" id="tab-records" class="tab-btn tab-records">実績データ (Excel列対応済)</button>
+                    <button onclick="window.switchTab('activity_records')" id="tab-records" class="tab-btn tab-records">実績データ</button>
                 </div>
 
                 <div id="importGuide" class="p-6 rounded-2xl mb-6 border bg-slate-50">
-                    <p class="text-[10px] font-black text-slate-400 mb-3 uppercase">Excelの列順序</p>
+                    <p class="text-[10px] font-black text-slate-400 mb-3 uppercase">Excelの列順序（項目名なしで貼り付け）</p>
                     <div id="columnMapping" class="text-[11px] font-mono font-black tracking-tight leading-relaxed text-slate-600"></div>
                 </div>
 
-                <textarea id="csvData" class="w-full h-64 p-6 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none font-mono text-xs mb-8 focus:bg-white transition-all shadow-inner" placeholder="Excelのデータを項目名(1行目)なしで貼り付けてください"></textarea>
+                <textarea id="csvData" class="w-full h-64 p-6 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none font-mono text-xs mb-8 shadow-inner" placeholder="Excelからコピーしてここに貼り付けてください"></textarea>
 
-                <button id="importBtn" class="w-full py-5 text-white rounded-2xl font-black shadow-lg transition-all flex items-center justify-center gap-3 active:scale-95">
-                    <i class="fa-solid fa-cloud-arrow-up text-xl"></i>
-                    <span id="btnText" class="text-lg">インポート開始</span>
+                <button id="importBtn" class="w-full py-5 text-white rounded-2xl font-black shadow-lg transition-all flex items-center justify-center gap-3">
+                    <i class="fa-solid fa-cloud-arrow-up text-xl"></i><span id="btnText" class="text-lg">インポート開始</span>
                 </button>
             </div>
 
@@ -69,24 +64,23 @@
     </div>
 </main>
 
-<!-- 🌟 common.js から DB 接続を継承 -->
 <script type="module">
     import { db } from "./common.js";
-    import { collection, doc, setDoc, addDoc, serverTimestamp, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { collection, doc, setDoc, addDoc, serverTimestamp, getDocs, writeBatch, query, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     let currentMode = 'staffs';
     const mapping = {
         customers: "A:お客様名 | B:カナ | C:ランク | D:属性 | E:住所 | F:電話 | G:訪問回数 | H:最終訪問日",
         staffs: "A:社員番号 | B:氏名 | C:パスワード | D:メール | E:権限 | F:状態 | G:部署",
-        activity_records: "A:お客様名 | B:ランク | C:属性 | D:客先担当 | E:開始日時 | F:終了日時 | G:内容 | H:訪問者 | I:同行者 | J:定性1 | K:定性2 | L:定性3 | M:金額 | N:報告 | O:考え"
+        // 🌟 部門(P列)を追加した新しいマッピング
+        activity_records: "A:お客様名 | B:ランク | C:属性 | D:担当 | E:開始日時 | F:終了日時 | G:内容 | H:訪問者 | I:同行者 | J:定性1 | K:定性2 | L:定性3 | M:金額 | N:報告 | O:考え | P:訪問者の部門"
     };
 
     window.switchTab = (mode) => {
         currentMode = mode;
         const btn = document.getElementById('importBtn');
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        const activeTabId = mode === 'activity_records' ? 'tab-records' : `tab-${mode}`;
-        document.getElementById(activeTabId).classList.add('active');
+        document.getElementById(mode === 'activity_records' ? 'tab-records' : `tab-${mode}`).classList.add('active');
         document.getElementById('columnMapping').innerText = mapping[mode];
         
         if (mode === 'staffs') btn.className = "w-full py-5 bg-sky-500 text-white rounded-2xl font-black shadow-lg";
@@ -115,30 +109,26 @@
 
             try {
                 if (currentMode === 'customers') {
-                    const name = col[0]?.trim();
-                    const data = {
-                        name: name,
-                        kana: col[1]?.trim() || "", // 🌟 ここを'kana'に修正
+                    await addDoc(collection(db, "customers"), {
+                        name: col[0]?.trim() || "",
+                        kana: col[1]?.trim() || "",
                         rank: col[2]?.trim() || "",
-                        type: col[3]?.trim() || "", // 🌟 ここを'type'に修正
+                        type: col[3]?.trim() || "",
                         address: col[4]?.trim() || "",
                         tel: col[5]?.trim() || "",
                         visitCount: parseInt(col[6]?.trim()) || 0,
                         lastVisit: col[7]?.trim() || "未訪問",
                         updatedAt: serverTimestamp()
-                    };
-                    await addDoc(collection(db, "customers"), data);
-                    log(`お客様登録: ${name}`);
+                    });
                 } 
                 else if (currentMode === 'activity_records') {
-                    const custName = col[0]?.trim();
                     const startFull = col[4]?.trim() || "";
                     const datePart = startFull.split(' ')[0] ? startFull.split(' ')[0].replace(/\//g, '-') : "";
                     const startTime = startFull.split(' ')[1] || "00:00";
                     const endTime = (col[5]?.trim() || "").split(' ')[1] || "00:00";
 
-                    const data = {
-                        customerName: custName,
+                    await addDoc(collection(db, "activity_records"), {
+                        customerName: col[0]?.trim() || "",
                         customerRank: col[1]?.trim() || "",
                         customerType: col[2]?.trim() || "",
                         customerStaff: col[3]?.trim() || "",
@@ -154,14 +144,13 @@
                         estimatedAmount: col[12]?.trim() || "0",
                         customerReport: col[13]?.trim() || "",
                         staffThoughts: col[14]?.trim() || "",
+                        visitorDept: col[15]?.trim() || "不明", // 🌟 P列から部門を取得
                         createdAt: serverTimestamp()
-                    };
-                    await addDoc(collection(db, "activity_records"), data);
-                    log(`実績追加: ${custName} (${datePart})`);
+                    });
                 }
                 else if (currentMode === 'staffs') {
                     const docId = col[0]?.trim();
-                    const data = {
+                    await setDoc(doc(db, "staffs", docId), {
                         id: docId,
                         name: col[1]?.trim() || "",
                         password: col[2]?.trim() || "1234",
@@ -170,13 +159,10 @@
                         status: col[5]?.trim() || "有効",
                         dept: col[6]?.trim() || "営業部",
                         updatedAt: serverTimestamp()
-                    };
-                    await setDoc(doc(db, "staffs", docId), data);
-                    log(`社員登録: ${data.name}`);
+                    });
                 }
-            } catch (e) {
-                log(`エラー行 ${i+1}: ${e.message}`, "#f87171");
-            }
+                if (i % 10 === 0) log(`${i+1}件目 処理中...`);
+            } catch (e) { log(`エラー行 ${i+1}: ${e.message}`, "#f87171"); }
             document.getElementById('progressPercent').innerText = `${Math.round(((i + 1) / total) * 100)}%`;
         }
         document.getElementById('importBtn').disabled = false;
@@ -185,15 +171,14 @@
 
     document.getElementById('clearRecordsBtn').onclick = async () => {
         if (!confirm("実績データを全消去しますか？")) return;
-        log("全消去を開始（バッチ処理）...", "#f87171");
+        log("消去中...", "#f87171");
         const snap = await getDocs(collection(db, "activity_records"));
         const batch = writeBatch(db);
         snap.docs.forEach(d => batch.delete(d.ref));
         await batch.commit();
-        log("実績データを全消去しました。");
         alert("消去完了");
+        location.reload();
     };
-
     window.switchTab('staffs');
 </script>
 </body>
