@@ -167,23 +167,23 @@
         </div>
     </div>
 
-  <script type="module">
+    <script type="module">
     import { db } from "./common.js";
-    import { collection, getDocs, addDoc, serverTimestamp, query, orderBy, where, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { collection, getDocs, addDoc, updateDoc, doc, serverTimestamp, query, where, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     let allStaffs = [];
     let currentTarget = ''; 
     let modalSelected = [];
 
     async function init() {
-        // 🌟 1. 訪問者のデフォルト値をログイン名に設定
+        // 🌟 1. ログイン情報から名前と部署のデフォルト値を設定（省エネ）
         const loginUser = sessionStorage.getItem('userName') || "";
         document.getElementById('visitorName').value = loginUser;
         document.getElementById('visitDate').valueAsDate = new Date();
 
         try {
-            // 社員名簿の取得（ポップアップ用）
-            const sSnap = await getDocs(query(collection(db, "staffs"), orderBy("id")));
+            // 社員名簿の取得（ポップアップ用：1回のみ実行）
+            const sSnap = await getDocs(query(collection(db, "staffs"), limit(200)));
             allStaffs = sSnap.docs.map(doc => ({ ...doc.data() }));
 
             const depts = [...new Set(allStaffs.map(s => s.dept).filter(Boolean))];
@@ -192,12 +192,12 @@
 
             setupCustomerSearch();
 
-            // 🌟 2. URLパラメータからお客様名を取得して自動セット（お客様一覧からの遷移対応）
+            // 🌟 URLパラメータからお客様名を取得して自動セット（お客様一覧からの遷移対応）
             const params = new URLSearchParams(window.location.search);
             const nameParam = params.get('name');
             if (nameParam) {
                 document.getElementById('customerSearch').value = nameParam;
-                // 🌟 そのお客様のランクと属性をV2からピンポイントで取得（超省エネ）
+                // そのお客様のランクと属性をピンポイント取得（省エネ）
                 const q = query(collection(db, "customers"), where("name", "==", nameParam), limit(1));
                 const snap = await getDocs(q);
                 if (!snap.empty) {
@@ -209,7 +209,7 @@
         } catch (e) { console.error("Init Error:", e); }
     }
 
-    // 🌟 3. お客様名の全件検索（省エネ・デバウンス処理）
+    // 🌟 お客様名のサジェスト検索（低燃費仕様）
     function setupCustomerSearch() {
         const input = document.getElementById('customerSearch');
         const box = document.getElementById('customerSuggestions');
@@ -222,19 +222,13 @@
 
             timeout = setTimeout(async () => {
                 try {
-                    const q = query(
-                        collection(db, "customers"), 
-                        where("name", ">=", val), 
-                        where("name", "<=", val + "\uf8ff"), 
-                        limit(10)
-                    );
+                    const q = query(collection(db, "customers"), where("name", ">=", val), where("name", "<=", val + "\uf8ff"), limit(10));
                     const snap = await getDocs(q);
-                    const filtered = snap.docs.map(d => d.data());
-                    
-                    if (filtered.length > 0) {
-                        box.innerHTML = filtered.map(c => `
-                            <div class="suggestion-item" data-rank="${c.rank||'--'}" data-type="${c.type||'--'}">${c.name}</div>
-                        `).join('');
+                    if (!snap.empty) {
+                        box.innerHTML = snap.docs.map(d => {
+                            const c = d.data();
+                            return `<div class="suggestion-item" data-rank="${c.rank||'--'}" data-type="${c.type||'--'}">${c.name}</div>`;
+                        }).join('');
                         box.style.display = 'block';
                     } else { box.style.display = 'none'; }
                 } catch (e) { console.error(e); }
@@ -258,65 +252,63 @@
         document.getElementById('modalTitle').innerText = target === 'visitor' ? '訪問者を選択' : (target === 'companion' ? '同行者を選択' : '回覧者を選択');
         document.getElementById('staffModal').style.display = 'flex';
         modalSelected = [];
-        renderStaffList();
+        window.renderStaffList();
     };
-
     window.closeModal = () => document.getElementById('staffModal').style.display = 'none';
-
     window.renderStaffList = () => {
         const keyword = document.getElementById('staffKeyword').value.toLowerCase();
         const dept = document.getElementById('staffDeptFilter').value;
         const container = document.getElementById('staffList');
         const filtered = allStaffs.filter(s => (!keyword || s.name.includes(keyword)) && (!dept || s.dept === dept));
         container.innerHTML = filtered.map(s => `
-            <div class="staff-item ${modalSelected.includes(s.name) ? 'selected' : ''}" onclick="toggleStaffSelection('${s.name}')">
+            <div class="staff-item ${modalSelected.includes(s.name) ? 'selected' : ''}" onclick="window.toggleStaffSelection('${s.name}')">
                 <span>${s.name}</span><span class="text-[9px] opacity-40 uppercase font-black">${s.dept || ''}</span>
             </div>`).join('');
     };
-
     window.toggleStaffSelection = (name) => {
-        if (currentTarget === 'visitor') { modalSelected = [name]; }
+        if (currentTarget === 'visitor') modalSelected = [name];
         else {
             if (modalSelected.includes(name)) modalSelected = modalSelected.filter(n => n !== name);
             else modalSelected.push(name);
         }
-        renderStaffList();
+        window.renderStaffList();
     };
-
     window.applySelection = () => {
         const names = modalSelected.join(', ');
         if (currentTarget === 'visitor') document.getElementById('visitorName').value = names;
         if (currentTarget === 'companion') document.getElementById('companionDisplay').value = names;
         if (currentTarget === 'circular') document.getElementById('circularDisplay').innerText = names || '未選択';
-        closeModal();
+        window.closeModal();
     };
+    window.clearModalSelection = () => { modalSelected = []; window.renderStaffList(); };
 
-    window.clearModalSelection = () => { modalSelected = []; renderStaffList(); };
-    document.getElementById('staffKeyword').oninput = renderStaffList;
-    document.getElementById('staffDeptFilter').onchange = renderStaffList;
-
-        // 🌟 4. 実績登録 ＆ 通知一括作成 ＆ 名簿自動更新
+    // 🌟 登録実行：実績保存 ＆ 名簿自動更新（ここが「鉄壁」の核）
     const handleRegister = async () => {
         const form = document.getElementById('historyForm');
         if (!form.checkValidity()) { form.reportValidity(); return; }
 
         const btns = [document.getElementById('submitBtnTop'), document.getElementById('submitBtnBottom')];
-        btns.forEach(b => { b.disabled = true; b.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>連動更新中...'; });
+        btns.forEach(b => { b.disabled = true; b.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>保存中...'; });
 
         const visitor = document.getElementById('visitorName').value;
         const customer = document.getElementById('customerSearch').value;
         const visitDate = document.getElementById('visitDate').value;
         const circularNames = document.getElementById('circularDisplay').innerText.split(', ').filter(n => n !== '未選択' && n !== '');
 
+        // 🌟 訪問者の部署を特定（社員名簿から検索、なければセッションから）
+        const staffObj = allStaffs.find(s => s.name === visitor);
+        const visitorDept = staffObj ? staffObj.dept : (sessionStorage.getItem('userDept') || "不明");
+
         const recordData = {
             customerName: customer,
             customerRank: document.getElementById('autoRank').value,
             customerType: document.getElementById('autoType').value,
             visitDate: visitDate,
+            nextVisitDate: document.getElementById('nextVisitDate').value || "",
             startTime: document.getElementById('startTime').value,
             endTime: document.getElementById('endTime').value,
             visitorName: visitor,
-            visitorDept: sessionStorage.getItem('userDept') || "未設定",
+            visitorDept: visitorDept, // 🌟 部署を保存（カレンダー対応）
             visitorRole: document.querySelector('input[name="visitorRole"]:checked').value,
             companion: document.getElementById('companionDisplay').value,
             qualData1: document.getElementById('qualData1').value,
@@ -332,12 +324,12 @@
             // ① 実績を保存
             await addDoc(collection(db, "activity_records"), recordData);
 
-            // ② 名簿側を自動更新（訪問回数+1、最終訪問日を今日に）
+            // ② 名簿側を自動更新（省エネ：訪問回数+1、最終訪問日を更新）
             const qCust = query(collection(db, "customers"), where("name", "==", customer), limit(1));
             const snapCust = await getDocs(qCust);
             if (!snapCust.empty) {
                 const cDoc = snapCust.docs[0];
-                const currentCount = cDoc.data().visitCount || 0;
+                const currentCount = parseInt(cDoc.data().visitCount) || 0;
                 await updateDoc(doc(db, "customers", cDoc.id), {
                     lastVisit: visitDate.replace(/-/g, '/'),
                     visitCount: currentCount + 1,
@@ -349,12 +341,12 @@
             for (const name of circularNames) {
                 await addDoc(collection(db, "notifications"), {
                     recipient: name, visitorName: visitor, customerName: customer,
-                    visitDate: visitDate, content: recordData.customerReport.substring(0, 50),
+                    visitDate: visitDate, content: "【実績】" + recordData.customerReport.substring(0, 40),
                     isRead: false, createdAt: serverTimestamp(), type: "実績回覧"
                 });
             }
 
-            alert("実績を登録し、お客様名簿を更新しました！");
+            alert("登録完了！お客様名簿も自動更新しました。");
             location.href = 'list_records.html';
         } catch (e) {
             console.error(e);
@@ -365,7 +357,6 @@
 
     document.getElementById('submitBtnTop').onclick = handleRegister;
     document.getElementById('submitBtnBottom').onclick = handleRegister;
-
     init();
 </script>
 </body>
