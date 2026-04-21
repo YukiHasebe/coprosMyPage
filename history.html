@@ -141,6 +141,7 @@
                             <i class="fa-solid fa-paper-plane"></i> 登録を実行
                         </button>
                     </div>
+                    
                 </form>
             </div>
         </div>
@@ -156,7 +157,7 @@
             <div class="p-4 bg-slate-50 border-b border-slate-100">
                 <div class="grid grid-cols-2 gap-2 mb-2">
                     <input type="text" id="staffKeyword" placeholder="氏名検索..." class="p-2.5 rounded-lg border border-slate-200 text-xs font-bold outline-none focus:border-blue-400 transition-all">
-                    <select id="staffDeptFilter" class="p-2.5 rounded-lg border border-slate-200 text-xs font-bold outline-none focus:border-blue-400 transition-all"><option value="">全ての部署</option></select>
+                    <select id="staffDeptFilter" onchange="window.renderStaffList()" class="p-2.5 rounded-lg border border-slate-200 text-xs font-bold outline-none focus:border-blue-400 transition-all"><option value="">全ての部署</option></select>
                 </div>
             </div>
             <div id="staffList" class="overflow-y-auto custom-scrollbar" style="height: 300px;"></div>
