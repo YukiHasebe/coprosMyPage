@@ -187,7 +187,7 @@
             allStaffs = sSnap.docs.map(doc => ({ ...doc.data() }));
 
             const depts = [...new Set(allStaffs.map(s => s.dept).filter(Boolean))];
-            const deptSelect = document.getElementById('staffDeptFilter');
+            deptSelect.onchange = () => window.renderStaffList();
             depts.forEach(d => deptSelect.insertAdjacentHTML('beforeend', `<option value="${d}">${d}</option>`));
 
             setupCustomerSearch();
