@@ -149,6 +149,25 @@
             await batch.commit(); alert("完了"); init();
         };
 
+        // 148行目付近に追加
+window.deleteSelected = async () => {
+    const checks = document.querySelectorAll('.item-check:checked');
+    if (checks.length === 0) return alert("消去する項目を選んでください");
+    if (!confirm(`${checks.length}件の通知を消去しますか？`)) return;
+
+    const batch = writeBatch(db);
+    checks.forEach(cb => {
+        const docId = cb.closest('tr').querySelector('td:nth-child(3) i').getAttribute('onclick').match(/'([^']+)'/)[1];
+        batch.delete(doc(db, "notifications", docId));
+    });
+
+    try {
+        await batch.commit();
+        alert("消去しました");
+        init();
+    } catch (e) { alert("失敗しました"); }
+　　　};
+       
         init();
     </script>
 </body>
