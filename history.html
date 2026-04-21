@@ -38,7 +38,7 @@
                         <nav class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Activity Report Registration</nav>
                     </div>
                     <div class="flex gap-2 w-full lg:w-auto">
-                        <button type="button" class="flex-1 lg:flex-none px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 shadow-sm transition-all">下書き</button>
+                        <button type="button" onclick="window.saveDraft()" class="flex-1 lg:flex-none px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 shadow-sm transition-all">下書き保存</button>
                         <button type="button" id="submitBtnTop" class="flex-1 lg:flex-none px-10 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-sm hover:shadow-lg transition-all flex items-center justify-center gap-2 active:scale-95">
                             <i class="fa-solid fa-paper-plane"></i> 登録を実行
                         </button>
@@ -128,7 +128,7 @@
                     </div>
 
                     <div class="flex justify-center gap-4 py-12 border-t border-slate-100 mt-10">
-                        <button type="button" class="px-8 py-3 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all shadow-sm">下書き保存</button>
+                        <button type="button" onclick="window.saveDraft()" class="px-8 py-3 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all shadow-sm">下書き保存</button>
                         <button type="button" id="submitBtnBottom" onclick="document.getElementById('submitBtnTop').click()" class="px-16 py-3 bg-[#004098] text-white rounded-xl font-black text-sm hover:shadow-lg flex items-center gap-2 active:scale-95 transition-all">
                             <i class="fa-solid fa-paper-plane"></i> 登録を実行
                         </button>
@@ -337,6 +337,51 @@
         document.getElementById('submitBtnTop').onclick = handleRegister;
         document.getElementById('submitBtnBottom').onclick = handleRegister;
         init();
+　　　　　　　
+        　　　    // 🌟 下書き保存機能（ブラウザに保存）
+    window.saveDraft = () => {
+        const draftData = {
+            customerName: document.getElementById('customerSearch').value,
+            autoRank: document.getElementById('autoRank').value,
+            autoType: document.getElementById('autoType').value,
+            visitDate: document.getElementById('visitDate').value,
+            startTime: document.getElementById('startTime').value,
+            endTime: document.getElementById('endTime').value,
+            visitorName: document.getElementById('visitorName').value,
+            companion: document.getElementById('companionDisplay').value,
+            customerReport: document.getElementById('customerReport').value,
+            staffThoughts: document.getElementById('staffThoughts').value,
+            circular: document.getElementById('circularDisplay').innerText
+        };
+        localStorage.setItem('cp_draft_history', JSON.stringify(draftData));
+        alert("ブラウザに下書きを保存しました。\n※この端末（スマホ/PC）のこのブラウザでのみ復元できます。");
+    };
+
+    // 🌟 ページ読み込み時に下書きがあれば復元する（即時実行関数）
+    (() => {
+        const saved = localStorage.getItem('cp_draft_history');
+        if (saved) {
+            setTimeout(() => {
+                if (confirm("未送信の下書きがあります。復元しますか？")) {
+                    const d = JSON.parse(saved);
+                    document.getElementById('customerSearch').value = d.customerName || "";
+                    document.getElementById('autoRank').value = d.autoRank || "--";
+                    document.getElementById('autoType').value = d.autoType || "--";
+                    document.getElementById('visitDate').value = d.visitDate || "";
+                    document.getElementById('startTime').value = d.startTime || "";
+                    document.getElementById('endTime').value = d.endTime || "";
+                    document.getElementById('visitorName').value = d.visitorName || "";
+                    document.getElementById('companionDisplay').value = d.companion || "";
+                    document.getElementById('customerReport').value = d.customerReport || "";
+                    document.getElementById('staffThoughts').value = d.staffThoughts || "";
+                    document.getElementById('circularDisplay').innerText = d.circular || "未選択";
+                } else {
+                    localStorage.removeItem('cp_draft_history'); // 復元しない場合は削除
+                }
+            }, 500); // 初期化待ち
+        }
+    })();
+        
     </script>
 </body>
 </html>
