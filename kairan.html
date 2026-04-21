@@ -5,16 +5,17 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --copros-orange: #ff7e11; }
+        :root { --copros-orange: #ff7e11; --copros-blue: #004098; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
-        .table-container { border-radius: 1.5rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
+        .table-container { border-radius: 2rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
         thead tr { background-color: #3c4b5a; }
         .row-unread { background-color: #fff7ed; }
-        .status-badge { padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 900; }
+        .status-badge { padding: 4px 10px; border-radius: 8px; font-size: 10px; font-weight: 900; display: inline-block; }
         .status-unread { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
         .status-read { background: #f1f5f9; color: #94a3b8; }
         .detail-area { display: none; background: #f8fafc; border-top: 1px solid #e2e8f0; }
-        .modern-page-btn.active { background: #334155; color: white; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700">
@@ -23,24 +24,32 @@
         <div id="header-placeholder"></div>
         <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1400px] mx-auto">
-                <div class="flex justify-between items-end mb-8">
+                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-4">
                     <div>
                         <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">回覧一覧</h1>
                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Notification & Feedback</p>
                     </div>
-                    <button onclick="window.markAllAsRead()" class="px-6 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-xs hover:shadow-lg transition-all active:scale-95">
-                        <i class="fa-solid fa-check-double mr-1"></i> 一括既読
-                    </button>
-                    <button onclick="window.deleteSelected()" class="px-6 py-2.5 bg-rose-50 text-rose-600 rounded-xl text-xs font-black hover:bg-rose-100 transition-all ml-2">
-　　　　　　　　　　　    <i class="fa-solid fa-trash-can mr-1"></i> 選択消去
-　　　　　　　　　　　</button>
+                    <div class="flex gap-3">
+                        <button onclick="window.markAllAsRead()" class="px-6 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-xs hover:shadow-lg transition-all active:scale-95 flex items-center gap-2">
+                            <i class="fa-solid fa-check-double"></i> 一括既読
+                        </button>
+                        <button onclick="window.deleteSelected()" class="px-6 py-2.5 bg-rose-50 text-rose-600 rounded-xl font-bold text-xs hover:bg-rose-100 transition-all flex items-center gap-2">
+                            <i class="fa-solid fa-trash-can"></i> 選択消去
+                        </button>
+                    </div>
                 </div>
 
                 <div class="table-container overflow-x-auto mb-20">
                     <table class="w-full text-left border-collapse min-w-[1000px]">
                         <thead>
                             <tr class="text-white text-[10px] font-black uppercase text-center">
-                                <th class="p-6 w-16 opacity-50">No</th><th class="p-6 w-32">種別</th><th class="p-6">訪問日時</th><th class="p-6 w-24">状態</th><th class="p-6">報告者</th><th class="p-6 text-left">お客様名</th><th class="p-6 w-16">選択</th>
+                                <th class="p-6 w-16 opacity-50">No</th>
+                                <th class="p-6 w-32">種別</th>
+                                <th class="p-6">訪問日時</th>
+                                <th class="p-6 w-24">状態</th>
+                                <th class="p-6">報告者</th>
+                                <th class="p-6 text-left">お客様名</th>
+                                <th class="p-6 w-16">選択</th>
                             </tr>
                         </thead>
                         <tbody id="kairanTable" class="text-sm font-bold bg-white">
@@ -52,9 +61,10 @@
         </div>
     </main>
 
+    <script type="module" src="common.js"></script>
     <script type="module">
         import { db } from "./common.js";
-        import { collection, getDocs, query, where, doc, updateDoc, writeBatch, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, getDocs, query, where, doc, updateDoc, writeBatch, limit, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const myName = sessionStorage.getItem('userName');
         let allKairan = [];
@@ -63,18 +73,13 @@
             if (!myName) return;
             const tbody = document.getElementById('kairanTable');
             try {
-                // 🌟 インデックスエラーを避けるため、シンプルなクエリで取得（最大100件）
+                // シンプルなクエリで取得（最大100件）
                 const q = query(collection(db, "notifications"), where("recipient", "==", myName), limit(100));
                 const snap = await getDocs(q);
                 allKairan = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 
-                // 🌟 最新が一番上に来るようにJS側で並び替え
-                allKairan.sort((a, b) => {
-                    const timeA = a.createdAt?.seconds || 0;
-                    const timeB = b.createdAt?.seconds || 0;
-                    return timeB - timeA;
-                });
-
+                // 最新順にソート
+                allKairan.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
                 renderTable(allKairan);
             } catch (e) {
                 console.error(e);
@@ -82,7 +87,7 @@
             }
         }
 
-        function renderTable(dataList) {
+        window.renderTable = (dataList) => {
             const tbody = document.getElementById('kairanTable');
             if (dataList.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="7" class="p-20 text-center text-slate-400">回覧はありません。</td></tr>';
@@ -105,19 +110,21 @@
                         </td>
                         <td class="p-6 text-center">${data.visitorName || '不明'}</td>
                         <td class="p-6 text-left font-black text-slate-800">${data.customerName || '不明'}</td>
-                        <td class="p-6 text-center"><input type="checkbox" class="item-check w-5 h-5 accent-blue-600 rounded" data-id="${data.id}"></td>
+                        <td class="p-6 text-center">
+                            <input type="checkbox" class="item-check w-5 h-5 accent-blue-600 rounded cursor-pointer" value="${data.id}">
+                        </td>
                     </tr>
                     <tr class="detail-area"><td colspan="7">
                         <div class="bg-white p-6 rounded-2xl border border-blue-50 m-4 shadow-inner">
                             <p class="text-[10px] font-black text-blue-400 uppercase mb-3">Activity Detail</p>
-                            <div class="whitespace-pre-wrap leading-relaxed text-slate-700 font-bold text-sm">${data.content || '詳細なし'}</div>
-                            <div class="mt-4 pt-4 border-t border-slate-50 text-right">
+                            <div class="whitespace-pre-wrap leading-relaxed text-slate-700 font-bold text-sm mb-4">${data.content || '詳細なし'}</div>
+                            <div class="text-right">
                                 <button onclick="location.href='customer_history.html?name=${encodeURIComponent(data.customerName)}'" class="text-[10px] bg-slate-800 text-white px-4 py-2 rounded-lg font-black hover:bg-black transition-all">全履歴を確認</button>
                             </div>
                         </div>
                     </td></tr>`;
             }).join('');
-        }
+        };
 
         window.markReadAndToggle = async (id, el) => {
             const tr = el.closest('tr');
@@ -125,13 +132,13 @@
                 await updateDoc(doc(db, "notifications", id), { isRead: true });
                 tr.classList.remove('row-unread');
                 const badge = tr.querySelector('.status-badge');
-                badge.innerText = '既読';
-                badge.className = 'status-badge status-read';
+                if(badge) { badge.innerText = '既読'; badge.className = 'status-badge status-read'; }
                 window.toggleRow(tr.querySelector('.fa-circle-plus'));
             } catch (e) { console.error(e); }
         };
 
         window.toggleRow = (icon) => {
+            if(!icon) return;
             const row = icon.closest('tr');
             const detail = row.nextElementSibling;
             const isOpen = detail.style.display === 'table-row';
@@ -146,28 +153,26 @@
             if (!confirm("すべて既読にしますか？")) return;
             const batch = writeBatch(db);
             unreads.forEach(item => batch.update(doc(db, "notifications", item.id), { isRead: true }));
-            await batch.commit(); alert("完了"); init();
+            await batch.commit(); init();
         };
 
-        // 148行目付近に追加
-window.deleteSelected = async () => {
-    const checks = document.querySelectorAll('.item-check:checked');
-    if (checks.length === 0) return alert("消去する項目を選んでください");
-    if (!confirm(`${checks.length}件の通知を消去しますか？`)) return;
+        window.deleteSelected = async () => {
+            const checks = document.querySelectorAll('.item-check:checked');
+            if (checks.length === 0) return alert("消去する項目を選んでください");
+            if (!confirm(`${checks.length}件の通知を消去しますか？`)) return;
 
-    const batch = writeBatch(db);
-    checks.forEach(cb => {
-        const docId = cb.closest('tr').querySelector('td:nth-child(3) i').getAttribute('onclick').match(/'([^']+)'/)[1];
-        batch.delete(doc(db, "notifications", docId));
-    });
+            const batch = writeBatch(db);
+            checks.forEach(cb => {
+                batch.delete(doc(db, "notifications", cb.value));
+            });
 
-    try {
-        await batch.commit();
-        alert("消去しました");
-        init();
-    } catch (e) { alert("失敗しました"); }
-　　　};
-       
+            try {
+                await batch.commit();
+                alert("消去しました");
+                init();
+            } catch (e) { alert("失敗しました"); }
+        };
+
         init();
     </script>
 </body>
