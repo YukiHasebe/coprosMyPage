@@ -5,14 +5,14 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --copros-orange: #ff7e11; --copros-blue: #004098; }
+        :root { --copros-blue: #87ceeb; --copros-orange: #ff7e11; --copros-navy: #004098; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
         .tab-btn { padding: 0.8rem 1.5rem; font-size: 0.75rem; font-weight: 900; transition: all 0.3s; border-bottom: 3px solid transparent; opacity: 0.4; white-space: nowrap; }
         .tab-btn.active { opacity: 1; color: #0ea5e9; border-bottom-color: #0ea5e9; }
         .table-container { border-radius: 1.5rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
         thead tr { background-color: #3c4b5a; }
         .year-btn { padding: 0.5rem 1rem; border-radius: 0.75rem; font-weight: 900; font-size: 0.75rem; transition: all 0.2s; border: 1px solid #e2e8f0; background: white; color: #64748b; }
-        .year-btn:hover { background: #f8fafc; color: var(--copros-orange); }
+        .year-btn:hover { background: #f1f5f9; color: var(--copros-orange); }
         .scope-select { background: #e2e8f0; border: none; padding: 0.4rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; appearance: none; cursor: pointer; }
         .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
@@ -25,34 +25,34 @@
         <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1200px] mx-auto">
                 
-                <!-- 🌟 ヘッドエリア：左にタイトル、中央に月切り替え、右はなし -->
-                <div class="flex flex-col lg:flex-row items-center lg:items-end mb-8 relative">
-                    <!-- 左寄せ：タイトル ＆ 部署フィルター -->
-                    <div class="flex items-end gap-6 w-full lg:w-auto">
+                <!-- ヘッドエリア：左にタイトルと部署 -->
+                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-6">
+                    <div class="flex items-end gap-6">
                         <div>
                             <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">組織員利用状況</h1>
-                            <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest text-left">Monthly Staff Performance Summary</nav>
+                            <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Performance Analytics Dashboard</nav>
                         </div>
                         <select id="deptFilter" onchange="window.renderTable()" class="scope-select shadow-inner mb-2">
                             <option value="ALL">全社表示</option>
                             <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option><option>土木部</option><option>建築部</option><option>建機部</option><option>総務部</option><option>購買課</option><option>宮崎産商</option><option>企画部</option>
                         </select>
                     </div>
-
-                    <!-- 🌟 中央寄せ：月切り替えツール（携帯でも中央） -->
-                    <div class="lg:absolute lg:left-1/2 lg:transform lg:-translate-x-1/2 mt-6 lg:mt-0 flex justify-center">
-                        <div class="flex items-center gap-3 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100">
-                            <button onclick="window.changeMonth(-1)" class="year-btn shadow-sm">前月</button>
-                            <span id="displayMonth" class="text-base font-black text-slate-700 px-6 min-w-[120px] text-center">----年--月</span>
-                            <button onclick="window.changeMonth(1)" class="year-btn shadow-sm">翌月</button>
-                        </div>
-                    </div>
                 </div>
 
-                <!-- タブ：お客様訪問状況がデフォルト -->
-                <div class="flex gap-2 mb-8 bg-white w-fit p-1 rounded-2xl shadow-sm border border-slate-200">
-                    <button onclick="window.switchMode('visit')" id="tab-visit" class="tab-btn active rounded-xl">お客様訪問状況</button>
-                    <button onclick="window.switchMode('usage')" id="tab-usage" class="tab-btn rounded-xl">実績登録状況</button>
+                <!-- 🌟 修正：タブと月切り替えツールを「一列」に配置 -->
+                <div class="flex flex-col lg:flex-row justify-between items-center mb-8 gap-4">
+                    <!-- 左側：タブ -->
+                    <div class="flex gap-2 bg-white p-1 rounded-2xl shadow-sm border border-slate-200">
+                        <button onclick="window.switchMode('visit')" id="tab-visit" class="tab-btn active rounded-xl">お客様訪問状況</button>
+                        <button onclick="window.switchMode('usage')" id="tab-usage" class="tab-btn rounded-xl">実績登録状況</button>
+                    </div>
+
+                    <!-- 右側：月切り替えツール -->
+                    <div class="flex items-center gap-3 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100">
+                        <button onclick="window.changeMonth(-1)" class="year-btn shadow-sm">前月</button>
+                        <span id="displayMonth" class="text-base font-black text-slate-700 px-4 min-w-[120px] text-center">----年--月</span>
+                        <button onclick="window.changeMonth(1)" class="year-btn shadow-sm">翌月</button>
+                    </div>
                 </div>
 
                 <div class="table-container custom-scrollbar overflow-x-auto bg-white">
@@ -63,7 +63,7 @@
                         <tbody id="statsTable" class="divide-y divide-slate-100 text-sm font-bold"></tbody>
                     </table>
                 </div>
-                <div id="loading" class="py-20 text-center"><div class="animate-spin mb-4 text-blue-400 text-4xl"><i class="fa-solid fa-circle-notch"></i></div><p class="text-slate-400 font-bold">実績を集計中...</p></div>
+                <div id="loading" class="py-20 text-center"><div class="animate-spin mb-4 text-blue-400 text-4xl"><i class="fa-solid fa-circle-notch"></i></div><p class="text-slate-400 font-bold">集計中...</p></div>
             </div>
         </div>
     </main>
@@ -77,22 +77,34 @@
         let currentMode = 'visit';
         let targetDate = new Date();
 
+        // 🌟 日付を比較可能な形に整える関数
+        function normalizeDate(str) {
+            if (!str) return "";
+            const d = new Date(str.replace(/\//g, '-'));
+            if (isNaN(d.getTime())) return "";
+            return `${d.getFullYear()}-${d.getMonth() + 1}`; // 2026-1 形式
+        }
+
         async function fetchAndRender() {
             const loading = document.getElementById('loading');
             loading.style.display = 'block';
             document.getElementById('statsTable').innerHTML = "";
             
             const y = targetDate.getFullYear();
-            const m = String(targetDate.getMonth() + 1).padStart(2, '0');
+            const m = targetDate.getMonth() + 1;
             document.getElementById('displayMonth').innerText = `${y}年 ${m}月`;
-            const prefix = `${y}-${m}-`;
+            
+            // 比較用のキー（2026-1 または 2026-01 の両方を考慮）
+            const targetKey1 = `${y}-${m}`;
+            const targetKey2 = `${y}-${String(m).padStart(2, '0')}`;
 
             try {
-                // 指定した月の実績を取得
+                // その年の実績を広めに取得（スラッシュ/ハイフン混合対応）
                 const qRecords = query(
                     collection(db, "activity_records"),
-                    where("visitDate", ">=", prefix),
-                    where("visitDate", "<=", prefix + "\uf8ff")
+                    where("visitDate", ">=", `${y}`),
+                    where("visitDate", "<=", `${y}\uf8ff`),
+                    limit(1000)
                 );
 
                 const [staffSnap, recordSnap] = await Promise.all([
@@ -103,15 +115,19 @@
                 const staffs = staffSnap.docs.map(d => d.data());
                 const records = recordSnap.docs.map(d => d.data());
 
-                // 🌟 実績がある社員だけを集計（省エネ＆正確）
+                // 実績がある社員だけを集計
                 staffStats = staffs.map(staff => {
-                    const myRecords = records.filter(r => r.visitorName === staff.name);
+                    // 🌟 修正：2026/1/6 も 2026-01-06 も確実にヒットさせる
+                    const myRecords = records.filter(r => {
+                        const norm = normalizeDate(r.visitDate);
+                        return r.visitorName === staff.name && (norm === targetKey1 || norm === targetKey2);
+                    });
+
                     if (myRecords.length === 0) return null;
 
                     let totalMinutes = 0;
                     myRecords.forEach(r => {
-                        const dateStr = r.visitDate.replace(/\//g, '-');
-                        if (dateStr.startsWith(prefix) && r.startTime && r.endTime) {
+                        if(r.startTime && r.endTime) {
                             const s = r.startTime.split(':'); const e = r.endTime.split(':');
                             const diff = (parseInt(e[0]||0)*60 + parseInt(e[1]||0)) - (parseInt(s[0]||0)*60 + parseInt(s[1]||0));
                             if (diff > 0) totalMinutes += diff;
@@ -147,7 +163,7 @@
             const filtered = selectedDept === 'ALL' ? staffStats : staffStats.filter(s => s.dept === selectedDept);
 
             if (currentMode === 'visit') {
-                head.innerHTML = '<th class="p-6 w-24">社員番号</th><th class="p-6">氏名</th><th class="p-6 text-left">部署</th><th class="p-6 text-center">訪問顧客数</th><th class="p-6 text-center">平均滞在時間</th>';
+                head.innerHTML = '<th class="p-6 w-24">社員番号</th><th class="p-6 text-left">氏名</th><th class="p-6 text-left">部署</th><th class="p-6 text-center">訪問顧客数</th><th class="p-6 text-center">平均滞在時間</th>';
                 filtered.sort((a,b)=>b.visitCount-a.visitCount).forEach(s => {
                     body.insertAdjacentHTML('beforeend', `
                         <tr class="hover:bg-emerald-50/30 transition-all border-b border-slate-50 text-center">
@@ -159,7 +175,7 @@
                         </tr>`);
                 });
             } else {
-                head.innerHTML = '<th class="p-6 w-24">社員番号</th><th class="p-6">氏名</th><th class="p-6 text-left">部署</th><th class="p-6 text-center">実績登録数</th>';
+                head.innerHTML = '<th class="p-6 w-24">社員番号</th><th class="p-6 text-left">氏名</th><th class="p-6 text-left">部署</th><th class="p-6 text-center">実績登録数</th>';
                 filtered.sort((a,b)=>b.recordCount-a.recordCount).forEach(s => {
                     body.insertAdjacentHTML('beforeend', `
                         <tr class="hover:bg-sky-50/30 transition-all border-b border-slate-50 text-center">
