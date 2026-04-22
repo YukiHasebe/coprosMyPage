@@ -45,7 +45,7 @@
                         <div class="space-y-2"><label class="text-slate-400">訪問者名</label><input type="text" id="filterVisitor" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="氏名検索"></div>
                         <div class="md:col-span-2 space-y-2"><label class="text-slate-400">訪問期間</label><div class="flex items-center gap-2"><input type="date" id="startDate" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl"><span>〜</span><input type="date" id="endDate" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl"></div></div>
                     </div>
-                    <div class="flex justify-center gap-4 mt-8"><button onclick="window.executeSearch()" class="bg-[#334155] text-white px-12 py-3 rounded-xl font-bold shadow-lg active:scale-95 transition-all">検索実行</button><button onclick="window.clearSearch()" class="text-slate-400 px-8 py-3 font-bold">クリア</button></div>
+                    <div class="flex justify-center gap-4 mt-8"><button onclick="window.executeSearch()" class="bg-[#334155] text-white px-12 py-3 rounded-xl font-bold shadow-lg active:scale-95 transition-all">検索実行</button><button onclick="window.clearSearch()" class="text-slate-400 px-8 py-3 font-bold hover:text-slate-600">クリア</button></div>
                 </div>
 
                 <div class="flex items-center gap-6 mb-6">
@@ -59,9 +59,7 @@
                 <div class="table-container overflow-x-auto mb-24">
                     <table class="w-full text-left border-collapse min-w-[1000px]">
                         <thead>
-                            <tr class="text-white text-[10px] font-black uppercase text-center">
-                                <th class="p-6 w-16 opacity-50">No</th><th class="p-6 text-left w-[280px]">お客様名</th><th class="p-6 w-[250px]">訪問日時 / 滞在</th><th class="p-6">訪問者</th><th class="p-6 w-16 opacity-30">詳細</th><th class="p-6 w-16 opacity-30"><i class="fa-solid fa-check-double"></i></th>
-                            </tr>
+                            <tr class="text-white text-[10px] font-black uppercase text-center"><th class="p-6 w-16 opacity-50">No</th><th class="p-6 text-left w-[280px]">お客様名</th><th class="p-6 w-[250px]">訪問日時 / 滞在</th><th class="p-6">訪問者</th><th class="p-6 w-16 opacity-30">詳細</th><th class="p-6 w-16 opacity-30"><i class="fa-solid fa-check-double"></i></th></tr>
                         </thead>
                         <tbody id="recordTable" class="divide-y divide-slate-100 text-sm font-bold bg-white text-center"></tbody>
                     </table>
@@ -69,12 +67,23 @@
             </div>
         </div>
     </main>
+
     <script type="module" src="common.js"></script>
     <script type="module">
         import { db } from "./common.js";
         import { collection, getDocs, query, limit, doc, writeBatch, where, orderBy, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
         let allRecords = []; let currentKana = 'all';
+
+        function normalizeDate(str) {
+            if (!str) return "";
+            const d = new Date(str.replace(/\//g, '-'));
+            if (isNaN(d.getTime())) return str;
+            return d.toISOString().split('T')[0];
+        }
+
         async function init() { window.executeSearch(); }
+
         window.executeSearch = async () => {
             const tbody = document.getElementById('recordTable');
             tbody.innerHTML = `<tr><td colspan="6" class="p-16 text-center text-slate-400 font-bold italic">データを照合中...</td></tr>`;
@@ -83,24 +92,31 @@
             const startD = document.getElementById('startDate').value;
             const endD = document.getElementById('endDate').value;
             const dept = document.getElementById('deptFilter').value;
+
             try {
                 let q = query(collection(db, "activity_records"), orderBy("visitDate", "desc"), limit(100));
                 if (visiK) q = query(collection(db, "activity_records"), where("visitorName", ">=", visiK), where("visitorName", "<=", visiK + '\uf8ff'), orderBy("visitorName"), limit(100));
                 else if (custK) q = query(collection(db, "activity_records"), where("customerName", ">=", custK), where("customerName", "<=", custK + '\uf8ff'), orderBy("customerName"), limit(100));
+
                 const snap = await getDocs(q);
                 allRecords = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                if (startD) allRecords = allRecords.filter(r => r.visitDate >= startD);
-                if (endD) allRecords = allRecords.filter(r => r.visitDate <= endD);
+
+                if (startD) allRecords = allRecords.filter(r => normalizeDate(r.visitDate) >= startD);
+                if (endD) allRecords = allRecords.filter(r => normalizeDate(r.visitDate) <= endD);
                 if (dept !== 'ALL') allRecords = allRecords.filter(r => r.visitorDept === dept);
                 window.updateView();
-            } catch (e) { if (e.message.includes("index")) tbody.innerHTML = `<tr><td colspan="6" class="p-16 text-center text-rose-500 font-bold">一度きりの設定が必要です。F12を押し、ConsoleのURLをクリックして「保存」してください。</td></tr>`; }
+            } catch (e) {
+                if (e.message.includes("index")) tbody.innerHTML = `<tr><td colspan="6" class="p-16 text-center text-rose-500 font-bold">一度きりの設定が必要です。F12を押し、リンクをクリックして保存してください。</td></tr>`;
+            }
         };
+
         window.setKanaFilter = (btn, kana) => {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active', 'text-white'));
             btn.classList.add('active', 'text-white');
             currentKana = kana;
             window.updateView();
         };
+
         window.updateView = () => {
             let filtered = allRecords;
             const rangeMap = { 'あ': /^[あ-おア-オ安阿伊藤]/, 'か': /^[か-こカ-コ加河]/, 'さ': /^[さ-そサ-ソ佐佐藤]/, 'た': /^[た-とタ-トだ-ど田高]/, 'な': /^[な-のナ-ノ内中]/, 'は': /^[は-ほハ-ホ波橋]/, 'ま': /^[ま-もマ-モ前松]/, 'や': /^[や-よヤ-ヨ山谷]/ };
@@ -110,13 +126,14 @@
             }
             renderTable(filtered);
         };
+
         function renderTable(dataList) {
             const tbody = document.getElementById('recordTable');
             tbody.innerHTML = dataList.map((data, i) => {
                 let dur = "";
                 if(data.startTime && data.endTime && data.startTime !== "00:00") {
                     const s = data.startTime.split(':'); const e = data.endTime.split(':');
-                    const diff = (parseInt(e[0])*60+parseInt(e[1])) - (parseInt(s[0])*60+parseInt(s[1]));
+                    const diff = (parseInt(e[0])*60+parseInt(e[1]||0)) - (parseInt(s[0])*60+parseInt(s[1]||0));
                     if(diff > 0) dur = `<div class="text-blue-500 text-[10px] mt-1 font-black">🕒 滞在時間: ${diff}分</div>`;
                 }
                 return `<tr class="hover:bg-blue-50/40 transition-all text-center">
@@ -130,10 +147,11 @@
             }).join('');
             document.getElementById('totalDisplay').innerText = dataList.length;
         }
+
         document.getElementById('bulkDeleteBtn').onclick = async () => {
             const checked = document.querySelectorAll('.record-check:checked');
             if (checked.length === 0) return alert("選択してください");
-            if (!confirm(`${checked.length}件を消去します。名簿も自動修正されます。`)) return;
+            if (!confirm(`${checked.length}件を消去します。`)) return;
             const batch = writeBatch(db); const targets = new Set();
             checked.forEach(cb => { batch.delete(doc(db, "activity_records", cb.value)); targets.add(cb.dataset.customer); });
             try {
@@ -149,6 +167,7 @@
                 alert("完了"); init();
             } catch (e) { alert("失敗しました"); }
         };
+
         window.clearSearch = () => { document.querySelectorAll('#detailSearchSection input').forEach(i => i.value = ""); document.getElementById('deptFilter').value = "ALL"; window.executeSearch(); };
         init();
     </script>
