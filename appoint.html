@@ -207,43 +207,43 @@
             } catch (e) { alert("失敗"); btn.disabled = false; btn.innerHTML = '登録を実行'; }
         };
         document.getElementById('submitBtnTop').onclick = handleRegister;
-        init();
+       
+                // 🌟 210行目から最後（</script>の直前）までをこれに差し替え
+        init().then(() => {
+            // 🌟 init完了後に下書きチェックを実行
+            const saved = localStorage.getItem('cp_draft_appoint');
+            if (saved) {
+                setTimeout(() => {
+                    if (confirm("未送信のアポ下書きがあります。復元しますか？")) {
+                        const d = JSON.parse(saved);
+                        document.getElementById('customerSearch').value = d.customerName || "";
+                        document.getElementById('appointDate').value = d.appointDate || "";
+                        document.getElementById('startTime').value = d.startTime || "";
+                        document.getElementById('endTime').value = d.endTime || "";
+                        document.getElementById('visitorName').value = d.visitorName || "";
+                        document.getElementById('appointSubject').value = d.appointSubject || "";
+                        document.getElementById('circularDisplay').innerText = d.circular || "未選択";
+                    } else {
+                        localStorage.removeItem('cp_draft_appoint');
+                    }
+                }, 500);
+            }
+        });
 
-　　　　　　    // 🌟 アポ用：下書き保存機能
-    window.saveDraft = () => {
-        const draftData = {
-            customerName: document.getElementById('customerSearch').value,
-            appointDate: document.getElementById('appointDate').value,
-            startTime: document.getElementById('startTime').value,
-            endTime: document.getElementById('endTime').value,
-            visitorName: document.getElementById('visitorName').value,
-            appointSubject: document.getElementById('appointSubject').value,
-            circular: document.getElementById('circularDisplay').innerText
+        // 🌟 下書き保存機能
+        window.saveDraft = () => {
+            const draftData = {
+                customerName: document.getElementById('customerSearch').value,
+                appointDate: document.getElementById('appointDate').value,
+                startTime: document.getElementById('startTime').value,
+                endTime: document.getElementById('endTime').value,
+                visitorName: document.getElementById('visitorName').value,
+                appointSubject: document.getElementById('appointSubject').value,
+                circular: document.getElementById('circularDisplay').innerText
+            };
+            localStorage.setItem('cp_draft_appoint', JSON.stringify(draftData));
+            alert("アポイントの下書きを保存しました。");
         };
-        localStorage.setItem('cp_draft_appoint', JSON.stringify(draftData));
-        alert("アポイントの下書きを保存しました。");
-    };
-
-    // 🌟 アポ用：復元ロジック
-    (() => {
-        const saved = localStorage.getItem('cp_draft_appoint');
-        if (saved) {
-            setTimeout(() => {
-                if (confirm("未送信のアポ下書きがあります。復元しますか？")) {
-                    const d = JSON.parse(saved);
-                    document.getElementById('customerSearch').value = d.customerName || "";
-                    document.getElementById('appointDate').value = d.appointDate || "";
-                    document.getElementById('startTime').value = d.startTime || "";
-                    document.getElementById('endTime').value = d.endTime || "";
-                    document.getElementById('visitorName').value = d.visitorName || "";
-                    document.getElementById('appointSubject').value = d.appointSubject || "";
-                    document.getElementById('circularDisplay').innerText = d.circular || "未選択";
-                } else {
-                    localStorage.removeItem('cp_draft_appoint');
-                }
-            }, 500);
-        }
-    })();
         
     </script>
 </body>
