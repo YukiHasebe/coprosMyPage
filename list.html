@@ -32,12 +32,13 @@
                     </div>
                 </div>
 
+                <!-- 詳細検索パネル -->
                 <div id="detailSearchSection" class="hidden mb-8 p-8 bg-white rounded-3xl shadow-xl border border-blue-50">
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-xs font-bold">
                         <div class="space-y-2"><label class="text-slate-400">お客様名</label><input type="text" id="detailName" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="漢字・カナ検索"></div>
-                        <div class="space-y-2"><label class="text-slate-400">住所</label><input type="text" id="detailAddress" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="キーワード"></div>
+                        <div class="space-y-2"><label class="text-slate-400">住所</label><input type="text" id="detailAddress" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="一部入力OK"></div>
                         <div class="space-y-2"><label class="text-slate-400">顧客ランク</label><select id="detailRank" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl"><option value="">全て</option><option>Aa</option><option>Ab</option><option>Ac</option><option>Ad</option><option>Ba</option><option>Bb</option><option>Bc</option><option>Bd</option><option>Ca</option><option>Cb</option><option>Cc</option><option>Cd</option></select></div>
-                        <div class="space-y-2"><label class="text-slate-400">属性・区分</label><select id="detailType" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl"><option value="">全て</option><option>ケコム</option><option>建築部</option><option>コンサル</option></select></div>
+                        <div class="space-y-2"><label class="text-slate-400">属性・区分</label><select id="detailType" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl"><option value="">全て</option><option>宮崎産商</option><option>ケコム</option><option>コンサル</option><option>官庁</option></select></div>
                     </div>
                     <div class="flex justify-center gap-4 mt-8">
                         <button onclick="window.executeSearch()" class="bg-[#334155] text-white px-12 py-3 rounded-xl font-bold shadow-lg">検索実行</button>
@@ -45,16 +46,19 @@
                     </div>
                 </div>
 
+                <!-- 🌟 実績一覧と同じ形式のカウンター -->
                 <div class="flex items-center gap-6 mb-6">
                     <div id="syllabaryFilter" class="flex p-1.5 bg-white rounded-xl border border-slate-200 shadow-sm font-black items-center">
                         <button class="filter-btn active px-4 py-1.5 text-xs" onclick="window.setKanaFilter(this, 'all')">全件</button>
                         <script>
-                            ['あ','か','さ','た','な','は','ま','ย','ら','わ','他'].forEach(k => 
+                            ['あ','か','さ','た','な','は','ま','や','ら','わ','他'].forEach(k => 
                                 document.write(`<button class="filter-btn px-3 py-1.5 text-xs" onclick="window.setKanaFilter(this, '${k}')">${k}</button>`)
                             );
                         </script>
                     </div>
-                    <div class="text-slate-400 font-bold text-sm"><span id="totalDisplay" class="text-slate-800 text-xl tracking-tighter">0</span> Customers</div>
+                    <div class="text-slate-400 font-bold text-sm">
+                        <span id="totalDisplay" class="text-slate-800 text-xl tracking-tighter">0</span> Customers
+                    </div>
                 </div>
 
                 <div class="table-container overflow-x-auto mb-20">
@@ -83,29 +87,33 @@
 
         window.executeSearch = async () => {
             const tbody = document.getElementById('customerTable');
-            tbody.innerHTML = `<tr><td colspan="8" class="p-16 text-center text-slate-400 font-bold">データを照合中...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="8" class="p-16 text-center text-slate-400 font-bold italic">データを照合中...</td></tr>`;
             
             const nameK = document.getElementById('detailName').value.trim();
             const addrK = document.getElementById('detailAddress').value.trim();
 
             try {
-                let q = query(collection(db, "customers"), orderBy("updatedAt", "desc"), limit(50));
-
-                // 名前があれば全件からピンポイント取得
-                if (nameK) q = query(collection(db, "customers"), where("name", ">=", nameK), where("name", "<=", nameK + '\uf8ff'), limit(50));
+                let q;
+                const ref = collection(db, "customers");
+                if (nameK) q = query(ref, where("name", ">=", nameK), where("name", "<=", nameK + '\uf8ff'), orderBy("name"), limit(100));
+                else if (addrK) q = query(ref, where("address", ">=", addrK), where("address", "<=", addrK + '\uf8ff'), orderBy("address"), limit(100));
+                else q = query(ref, orderBy("updatedAt", "desc"), limit(50));
 
                 const snap = await getDocs(q);
                 allCustomers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-                // ランク・属性・住所はメモリで処理（省エネ）
                 const rank = document.getElementById('detailRank').value;
                 const type = document.getElementById('detailType').value;
                 if(rank) allCustomers = allCustomers.filter(d => d.rank === rank);
                 if(type) allCustomers = allCustomers.filter(d => d.type === type);
-                if(addrK) allCustomers = allCustomers.filter(d => (d.address||"").includes(addrK));
 
                 window.updateView();
-            } catch (e) { console.error(e); }
+            } catch (e) {
+                console.error(e);
+                if (e.message.includes("index")) {
+                    tbody.innerHTML = `<tr><td colspan="8" class="p-16 text-center text-rose-500 font-bold">設定が必要です。<br>F12キーを押し、ConsoleにあるURLをクリックして「保存」してください。</td></tr>`;
+                }
+            }
         };
 
         window.setKanaFilter = (btn, kana) => {
@@ -117,7 +125,7 @@
 
         window.updateView = () => {
             let filtered = allCustomers;
-            const rangeMap = { 'あ': /^[あ-おア-オ安阿伊藤]/, 'か': /^[か-こカ-コ加河]/, 'さ': /^[さ-そサ-ソ佐佐藤]/, 'た': /^[た-とタ-トだ-どダ-ド田高]/, 'な': /^[な-のナ-ノ内中]/, 'は': /^[は-ほハ-ホ波橋]/, 'ま': /^[ま-もマ-モ前松]/, 'や': /^[や-よヤ-ヨ山谷]/ };
+            const rangeMap = { 'あ': /^[あ-おア-オ安阿伊藤宇]/, 'か': /^[か-こカ-コ加河亀菊久]/, 'さ': /^[さ-そサ-ソ佐佐藤斉進]/, 'た': /^[た-とタ-トだ-ど田高武]/, 'な': /^[な-のナ-ノ内中永長]/, 'は': /^[は-ほハ-ホ波橋長林]/, 'ま': /^[ま-もマ-モ前松丸宮]/, 'や': /^[や-よヤ-ヨ山谷]/ };
             
             if (currentKana !== 'all') {
                 if (currentKana === '他') filtered = filtered.filter(d => !Object.values(rangeMap).some(re => re.test(d.name)));
@@ -137,7 +145,7 @@
                         <button onclick="location.href='history.html?name=${encodeURIComponent(data.name)}'" class="bg-[#004098] text-white px-3 py-1.5 rounded-lg text-[10px] font-black hover:bg-orange-500 transition-all">実績</button>
                     </div></td>
                     <td class="p-6 text-slate-500 font-mono text-xs">${data.tel || '-'}</td>
-                    <td class="p-6 text-left text-xs text-slate-400 truncate max-w-[200px] font-medium">${data.address || '-'}</td>
+                    <td class="p-6 text-left text-xs text-slate-400 truncate max-w-[250px] font-medium">${data.address || '-'}</td>
                     <td class="p-6 text-center"><span class="bg-orange-50 text-[#ff7e11] px-3 py-1 rounded-full text-xs font-black border border-orange-100">${data.visitCount || 0}回</span></td>
                     <td class="p-6 text-center text-slate-400 text-[10px] font-bold uppercase">${data.lastVisit || '未訪問'}</td>
                     <td class="p-6 text-center"><input type="checkbox" class="customer-check w-5 h-5 accent-rose-500 rounded-md cursor-pointer" value="${data.id}"></td>
