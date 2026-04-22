@@ -99,67 +99,63 @@
         </div>
     </main>
 
+        <script type="module" src="common.js"></script>
     <script type="module">
         import { db } from "./common.js";
-        import { collection, getDocs, orderBy, query, limit, where, startAt, endAt, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, getDocs, orderBy, query, limit, where, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // 🌟 カナ検索用マップ
-        const kanaMap = {
-            'あ': { s: 'ア', e: 'イ' }, 'か': { s: 'カ', e: 'サ' }, 'さ': { s: 'サ', e: 'タ' },
-            'た': { s: 'タ', e: 'ナ' }, 'な': { s: 'ナ', e: 'ハ' }, 'は': { s: 'ハ', e: 'マ' },
-            'ま': { s: 'マ', e: 'ヤ' }, 'や': { s: 'ヤ', e: 'ラ' }, 'ら': { s: 'ラ', e: 'ワ' },
-            'わ': { s: 'ワ', e: 'ン' }
-        };
+        let allCustomers = [];
+        // 🌟 50音判定用の正規表現マップ
+        const rangeMap = { 'あ': /^[あ-おア-オ]/, 'か': /^[か-こカ-コが-ごガ-ゴ]/, 'さ': /^[さ-そサ-ソざ-ぞザ-ゾ]/, 'た': /^[た-とタ-トだ-どダ-ド]/, 'な': /^[な-のナ-ノ]/, 'は': /^[は-ほハ-ホば-ぼバ-ボぱ-ぽパ-ポ]/, 'ま': /^[ま-もマ-モ]/, 'や': /^[や-よヤ-ヨ]/, 'ら': /^[ら-ろラ-ロ]/, 'わ': /^[わ-んワ-ン]/ };
 
-        // 🌟 検索・表示のメイン関数（全件から探す仕様に変更）
-        async function fetchCustomers(filterType = 'all', value = '') {
+        async function init() {
             const tbody = document.getElementById('customerTable');
-            tbody.innerHTML = `<tr><td colspan="8" class="p-16 text-center text-slate-400 font-bold">データを照合中...</td></tr>`;
-
+            tbody.innerHTML = `<tr><td colspan="8" class="p-16 text-center text-slate-400 font-bold">データを読み込み中...</td></tr>`;
             try {
-                let q;
-                const ref = collection(db, "customers");
-
-                if (filterType === 'all') {
-                    q = query(ref, orderBy("updatedAt", "desc"), limit(100));
-                } else if (filterType === 'kana') {
-                    // 🌟 あかさたな：全件からその文字の人だけを100件探す
-                    const range = kanaMap[value];
-                    q = query(ref, orderBy("kana"), startAt(range.s), endAt(range.e + "\uf8ff"), limit(100));
-                } else if (filterType === 'search') {
-                    // 🌟 検索実行：全件から名前が一致する人を50件探す
-                    q = query(ref, where("name", ">=", value), where("name", "<=", value + "\uf8ff"), limit(50));
-                }
-
+                // 🌟 超省エネ：最新更新順に100件だけ取得
+                const q = query(collection(db, "customers"), orderBy("updatedAt", "desc"), limit(100));
                 const snap = await getDocs(q);
-                let results = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-                // 詳細条件（住所、ランク、属性、期間）があればメモリでさらに絞り込み
-                const rank = document.getElementById('detailRank').value;
-                const type = document.getElementById('detailType').value;
-                const addr = document.getElementById('detailAddress').value.trim();
-                const startD = document.getElementById('startDate').value;
-                const endD = document.getElementById('endDate').value;
-
-                if (rank) results = results.filter(d => d.rank === rank);
-                if (type) results = results.filter(d => d.type === type);
-                if (addr) results = results.filter(d => (d.address||"").includes(addr));
-                if (startD) results = results.filter(d => d.lastVisit >= startD);
-                if (endD) results = results.filter(d => d.lastVisit <= endD);
-
-                renderTable(results);
+                allCustomers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                window.updateView();
             } catch (e) {
                 console.error(e);
-                tbody.innerHTML = `<tr><td colspan="8" class="p-16 text-center text-rose-400">取得失敗。Indexを作成してください。</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="p-16 text-center text-rose-400">取得失敗。Indexを作成するか権限を確認してください。</td></tr>`;
             }
         }
+
+        window.updateView = () => {
+            const range = document.querySelector('.filter-btn.active').dataset.range;
+            const nameK = (document.getElementById('detailName').value || "").toLowerCase();
+            const addrK = (document.getElementById('detailAddress').value || "").toLowerCase();
+            const rankK = document.getElementById('detailRank').value;
+            const typeK = document.getElementById('detailType').value;
+            const startD = document.getElementById('startDate').value;
+            const endD = document.getElementById('endDate').value;
+
+            // 🌟 メモリ内検索（Firebase通信ゼロ！）
+            let filtered = allCustomers;
+
+            if (nameK) filtered = filtered.filter(d => (d.name||"").toLowerCase().includes(nameK) || (d.kana||"").toLowerCase().includes(nameK));
+            if (addrK) filtered = filtered.filter(d => (d.address||"").includes(addrK));
+            if (rankK) filtered = filtered.filter(d => d.rank === rankK);
+            if (typeK) filtered = filtered.filter(d => d.type === typeK);
+            if (startD) filtered = filtered.filter(d => d.lastVisit >= startD.replace(/-/g,'/'));
+            if (endD) filtered = filtered.filter(d => d.lastVisit <= endD.replace(/-/g,'/'));
+
+            if (range !== 'all') {
+                if (range === '他') filtered = filtered.filter(d => !Object.values(rangeMap).some(re => re.test(d.kana || d.name)));
+                else filtered = filtered.filter(d => rangeMap[range].test(d.kana || d.name));
+            }
+
+            renderTable(filtered);
+        };
 
         function renderTable(dataList) {
             const tbody = document.getElementById('customerTable');
             if (dataList.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="p-16 text-center text-slate-400">該当するお客様はいません。</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" class="p-16 text-center text-slate-400 italic">該当するお客様はいません。</td></tr>`;
                 document.getElementById('totalCount').innerText = "0";
-                document.getElementById('pageRange').innerText = "0-0";
+                document.getElementById('pageRange').innerText = "0";
                 return;
             }
             tbody.innerHTML = dataList.map((data, i) => `
@@ -177,40 +173,32 @@
                     <td class="p-6 text-center"><input type="checkbox" class="customer-check w-5 h-5 accent-rose-500 rounded-md cursor-pointer" data-id="${data.id}"></td>
                 </tr>`).join('');
             document.getElementById('totalCount').innerText = dataList.length;
-            document.getElementById('pageRange').innerText = `1-${dataList.length}`;
+            document.getElementById('pageRange').innerText = dataList.length;
         }
 
-        // 🌟 検索実行
-        document.getElementById('execSearch').onclick = () => {
-            const name = document.getElementById('detailName').value.trim();
-            fetchCustomers(name ? 'search' : 'all', name);
-        };
-
-        // 🌟 50音ボタン
+        // イベント設定
+        document.getElementById('execSearch').onclick = window.updateView;
+        document.getElementById('detailSearchToggle').onclick = () => document.getElementById('detailSearchSection').classList.toggle('hidden');
+        document.getElementById('clearSearch').onclick = () => { document.querySelectorAll('#detailSearchSection input, select').forEach(e => e.value = ""); window.updateView(); };
+        
         document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.onclick = () => {
                 document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                const range = btn.dataset.range;
-                if (range === 'all') fetchCustomers('all');
-                else fetchCustomers('kana', range);
+                window.updateView();
             };
         });
 
-        // 削除機能
         document.getElementById('bulkDeleteBtn').onclick = async () => {
             const checked = document.querySelectorAll('.customer-check:checked');
             if (checked.length === 0) return alert("選択してください");
             if (!confirm("削除しますか？")) return;
             const batch = writeBatch(db);
             checked.forEach(el => batch.delete(doc(db, "customers", el.dataset.id)));
-            await batch.commit(); alert("削除完了"); fetchCustomers();
+            await batch.commit(); alert("削除完了"); init();
         };
 
-        document.getElementById('detailSearchToggle').onclick = () => document.getElementById('detailSearchSection').classList.toggle('hidden');
-        document.getElementById('clearSearch').onclick = () => { document.querySelectorAll('#detailSearchSection input, select').forEach(e => e.value = ""); fetchCustomers('all'); };
-
-        fetchCustomers('all');
+        init();
     </script>
 </body>
 </html>
