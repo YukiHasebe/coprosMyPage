@@ -7,24 +7,8 @@
     <style>
         :root { --copros-orange: #ff7e11; --copros-blue: #004098; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
-        
-        /* 🌟 枠線を完全になくした50音ボタンのデザイン */
-        .filter-btn { 
-            border: none; /* 枠線を完全に消去 */
-            color: #94a3b8; 
-            background: transparent; 
-            transition: all 0.2s; 
-            font-weight: 900;
-            padding: 0.4rem 0.8rem;
-        }
-        /* 🌟 アクティブな時だけオレンジ色にする（画像1と同じ） */
-        .filter-btn.active { 
-            background: var(--copros-orange) !important; 
-            color: white !important; 
-            border-radius: 0.5rem; /* オレンジの箱のカドを少し丸める */
-            box-shadow: 0 4px 12px rgba(255,126,17,0.3); 
-        }
-        
+        .filter-btn { border: none; color: #94a3b8; background: transparent; transition: all 0.2s; font-weight: 900; padding: 0.4rem 0.8rem; cursor: pointer; }
+        .filter-btn.active { background: var(--copros-orange) !important; color: white !important; border-radius: 0.5rem; box-shadow: 0 4px 12px rgba(255,126,17,0.3); }
         .table-container { border-radius: 1.5rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
         thead tr { background-color: #3c4b5a; }
         .scope-select { background: #e2e8f0; border: none; padding: 0.4rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; appearance: none; cursor: pointer; }
@@ -36,23 +20,22 @@
         <div id="header-placeholder"></div>
         <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1400px] mx-auto">
-                <!-- ヘッドエリア -->
                 <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-6">
                     <div class="flex items-end gap-4 lg:gap-6">
                         <div><h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">実績一覧</h1><p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Activity History</p></div>
-                        <select id="deptFilter" onchange="window.updateView()" class="scope-select shadow-inner mb-2">
+                        <select id="deptFilter" onchange="window.executeSearch()" class="scope-select shadow-inner mb-2">
                             <option value="ALL">全社表示</option>
                             <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option><option>土木部</option><option>建築部</option><option>建機部</option><option>総務部</option><option>購買課</option><option>宮崎産商</option><option>企画部</option>
                         </select>
                     </div>
                     <div class="flex gap-3 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100 items-center">
-                        <button id="detailSearchToggle" class="px-5 py-2.5 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 flex items-center justify-center gap-2"><i class="fa-solid fa-sliders text-blue-400"></i>詳細検索</button>
+                        <button onclick="document.getElementById('detailSearchSection').classList.toggle('hidden')" class="px-5 py-2.5 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 flex items-center justify-center gap-2 transition-all"><i class="fa-solid fa-sliders text-blue-400"></i>詳細検索</button>
                         <button id="bulkDeleteBtn" class="px-5 py-2.5 text-rose-400 rounded-xl font-bold text-sm hover:bg-rose-50 flex items-center justify-center gap-2"><i class="fa-solid fa-trash-can"></i>一括削除</button>
                         <button onclick="location.href='history.html'" class="px-6 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-sm hover:shadow-lg flex items-center justify-center gap-2"><i class="fa-solid fa-plus-circle"></i>実績登録</button>
                     </div>
                 </div>
 
-                <!-- 詳細検索パネル（復活・維持） -->
+                <!-- 詳細検索パネル -->
                 <div id="detailSearchSection" class="hidden mb-8 p-8 bg-white rounded-3xl shadow-xl border border-blue-50">
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-xs font-bold">
                         <div class="space-y-2"><label class="text-slate-400">お客様名</label><input type="text" id="filterCustomer" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="キーワード"></div>
@@ -62,20 +45,19 @@
                             <div class="flex items-center gap-2"><input type="date" id="startDate" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl"><span>〜</span><input type="date" id="endDate" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl"></div>
                         </div>
                     </div>
-                    <div class="flex justify-center gap-4 mt-8"><button onclick="window.updateView()" class="bg-[#334155] text-white px-12 py-3 rounded-xl font-bold shadow-lg">検索実行</button><button onclick="window.clearSearch()" class="text-slate-400 px-8 py-3 font-bold">クリア</button></div>
+                    <div class="flex justify-center gap-4 mt-8"><button onclick="window.executeSearch()" class="bg-[#334155] text-white px-12 py-3 rounded-xl font-bold shadow-lg">検索実行</button><button onclick="window.clearSearch()" class="text-slate-400 px-8 py-3 font-bold">クリア</button></div>
                 </div>
 
-                <!-- 🌟 50音フィルタ：画像1と同じ「白い一本のバー」デザイン -->
                 <div class="flex items-center gap-6 mb-6">
                     <div id="syllabaryFilter" class="flex p-1.5 bg-white rounded-xl border border-slate-200 shadow-sm font-black items-center">
-                        <button class="filter-btn active px-4 py-1.5 text-xs" data-range="all" onclick="window.setKanaFilter(this, 'all')">全件</button>
+                        <button class="filter-btn active px-4 py-1.5 text-xs" onclick="window.setKanaFilter(this, 'all')">全件</button>
                         <script>
                             ['あ','か','さ','た','な','は','ま','や','ら','わ','他'].forEach(k => 
                                 document.write(`<button class="filter-btn px-3 py-1.5 text-xs" onclick="window.setKanaFilter(this, '${k}')">${k}</button>`)
                             );
                         </script>
                     </div>
-                    <div class="text-slate-400 font-bold text-sm"><span id="totalDisplay" class="text-slate-800 text-xl tracking-tighter">0</span> / <span id="maxDisplay">0</span> Records</div>
+                    <div class="text-slate-400 font-bold text-sm"><span id="totalDisplay" class="text-slate-800 text-xl tracking-tighter">0</span> Records</div>
                 </div>
 
                 <div class="table-container overflow-x-auto mb-24">
@@ -85,7 +67,7 @@
                                 <th class="p-6 w-16 opacity-50">No</th><th class="p-6 text-left w-[280px]">お客様名</th><th class="p-6">訪問日時 / 滞在</th><th class="p-6">訪問者</th><th class="p-6 w-16 opacity-30">詳細</th><th class="p-6 w-16 opacity-30"><i class="fa-solid fa-check-double"></i></th>
                             </tr>
                         </thead>
-                        <tbody id="recordTable" class="divide-y divide-slate-100 text-sm font-bold bg-white"></tbody>
+                        <tbody id="recordTable" class="divide-y divide-slate-100 text-sm font-bold bg-white text-center"></tbody>
                     </table>
                 </div>
             </div>
@@ -95,22 +77,38 @@
     <script type="module" src="common.js"></script>
     <script type="module">
         import { db } from "./common.js";
-        import { collection, getDocs, query, limit, doc, writeBatch, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, getDocs, query, limit, doc, writeBatch, where, orderBy, startAt, endAt } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let allRecords = []; 
         let currentKana = 'all';
-        const rangeMap = { 'あ': /^[あ-おア-オ安阿伊藤宇枝岡小]/, 'か': /^[か-こカ-コ加河亀菊久倉]/, 'さ': /^[さ-そサ-ソざ-ぞザ-ゾ佐佐藤斉進須]/, 'た': /^[た-とタ-トだ-どダ-ド田高武武立津]/, 'な': /^[な-のナ-ノ内中永長西野]/, 'は': /^[は-ほハ-ホ波橋長林原弘]/, 'ま': /^[ま-もマ-モ前松丸宮三村]/, 'や': /^[や-よヤ-ヨ山谷八矢]/, 'ら': /^[ら-ろラ-ロ]/, 'わ': /^[わ-んワ-ン]/ };
 
-        async function init() {
+        async function init() { window.executeSearch(); }
+
+        // 🌟 検索・表示の統合ロジック（省エネ＆全件対応）
+        window.executeSearch = async () => {
             const tbody = document.getElementById('recordTable');
-            tbody.innerHTML = `<tr><td colspan="6" class="p-16 text-center text-slate-400 font-bold italic">データを読み込み中...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" class="p-16 text-center text-slate-400 font-bold italic">データを照合中...</td></tr>`;
+            
+            const custK = document.getElementById('filterCustomer').value.trim();
+            const visiK = document.getElementById('filterVisitor').value.trim();
+            const dept = document.getElementById('deptFilter').value;
+
             try {
-                const q = query(collection(db, "activity_records"), orderBy("visitDate", "desc"), limit(100));
+                let q = query(collection(db, "activity_records"), orderBy("visitDate", "desc"), limit(100));
+
+                // 🌟 名前指定がある場合は、1万件の中からピンポイント検索
+                if (visiK) q = query(collection(db, "activity_records"), where("visitorName", "==", visiK), orderBy("visitDate", "desc"), limit(100));
+                else if (custK) q = query(collection(db, "activity_records"), where("customerName", ">=", custK), where("customerName", "<=", custK + '\uf8ff'), limit(100));
+
                 const snap = await getDocs(q);
                 allRecords = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+                // 部署フィルタ（取得後にメモリで処理）
+                if (dept !== 'ALL') allRecords = allRecords.filter(r => r.visitorDept === dept);
+                
                 window.updateView();
             } catch (e) { console.error(e); }
-        }
+        };
 
         window.setKanaFilter = (btn, kana) => {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active', 'text-white'));
@@ -120,19 +118,9 @@
         };
 
         window.updateView = () => {
-            const dept = document.getElementById('deptFilter').value;
-            const custK = (document.getElementById('filterCustomer').value || "").toLowerCase();
-            const visiK = (document.getElementById('filterVisitor').value || "").toLowerCase();
-            const startK = document.getElementById('startDate').value;
-            const endK = document.getElementById('endDate').value;
-
             let filtered = allRecords;
-            if (dept !== 'ALL') filtered = filtered.filter(r => r.visitorDept === dept);
-            if (custK) filtered = filtered.filter(r => (r.customerName||"").includes(custK));
-            if (visiK) filtered = filtered.filter(r => (r.visitorName||"").includes(visiK));
-            if (startK) filtered = filtered.filter(r => r.visitDate >= startK);
-            if (endK) filtered = filtered.filter(r => r.visitDate <= endK);
-
+            const rangeMap = { 'あ': /^[あ-おア-オ安阿伊藤]/, 'か': /^[か-こカ-コ加河]/, 'さ': /^[さ-そサ-ソ佐佐藤]/, 'た': /^[た-とタ-トだ-ど田高]/, 'な': /^[な-のナ-ノ内中]/, 'は': /^[は-ほハ-ホ波橋]/, 'ま': /^[ま-もマ-モ前松]/, 'や': /^[や-よヤ-ヨ山谷]/ };
+            
             if (currentKana !== 'all') {
                 if (currentKana === '他') filtered = filtered.filter(r => !Object.values(rangeMap).some(re => re.test(r.customerName)));
                 else filtered = filtered.filter(r => rangeMap[currentKana].test(r.customerName));
@@ -143,33 +131,30 @@
         function renderTable(dataList) {
             const tbody = document.getElementById('recordTable');
             tbody.innerHTML = dataList.map((data, i) => {
-                let durationText = "";
+                let dur = "";
                 if(data.startTime && data.endTime && data.startTime !== "00:00") {
                     const s = data.startTime.split(':'); const e = data.endTime.split(':');
-                    const diff = (parseInt(e[0]||0)*60+parseInt(e[1]||0)) - (parseInt(s[0]||0)*60+parseInt(s[1]||0));
-                    if(diff > 0) durationText = `<div class="text-blue-500 text-[10px] mt-1 font-black">🕒 滞在時間: ${diff}分</div>`;
+                    const diff = (parseInt(e[0])*60+parseInt(e[1])) - (parseInt(s[0])*60+parseInt(s[1]));
+                    if(diff > 0) dur = `<div class="text-blue-500 text-[10px] mt-1 font-black">🕒 滞在時間: ${diff}分</div>`;
                 }
                 return `
                     <tr class="hover:bg-blue-50/40 transition-all text-center">
                         <td class="p-6 text-slate-300 font-mono text-xs border-r border-slate-50">${i+1}</td>
-                        <td class="p-6 text-left font-black text-slate-800 w-[280px] leading-tight">${data.customerName || '(名前なし)'}</td>
+                        <td class="p-6 text-left font-black text-slate-800 w-[280px]">${data.customerName || '(名無し)'}</td>
                         <td class="p-6">
                             <div class="text-slate-600 font-mono text-sm">${(data.visitDate || '').replace(/-/g,'/')}</div>
-                            <div class="text-[10px] text-slate-400 mt-1 font-black">${data.startTime || '00:00'} 〜 ${data.endTime || '00:00'}</div>
-                            ${durationText}
+                            <div class="text-[10px] text-slate-400 mt-1 uppercase font-black">${data.startTime || '00:00'} 〜 ${data.endTime || '00:00'}</div>
+                            ${dur}
                         </td>
-                        <td class="p-6 text-slate-700 font-bold">${data.visitorName || '不明'}<br><span class="text-[9px] text-slate-400 uppercase font-black">${data.visitorDept || ''}</span></td>
+                        <td class="p-6 text-slate-700 font-bold">${data.visitorName || '不明'}<br><span class="text-[9px] text-slate-400 font-black">${data.visitorDept || ''}</span></td>
                         <td class="p-6"><button onclick="location.href='customer_history.html?name=${encodeURIComponent(data.customerName)}'" class="text-slate-200 hover:text-blue-600 transition-all"><i class="fa-solid fa-circle-chevron-right text-xl"></i></button></td>
                         <td class="p-6 text-center"><input type="checkbox" class="record-check w-5 h-5 accent-rose-500 rounded-md cursor-pointer" value="${data.id}"></td>
                     </tr>`;
             }).join('');
             document.getElementById('totalDisplay').innerText = dataList.length;
-            document.getElementById('maxDisplay').innerText = allRecords.length;
         }
 
-        document.getElementById('detailSearchToggle').onclick = () => document.getElementById('detailSearchSection').classList.toggle('hidden');
-        window.clearSearch = () => { document.querySelectorAll('#detailSearchSection input').forEach(i => i.value = ""); document.getElementById('deptFilter').value = "ALL"; window.updateView(); };
-
+        window.clearSearch = () => { document.querySelectorAll('#detailSearchSection input').forEach(i => i.value = ""); document.getElementById('deptFilter').value = "ALL"; window.executeSearch(); };
         init();
     </script>
 </body>
