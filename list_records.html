@@ -22,21 +22,20 @@
         <div id="header-placeholder"></div>
         <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1400px] mx-auto">
-                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-6">
-                    <div class="flex items-end gap-4 lg:gap-6">
+                <div class="flex justify-between items-end mb-8 gap-4">
+                    <div class="flex items-end gap-6">
                         <div><h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">実績一覧</h1><p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Activity History</p></div>
-                        <select id="deptFilter" onchange="window.executeSearch()" class="scope-select shadow-inner mb-2">
+                        <select id="deptFilter" onchange="window.executeSearch()" class="scope-select shadow-inner mb-2 hidden lg:block">
                             <option value="ALL">全社表示</option>
                             <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option><option>土木部</option><option>建築部</option><option>建機部</option><option>総務部</option><option>購買課</option><option>宮崎産商</option><option>企画部</option>
                         </select>
                     </div>
-                    <!-- 🌟 厳格な右配置 ＆ 詳細・登録・削除の順 -->
-                    <div class="flex gap-1 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100 items-center">
-                        <button onclick="document.getElementById('detailSearchSection').classList.toggle('hidden')" class="px-5 py-2.5 text-slate-500 rounded-xl font-bold text-xs hover:bg-slate-50 flex items-center justify-center gap-2"><i class="fa-solid fa-sliders text-blue-400"></i>詳細検索</button>
+                    <div class="flex gap-1 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100 items-center shrink-0 ml-auto">
+                        <button onclick="document.getElementById('detailSearchSection').classList.toggle('hidden')" class="px-6 py-2.5 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 flex items-center justify-center gap-2"><i class="fa-solid fa-sliders text-blue-400"></i>詳細検索</button>
                         <div class="w-px h-6 bg-slate-100 mx-1"></div>
-                        <button onclick="location.href='history.html'" class="px-6 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-xs hover:shadow-lg flex items-center justify-center gap-2"><i class="fa-solid fa-plus-circle"></i>実績登録</button>
+                        <button onclick="location.href='history.html'" class="px-8 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-sm hover:shadow-lg flex items-center justify-center gap-2"><i class="fa-solid fa-plus-circle"></i>実績登録</button>
                         <div class="w-px h-6 bg-slate-100 mx-1"></div>
-                        <button id="bulkDeleteBtn" class="px-5 py-2.5 text-rose-400 rounded-xl font-bold text-xs hover:bg-rose-50 flex items-center justify-center gap-2"><i class="fa-solid fa-trash-can"></i>一括削除</button>
+                        <button id="bulkDeleteBtn" class="px-6 py-2.5 text-rose-400 rounded-xl font-bold text-sm hover:bg-rose-50 flex items-center justify-center gap-2"><i class="fa-solid fa-trash-can"></i>一括削除</button>
                     </div>
                 </div>
 
@@ -44,24 +43,17 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-xs font-bold">
                         <div class="space-y-2"><label class="text-slate-400">お客様名</label><input type="text" id="filterCustomer" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="一部入力OK"></div>
                         <div class="space-y-2"><label class="text-slate-400">訪問者名</label><input type="text" id="filterVisitor" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="氏名検索"></div>
-                        <div class="md:col-span-2 space-y-2">
-                            <label class="text-slate-400">訪問期間</label>
-                            <div class="flex items-center gap-2"><input type="date" id="startDate" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl"><span>〜</span><input type="date" id="endDate" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl"></div>
-                        </div>
+                        <div class="md:col-span-2 space-y-2"><label class="text-slate-400">訪問期間</label><div class="flex items-center gap-2"><input type="date" id="startDate" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl"><span>〜</span><input type="date" id="endDate" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl"></div></div>
                     </div>
-                    <div class="flex justify-center gap-4 mt-8"><button onclick="window.executeSearch()" class="bg-[#334155] text-white px-12 py-3 rounded-xl font-bold shadow-lg">検索実行</button><button onclick="window.clearSearch()" class="text-slate-400 px-8 py-3 font-bold">クリア</button></div>
+                    <div class="flex justify-center gap-4 mt-8"><button onclick="window.executeSearch()" class="bg-[#334155] text-white px-12 py-3 rounded-xl font-bold shadow-lg active:scale-95 transition-all">検索実行</button><button onclick="window.clearSearch()" class="text-slate-400 px-8 py-3 font-bold">クリア</button></div>
                 </div>
 
                 <div class="flex items-center gap-6 mb-6">
                     <div id="syllabaryFilter" class="flex p-1.5 bg-white rounded-xl border border-slate-200 shadow-sm font-black items-center overflow-x-auto custom-scrollbar">
                         <button class="filter-btn active px-4 py-1.5 text-xs" onclick="window.setKanaFilter(this, 'all')">全件</button>
-                        <script>
-                            ['あ','か','さ','た','な','は','ま','や','ら','わ','他'].forEach(k => 
-                                document.write(`<button class="filter-btn px-3 py-1.5 text-xs" onclick="window.setKanaFilter(this, '${k}')">${k}</button>`)
-                            );
-                        </script>
+                        <script>['あ','か','さ','た','な','は','ま','や','ら','わ','他'].forEach(k => document.write(`<button class="filter-btn px-3 py-1.5 text-xs" onclick="window.setKanaFilter(this, '${k}')">${k}</button>`));</script>
                     </div>
-                    <div class="text-slate-400 font-bold text-sm"><span id="totalDisplay" class="text-slate-800 text-xl tracking-tighter">0</span> Records</div>
+                    <div class="text-slate-400 font-bold text-sm whitespace-nowrap"><span id="totalDisplay" class="text-slate-800 text-xl tracking-tighter">0</span> Records</div>
                 </div>
 
                 <div class="table-container overflow-x-auto mb-24">
@@ -77,16 +69,12 @@
             </div>
         </div>
     </main>
-
     <script type="module" src="common.js"></script>
     <script type="module">
         import { db } from "./common.js";
         import { collection, getDocs, query, limit, doc, writeBatch, where, orderBy, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
         let allRecords = []; let currentKana = 'all';
-
         async function init() { window.executeSearch(); }
-
         window.executeSearch = async () => {
             const tbody = document.getElementById('recordTable');
             tbody.innerHTML = `<tr><td colspan="6" class="p-16 text-center text-slate-400 font-bold italic">データを照合中...</td></tr>`;
@@ -95,31 +83,24 @@
             const startD = document.getElementById('startDate').value;
             const endD = document.getElementById('endDate').value;
             const dept = document.getElementById('deptFilter').value;
-
             try {
                 let q = query(collection(db, "activity_records"), orderBy("visitDate", "desc"), limit(100));
                 if (visiK) q = query(collection(db, "activity_records"), where("visitorName", ">=", visiK), where("visitorName", "<=", visiK + '\uf8ff'), orderBy("visitorName"), limit(100));
                 else if (custK) q = query(collection(db, "activity_records"), where("customerName", ">=", custK), where("customerName", "<=", custK + '\uf8ff'), orderBy("customerName"), limit(100));
-
                 const snap = await getDocs(q);
                 allRecords = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-
                 if (startD) allRecords = allRecords.filter(r => r.visitDate >= startD);
                 if (endD) allRecords = allRecords.filter(r => r.visitDate <= endD);
                 if (dept !== 'ALL') allRecords = allRecords.filter(r => r.visitorDept === dept);
                 window.updateView();
-            } catch (e) {
-                if (e.message.includes("index")) tbody.innerHTML = `<tr><td colspan="6" class="p-16 text-center text-rose-500 font-bold">一度きりの設定が必要です。F12を押し、ConsoleのURLをクリックして「保存」してください。</td></tr>`;
-            }
+            } catch (e) { if (e.message.includes("index")) tbody.innerHTML = `<tr><td colspan="6" class="p-16 text-center text-rose-500 font-bold">一度きりの設定が必要です。F12を押し、ConsoleのURLをクリックして「保存」してください。</td></tr>`; }
         };
-
         window.setKanaFilter = (btn, kana) => {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active', 'text-white'));
             btn.classList.add('active', 'text-white');
             currentKana = kana;
             window.updateView();
         };
-
         window.updateView = () => {
             let filtered = allRecords;
             const rangeMap = { 'あ': /^[あ-おア-オ安阿伊藤]/, 'か': /^[か-こカ-コ加河]/, 'さ': /^[さ-そサ-ソ佐佐藤]/, 'た': /^[た-とタ-トだ-ど田高]/, 'な': /^[な-のナ-ノ内中]/, 'は': /^[は-ほハ-ホ波橋]/, 'ま': /^[ま-もマ-モ前松]/, 'や': /^[や-よヤ-ヨ山谷]/ };
@@ -129,7 +110,6 @@
             }
             renderTable(filtered);
         };
-
         function renderTable(dataList) {
             const tbody = document.getElementById('recordTable');
             tbody.innerHTML = dataList.map((data, i) => {
@@ -139,29 +119,22 @@
                     const diff = (parseInt(e[0])*60+parseInt(e[1])) - (parseInt(s[0])*60+parseInt(s[1]));
                     if(diff > 0) dur = `<div class="text-blue-500 text-[10px] mt-1 font-black">🕒 滞在時間: ${diff}分</div>`;
                 }
-                return `
-                    <tr class="hover:bg-blue-50/40 transition-all text-center">
-                        <td class="p-6 text-slate-300 font-mono text-xs border-r border-slate-50">${i+1}</td>
-                        <td class="p-6 text-left font-black text-slate-800 w-[280px] leading-tight">${data.customerName || '(名無し)'}</td>
-                        <td class="p-6 w-[250px]">
-                            <div class="text-slate-600 font-mono text-sm">${(data.visitDate || '').replace(/-/g,'/')}</div>
-                            <div class="text-[10px] text-slate-400 mt-1 uppercase font-black">${data.startTime || '00:00'} 〜 ${data.endTime || '00:00'}</div>
-                            ${dur}
-                        </td>
-                        <td class="p-6 text-slate-700 font-bold">${data.visitorName || '不明'}<br><span class="text-[9px] text-slate-400 font-black">${data.visitorDept || ''}</span></td>
-                        <td class="p-6"><button onclick="location.href='customer_history.html?name=${encodeURIComponent(data.customerName)}'" class="text-slate-200 hover:text-blue-600 transition-all"><i class="fa-solid fa-circle-chevron-right text-xl"></i></button></td>
-                        <td class="p-6 text-center"><input type="checkbox" class="record-check w-5 h-5 accent-rose-500 rounded-md cursor-pointer" value="${data.id}" data-customer="${data.customerName}"></td>
-                    </tr>`;
+                return `<tr class="hover:bg-blue-50/40 transition-all text-center">
+                    <td class="p-6 text-slate-300 font-mono text-xs border-r border-slate-50">${i+1}</td>
+                    <td class="p-6 text-left font-black text-slate-800 w-[280px] leading-tight">${data.customerName || '(名無し)'}</td>
+                    <td class="p-6 w-[250px]"><div class="text-slate-600 font-mono text-sm">${(data.visitDate || '').replace(/-/g,'/')}</div><div class="text-[10px] text-slate-400 mt-1 uppercase font-black">${data.startTime || '00:00'} 〜 ${data.endTime || '00:00'}</div>${dur}</td>
+                    <td class="p-6 text-slate-700 font-bold">${data.visitorName || '不明'}<br><span class="text-[9px] text-slate-400 uppercase font-black">${data.visitorDept || ''}</span></td>
+                    <td class="p-6"><button onclick="location.href='customer_history.html?name=${encodeURIComponent(data.customerName)}'" class="text-slate-200 hover:text-blue-600 transition-all"><i class="fa-solid fa-circle-chevron-right text-xl"></i></button></td>
+                    <td class="p-6 text-center"><input type="checkbox" class="record-check w-5 h-5 accent-rose-500 rounded-md cursor-pointer" value="${data.id}" data-customer="${data.customerName}"></td>
+                </tr>`;
             }).join('');
             document.getElementById('totalDisplay').innerText = dataList.length;
         }
-
         document.getElementById('bulkDeleteBtn').onclick = async () => {
             const checked = document.querySelectorAll('.record-check:checked');
             if (checked.length === 0) return alert("選択してください");
-            if (!confirm(`${checked.length}件を消去します。`)) return;
-            const batch = writeBatch(db);
-            const targets = new Set();
+            if (!confirm(`${checked.length}件を消去します。名簿も自動修正されます。`)) return;
+            const batch = writeBatch(db); const targets = new Set();
             checked.forEach(cb => { batch.delete(doc(db, "activity_records", cb.value)); targets.add(cb.dataset.customer); });
             try {
                 await batch.commit();
@@ -176,7 +149,6 @@
                 alert("完了"); init();
             } catch (e) { alert("失敗しました"); }
         };
-
         window.clearSearch = () => { document.querySelectorAll('#detailSearchSection input').forEach(i => i.value = ""); document.getElementById('deptFilter').value = "ALL"; window.executeSearch(); };
         init();
     </script>
