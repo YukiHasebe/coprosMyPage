@@ -136,19 +136,29 @@
                     const diff = (parseInt(e[0]||0)*60+parseInt(e[1]||0)) - (parseInt(s[0]||0)*60+parseInt(s[1]||0));
                     if(diff > 0) durationText = `<div class="text-blue-500 text-[10px] mt-1 font-black">🕒 滞在時間: ${diff}分</div>`;
                 }
-                return `
-                    <tr class="hover:bg-blue-50/40 transition-all text-center">
-                        <td class="p-6 text-slate-300 font-mono text-xs border-r border-slate-50">${i+1}</td>
-                        <td class="p-6 text-left font-black text-slate-800 w-64">${data.customerName || '(名前なし)'}</td>
-                        <td class="p-6">
-                            <div class="text-slate-600 font-mono">${(data.visitDate || '').replace(/-/g,'/')}</div>
-                            <div class="text-[10px] text-slate-400 mt-1 font-black">${data.startTime || '00:00'} 〜 ${data.endTime || '00:00'}</div>
+                               return `
+                    <tr class="hover:bg-blue-50/40 transition-all">
+                        <td class="p-6 text-slate-300 font-mono text-xs border-r border-slate-50 text-center w-16">${i+1}</td>
+                        <td class="p-6 text-left font-black text-slate-800 w-[320px] leading-tight">${data.customerName || '(名前なし)'}</td>
+                        <td class="p-6 w-[240px] text-center">
+                            <div class="text-slate-600 font-mono text-sm">${(data.visitDate || '').replace(/-/g,'/')}</div>
+                            <div class="text-[10px] text-slate-400 mt-0.5 uppercase font-black">${data.startTime || '00:00'} 〜 ${data.endTime || '00:00'}</div>
                             ${durationText}
                         </td>
-                        <td class="p-6 text-slate-700 font-bold">${data.visitorName || '不明'}<br><span class="text-[9px] text-slate-400 uppercase font-black">${data.visitorDept || ''}</span></td>
-                        <td class="p-6"><button onclick="location.href='customer_history.html?name=${encodeURIComponent(data.customerName)}'" class="text-slate-200 hover:text-blue-600 transition-all"><i class="fa-solid fa-circle-chevron-right text-xl"></i></button></td>
-                        <td class="p-6 text-center"><input type="checkbox" class="record-check w-5 h-5 accent-rose-500 rounded-md cursor-pointer" value="${data.id}"></td>
+                        <td class="p-6 text-slate-700 font-bold w-[200px] text-center">
+                            ${data.visitorName || '不明'}<br>
+                            <span class="text-[9px] text-slate-400 uppercase font-black">${data.visitorDept || ''}</span>
+                        </td>
+                        <td class="p-6 text-center w-20">
+                            <button onclick="location.href='customer_history.html?name=${encodeURIComponent(data.customerName)}'" class="text-slate-200 hover:text-blue-600 transition-all">
+                                <i class="fa-solid fa-circle-chevron-right text-xl"></i>
+                            </button>
+                        </td>
+                        <td class="p-6 text-center w-20">
+                            <input type="checkbox" class="record-check w-5 h-5 accent-rose-500 rounded-md cursor-pointer" value="${data.id}">
+                        </td>
                     </tr>`;
+                
             }).join('');
             document.getElementById('totalDisplay').innerText = dataList.length;
         }
