@@ -113,6 +113,8 @@
                 });
                 loadedData.records = Array.from(recordMap.values());
 
+                 loadedData.records.sort((a, b) => (a.startTime || "00:00").localeCompare(b.startTime || "00:00"));
+
                 const appointMap = new Map();
                 [...snaps[4].docs, ...snaps[5].docs].forEach(d => {
                     appointMap.set(d.id, { id: d.id, ...d.data() });
