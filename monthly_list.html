@@ -5,23 +5,21 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; }
+        :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; --copros-navy: #004098; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
         .table-container { border-radius: 2rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
         thead tr { background-color: #3c4b5a; }
-        .month-col { min-width: 50px; text-align: center; border-left: 1px solid #f1f5f9; }
+        .month-col { min-width: 55px; text-align: center; border-left: 1px solid #f1f5f9; }
         .val-zero { color: #e2e8f0; font-weight: 400; }
         .val-active { color: var(--copros-orange); background: #fff7ed; border-radius: 4px; padding: 4px 0; font-weight: 800; }
         .year-btn { padding: 0.5rem 1rem; border-radius: 0.75rem; font-weight: 900; font-size: 0.75rem; transition: all 0.2s; border: 1px solid #e2e8f0; background: white; color: #64748b; }
         .year-btn:hover { background: #f8fafc; color: var(--copros-orange); }
-        
-        /* 🌟 由紀オーナーこだわりの左側カラム固定 */
         @media (min-width: 1024px) {
             .sticky-rank { position: sticky; left: 0; background: white; z-index: 10; border-right: 1px solid #f1f5f9; min-width: 50px; }
             .sticky-name { position: sticky; left: 50px; background: white; z-index: 10; border-right: 2px solid #f1f5f9; min-width: 200px; }
             thead .sticky-rank, thead .sticky-name { background: #3c4b5a; z-index: 20; color: white; }
         }
-        .scope-select { background: #e2e8f0; border: none; padding: 0.4rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; cursor: pointer; }
+        .scope-select { background: #e2e8f0; border: none; padding: 0.4rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; appearance: none; cursor: pointer; }
         .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
@@ -35,9 +33,9 @@
                 <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-6">
                     <div class="flex items-end gap-4 lg:gap-6">
                         <div>
-                            <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">月別実績一覧</h1>
-                            <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Monthly Performance Matrix</nav>
-                        </div>
+    　　　　　　　　　　　　　<h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">月別実績一覧</h1>
+   　　　　　　　　　　　　　 <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Monthly Sales Performance Matrix</nav>
+　　　　　　　　　　　　　</div>
                         <select id="deptFilter" onchange="window.init()" class="scope-select shadow-inner mb-2">
                             <option value="ALL">全社表示</option>
                             <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option><option>土木部</option><option>建築部</option><option>建機部</option><option>総務部</option><option>購買課</option><option>宮崎産商</option><option>企画部</option>
@@ -55,14 +53,16 @@
                         <thead>
                             <tr class="text-white text-[10px] font-black uppercase tracking-widest text-center">
                                 <th class="p-4 sticky-rank">Rank</th><th class="p-4 sticky-name text-left">お客様名</th><th class="p-4 w-24">属性</th>
-                                <th class="month-col">4月</th><th class="month-col">5月</th><th class="month-col">6月</th><th class="month-col">7月</th><th class="month-col">8月</th><th class="month-col">9月</th><th class="month-col">10月</th><th class="month-col">11月</th><th class="month-col">12月</th><th class="month-col">1月</th><th class="month-col">2月</th><th class="month-col">3月</th>
+                                <!-- 🌟 7月期首に合わせて変更 -->
+                                <th class="month-col">7月</th><th class="month-col">8月</th><th class="month-col">9月</th><th class="month-col">10月</th><th class="month-col">11月</th><th class="month-col">12月</th>
+                                <th class="month-col">1月</th><th class="month-col">2月</th><th class="month-col">3月</th><th class="month-col">4月</th><th class="month-col">5月</th><th class="month-col">6月</th>
                                 <th class="p-4 bg-slate-900 w-20">合計</th>
                             </tr>
                         </thead>
                         <tbody id="monthlyTableBody" class="text-[11px] lg:text-xs font-bold divide-y divide-slate-50 bg-white"></tbody>
                     </table>
                 </div>
-                <div id="loading" class="py-20 text-center"><div class="animate-spin text-blue-500 text-4xl mb-4"><i class="fa-solid fa-circle-notch"></i></div><p class="text-slate-400 font-bold">集計中...</p></div>
+                <div id="loading" class="py-20 text-center"><div class="animate-spin text-blue-500 text-4xl mb-4"><i class="fa-solid fa-circle-notch"></i></div><p class="text-slate-400 font-bold">データを集計中...</p></div>
             </div>
         </div>
     </main>
@@ -70,9 +70,10 @@
     <script type="module" src="common.js"></script>
     <script type="module">
         import { db } from "./common.js";
-        import { collection, getDocs, query, orderBy, limit, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, getDocs, query, where, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let currentYear = 2026;
+
         window.init = async () => {
             const loading = document.getElementById('loading');
             loading.style.display = 'block';
@@ -81,11 +82,12 @@
             document.getElementById('displayYear').innerText = `${currentYear}年度`;
             
             const selectedDept = document.getElementById('deptFilter').value;
-            const startFiscal = `${currentYear}-04-01`;
-            const endFiscal = `${currentYear + 1}-03-31`;
+            // 7月期首なので：2026-07-01 から 2027-06-30 までを検索
+            const startFiscal = `${currentYear}-07-01`;
+            const endFiscal = `${currentYear + 1}-06-30`;
 
             try {
-                // 🌟 最強の省エネ：今年度の実績があるデータだけをピンポイント取得（最大300件）
+                // 🌟 実績データを取得（最大500件）
                 let qRecords = query(
                     collection(db, "activity_records"),
                     where("visitDate", ">=", startFiscal),
@@ -96,35 +98,36 @@
                 const rSnap = await getDocs(qRecords);
                 const records = rSnap.docs.map(d => d.data());
                 
-                // 実績があったお客様名リストを作成（重複なし）
+                // 🌟 実績があったお客様名リストを作成（ここが「実績あるのだけ表示」の核）
                 let activeCustomerNames = [...new Set(records.map(r => r.customerName))];
                 if (selectedDept !== 'ALL') {
                     activeCustomerNames = [...new Set(records.filter(r => r.visitorDept === selectedDept).map(r => r.customerName))];
                 }
 
-                // そのお客様たちの名簿情報を取得（2,700件から探すのではなく、実績があった人だけ探す）
-                // ※一度に10件ずつしかwhere("name","in")は使えないので、個別フィルタで対応
+                // 表示用データの構築
                 const displayData = activeCustomerNames.map(name => {
                     const myRecs = records.filter(r => r.customerName === name && (selectedDept === 'ALL' || r.visitorDept === selectedDept));
                     if (myRecs.length === 0) return null;
                     return { name: name, rank: myRecs[0].customerRank, type: myRecs[0].customerType, recs: myRecs };
                 }).filter(Boolean);
 
+                // 名前順に並び替え
+                displayData.sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+
                 renderTable(displayData);
                 loading.style.display = 'none';
             } catch (e) {
                 console.error(e);
-                loading.innerHTML = '<p class="text-rose-500 font-bold">データが多すぎるか、設定が必要です。</p>';
+                loading.innerHTML = '<p class="text-rose-500 font-bold">集計に失敗しました。</p>';
             }
         };
 
         function renderTable(displayData) {
             const tbody = document.getElementById('monthlyTableBody');
+            // 7月スタートの年度配列
             const fiscalMonths = [
-                {y: currentYear, m: 4}, {y: currentYear, m: 5}, {y: currentYear, m: 6},
-                {y: currentYear, m: 7}, {y: currentYear, m: 8}, {y: currentYear, m: 9},
-                {y: currentYear, m: 10}, {y: currentYear, m: 11}, {y: currentYear, m: 12},
-                {y: currentYear + 1, m: 1}, {y: currentYear + 1, m: 2}, {y: currentYear + 1, m: 3}
+                {y: currentYear, m: 7}, {y: currentYear, m: 8}, {y: currentYear, m: 9}, {y: currentYear, m: 10}, {y: currentYear, m: 11}, {y: currentYear, m: 12},
+                {y: currentYear + 1, m: 1}, {y: currentYear + 1, m: 2}, {y: currentYear + 1, m: 3}, {y: currentYear + 1, m: 4}, {y: currentYear + 1, m: 5}, {y: currentYear + 1, m: 6}
             ];
 
             displayData.forEach(cust => {
@@ -132,7 +135,7 @@
                 let rowTotal = 0;
                 fiscalMonths.forEach(fm => {
                     const count = cust.recs.filter(r => {
-                        const d = r.visitDate.split('-');
+                        const d = r.visitDate.replace(/\//g, '-').split('-'); // スラッシュ/ハイフン両対応
                         return parseInt(d[0]) === fm.y && parseInt(d[1]) === fm.m;
                     }).length;
                     if (count > 0) {
@@ -159,7 +162,6 @@
         }
 
         window.changeYear = (val) => { currentYear += val; window.init(); };
-        window.updateTable = () => window.init();
         window.init();
     </script>
 </body>
