@@ -9,111 +9,88 @@
     <style>
         :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
-        
         .tab-btn { padding: 0.8rem 1.5rem; font-size: 0.75rem; font-weight: 900; transition: all 0.3s; border-bottom: 3px solid transparent; opacity: 0.4; white-space: nowrap; }
-        /* 🌟 由紀オーナー指定：アクティブタブの演出 */
         .tab-btn.active { opacity: 1; color: #0ea5e9; border-bottom-color: #0ea5e9; }
-        
         .table-container { border-radius: 1.5rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
         thead tr { background-color: #3c4b5a; }
-        
-        .scope-select { 
-            background: #e2e8f0; border: none; padding: 0.4rem 1rem; border-radius: 0.75rem; 
-            font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; appearance: none;
-            cursor: pointer; transition: all 0.2s;
-        }
-        .scope-select:hover { background: #cbd5e1; }
+        .scope-select { background: #e2e8f0; border: none; padding: 0.4rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; appearance: none; cursor: pointer; }
         .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700 font-sans">
-
     <div id="sidebar-placeholder"></div>
-
     <main class="flex-1 flex flex-col overflow-hidden">
         <div id="header-placeholder"></div>
-
         <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1200px] mx-auto">
-                
-                <!-- ヘッドエリア -->
                 <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-6">
                     <div class="flex items-end gap-4 lg:gap-6">
                         <div>
-                            <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-2">組織員利用状況</h1>
+                            <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">組織員利用状況</h1>
                             <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Performance Analytics Dashboard</nav>
                         </div>
-                        <div class="mb-2">
-                            <select id="deptFilter" onchange="window.updateTable()" class="scope-select shadow-inner">
-                                <option value="ALL">全社表示</option>
-                                <option>ケコム部</option><option>関西支店</option><option>関東支店</option>
-                                <option>中部営業所</option><option>土木部</option><option>建築部</option>
-                                <option>建機部</option><option>総務部</option><option>購買課</option>
-                                <option>宮崎産商</option><option>企画部</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="flex gap-2 w-full lg:w-auto">
-                        <button class="flex-1 lg:flex-none px-6 py-2.5 bg-white border border-slate-100 text-slate-500 rounded-xl font-bold text-xs hover:bg-slate-50 transition-all flex items-center justify-center gap-2 shadow-sm">
-                            <i class="fa-solid fa-file-csv text-blue-400"></i>CSV出力
-                        </button>
+                        <select id="deptFilter" onchange="window.renderTable()" class="scope-select shadow-inner mb-2">
+                            <option value="ALL">全社表示</option>
+                            <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option><option>土木部</option><option>建築部</option><option>建機部</option><option>総務部</option><option>購買課</option><option>宮崎産商</option><option>企画部</option>
+                        </select>
                     </div>
                 </div>
 
                 <!-- モード切り替えタブ -->
                 <div class="flex gap-2 mb-8 bg-white w-fit p-1 rounded-2xl shadow-sm border border-slate-200">
-                    <button onclick="window.switchMode('usage')" id="tab-usage" class="tab-btn active rounded-xl">システム利用状況</button>
-                    <button onclick="window.switchMode('visit')" id="tab-visit" class="tab-btn rounded-xl">お客様訪問状況</button>
+                    <button onclick="window.switchMode('visit')" id="tab-visit" class="tab-btn active rounded-xl">お客様訪問状況</button>
+                    <button onclick="window.switchMode('usage')" id="tab-usage" class="tab-btn rounded-xl">システム利用状況</button>
                 </div>
 
-                <!-- 集計テーブル -->
                 <div class="table-container custom-scrollbar overflow-x-auto bg-white">
                     <table class="w-full text-left border-collapse min-w-[800px]">
                         <thead>
-                            <tr id="tableHead" class="text-white text-[10px] font-black uppercase tracking-widest text-center">
-                                <!-- JS注入 -->
-                            </tr>
+                            <tr id="tableHead" class="text-white text-[10px] font-black uppercase tracking-widest text-center"></tr>
                         </thead>
-                        <tbody id="statsTable" class="divide-y divide-slate-100 text-sm font-bold">
-                            <!-- JS注入 -->
-                        </tbody>
+                        <tbody id="statsTable" class="divide-y divide-slate-100 text-sm font-bold"></tbody>
                     </table>
                 </div>
-
-                <div id="loading" class="py-20 text-center">
-                    <div class="inline-block animate-spin mb-4 text-blue-400 text-4xl"><i class="fa-solid fa-circle-notch"></i></div>
-                    <p class="text-slate-400 font-bold">データを安全に集計中...</p>
-                </div>
-
-                <div class="mb-20"></div>
+                <div id="loading" class="py-20 text-center"><div class="animate-spin mb-4 text-blue-400 text-4xl"><i class="fa-solid fa-circle-notch"></i></div><p class="text-slate-400 font-bold">今月の実績を集計中...</p></div>
             </div>
         </div>
     </main>
 
-    <!-- 🌟 V2同期 ＆ メモリ集計ロジック -->
+    <script type="module" src="common.js"></script>
     <script type="module">
         import { db } from "./common.js";
-        import { collection, getDocs, query, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let staffStats = [];
-        let currentMode = 'usage';
+        let currentMode = 'visit'; // 🌟 デフォルトをお客様訪問状況に
 
         async function init() {
+            const today = new Date();
+            const y = today.getFullYear();
+            const m = String(today.getMonth() + 1).padStart(2, '0');
+            const monthPrefix = `${y}-${m}-`;
+
             try {
-                // 🌟 鉄壁リミット：社員名簿と最新実績500件を取得
+                // 今月分の実績を全件取得
+                const qRecords = query(
+                    collection(db, "activity_records"),
+                    where("visitDate", ">=", monthPrefix),
+                    where("visitDate", "<=", monthPrefix + "\uf8ff")
+                );
+
                 const [staffSnap, recordSnap] = await Promise.all([
                     getDocs(collection(db, "staffs")),
-                    getDocs(query(collection(db, "activity_records"), orderBy("visitDate", "desc"), limit(500)))
+                    getDocs(qRecords)
                 ]);
 
                 const staffs = staffSnap.docs.map(d => d.data());
                 const records = recordSnap.docs.map(d => d.data());
 
-                // メモリ内でクロス集計（Firebaseへの追加負荷 0）
+                // 🌟 実績がある社員だけを抽出して集計
                 staffStats = staffs.map(staff => {
                     const myRecords = records.filter(r => r.visitorName === staff.name);
-                    
+                    if (myRecords.length === 0) return null; // 🌟 実績なしは除外
+
                     let totalMinutes = 0;
                     myRecords.forEach(r => {
                         if(r.startTime && r.endTime) {
@@ -129,20 +106,17 @@
                         dept: staff.dept || '未設定',
                         recordCount: myRecords.length,
                         visitCount: new Set(myRecords.map(r => r.customerName)).size,
-                        avgTime: myRecords.length > 0 ? Math.round(totalMinutes / myRecords.length) : 0,
-                        loginCount: Math.floor(Math.random() * 30) // ※本番では別途集計用コレクションを作成推奨
+                        avgTime: Math.round(totalMinutes / myRecords.length) || 0
                     };
-                });
+                }).filter(Boolean);
 
                 document.getElementById('loading').style.display = 'none';
-                window.updateTable();
+                window.renderTable();
             } catch (e) { 
-                console.error("Stats Error:", e); 
-                document.getElementById('loading').innerHTML = '<p class="text-rose-400 font-bold">集計失敗。Firebase上限の可能性があります。</p>';
+                console.error(e);
+                document.getElementById('loading').innerHTML = '<p class="text-rose-400 font-bold">集計に失敗しました。</p>';
             }
         }
-
-        window.updateTable = () => window.renderTable();
 
         window.switchMode = (mode) => {
             currentMode = mode;
@@ -159,29 +133,28 @@
 
             const filtered = selectedDept === 'ALL' ? staffStats : staffStats.filter(s => s.dept === selectedDept);
 
-            if (currentMode === 'usage') {
-                head.innerHTML = '<th class="p-6 w-24">社員番号</th><th class="p-6">氏名</th><th class="p-6">部署</th><th class="p-6 text-center">ログイン回数</th><th class="p-6 text-center">実績登録数</th>';
-                filtered.sort((a,b)=>b.recordCount-a.recordCount).forEach(s => {
-                    body.insertAdjacentHTML('beforeend', `
-                        <tr class="hover:bg-sky-50/30 transition-all border-b border-slate-50 text-center">
-                            <td class="p-6 text-slate-400 font-mono text-xs border-r border-slate-50">${s.id}</td>
-                            <td class="p-6 text-slate-800 text-left font-black">${s.name}</td>
-                            <td class="p-6 text-slate-500 text-left text-xs">${s.dept}</td>
-                            <td class="p-6 text-blue-500 font-black">${s.loginCount}回</td>
-                            <td class="p-6 text-slate-700 font-black">${s.recordCount}件</td>
-                        </tr>
-                    `);
-                });
-            } else {
-                head.innerHTML = '<th class="p-6 w-24 text-center">社員番号</th><th class="p-6">氏名</th><th class="p-6">部署</th><th class="p-6 text-center">訪問顧客数</th><th class="p-6 text-center">平均滞在時間</th>';
+            if (currentMode === 'visit') {
+                head.innerHTML = '<th class="p-6 w-24">社員番号</th><th class="p-6">氏名</th><th class="p-6">部署</th><th class="p-6 text-center">今月の訪問顧客数</th><th class="p-6 text-center">平均滞在時間</th>';
                 filtered.sort((a,b)=>b.visitCount-a.visitCount).forEach(s => {
                     body.insertAdjacentHTML('beforeend', `
                         <tr class="hover:bg-emerald-50/30 transition-all border-b border-slate-50 text-center">
                             <td class="p-6 text-slate-400 font-mono text-xs border-r border-slate-50">${s.id}</td>
                             <td class="p-6 text-slate-800 text-left font-black">${s.name}</td>
                             <td class="p-6 text-slate-500 text-left text-xs">${s.dept}</td>
-                            <td class="p-6 text-emerald-600 font-black">${s.visitCount}件</td>
+                            <td class="p-6 text-emerald-600 font-black">${s.visitCount}社</td>
                             <td class="p-6 text-slate-700 font-black">${s.avgTime}分</td>
+                        </tr>
+                    `);
+                });
+            } else {
+                head.innerHTML = '<th class="p-6 w-24">社員番号</th><th class="p-6">氏名</th><th class="p-6">部署</th><th class="p-6 text-center">今月の実績登録数</th>';
+                filtered.sort((a,b)=>b.recordCount-a.recordCount).forEach(s => {
+                    body.insertAdjacentHTML('beforeend', `
+                        <tr class="hover:bg-sky-50/30 transition-all border-b border-slate-50 text-center">
+                            <td class="p-6 text-slate-400 font-mono text-xs border-r border-slate-50">${s.id}</td>
+                            <td class="p-6 text-slate-800 text-left font-black">${s.name}</td>
+                            <td class="p-6 text-slate-500 text-left text-xs">${s.dept}</td>
+                            <td class="p-6 text-blue-600 font-black">${s.recordCount}件</td>
                         </tr>
                     `);
                 });
