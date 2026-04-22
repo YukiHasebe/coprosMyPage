@@ -7,6 +7,7 @@
     <style>
         :root { --copros-orange: #ff7e11; --copros-blue: #004098; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
+        /* 🌟 枠線なしボタン */
         .filter-btn { border: none; color: #94a3b8; background: transparent; transition: all 0.2s; font-weight: 900; padding: 0.4rem 0.8rem; cursor: pointer; }
         .filter-btn.active { background: var(--copros-orange) !important; color: white !important; border-radius: 0.5rem; box-shadow: 0 4px 12px rgba(255,126,17,0.3); }
         .table-container { border-radius: 1.5rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
@@ -35,17 +36,16 @@
                     </div>
                 </div>
 
-                <!-- 詳細検索パネル -->
                 <div id="detailSearchSection" class="hidden mb-8 p-8 bg-white rounded-3xl shadow-xl border border-blue-50">
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-xs font-bold">
-                        <div class="space-y-2"><label class="text-slate-400">お客様名</label><input type="text" id="filterCustomer" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="キーワード"></div>
-                        <div class="space-y-2"><label class="text-slate-400">訪問者名</label><input type="text" id="filterVisitor" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="氏名"></div>
+                        <div class="space-y-2"><label class="text-slate-400">お客様名</label><input type="text" id="filterCustomer" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="一部入力OK"></div>
+                        <div class="space-y-2"><label class="text-slate-400">訪問者名</label><input type="text" id="filterVisitor" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="一部入力OK"></div>
                         <div class="md:col-span-2 space-y-2">
                             <label class="text-slate-400">訪問期間</label>
                             <div class="flex items-center gap-2"><input type="date" id="startDate" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl"><span>〜</span><input type="date" id="endDate" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl"></div>
                         </div>
                     </div>
-                    <div class="flex justify-center gap-4 mt-8"><button onclick="window.executeSearch()" class="bg-[#334155] text-white px-12 py-3 rounded-xl font-bold shadow-lg">検索実行</button><button onclick="window.clearSearch()" class="text-slate-400 px-8 py-3 font-bold">クリア</button></div>
+                    <div class="flex justify-center gap-4 mt-8"><button onclick="window.executeSearch()" class="bg-[#334155] text-white px-12 py-3 rounded-xl font-bold shadow-lg active:scale-95 transition-all">検索実行</button><button onclick="window.clearSearch()" class="text-slate-400 px-8 py-3 font-bold">クリア</button></div>
                 </div>
 
                 <div class="flex items-center gap-6 mb-6">
@@ -77,14 +77,13 @@
     <script type="module" src="common.js"></script>
     <script type="module">
         import { db } from "./common.js";
-        import { collection, getDocs, query, limit, doc, writeBatch, where, orderBy, startAt, endAt } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, getDocs, query, limit, doc, writeBatch, where, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let allRecords = []; 
         let currentKana = 'all';
 
         async function init() { window.executeSearch(); }
 
-        // 🌟 検索・表示の統合ロジック（省エネ＆全件対応）
         window.executeSearch = async () => {
             const tbody = document.getElementById('recordTable');
             tbody.innerHTML = `<tr><td colspan="6" class="p-16 text-center text-slate-400 font-bold italic">データを照合中...</td></tr>`;
@@ -94,20 +93,36 @@
             const dept = document.getElementById('deptFilter').value;
 
             try {
-                let q = query(collection(db, "activity_records"), orderBy("visitDate", "desc"), limit(100));
+                let q;
+                const ref = collection(db, "activity_records");
 
-                // 🌟 名前指定がある場合は、1万件の中からピンポイント検索
-                if (visiK) q = query(collection(db, "activity_records"), where("visitorName", "==", visiK), orderBy("visitDate", "desc"), limit(100));
-                else if (custK) q = query(collection(db, "activity_records"), where("customerName", ">=", custK), where("customerName", "<=", custK + '\uf8ff'), limit(100));
+                // 🌟 【一部一致・全件対応】Firebaseの奥深くから探し出すロジック
+                if (visiK) {
+                    q = query(ref, where("visitorName", ">=", visiK), where("visitorName", "<=", visiK + '\uf8ff'), orderBy("visitorName"), limit(100));
+                } else if (custK) {
+                    q = query(ref, where("customerName", ">=", custK), where("customerName", "<=", custK + '\uf8ff'), orderBy("customerName"), limit(100));
+                } else {
+                    q = query(ref, orderBy("visitDate", "desc"), limit(100));
+                }
 
                 const snap = await getDocs(q);
                 allRecords = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-                // 部署フィルタ（取得後にメモリで処理）
+                // 部署・期間フィルタ（メモリ処理）
                 if (dept !== 'ALL') allRecords = allRecords.filter(r => r.visitorDept === dept);
+                const startD = document.getElementById('startDate').value;
+                const endD = document.getElementById('endDate').value;
+                if(startD) allRecords = allRecords.filter(r => r.visitDate >= startD);
+                if(endD) allRecords = allRecords.filter(r => r.visitDate <= endD);
                 
                 window.updateView();
-            } catch (e) { console.error(e); }
+            } catch (e) {
+                console.error(e);
+                // 🌟 インデックス未作成時のガイドを表示
+                if (e.message.includes("index")) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="p-16 text-center text-rose-500 font-bold">設定が必要です。<br>F12キーを押し、ConsoleにあるURLをクリックして「保存」してください。</td></tr>`;
+                }
+            }
         };
 
         window.setKanaFilter = (btn, kana) => {
@@ -119,7 +134,7 @@
 
         window.updateView = () => {
             let filtered = allRecords;
-            const rangeMap = { 'あ': /^[あ-おア-オ安阿伊藤]/, 'か': /^[か-こカ-コ加河]/, 'さ': /^[さ-そサ-ソ佐佐藤]/, 'た': /^[た-とタ-トだ-ど田高]/, 'な': /^[な-のナ-ノ内中]/, 'は': /^[は-ほハ-ホ波橋]/, 'ま': /^[ま-もマ-モ前松]/, 'や': /^[や-よヤ-ヨ山谷]/ };
+            const rangeMap = { 'あ': /^[あ-おア-オ安阿伊藤宇]/, 'か': /^[か-こカ-コ加河亀菊久]/, 'さ': /^[さ-そサ-ソ佐佐藤斉進]/, 'た': /^[た-とタ-トだ-ど田高武]/, 'な': /^[な-のナ-ノ内中永長]/, 'は': /^[は-ほハ-ホ波橋長林]/, 'ま': /^[ま-もマ-モ前松丸宮]/, 'や': /^[や-よヤ-ヨ山谷]/ };
             
             if (currentKana !== 'all') {
                 if (currentKana === '他') filtered = filtered.filter(r => !Object.values(rangeMap).some(re => re.test(r.customerName)));
