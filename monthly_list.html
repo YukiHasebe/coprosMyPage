@@ -1,147 +1,125 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>月別実績一覧 | CP My Page</title>
+    <meta charset="UTF-8"><title>月別実績一覧 | CP My Page</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
-        
         .table-container { border-radius: 2rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
         thead tr { background-color: #3c4b5a; }
-        
         .month-col { min-width: 50px; text-align: center; border-left: 1px solid #f1f5f9; }
         .val-zero { color: #e2e8f0; font-weight: 400; }
         .val-active { color: var(--copros-orange); background: #fff7ed; border-radius: 4px; padding: 4px 0; font-weight: 800; }
-
-        .year-btn { padding: 0.5rem 1rem; border-radius: 0.75rem; font-weight: 900; font-size: 0.75rem; transition: all 0.2s; border: 1px solid #e2e8f0; background: white; color: #64748b; white-space: nowrap; }
+        .year-btn { padding: 0.5rem 1rem; border-radius: 0.75rem; font-weight: 900; font-size: 0.75rem; transition: all 0.2s; border: 1px solid #e2e8f0; background: white; color: #64748b; }
         .year-btn:hover { background: #f8fafc; color: var(--copros-orange); }
-
+        
         /* 🌟 由紀オーナーこだわりの左側カラム固定 */
         @media (min-width: 1024px) {
             .sticky-rank { position: sticky; left: 0; background: white; z-index: 10; border-right: 1px solid #f1f5f9; min-width: 50px; }
             .sticky-name { position: sticky; left: 50px; background: white; z-index: 10; border-right: 2px solid #f1f5f9; min-width: 200px; }
             thead .sticky-rank, thead .sticky-name { background: #3c4b5a; z-index: 20; color: white; }
         }
-
-        .scope-select { 
-            background: #e2e8f0; border: none; padding: 0.4rem 1rem; border-radius: 0.75rem; 
-            font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; appearance: none;
-            cursor: pointer; transition: all 0.2s;
-        }
+        .scope-select { background: #e2e8f0; border: none; padding: 0.4rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; cursor: pointer; }
         .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
-<body class="flex h-screen overflow-hidden text-slate-700 font-sans">
-
+<body class="flex h-screen overflow-hidden text-slate-700">
     <div id="sidebar-placeholder"></div>
-
     <main class="flex-1 flex flex-col overflow-hidden">
         <div id="header-placeholder"></div>
-
         <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1600px] mx-auto">
-                
-                <!-- ヘッドエリア -->
                 <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-6">
                     <div class="flex items-end gap-4 lg:gap-6">
                         <div>
-                            <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-2">月別実績一覧</h1>
-                            <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Monthly Sales Performance Matrix</nav>
+                            <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">月別実績一覧</h1>
+                            <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Monthly Performance Matrix</nav>
                         </div>
-                        <div class="mb-2">
-                            <select id="deptFilter" onchange="window.updateTable()" class="scope-select shadow-inner">
-                                <option value="ALL">全社表示</option>
-                                <option>ケコム部</option><option>関西支店</option><option>関東支店</option>
-                                <option>中部営業所</option><option>土木部</option><option>建築部</option>
-                                <option>建機部</option><option>総務部</option><option>購買課</option>
-                                <option>宮崎産商</option><option>企画部</option>
-                            </select>
-                        </div>
+                        <select id="deptFilter" onchange="window.init()" class="scope-select shadow-inner mb-2">
+                            <option value="ALL">全社表示</option>
+                            <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option><option>土木部</option><option>建築部</option><option>建機部</option><option>総務部</option><option>購買課</option><option>宮崎産商</option><option>企画部</option>
+                        </select>
                     </div>
-
-                    <div class="flex flex-wrap gap-2 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100 items-center w-full lg:w-auto justify-center">
-                        <div class="flex items-center gap-2 px-2 border-r border-slate-100">
-                            <button onclick="window.changeYear(-1)" class="year-btn">前年</button>
-                            <span id="displayYear" class="text-xs lg:text-sm font-black text-slate-700 px-2 min-w-[80px] text-center">2026年度</span>
-                            <button onclick="window.changeYear(1)" class="year-btn">翌年</button>
-                        </div>
-                        <button class="px-6 py-2.5 bg-slate-800 text-white rounded-xl font-bold text-xs shadow-lg hover:bg-black transition-all flex items-center gap-2">
-                            <i class="fa-solid fa-file-csv text-blue-400"></i>CSV出力
-                        </button>
+                    <div class="flex items-center gap-2 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100">
+                        <button onclick="window.changeYear(-1)" class="year-btn">前年</button>
+                        <span id="displayYear" class="text-sm font-black text-slate-700 px-4">2026年度</span>
+                        <button onclick="window.changeYear(1)" class="year-btn">翌年</button>
                     </div>
                 </div>
 
-                <!-- 集計テーブル -->
-                <div class="table-container custom-scrollbar overflow-x-auto mb-20">
+                <div class="table-container overflow-x-auto mb-20">
                     <table class="w-full text-left border-collapse min-w-[1200px]">
                         <thead>
                             <tr class="text-white text-[10px] font-black uppercase tracking-widest text-center">
-                                <th class="p-4 sticky-rank">Rank</th>
-                                <th class="p-4 sticky-name text-left">お客様名</th>
-                                <th class="p-4 w-24">属性</th>
-                                <th class="month-col">4月</th><th class="month-col">5月</th><th class="month-col">6月</th>
-                                <th class="month-col">7月</th><th class="month-col">8月</th><th class="month-col">9月</th>
-                                <th class="month-col">10月</th><th class="month-col">11月</th><th class="month-col">12月</th>
-                                <th class="month-col">1月</th><th class="month-col">2月</th><th class="month-col">3月</th>
+                                <th class="p-4 sticky-rank">Rank</th><th class="p-4 sticky-name text-left">お客様名</th><th class="p-4 w-24">属性</th>
+                                <th class="month-col">4月</th><th class="month-col">5月</th><th class="month-col">6月</th><th class="month-col">7月</th><th class="month-col">8月</th><th class="month-col">9月</th><th class="month-col">10月</th><th class="month-col">11月</th><th class="month-col">12月</th><th class="month-col">1月</th><th class="month-col">2月</th><th class="month-col">3月</th>
                                 <th class="p-4 bg-slate-900 w-20">合計</th>
                             </tr>
                         </thead>
-                        <tbody id="monthlyTableBody" class="text-[11px] lg:text-xs font-bold divide-y divide-slate-50 bg-white">
-                            <!-- JS注入 -->
-                        </tbody>
+                        <tbody id="monthlyTableBody" class="text-[11px] lg:text-xs font-bold divide-y divide-slate-50 bg-white"></tbody>
                     </table>
                 </div>
-
-                <div id="loading" class="fixed inset-0 bg-white/80 backdrop-blur-sm z-[100] flex flex-col items-center justify-center">
-                    <div class="animate-spin mb-4 text-blue-500 text-5xl"><i class="fa-solid fa-circle-notch"></i></div>
-                    <p class="text-slate-800 font-black tracking-tighter">実績データを年度集計中...</p>
-                </div>
-
+                <div id="loading" class="py-20 text-center"><div class="animate-spin text-blue-500 text-4xl mb-4"><i class="fa-solid fa-circle-notch"></i></div><p class="text-slate-400 font-bold">集計中...</p></div>
             </div>
         </div>
     </main>
 
+    <script type="module" src="common.js"></script>
     <script type="module">
         import { db } from "./common.js";
-        import { collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, getDocs, query, orderBy, limit, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let currentYear = 2026;
-        let allCustomers = [];
-        let allRecords = [];
-
-        async function init() {
-            try {
-                // 🌟 鉄壁リミット ＆ メモリ内集計
-                // 全件取得を避けつつ、主要なお客様と最新実績を取得
-                const [cSnap, rSnap] = await Promise.all([
-                    getDocs(query(collection(db, "customers"), orderBy("name"), limit(250))),
-                    getDocs(query(collection(db, "activity_records"), orderBy("visitDate", "desc"), limit(800)))
-                ]);
-                allCustomers = cSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-                allRecords = rSnap.docs.map(d => d.data());
-                
-                document.getElementById('loading').style.display = 'none';
-                window.renderTable();
-            } catch (e) { 
-                console.error("Stats Error:", e);
-                document.getElementById('loading').innerHTML = '<p class="text-rose-500 font-bold">集計失敗。Firebase上限の可能性があります。</p>';
-            }
-        }
-
-        window.updateTable = () => window.renderTable();
-
-        window.renderTable = () => {
+        window.init = async () => {
+            const loading = document.getElementById('loading');
+            loading.style.display = 'block';
             const tbody = document.getElementById('monthlyTableBody');
             tbody.innerHTML = "";
             document.getElementById('displayYear').innerText = `${currentYear}年度`;
+            
             const selectedDept = document.getElementById('deptFilter').value;
+            const startFiscal = `${currentYear}-04-01`;
+            const endFiscal = `${currentYear + 1}-03-31`;
 
-            // 年度（4月〜翌3月）の定義
+            try {
+                // 🌟 最強の省エネ：今年度の実績があるデータだけをピンポイント取得（最大300件）
+                let qRecords = query(
+                    collection(db, "activity_records"),
+                    where("visitDate", ">=", startFiscal),
+                    where("visitDate", "<=", endFiscal),
+                    limit(500)
+                );
+                
+                const rSnap = await getDocs(qRecords);
+                const records = rSnap.docs.map(d => d.data());
+                
+                // 実績があったお客様名リストを作成（重複なし）
+                let activeCustomerNames = [...new Set(records.map(r => r.customerName))];
+                if (selectedDept !== 'ALL') {
+                    activeCustomerNames = [...new Set(records.filter(r => r.visitorDept === selectedDept).map(r => r.customerName))];
+                }
+
+                // そのお客様たちの名簿情報を取得（2,700件から探すのではなく、実績があった人だけ探す）
+                // ※一度に10件ずつしかwhere("name","in")は使えないので、個別フィルタで対応
+                const displayData = activeCustomerNames.map(name => {
+                    const myRecs = records.filter(r => r.customerName === name && (selectedDept === 'ALL' || r.visitorDept === selectedDept));
+                    if (myRecs.length === 0) return null;
+                    return { name: name, rank: myRecs[0].customerRank, type: myRecs[0].customerType, recs: myRecs };
+                }).filter(Boolean);
+
+                renderTable(displayData);
+                loading.style.display = 'none';
+            } catch (e) {
+                console.error(e);
+                loading.innerHTML = '<p class="text-rose-500 font-bold">データが多すぎるか、設定が必要です。</p>';
+            }
+        };
+
+        function renderTable(displayData) {
+            const tbody = document.getElementById('monthlyTableBody');
             const fiscalMonths = [
                 {y: currentYear, m: 4}, {y: currentYear, m: 5}, {y: currentYear, m: 6},
                 {y: currentYear, m: 7}, {y: currentYear, m: 8}, {y: currentYear, m: 9},
@@ -149,51 +127,40 @@
                 {y: currentYear + 1, m: 1}, {y: currentYear + 1, m: 2}, {y: currentYear + 1, m: 3}
             ];
 
-            // 部署フィルタリング（メモリ内）
-            let displayRecords = selectedDept === 'ALL' ? allRecords : allRecords.filter(r => r.visitorDept === selectedDept);
-
-            allCustomers.forEach(cust => {
+            displayData.forEach(cust => {
                 let monthlyHtml = "";
                 let rowTotal = 0;
-                let hasDataInYear = false;
-
                 fiscalMonths.forEach(fm => {
-                    const count = displayRecords.filter(r => {
-                        if (!r.visitDate) return false;
-                        const d = r.visitDate.split('-'); // "YYYY-MM-DD"形式を想定
-                        return r.customerName === cust.name && parseInt(d[0]) === fm.y && parseInt(d[1]) === fm.m;
+                    const count = cust.recs.filter(r => {
+                        const d = r.visitDate.split('-');
+                        return parseInt(d[0]) === fm.y && parseInt(d[1]) === fm.m;
                     }).length;
-                    
                     if (count > 0) {
                         rowTotal += count;
-                        hasDataInYear = true;
                         monthlyHtml += `<td class="month-col"><div class="mx-1 val-active">${count}</div></td>`;
                     } else {
                         monthlyHtml += `<td class="month-col"><div class="val-zero">0</div></td>`;
                     }
                 });
 
-                // 表示条件：全社表示なら全顧客、部署指定なら実績がある顧客のみ
-                if (selectedDept === 'ALL' || hasDataInYear) {
-                    tbody.insertAdjacentHTML('beforeend', `
-                        <tr class="hover:bg-slate-50 transition-colors border-b border-slate-50 text-center">
-                            <td class="p-4 sticky-rank text-[10px] text-slate-400 font-black bg-white">${cust.rank || '-'}</td>
-                            <td class="p-4 sticky-name text-left text-slate-800 font-black truncate max-w-[200px] cursor-pointer hover:text-blue-600 bg-white" 
-                                onclick="location.href='customer_history.html?name=${encodeURIComponent(cust.name)}'">
-                                ${cust.name}
-                            </td>
-                            <td class="p-4 text-slate-400 text-[10px]">${cust.type || '-'}</td>
-                            ${monthlyHtml}
-                            <td class="p-4 bg-slate-50 font-black text-slate-700">${rowTotal}</td>
-                        </tr>
-                    `);
-                }
+                tbody.insertAdjacentHTML('beforeend', `
+                    <tr class="hover:bg-slate-50 transition-colors border-b border-slate-50 text-center">
+                        <td class="p-4 sticky-rank text-[10px] text-slate-400 font-black bg-white">${cust.rank || '-'}</td>
+                        <td class="p-4 sticky-name text-left text-slate-800 font-black truncate max-w-[200px] cursor-pointer hover:text-blue-600 bg-white" 
+                            onclick="location.href='customer_history.html?name=${encodeURIComponent(cust.name)}'">
+                            ${cust.name}
+                        </td>
+                        <td class="p-4 text-slate-400 text-[10px]">${cust.type || '-'}</td>
+                        ${monthlyHtml}
+                        <td class="p-4 bg-slate-50 font-black text-slate-700">${rowTotal}</td>
+                    </tr>
+                `);
             });
-        };
+        }
 
-        window.changeYear = (val) => { currentYear += val; window.renderTable(); };
-
-        init();
+        window.changeYear = (val) => { currentYear += val; window.init(); };
+        window.updateTable = () => window.init();
+        window.init();
     </script>
 </body>
 </html>
