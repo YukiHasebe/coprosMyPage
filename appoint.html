@@ -32,18 +32,22 @@
     <main class="flex-1 flex flex-col overflow-hidden">
         <div id="header-placeholder"></div>
         <div class="flex-1 overflow-y-auto p-4 lg:p-8 custom-scrollbar">
-            <div class="max-w-5xl mx-auto">
-                 <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-4">
+            <div class="max-w-[1000px] mx-auto">
+                
+                <!-- 🌟 ヘッドエリア：オーナーのオリジナルデザインを忠実に再現 -->
+                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-4">
                     <div>
-                        <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-2">アポイント登録</h1>
-                        <nav class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">SCHEDULE & APPOINTMENT SETUP</nav>
+                        <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">アポイント登録</h1>
+                        <nav class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">SCHEDULE & APPOINTMENT SETUP</nav>
                     </div>
-                    <div class="flex gap-2 w-full lg:w-auto">
-                        <button type="button" onclick="window.saveDraft()" class="flex-1 lg:flex-none px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 shadow-sm transition-all">下書き</button>
-                        <button type="button" id="submitBtnTop" class="flex-1 lg:flex-none px-10 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-sm hover:shadow-lg transition-all flex items-center justify-center gap-2 active:scale-95">
-                            <i class="fa-solid fa-calendar-check"></i> 登録を実行
-                        </button>
-                    </div>
+                </div>
+
+                <!-- 🌟 ボタンエリア：オーナーオリジナルの大きな2連ボタン -->
+                <div class="flex gap-4 mb-8">
+                    <button type="button" onclick="window.saveDraft()" class="flex-1 py-3 bg-white border border-slate-200 text-slate-400 rounded-xl font-bold text-sm shadow-sm">下書き</button>
+                    <button type="button" id="submitBtnTop" class="flex-1 py-3 bg-[#004098] text-white rounded-xl font-bold text-sm hover:shadow-lg transition-all flex items-center justify-center gap-2 active:scale-95">
+                        <i class="fa-solid fa-calendar-check"></i> 登録を実行
+                    </button>
                 </div>
 
                 <form id="appointForm">
@@ -55,7 +59,6 @@
                                 <input type="text" id="customerSearch" placeholder="お客様名を検索..." class="form-input" autocomplete="off" required>
                                 <div id="customerSuggestions" class="suggestion-box custom-scrollbar"></div>
                             </div>
-
                             <div>
                                 <label class="label-text">訪問予定日時 <span class="text-rose-500">*</span></label>
                                 <div class="flex flex-wrap items-center gap-4">
@@ -68,23 +71,18 @@
                                     </div>
                                 </div>
                             </div>
-
                             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                 <div>
                                     <label class="label-text">訪問予定者 <span class="text-rose-500">*</span></label>
                                     <div class="flex gap-2">
-                                        <input type="text" id="visitorName" class="form-input bg-blue-50 text-blue-700" readonly>
+                                        <input type="text" id="visitorName" class="form-input bg-blue-50 text-blue-700 font-bold" readonly>
                                         <button type="button" onclick="window.openStaffModal('visitor')" class="px-5 bg-white border border-slate-200 rounded-xl text-xs font-black shadow-sm">選択</button>
                                     </div>
                                 </div>
-                                <div>
-                                    <label class="label-text">内容（仮）</label>
-                                    <input type="text" id="appointSubject" placeholder="例：新工法の説明" class="form-input">
-                                </div>
+                                <div><label class="label-text">内容（仮）</label><input type="text" id="appointSubject" placeholder="例：新工法の説明" class="form-input"></div>
                             </div>
                         </div>
                     </div>
-
                     <div class="section-card">
                         <p class="section-title">回覧設定</p>
                         <div class="space-y-6">
@@ -92,7 +90,8 @@
                             <div id="circularDisplay" class="p-6 bg-slate-50 border border-slate-200 rounded-2xl min-h-[80px] text-sm font-bold text-slate-500">未選択</div>
                         </div>
                     </div>
-
+                    
+                    <!-- 🌟 下部ボタン：オーナーオリジナルを忠実に再現 -->
                     <div class="flex justify-center gap-4 py-12 border-t border-slate-100 mt-10">
                         <button type="button" onclick="window.saveDraft()" class="px-8 py-3 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-50">下書き保存</button>
                         <button type="button" id="submitBtnBottom" onclick="document.getElementById('submitBtnTop').click()" class="px-16 py-3 bg-[#004098] text-white rounded-xl font-black text-sm hover:shadow-lg flex items-center gap-2 active:scale-95 transition-all">
@@ -131,7 +130,7 @@
                 const depts = [...new Set(allStaffs.map(s => s.dept).filter(Boolean))];
                 depts.forEach(d => document.getElementById('staffDeptFilter').insertAdjacentHTML('beforeend', `<option value="${d}">${d}</option>`));
                 setupCustomerSearch();
-            } catch (e) { console.error("Init Error:", e); }
+            } catch (e) { console.error(e); }
         }
 
         function setupCustomerSearch() {
@@ -200,35 +199,12 @@
                 for (const name of cNames) {
                     await addDoc(collection(db, "notifications"), {
                         recipient: name, visitorName: visitorName, customerName: cust, isRead: false,
-                        content: "【アポ】" + document.getElementById('appointSubject').value, createdAt: serverTimestamp()
+                        content: "【アポ】" + document.getElementById('appointSubject').value, createdAt: serverTimestamp(), type: "アポ回覧"
                     });
                 }
                 alert("登録完了！"); location.href = 'calendar.html';
             } catch (e) { alert("失敗"); btn.disabled = false; btn.innerHTML = '登録を実行'; }
         };
-        document.getElementById('submitBtnTop').onclick = handleRegister;
-       
-                // 🌟 210行目から最後（</script>の直前）までをこれに差し替え
-        init().then(() => {
-            // 🌟 init完了後に下書きチェックを実行
-            const saved = localStorage.getItem('cp_draft_appoint');
-            if (saved) {
-                setTimeout(() => {
-                    if (confirm("未送信のアポ下書きがあります。復元しますか？")) {
-                        const d = JSON.parse(saved);
-                        document.getElementById('customerSearch').value = d.customerName || "";
-                        document.getElementById('appointDate').value = d.appointDate || "";
-                        document.getElementById('startTime').value = d.startTime || "";
-                        document.getElementById('endTime').value = d.endTime || "";
-                        document.getElementById('visitorName').value = d.visitorName || "";
-                        document.getElementById('appointSubject').value = d.appointSubject || "";
-                        document.getElementById('circularDisplay').innerText = d.circular || "未選択";
-                    } else {
-                        localStorage.removeItem('cp_draft_appoint');
-                    }
-                }, 500);
-            }
-        });
 
         // 🌟 下書き保存機能
         window.saveDraft = () => {
@@ -242,9 +218,28 @@
                 circular: document.getElementById('circularDisplay').innerText
             };
             localStorage.setItem('cp_draft_appoint', JSON.stringify(draftData));
-            alert("アポイントの下書きを保存しました。");
+            alert("下書きを保存しました。");
         };
-        
+
+        // 🌟 ページ読み込み後の復元
+        init().then(() => {
+            const saved = localStorage.getItem('cp_draft_appoint');
+            if (saved) {
+                setTimeout(() => {
+                    if (confirm("未送信の下書きがあります。復元しますか？")) {
+                        const d = JSON.parse(saved);
+                        document.getElementById('customerSearch').value = d.customerName || "";
+                        document.getElementById('appointDate').value = d.appointDate || "";
+                        document.getElementById('startTime').value = d.startTime || "";
+                        document.getElementById('endTime').value = d.endTime || "";
+                        document.getElementById('visitorName').value = d.visitorName || "";
+                        document.getElementById('appointSubject').value = d.appointSubject || "";
+                        document.getElementById('circularDisplay').innerText = d.circular || "未選択";
+                    } else { localStorage.removeItem('cp_draft_appoint'); }
+                }, 500);
+            }
+        });
+        document.getElementById('submitBtnTop').onclick = handleRegister;
     </script>
 </body>
 </html>
