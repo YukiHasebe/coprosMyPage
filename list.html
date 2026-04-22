@@ -11,6 +11,8 @@
         .filter-btn.active { background: var(--copros-orange) !important; color: white !important; border-radius: 0.5rem; box-shadow: 0 4px 12px rgba(255,126,17,0.3); }
         .table-container { border-radius: 1.5rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
         thead tr { background-color: #3c4b5a; }
+        /* 🌟 回数バッジの修正 */
+        .visit-badge { background-color: #fff7ed; color: #ff7e11; padding: 4px 12px; border-radius: 9999px; font-size: 11px; font-weight: 900; border: 1px solid #ffedd5; white-space: nowrap; display: inline-block; min-width: 55px; text-align: center; }
         .scope-select { background: #e2e8f0; border: none; padding: 0.4rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; appearance: none; cursor: pointer; }
     </style>
 </head>
@@ -20,25 +22,26 @@
         <div id="header-placeholder"></div>
         <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1400px] mx-auto">
-                <div class="flex justify-between items-end mb-10">
+                <!-- ヘッドエリア -->
+                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-10 gap-4">
                     <div>
-                        <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">お客様情報一覧</h1>
+                        <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-2">お客様情報一覧</h1>
                         <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest">CRM Management</nav>
                     </div>
-                    <div class="flex gap-3 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100 items-center">
-                        <button onclick="document.getElementById('detailSearchSection').classList.toggle('hidden')" class="px-5 py-2.5 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 flex items-center justify-center gap-2"><i class="fa-solid fa-sliders text-blue-400"></i>詳細検索</button>
-                        <button onclick="location.href='add.html'" class="px-6 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-sm hover:shadow-lg flex items-center justify-center gap-2"><i class="fa-solid fa-plus-circle"></i>新規登録</button>
-                        <button id="bulkDeleteBtn" class="px-5 py-2.5 text-rose-400 rounded-xl font-bold text-sm hover:bg-rose-50 flex items-center justify-center gap-2"><i class="fa-solid fa-trash-can"></i>一括削除</button>
+                    <div class="flex flex-wrap gap-2 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100">
+                        <button onclick="document.getElementById('detailSearchSection').classList.toggle('hidden')" class="flex-1 lg:flex-none px-4 py-2 text-slate-500 rounded-xl font-bold text-xs hover:bg-slate-50 flex items-center justify-center gap-2"><i class="fa-solid fa-sliders text-blue-400"></i>詳細検索</button>
+                        <button onclick="location.href='add.html'" class="flex-1 lg:flex-none px-5 py-2 bg-[#004098] text-white rounded-xl font-bold text-xs hover:shadow-lg flex items-center justify-center gap-2"><i class="fa-solid fa-plus-circle"></i>新規登録</button>
+                        <button id="bulkDeleteBtn" class="flex-1 lg:flex-none px-4 py-2 text-rose-400 rounded-xl font-bold text-xs hover:bg-rose-50 flex items-center justify-center gap-2"><i class="fa-solid fa-trash-can"></i>一括削除</button>
                     </div>
                 </div>
 
                 <!-- 詳細検索パネル -->
                 <div id="detailSearchSection" class="hidden mb-8 p-8 bg-white rounded-3xl shadow-xl border border-blue-50">
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-xs font-bold">
-                        <div class="space-y-2"><label class="text-slate-400">お客様名</label><input type="text" id="detailName" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="漢字・カナ検索"></div>
-                        <div class="space-y-2"><label class="text-slate-400">住所</label><input type="text" id="detailAddress" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="一部入力OK"></div>
-                        <div class="space-y-2"><label class="text-slate-400">顧客ランク</label><select id="detailRank" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl"><option value="">全て</option><option>Aa</option><option>Ab</option><option>Ac</option><option>Ad</option><option>Ba</option><option>Bb</option><option>Bc</option><option>Bd</option><option>Ca</option><option>Cb</option><option>Cc</option><option>Cd</option></select></div>
-                        <div class="space-y-2"><label class="text-slate-400">属性・区分</label><select id="detailType" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl"><option value="">全て</option><option>宮崎産商</option><option>ケコム</option><option>コンサル</option><option>官庁</option></select></div>
+                        <div class="space-y-2"><label class="text-slate-400">お客様名</label><input type="text" id="detailName" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="一部入力OK"></div>
+                        <div class="space-y-2"><label class="text-slate-400">住所</label><input type="text" id="detailAddress" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="下関など"></div>
+                        <div class="space-y-2"><label class="text-slate-400">顧客ランク</label><select id="detailRank" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl"><option value="">全て</option><option>Aa</option><option>Ab</option><option>Ac</option><option>Ba</option><option>Bb</option><option>Bc</option><option>Ca</option><option>Cb</option><option>Cc</option><option>Cd</option></select></div>
+                        <div class="space-y-2"><label class="text-slate-400">属性・区分</label><select id="detailType" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl"><option value="">全て</option><option>ケコム</option><option>建築部</option><option>コンサル</option></select></div>
                     </div>
                     <div class="flex justify-center gap-4 mt-8">
                         <button onclick="window.executeSearch()" class="bg-[#334155] text-white px-12 py-3 rounded-xl font-bold shadow-lg">検索実行</button>
@@ -46,9 +49,8 @@
                     </div>
                 </div>
 
-                <!-- 🌟 実績一覧と同じ形式のカウンター -->
-                <div class="flex items-center gap-6 mb-6">
-                    <div id="syllabaryFilter" class="flex p-1.5 bg-white rounded-xl border border-slate-200 shadow-sm font-black items-center">
+                <div class="flex items-center gap-4 mb-6">
+                    <div id="syllabaryFilter" class="flex p-1 bg-white rounded-xl border border-slate-200 shadow-sm font-black items-center">
                         <button class="filter-btn active px-4 py-1.5 text-xs" onclick="window.setKanaFilter(this, 'all')">全件</button>
                         <script>
                             ['あ','か','さ','た','な','は','ま','や','ら','わ','他'].forEach(k => 
@@ -56,16 +58,14 @@
                             );
                         </script>
                     </div>
-                    <div class="text-slate-400 font-bold text-sm">
-                        <span id="totalDisplay" class="text-slate-800 text-xl tracking-tighter">0</span> Customers
-                    </div>
+                    <div class="text-slate-400 font-bold text-sm"><span id="totalDisplay" class="text-slate-800 text-xl tracking-tighter">0</span> Customers</div>
                 </div>
 
                 <div class="table-container overflow-x-auto mb-20">
                     <table class="w-full text-left border-collapse min-w-[1100px]">
                         <thead>
                             <tr class="text-white text-[10px] font-black uppercase text-center">
-                                <th class="p-6 w-16 opacity-50">No</th><th class="p-6 text-left">お客様名</th><th class="p-6 w-48">実績/履歴</th><th class="p-6">電話番号</th><th class="p-6 text-left">住所</th><th class="p-6 w-24">回数</th><th class="p-6 w-32">最終訪問日</th><th class="p-6 w-16">選択</th>
+                                <th class="p-6 w-16 opacity-50">No</th><th class="p-6 text-left w-64">お客様名</th><th class="p-6 w-48">実績/履歴</th><th class="p-6">電話番号</th><th class="p-6 text-left">住所</th><th class="p-6 w-24">回数</th><th class="p-6 w-32">最終訪問日</th><th class="p-6 w-16">選択</th>
                             </tr>
                         </thead>
                         <tbody id="customerTable" class="divide-y divide-slate-100 text-sm font-bold bg-white text-center"></tbody>
@@ -81,37 +81,34 @@
         import { collection, getDocs, orderBy, query, limit, where, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let allCustomers = [];
-        let currentKana = 'all';
 
         async function init() { window.executeSearch(); }
 
         window.executeSearch = async () => {
             const tbody = document.getElementById('customerTable');
-            tbody.innerHTML = `<tr><td colspan="8" class="p-16 text-center text-slate-400 font-bold italic">データを照合中...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="8" class="p-16 text-center text-slate-400 font-bold">全件から検索中...</td></tr>`;
             
-            const nameK = document.getElementById('detailName').value.trim();
-            const addrK = document.getElementById('detailAddress').value.trim();
+            const name = document.getElementById('detailName').value.trim();
+            const addr = document.getElementById('detailAddress').value.trim();
+            const rank = document.getElementById('detailRank').value;
+            const type = document.getElementById('detailType').value;
 
             try {
-                let q;
-                const ref = collection(db, "customers");
-                if (nameK) q = query(ref, where("name", ">=", nameK), where("name", "<=", nameK + '\uf8ff'), orderBy("name"), limit(100));
-                else if (addrK) q = query(ref, where("address", ">=", addrK), where("address", "<=", addrK + '\uf8ff'), orderBy("address"), limit(100));
-                else q = query(ref, orderBy("updatedAt", "desc"), limit(50));
+                let q = query(collection(db, "customers"), orderBy("updatedAt", "desc"), limit(100));
+
+                // 🌟 いずれかの条件があれば、Firebaseの全件から検索
+                if (name) q = query(collection(db, "customers"), where("name", ">=", name), where("name", "<=", name + '\uf8ff'), orderBy("name"), limit(100));
+                else if (addr) q = query(collection(db, "customers"), where("address", ">=", addr), where("address", "<=", addr + '\uf8ff'), orderBy("address"), limit(100));
+                else if (rank) q = query(collection(db, "customers"), where("rank", "==", rank), orderBy("updatedAt", "desc"), limit(100));
+                else if (type) q = query(collection(db, "customers"), where("type", "==", type), orderBy("updatedAt", "desc"), limit(100));
 
                 const snap = await getDocs(q);
                 allCustomers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-                const rank = document.getElementById('detailRank').value;
-                const type = document.getElementById('detailType').value;
-                if(rank) allCustomers = allCustomers.filter(d => d.rank === rank);
-                if(type) allCustomers = allCustomers.filter(d => d.type === type);
-
-                window.updateView();
+                renderTable(allCustomers);
             } catch (e) {
                 console.error(e);
                 if (e.message.includes("index")) {
-                    tbody.innerHTML = `<tr><td colspan="8" class="p-16 text-center text-rose-500 font-bold">設定が必要です。<br>F12キーを押し、ConsoleにあるURLをクリックして「保存」してください。</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="8" class="p-16 text-center text-rose-500 font-bold">一度きりの設定が必要です。F12を押し、ConsoleにあるURLをクリックして「保存」してください。</td></tr>`;
                 }
             }
         };
@@ -119,36 +116,31 @@
         window.setKanaFilter = (btn, kana) => {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active', 'text-white'));
             btn.classList.add('active', 'text-white');
-            currentKana = kana;
-            window.updateView();
-        };
-
-        window.updateView = () => {
-            let filtered = allCustomers;
-            const rangeMap = { 'あ': /^[あ-おア-オ安阿伊藤宇]/, 'か': /^[か-こカ-コ加河亀菊久]/, 'さ': /^[さ-そサ-ソ佐佐藤斉進]/, 'た': /^[た-とタ-トだ-ど田高武]/, 'な': /^[な-のナ-ノ内中永長]/, 'は': /^[は-ほハ-ホ波橋長林]/, 'ま': /^[ま-もマ-モ前松丸宮]/, 'や': /^[や-よヤ-ヨ山谷]/ };
             
-            if (currentKana !== 'all') {
-                if (currentKana === '他') filtered = filtered.filter(d => !Object.values(rangeMap).some(re => re.test(d.name)));
-                else filtered = filtered.filter(d => rangeMap[currentKana].test(d.name) || (d.kana && rangeMap[currentKana].test(d.kana)));
-            }
+            if (kana === 'all') { window.executeSearch(); return; }
+
+            const rangeMap = { 'あ': /^[あ-おア-オ安阿伊藤宇]/, 'か': /^[か-こカ-コ加河亀菊久]/, 'さ': /^[さ-そサ-ソ佐佐藤斉進]/, 'た': /^[た-とタ-トだ-ど田高武]/, 'な': /^[な-のナ-ノ内中永長]/, 'は': /^[は-ほハ-ホ波橋長林]/, 'ま': /^[ま-もマ-モ前松丸宮]/, 'や': /^[や-よヤ-ヨ山谷]/ };
+            let filtered = allCustomers;
+            if (kana === '他') filtered = filtered.filter(d => !Object.values(rangeMap).some(re => re.test(d.name)));
+            else filtered = filtered.filter(d => rangeMap[kana].test(d.name));
             renderTable(filtered);
         };
 
         function renderTable(dataList) {
             const tbody = document.getElementById('customerTable');
             tbody.innerHTML = dataList.map((data, i) => `
-                <tr class="hover:bg-blue-50/50 border-b border-slate-50 transition-colors text-center">
+                <tr class="hover:bg-blue-50/50 border-b border-slate-50 transition-colors">
                     <td class="p-6 text-slate-300 font-mono text-xs border-r border-slate-50">${i+1}</td>
-                    <td class="p-6 text-left font-black text-slate-800">${data.name || '不明'}</td>
+                    <td class="p-6 text-left font-black text-slate-800 w-64">${data.name || '不明'}</td>
                     <td class="p-6 text-center"><div class="flex gap-1 justify-center">
                         <button onclick="location.href='customer_history.html?name=${encodeURIComponent(data.name)}'" class="bg-slate-100 text-slate-500 px-3 py-1.5 rounded-lg text-[10px] font-black hover:bg-[#004098] hover:text-white transition-all">履歴</button>
                         <button onclick="location.href='history.html?name=${encodeURIComponent(data.name)}'" class="bg-[#004098] text-white px-3 py-1.5 rounded-lg text-[10px] font-black hover:bg-orange-500 transition-all">実績</button>
                     </div></td>
-                    <td class="p-6 text-slate-500 font-mono text-xs">${data.tel || '-'}</td>
-                    <td class="p-6 text-left text-xs text-slate-400 truncate max-w-[250px] font-medium">${data.address || '-'}</td>
-                    <td class="p-6 text-center"><span class="bg-orange-50 text-[#ff7e11] px-3 py-1 rounded-full text-xs font-black border border-orange-100">${data.visitCount || 0}回</span></td>
+                    <td class="p-6 text-slate-500 font-mono text-xs text-center">${data.tel || '-'}</td>
+                    <td class="p-6 text-left text-xs text-slate-400 truncate max-w-[200px] font-medium">${data.address || '-'}</td>
+                    <td class="p-6 text-center"><span class="visit-badge">${data.visitCount || 0}回</span></td>
                     <td class="p-6 text-center text-slate-400 text-[10px] font-bold uppercase">${data.lastVisit || '未訪問'}</td>
-                    <td class="p-6 text-center"><input type="checkbox" class="customer-check w-5 h-5 accent-rose-500 rounded-md cursor-pointer" value="${data.id}"></td>
+                    <td class="p-6 text-center"><input type="checkbox" class="customer-check w-5 h-5 accent-rose-500 rounded-md cursor-pointer" data-id="${data.id}"></td>
                 </tr>`).join('');
             document.getElementById('totalDisplay').innerText = dataList.length;
         }
