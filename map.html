@@ -12,17 +12,16 @@
         .search-bar-area { background: white; padding: 10px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: center; gap: 8px; z-index: 50; }
         .search-wrapper { position: relative; width: 100%; max-width: 400px; }
         .search-input { width: 100%; padding: 8px 40px 8px 16px; border-radius: 10px; border: 1px solid #cbd5e1; font-weight: 800; font-size: 13px; outline: none; }
-        .clear-btn { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #cbd5e1; cursor: pointer; display: none; }
         .search-btn { background: var(--copros-blue); color: white; padding: 8px 20px; border-radius: 10px; font-weight: 900; }
         .map-control { position: absolute; top: 10px; right: 10px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
-        .text-control-btn { background: white; padding: 10px 15px; border-radius: 10px; font-weight: 900; font-size: 11px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); border: 1px solid #e2e8f0; color: #475569; transition: all 0.2s; text-align: center; }
+        .text-control-btn { background: white; padding: 10px 15px; border-radius: 10px; font-weight: 900; font-size: 11px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); border: 1px solid #e2e8f0; color: #475569; transition: all 0.2s; text-align: center; cursor: pointer; }
         .text-control-btn:hover { background: var(--copros-orange); color: white; }
         .custom-pin { width: 24px; height: 24px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         .custom-pin i { transform: rotate(45deg); color: white; font-size: 10px; }
         .map-legend { position: absolute; bottom: 30px; left: 20px; z-index: 1000; background: white; padding: 12px; border-radius: 1rem; box-shadow: 0 4px 15px rgba(0,0,0,0.1); font-size: 10px; font-weight: 900; border: 1px solid #e2e8f0; }
         .legend-item { display: flex; items-center: center; gap: 8px; margin-bottom: 5px; }
         .dot { width: 12px; height: 12px; border-radius: 50%; }
-        #geo-log { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); z-index: 1001; background: rgba(0,0,0,0.85); color: #fff; padding: 12px 25px; border-radius: 30px; font-size: 12px; font-weight: 800; display: none; text-align: center; width: 90%; max-width: 500px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        #geo-log { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); z-index: 1001; background: rgba(0,0,0,0.85); color: #fff; padding: 12px 25px; border-radius: 30px; font-size: 12px; font-weight: 800; display: none; text-align: center; width: 90%; max-width: 500px; }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700 font-sans">
@@ -30,16 +29,14 @@
     <main class="flex-1 flex flex-col overflow-hidden relative">
         <div id="header-placeholder"></div>
         <div class="search-bar-area shadow-sm">
-            <div class="search-wrapper"><input type="text" id="mapSearchInput" class="search-input" placeholder="地名やお客様名で検索"><i class="fa-solid fa-circle-xmark clear-btn" id="clearSearch"></i></div>
-            <button onclick="window.initMap('search')" class="search-btn">検索</button>
+            <div class="search-wrapper"><input type="text" id="mapSearchInput" class="search-input" placeholder="地名やお客様名で検索"></div>
+            <button onclick="window.initMap('search')" class="search-btn shadow-md active:scale-95 transition-all">検索</button>
         </div>
         <div id="map">
             <div id="geo-log"></div>
             <div class="map-control">
                 <button onclick="window.locateMe()" class="text-control-btn"><i class="fa-solid fa-location-crosshairs mr-1"></i>現在地を表示</button>
-                <!-- 🌟 修正：ここで再検索ボタンを追加 -->
-                <button onclick="window.initMap('area')" class="text-control-btn" style="color:var(--copros-blue); border-color:var(--copros-blue);"><i class="fa-solid fa-expand mr-1"></i>このエリアで再検索</button>
-                <button onclick="window.repairPins()" class="text-control-btn" style="color:var(--copros-orange); border-color:var(--copros-orange);"><i class="fa-solid fa-magic mr-1"></i>ピンを10件作成</button>
+                <button onclick="window.initMap('recent')" class="text-control-btn" style="color:var(--copros-blue);"><i class="fa-solid fa-clock-rotate-left mr-1"></i>最近の100件を表示</button>
                 <button onclick="window.clearAllPins()" class="text-control-btn" style="color:#ef4444;"><i class="fa-solid fa-trash-can mr-1"></i>ピンを全て消す</button>
             </div>
             <div class="map-legend">
@@ -47,26 +44,26 @@
                 <div class="legend-item"><div class="dot" style="background:#0ea5e9"></div><span>1ヶ月以内</span></div>
                 <div class="legend-item"><div class="dot" style="background:#ff7e11"></div><span>1〜3ヶ月</span></div>
                 <div class="legend-item"><div class="dot" style="background:#ef4444"></div><span>3ヶ月以上</span></div>
+                <div class="legend-item"><div class="dot" style="background:#94a3b8"></div><span>未訪問</span></div>
             </div>
         </div>
     </main>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script type="module">
         import { db } from "./common.js";
-        import { collection, getDocs, query, limit, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, getDocs, query, limit, updateDoc, doc, where, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        const map = L.map('map', { zoomControl: false }).setView([35.6812, 139.7671], 5);
+        const map = L.map('map', { zoomControl: false }).setView([34.0, 131.0], 9);
         L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', { attribution: '© 国土地理院' }).addTo(map);
         let markersLayer = L.layerGroup().addTo(map);
-        let cachedCustomers = []; // エコ：メモリに保持
 
         function log(msg) {
             const el = document.getElementById('geo-log');
-            el.style.display = 'block';
-            el.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles mr-2"></i>${msg}`;
+            el.style.display = 'block'; el.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles mr-2"></i>${msg}`;
+            setTimeout(() => el.style.display = 'none', 3000);
         }
 
-        window.clearAllPins = () => { markersLayer.clearLayers(); log("地図をクリアしました。"); setTimeout(()=>document.getElementById('geo-log').style.display='none', 1000); };
+        window.clearAllPins = () => { markersLayer.clearLayers(); log("地図をクリアしました。"); };
 
         function addPin(c) {
             let color = '#94a3b8';
@@ -76,39 +73,69 @@
                 else if (diffDays > 90) color = '#ef4444';
                 else color = '#ff7e11';
             }
-            const icon = L.divIcon({ html: `<div class="custom-pin" style="background-color:${color};"><i class="fa-solid fa-building"></i></div>`, className: '', iconSize: [24, 24], iconAnchor: [12, 24], popupAnchor: [0, -24] });
-            L.marker([c.lat, c.lng], { icon }).addTo(markersLayer).bindPopup(`<div class="popup-card"><h3 class="font-black text-sm">${c.name}</h3><p class="text-[9px] text-slate-500">${c.address}</p><div class="mt-3 flex gap-2"><a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(c.address)}" target="_blank" class="flex-1 bg-slate-800 text-white text-[10px] py-2 rounded text-center font-black">ナビ</a><button onclick="location.href='customer_history.html?name=${encodeURIComponent(c.name)}'" class="flex-1 bg-blue-50 text-blue-600 text-[10px] py-2 rounded font-black border border-blue-100">履歴</button></div></div>`);
+            const icon = L.divIcon({ 
+                html: `<div class="custom-pin" style="background-color:${color};"><i class="fa-solid fa-building"></i></div>`, 
+                className: '', iconSize: [24, 24], iconAnchor: [12, 24], popupAnchor: [0, -24] 
+            });
+            L.marker([c.lat, c.lng], { icon }).addTo(markersLayer).bindPopup(`
+                <div class="popup-card" style="min-width:200px;">
+                    <h3 class="font-black text-sm mb-1">${c.name}</h3>
+                    <p class="text-[10px] text-slate-500 mb-3">${c.address}</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <a href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(c.address)}" target="_blank" class="bg-slate-800 text-white text-[10px] py-2 rounded text-center font-black">ナビ</a>
+                        <button onclick="location.href='customer_history.html?name=${encodeURIComponent(c.name)}'" class="bg-blue-50 text-blue-600 text-[10px] py-2 rounded font-black border border-blue-100">履歴</button>
+                        <button onclick="location.href='history.html?name=${encodeURIComponent(c.name)}'" class="col-span-2 bg-[#ff7e11] text-white text-[10px] py-2 rounded font-black shadow-sm">このお客様の実績を書く</button>
+                    </div>
+                </div>
+            `);
         }
 
-        // 🌟 300件リミット ＆ エリア再検索ロジック
+        // 🌟 ジオコーディング（住所 ➔ 座標）
+        async function getCoords(address) {
+            try {
+                const res = await fetch(`https://msearch.gsi.go.jp/address-search/AddressSearch?q=${encodeURIComponent(address)}`);
+                const data = await res.json();
+                if (data && data.length > 0) return { lat: data[0].geometry.coordinates[1], lng: data[0].geometry.coordinates[0] };
+            } catch (e) { return null; }
+            return null;
+        }
+
         window.initMap = async (mode = 'recent') => {
             const keyword = document.getElementById('mapSearchInput').value.trim();
-            log("名簿からお客様を探しています...");
+            log(mode === 'search' ? `${keyword} を全件から探しています...` : "最近の100件を表示します...");
             
-            // 🌟 1. Firebaseから読み込み（300件に拡大）
-            const snap = await getDocs(query(collection(db, "customers"), limit(300)));
-            cachedCustomers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-            let list = cachedCustomers;
+            let q;
             if (mode === 'search' && keyword) {
-                list = list.filter(c => (c.name||"").includes(keyword) || (c.address||"").includes(keyword));
-            } else if (mode === 'area') {
-                // 🌟 現在の地図の範囲内にいる人だけを抽出（エコ！）
-                const bounds = map.getBounds();
-                list = list.filter(c => c.lat && c.lng && bounds.contains([c.lat, c.lng]));
+                // 🌟 全件から名前で狙い撃ち
+                q = query(collection(db, "customers"), where("name", ">=", keyword), where("name", "<=", keyword + '\uf8ff'), limit(50));
+            } else {
+                q = query(collection(db, "customers"), orderBy("updatedAt", "desc"), limit(100));
             }
 
+            const snap = await getDocs(q);
             markersLayer.clearLayers();
-            list.filter(c => c.lat && c.lng).forEach(c => addPin(c));
-            
-            if (markersLayer.getLayers().length > 0) map.fitBounds(new L.featureGroup(markersLayer.getLayers()).getBounds().pad(0.1));
-            document.getElementById('geo-log').style.display = 'none';
+
+            for (const d of snap.docs) {
+                const c = { id: d.id, ...d.data() };
+                // 座標がない場合はその場で変換＆Firebase保存（お掃除！）
+                if (!c.lat || !c.lng) {
+                    const coords = await getCoords(c.address);
+                    if (coords) {
+                        await updateDoc(doc(db, "customers", c.id), coords);
+                        c.lat = coords.lat; c.lng = coords.lng;
+                    }
+                }
+                if (c.lat && c.lng) addPin(c);
+            }
+
+            if (markersLayer.getLayers().length > 0) {
+                map.fitBounds(new L.featureGroup(markersLayer.getLayers()).getBounds().pad(0.2));
+            } else {
+                alert("該当するお客様が見つかりませんでした。住所が登録されているか確認してください。");
+            }
         };
 
-        // repairPins, locateMe, zoomToJapan は前回の優秀なロジックを継承
-        window.repairPins = async () => { /* 前回と同じロジック */ };
         window.locateMe = () => map.locate({setView: true, maxZoom: 15});
-        window.zoomToJapan = () => map.setView([35.6812, 139.7671], 5);
         window.initMap();
     </script>
 </body>
