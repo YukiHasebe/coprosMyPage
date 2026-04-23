@@ -1,80 +1,93 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>組織員情報一覧 | CP My Page</title>
+    <meta charset="UTF-8"><title>組織員情報一覧 | CP My Page</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; }
+        :root { --copros-orange: #ff7e11; --copros-navy: #004098; --copros-blue: #87ceeb; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
-        .filter-btn { transition: all 0.2s; white-space: nowrap; }
-        /* 🌟 由紀オーナー指定：アクティブ時の水色表示 */
-        .filter-btn.active { background: #0ea5e9; color: white; box-shadow: 0 4px 12px rgba(14,165,233,0.3); }
+        .filter-btn { border: none; color: #94a3b8; background: transparent; transition: all 0.2s; font-weight: 900; padding: 0.5rem 0.8rem; cursor: pointer; border-radius: 0.75rem; }
+        /* 🌟 お客様一覧から継承したオレンジのアクティブ表示 */
+        .filter-btn.active { background: var(--copros-orange) !important; color: white !important; box-shadow: 0 4px 12px rgba(255,126,17,0.3); }
         .table-container { border-radius: 1.5rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
         thead tr { background-color: #3c4b5a; }
-        .status-badge { padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 900; white-space: nowrap; }
-        .status-on { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
-        .status-off { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+        .status-badge { padding: 4px 12px; border-radius: 9999px; font-size: 11px; font-weight: 900; border-width: 1px; white-space: nowrap; display: inline-block; min-width: 60px; text-align: center; }
+        .status-on { background: #f0fdf4; color: #16a34a; border-color: #bbf7d0; }
+        .status-off { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
         .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700 font-sans">
-
     <div id="sidebar-placeholder"></div>
-
     <main class="flex-1 flex flex-col overflow-hidden">
         <div id="header-placeholder"></div>
-
         <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1400px] mx-auto">
                 
-                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-4">
+                <!-- 🌟 ヘッドエリア：お客様一覧と完全同期 -->
+                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-10 gap-4">
                     <div>
-                        <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-2">組織員情報一覧</h1>
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Organization Staff Management V2</p>
+                        <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-1">組織員情報一覧</h1>
+                        <nav class="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">Organization Staff Management</nav>
                     </div>
-                    <div class="flex gap-2 w-full lg:w-auto">
-                        <button onclick="location.href='staff_add.html'" class="flex-1 lg:flex-none px-6 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-xs hover:shadow-lg transition-all flex items-center justify-center gap-2">
-                            <i class="fa-solid fa-user-plus"></i>新規組織員登録
+                    <div class="flex flex-wrap gap-2 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100 items-center shrink-0 ml-auto">
+                        <button onclick="document.getElementById('staffSearchSection').classList.toggle('hidden')" class="px-5 py-2.5 text-slate-500 rounded-xl font-bold text-xs hover:bg-slate-50 flex items-center gap-2 transition-all">
+                            <i class="fa-solid fa-sliders text-blue-400"></i> 詳細検索
+                        </button>
+                        <div class="w-px h-6 bg-slate-100 mx-1"></div>
+                        <button onclick="location.href='staff_add.html'" class="px-8 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-xs hover:shadow-lg transition-all flex items-center gap-2 active:scale-95">
+                            <i class="fa-solid fa-user-plus text-[10px]"></i> 新規登録
+                        </button>
+                        <div class="w-px h-6 bg-slate-100 mx-1"></div>
+                        <button id="bulkDeleteBtn" class="px-5 py-2.5 text-rose-400 rounded-xl font-bold text-xs hover:bg-rose-50 flex items-center gap-2 transition-all">
+                            <i class="fa-solid fa-trash-can"></i> 一括削除
                         </button>
                     </div>
                 </div>
 
-                <div class="flex flex-col lg:flex-row justify-between items-center mb-6 gap-4 px-2">
-                    <div class="flex items-center gap-4 w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0 custom-scrollbar">
-                        <div class="flex gap-1 p-1 bg-white rounded-xl border border-slate-200 shadow-sm">
-                            <button class="filter-btn active px-4 py-1.5 rounded-lg text-xs font-black transition-all" data-range="all">全件</button>
-                            <script>
-                                ['あ','か','さ','た','な','は','ま','や','ら','わ','他'].forEach(k => {
-                                    document.write(`<button class="filter-btn px-3 py-1.5 rounded-lg text-xs text-slate-400 font-bold" data-range="${k}">${k}</button>`);
-                                });
-                            </script>
+                <!-- 🌟 詳細検索エリア：デザイン移植 -->
+                <div id="staffSearchSection" class="hidden mb-8 p-8 bg-white rounded-[2rem] shadow-xl border border-blue-50">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs font-bold">
+                        <div class="space-y-2"><label class="text-slate-400">氏名</label><input type="text" id="searchName" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-400 transition-all" placeholder="漢字・カナ検索"></div>
+                        <div class="space-y-2"><label class="text-slate-400">所属部署</label>
+                            <select id="searchDept" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-400 transition-all">
+                                <option value="">全て</option><option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option><option>土木部</option><option>建築部</option><option>建機部</option><option>総務部</option><option>購買課</option><option>宮崎産商</option><option>企画部</option>
+                            </select>
                         </div>
+                        <div class="space-y-2"><label class="text-slate-400">権限</label><select id="searchRole" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-400 transition-all"><option value="">全て</option><option>一般</option><option>管理者</option></select></div>
                     </div>
-                    <div class="flex items-center justify-end w-full lg:w-auto gap-2 text-slate-400 font-mono font-bold text-sm border-l-2 border-slate-200 pl-4 h-8">
-                        <span id="totalCount" class="text-slate-800 text-xl tracking-tighter">0</span> 
-                        <span class="text-[9px] uppercase">Staffs</span>
+                    <div class="flex justify-center gap-4 mt-8">
+                        <button onclick="window.applySearch()" class="bg-[#334155] text-white px-16 py-3 rounded-xl font-black shadow-lg active:scale-95 transition-all">検索を実行</button>
+                        <button onclick="window.clearSearch()" class="text-slate-400 px-8 py-3 font-bold hover:text-slate-600 transition-colors">クリア</button>
                     </div>
                 </div>
 
-                <div class="table-container custom-scrollbar overflow-x-auto">
+                <!-- 🌟 50音フィルターエリア：デザイン移植 -->
+                <div class="flex items-center gap-6 mb-6">
+                    <div id="syllabaryFilter" class="flex p-1.5 bg-white rounded-xl border border-slate-200 shadow-sm font-black items-center overflow-x-auto custom-scrollbar">
+                        <button class="filter-btn active px-4 py-1.5 text-xs" data-range="all">全件</button>
+                        <script>['あ','か','さ','た','な','は','ま','や','ら','わ','他'].forEach(k => document.write(`<button class="filter-btn px-3 py-1.5 text-xs hover:text-orange-500" data-range="${k}">${k}</button>`));</script>
+                    </div>
+                    <div class="text-slate-400 font-bold text-sm whitespace-nowrap"><span id="totalDisplay" class="text-slate-800 text-xl tracking-tighter">0</span> <span class="text-[10px] uppercase">Staffs</span></div>
+                </div>
+
+                <div class="table-container overflow-x-auto mb-24">
                     <table class="w-full text-left border-collapse min-w-[1000px]">
                         <thead>
-                            <tr class="text-white text-[10px] font-black uppercase tracking-widest">
-                                <th class="p-6 text-center w-24">社員番号</th>
-                                <th class="p-6">氏名</th>
+                            <tr class="text-white text-[10px] font-black uppercase text-center tracking-widest">
+                                <th class="p-6 w-16 opacity-50">No</th>
+                                <th class="p-6 text-left">氏名 (ID)</th>
                                 <th class="p-6">所属部署</th>
                                 <th class="p-6">メールアドレス</th>
-                                <th class="p-6 text-center w-24">権限</th>
-                                <th class="p-6 text-center w-24">状態</th>
-                                <th class="p-6 text-center w-16 opacity-30"><i class="fa-solid fa-trash-can"></i></th>
+                                <th class="p-6 w-24">権限</th>
+                                <th class="p-6 w-32">状態</th>
+                                <th class="p-6 w-16 opacity-30"><i class="fa-solid fa-check-double"></i></th>
                             </tr>
                         </thead>
-                        <tbody id="staffTable" class="divide-y divide-slate-100 text-sm font-bold bg-white">
-                            <tr><td colspan="7" class="p-10 text-center text-slate-400">データを読み込み中...</td></tr>
+                        <tbody id="staffTable" class="divide-y divide-slate-100 text-sm font-bold bg-white text-center">
+                            <tr><td colspan="7" class="p-20 text-center text-slate-400 font-bold italic">組織員情報を同期中...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -82,7 +95,7 @@
         </div>
     </main>
 
-    <!-- 🌟 V2同期ロジック -->
+    <script type="module" src="common.js"></script>
     <script type="module">
         import { db } from "./common.js";
         import { collection, getDocs, doc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -91,78 +104,67 @@
 
         async function init() {
             try {
-                // 社員情報は130名前後なので、全件取得してJSでソート・検索（省エネ）
                 const snap = await getDocs(query(collection(db, "staffs"), orderBy("id")));
-                allStaffs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                allStaffs = snap.docs.map(doc => ({ id: d.id, ...doc.data() }));
                 renderTable(allStaffs);
-                document.getElementById('totalCount').innerText = allStaffs.length;
             } catch (e) { 
-                console.error("Staff Load Error:", e);
-                document.getElementById('staffTable').innerHTML = '<tr><td colspan="7" class="p-10 text-center text-rose-400 font-bold">読み込み失敗。上限の可能性があります。</td></tr>';
+                console.error(e);
+                document.getElementById('staffTable').innerHTML = '<tr><td colspan="7" class="p-20 text-center text-rose-400 font-bold">復活の16時をお待ちください。</td></tr>';
             }
         }
 
         function renderTable(dataList) {
             const tbody = document.getElementById('staffTable');
-            tbody.innerHTML = "";
-            
-            if (dataList.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="p-10 text-center text-slate-400 font-bold">該当する組織員はいません。</td></tr>';
-                return;
-            }
-
-            dataList.forEach(data => {
-                const statusOn = data.status === "有効";
-                tbody.insertAdjacentHTML('beforeend', `
-                    <tr class="hover:bg-sky-50/30 transition-all border-b border-slate-50">
-                        <td class="p-6 text-center text-slate-400 font-mono text-xs">${data.id}</td>
-                        <td class="p-6">
-                            <div class="text-base text-slate-800 leading-tight cursor-pointer hover:text-sky-600 font-black" 
-                                 onclick="location.href='staff_add.html?id=${data.id}'">
-                                 ${data.name || '名称不明'}
-                            </div>
-                        </td>
-                        <td class="p-6 text-slate-500">${data.dept || '未設定'}</td>
-                        <td class="p-6 text-slate-500 font-medium truncate max-w-[200px] font-mono">${data.email || '--'}</td>
-                        <td class="p-6 text-center text-[10px] font-black uppercase text-slate-400">${data.role || '一般'}</td>
-                        <td class="p-6 text-center">
-                            <span class="status-badge ${statusOn ? 'status-on' : 'status-off'}">${data.status || '有効'}</span>
-                        </td>
-                        <td class="p-6 text-center">
-                            <button onclick="window.deleteStaff('${data.id}', '${data.name}')" class="text-slate-200 hover:text-rose-500 transition-colors" title="削除">
-                                <i class="fa-solid fa-trash-can"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `);
-            });
+            tbody.innerHTML = dataList.map((data, i) => `
+                <tr class="hover:bg-sky-50/50 border-b border-slate-50 transition-colors">
+                    <td class="p-6 text-slate-300 font-mono text-xs border-r border-slate-50 text-center">${i+1}</td>
+                    <td class="p-6 text-left">
+                        <div class="font-black text-slate-800 cursor-pointer hover:text-[#004098]" onclick="location.href='staff_add.html?id=${data.id}'">
+                            ${data.name || '不明'} <span class="text-[10px] text-slate-300 ml-1">#${data.id}</span>
+                        </div>
+                    </td>
+                    <td class="p-6 text-slate-500 text-center">${data.dept || '-'}</td>
+                    <td class="p-6 text-slate-400 font-mono text-xs text-center">${data.email || '--'}</td>
+                    <td class="p-6 text-center text-[10px] font-black uppercase text-slate-300">${data.role || '一般'}</td>
+                    <td class="p-6 text-center">
+                        <span class="status-badge ${data.status === '有効' ? 'status-on' : 'status-off'}">${data.status || '有効'}</span>
+                    </td>
+                    <td class="p-6 text-center">
+                        <input type="checkbox" class="staff-check w-5 h-5 accent-rose-500 rounded-md cursor-pointer border-slate-200">
+                    </td>
+                </tr>`).join('');
+            document.getElementById('totalDisplay').innerText = dataList.length;
         }
 
-        window.deleteStaff = async (id, name) => {
-            if(!confirm(`${name}さんを削除してもよろしいですか？`)) return;
-            try {
-                await deleteDoc(doc(db, "staffs", id));
-                init();
-            } catch (e) { alert("削除に失敗しました。"); }
+        window.applySearch = () => {
+            const name = document.getElementById('searchName').value.toLowerCase();
+            const dept = document.getElementById('searchDept').value;
+            const role = document.getElementById('searchRole').value;
+            
+            const filtered = allStaffs.filter(s => {
+                return (!name || (s.name||"").includes(name) || (s.kana||"").includes(name)) &&
+                       (!dept || s.dept === dept) &&
+                       (!role || s.role === role);
+            });
+            renderTable(filtered);
         };
 
-        // 50音フィルターのイベント
+        window.clearSearch = () => {
+            document.querySelectorAll('#staffSearchSection input, select').forEach(e => e.value = "");
+            renderTable(allStaffs);
+        };
+
         document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.onclick = () => {
-                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active', 'text-white'));
+                btn.classList.add('active', 'text-white');
                 const range = btn.dataset.range;
-                
-                // 🌟 フリガナ（kana）または 氏名（name）の先頭文字で判別
-                const rangeMap = { 'あ': /^[あ-おア-オ]/, 'か': /^[か-こカ-コが-ごガ-ゴ]/, 'さ': /^[さ-そサ-ソざ-ぞザ-ゾ]/, 'た': /^[た-とタ-トだ-どダ-ド]/, 'な': /^[な-のナ-ノ]/, 'は': /^[は-ほハ-ホば-ぼバ-ボぱ-ぽパ-ポ]/, 'ま': /^[ま-もマ-モ]/, 'や': /^[や-よヤ-ヨ]/, 'ら': /^[ら-ろラ-ロ]/, 'わ': /^[わ-んワ-ン]/ };
+                const rangeMap = { 'あ': /^[あ-おア-オ安阿伊藤]/, 'か': /^[か-こカ-コ加河]/, 'さ': /^[さ-そサ-ソ佐佐藤]/, 'た': /^[た-とタ-トだ-ど田高]/, 'な': /^[な-のナ-ノ内中]/, 'は': /^[は-ほハ-ホ波橋]/, 'ま': /^[ま-もマ-モ前松]/, 'や': /^[や-よヤ-ヨ山谷]/, 'ら': /^[ら-ろラ-ロ]/, 'わ': /^[わ-んワ-ン]/ };
                 
                 let filtered = allStaffs;
                 if (range !== 'all') {
-                    if (range === '他') {
-                        filtered = allStaffs.filter(s => !Object.values(rangeMap).some(re => re.test(s.kana || s.name || "")));
-                    } else {
-                        filtered = allStaffs.filter(s => rangeMap[range].test(s.kana || s.name || ""));
-                    }
+                    if (range === '他') filtered = allStaffs.filter(s => !Object.values(rangeMap).some(re => re.test(s.name||"")));
+                    else filtered = allStaffs.filter(s => rangeMap[range].test(s.name||"") || (s.kana && rangeMap[range].test(s.kana)));
                 }
                 renderTable(filtered);
             };
