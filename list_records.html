@@ -31,15 +31,15 @@
                         </select>
                     </div>
                     <div class="flex flex-wrap gap-2 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100 items-center shrink-0 ml-auto">
-                        <button onclick="document.getElementById('detailSearchSection').classList.toggle('hidden')" class="px-5 py-2.5 text-slate-500 rounded-xl font-bold text-xs hover:bg-slate-50 flex items-center gap-2 transition-all">
+                        <button onclick="document.getElementById('detailSearchSection').classList.toggle('hidden')" class="px-5 py-2.5 text-slate-500 rounded-xl font-bold text-xs hover:bg-slate-50 flex items-center gap-2">
                             <i class="fa-solid fa-sliders text-blue-400"></i> 詳細検索
                         </button>
                         <div class="w-px h-6 bg-slate-100 mx-1"></div>
-                        <button onclick="location.href='history.html'" class="px-8 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-xs hover:shadow-lg transition-all flex items-center gap-2 active:scale-95">
+                        <button onclick="location.href='history.html'" class="px-8 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-xs hover:shadow-lg flex items-center gap-2">
                             <i class="fa-solid fa-plus-circle"></i> 実績登録
                         </button>
                         <div class="w-px h-6 bg-slate-100 mx-1"></div>
-                        <button id="bulkDeleteBtn" class="px-5 py-2.5 text-rose-400 rounded-xl font-bold text-xs hover:bg-rose-50 flex items-center gap-2 transition-all">
+                        <button id="bulkDeleteBtn" class="px-5 py-2.5 text-rose-400 rounded-xl font-bold text-xs hover:bg-rose-50 flex items-center gap-2">
                             <i class="fa-solid fa-trash-can"></i> 一括削除
                         </button>
                     </div>
@@ -48,11 +48,14 @@
                 <!-- 詳細検索 -->
                 <div id="detailSearchSection" class="hidden mb-8 p-8 bg-white rounded-[2rem] shadow-xl border border-blue-50">
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-xs font-bold">
-                        <div class="space-y-2"><label class="text-slate-400">お客様名</label><input type="text" id="filterCustomer" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-400" placeholder="一部入力OK"></div>
-                        <div class="space-y-2"><label class="text-slate-400">訪問者名</label><input type="text" id="filterVisitor" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-400" placeholder="氏名検索"></div>
+                        <div class="space-y-2"><label class="text-slate-400">お客様名</label><input type="text" id="filterCustomer" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="一部入力OK"></div>
+                        <div class="space-y-2"><label class="text-slate-400">訪問者名</label><input type="text" id="filterVisitor" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" placeholder="氏名検索"></div>
                         <div class="md:col-span-2 space-y-2"><label class="text-slate-400">訪問期間</label><div class="flex items-center gap-2"><input type="date" id="startDate" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl"><span>〜</span><input type="date" id="endDate" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl"></div></div>
                     </div>
-                    <div class="flex justify-center gap-4 mt-8"><button onclick="window.executeSearch()" class="bg-[#334155] text-white px-16 py-3 rounded-xl font-black shadow-lg active:scale-95 transition-all">検索実行</button><button onclick="window.clearSearch()" class="text-slate-400 px-8 py-3 font-bold hover:text-slate-600 transition-colors">クリア</button></div>
+                    <div class="flex justify-center gap-4 mt-8">
+                        <button onclick="window.executeSearch()" class="bg-[#334155] text-white px-16 py-3 rounded-xl font-black shadow-lg">検索実行</button>
+                        <button onclick="window.clearSearch()" class="text-slate-400 px-8 py-3 font-bold">クリア</button>
+                    </div>
                 </div>
 
                 <div class="flex items-center gap-6 mb-6 px-2">
@@ -68,16 +71,14 @@
                         <thead>
                             <tr class="text-white text-[10px] font-black uppercase text-center tracking-widest">
                                 <th class="p-6 w-16 opacity-50">No</th>
-                                <th class="p-6 text-left w-[280px]">お客様名</th>
+                                <th class="p-6 text-left w-[350px]">お客様名</th>
                                 <th class="p-6 w-[250px]">訪問日時 / 滞在</th>
                                 <th class="p-6">訪問者</th>
                                 <th class="p-6 w-24">履歴</th>
-                                <th class="p-6 w-16 opacity-30"><i class="fa-solid fa-check-double"></i></th>
+                                <th class="p-6 w-24">選択</th>
                             </tr>
                         </thead>
-                        <tbody id="recordTable" class="divide-y divide-slate-100 text-sm font-bold bg-white text-center">
-                            <tr><td colspan="6" class="p-20 text-center text-slate-400 font-bold italic animate-pulse">実績データを照合中...</td></tr>
-                        </tbody>
+                        <tbody id="recordTable" class="divide-y divide-slate-100 text-sm font-bold bg-white text-center"></tbody>
                     </table>
                 </div>
             </div>
@@ -91,7 +92,6 @@
 
         let allRecords = []; let currentKana = 'all';
 
-        // 🌟 / と - の両方に対応する日付正規化
         function normalizeDate(str) {
             if (!str) return "0000-00-00";
             const d = str.replace(/\//g, '-').split('-');
@@ -101,7 +101,7 @@
 
         window.executeSearch = async () => {
             const tbody = document.getElementById('recordTable');
-            tbody.innerHTML = `<tr><td colspan="6" class="p-20 text-center text-slate-400 font-bold italic">同期中...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" class="p-20 text-center text-slate-400 font-bold italic animate-pulse">データを同期中...</td></tr>`;
             
             const custK = document.getElementById('filterCustomer').value.trim();
             const visiK = document.getElementById('filterVisitor').value.trim();
@@ -110,7 +110,7 @@
             const dept = document.getElementById('deptFilter').value;
 
             try {
-                // 🌟 【省エネ】部署指定があれば絞り込み、なければ直近500件
+                // 🌟 初期読み込みでも「部門」でフィルタリングして省エネ
                 let q;
                 if (dept !== 'ALL') {
                     q = query(collection(db, "activity_records"), where("visitorDept", "==", dept), orderBy("visitDate", "desc"), limit(300));
@@ -121,7 +121,6 @@
                 const snap = await getDocs(q);
                 let data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-                // 詳細検索フィルタ（メモリ内）
                 if (custK) data = data.filter(r => (r.customerName||"").includes(custK));
                 if (visiK) data = data.filter(r => (r.visitorName||"").includes(visiK));
                 if (startD) data = data.filter(r => normalizeDate(r.visitDate) >= startD);
@@ -131,7 +130,7 @@
                 window.updateView();
             } catch (e) {
                 console.error(e);
-                tbody.innerHTML = `<tr><td colspan="6" class="p-20 text-center text-rose-400 font-bold">16時の復活をお待ちください。</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="p-20 text-center text-rose-400 font-bold">読み込みエラー。インデックス設定を確認してください。</td></tr>`;
             }
         };
 
@@ -144,7 +143,7 @@
 
         window.updateView = () => {
             let filtered = allRecords;
-            const rangeMap = { 'あ': /^[あ-おア-オ安阿伊藤]/, 'か': /^[か-こカ-コ加河]/, 'さ': /^[さ-そサ-ソ佐佐藤]/, 'た': /^[た-とタ-トだ-ど田高]/, 'な': /^[な-のナ-ノ内中]/, 'は': /^[は-ほハ-ホ波橋]/, 'ま': /^[ま-もマ-モ前松]/, 'や': /^[や-よヤ-ヨ山谷]/, 'ら': /^[ら-ろラ-ロ]/, 'わ': /^[わ-んワ-ン]/ };
+            const rangeMap = { 'あ': /^[あ-おア-オ安阿伊藤]/, 'か': /^[か-こカ-コ加河]/, 'さ': /^[さ-そサ-ソ佐佐藤]/, 'た': /^[た-とタ-トだ-ど田高]/, 'な': /^[な-のナ-ノ内中]/, 'は': /^[は-ほハ-ホ波橋]/, 'ま': /^[ま-もマ-モ前松]/, 'や': /^[や-よヤ-ヨ山谷]/ };
             if (currentKana !== 'all') {
                 if (currentKana === '他') filtered = filtered.filter(r => !Object.values(rangeMap).some(re => re.test(r.customerName||"")));
                 else filtered = filtered.filter(r => rangeMap[currentKana].test(r.customerName||""));
@@ -167,20 +166,41 @@
                 }
                 return `<tr class="hover:bg-sky-50/50 transition-colors">
                     <td class="p-6 text-slate-300 font-mono text-xs border-r border-slate-50">${i+1}</td>
-                    <td class="p-6 text-left font-black text-slate-800 leading-tight">${data.customerName || '---'}</td>
+                    <!-- 🌟 幅を350pxに拡大し、名前を強調 -->
+                    <td class="p-6 text-left font-black text-slate-800 w-[350px] leading-snug">${data.customerName || '---'}</td>
                     <td class="p-6"><div class="text-slate-600 font-mono text-sm">${(data.visitDate || '').replace(/-/g,'/')}</div><div class="text-[10px] text-slate-400 mt-0.5 font-bold">${data.startTime || '00:00'} 〜 ${data.endTime || '00:00'}</div>${dur}</td>
-                    <td class="p-6 text-slate-700 font-bold">${data.visitorName || '不明'}<br><span class="text-[9px] text-slate-400 uppercase font-black">${data.visitorDept || ''}</span></td>
-                    <td class="p-6"><button onclick="location.href='customer_history.html?name=${encodeURIComponent(data.customerName)}'" class="w-9 h-9 flex items-center justify-center bg-blue-50 text-[#004098] rounded-xl hover:bg-[#004098] hover:text-white mx-auto transition-all shadow-sm"><i class="fa-solid fa-chevron-right text-xs"></i></button></td>
-                    <td class="p-6 text-center"><input type="checkbox" class="record-check w-5 h-5 accent-rose-500 rounded-md cursor-pointer border-slate-200" value="${data.id}" data-customer="${data.customerName}"></td>
+                    <td class="p-6 text-slate-700 font-bold">${data.visitorName || '不明'}<br><span class="text-[9px] text-slate-400 uppercase font-black tracking-tighter">${data.visitorDept || ''}</span></td>
+                    <td class="p-6">
+                        <button onclick="location.href='customer_history.html?name=${encodeURIComponent(data.customerName)}'" class="w-9 h-9 flex items-center justify-center bg-blue-50 text-[#004098] rounded-xl hover:bg-[#004098] hover:text-white mx-auto transition-all shadow-sm">
+                            <i class="fa-solid fa-chevron-right text-xs"></i>
+                        </button>
+                    </td>
+                    <td class="p-6 text-center">
+                        <div class="flex justify-center items-center h-full">
+                            <input type="checkbox" class="record-check w-5 h-5 accent-rose-500 rounded-md cursor-pointer border-slate-200" value="${data.id}" data-customer="${data.customerName}">
+                        </div>
+                    </td>
                 </tr>`;
             }).join('');
             document.getElementById('totalDisplay').innerText = dataList.length;
         }
 
+        document.getElementById('bulkDeleteBtn').onclick = async () => {
+            const checked = document.querySelectorAll('.record-check:checked');
+            if (checked.length === 0) return alert("選択してください");
+            if (!confirm(`${checked.length}件を消去します。`)) return;
+            const batch = writeBatch(db); const targets = new Set();
+            checked.forEach(cb => { batch.delete(doc(db, "activity_records", cb.value)); targets.add(cb.dataset.customer); });
+            try {
+                await batch.commit();
+                alert("完了"); window.executeSearch();
+            } catch (e) { alert("失敗しました"); }
+        };
+
         window.clearSearch = () => { document.querySelectorAll('#detailSearchSection input').forEach(i => i.value = ""); document.getElementById('deptFilter').value = "ALL"; window.executeSearch(); };
         
-        // 16時の復活後に即実行
-        window.executeSearch();
+        // 🌟 復活直後に実行
+        setTimeout(() => window.executeSearch(), 500);
     </script>
 </body>
 </html>
