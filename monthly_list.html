@@ -19,7 +19,7 @@
             .sticky-name { position: sticky; left: 50px; background: white; z-index: 10; border-right: 2px solid #f1f5f9; min-width: 200px; }
             thead .sticky-rank, thead .sticky-name { background: #3c4b5a; z-index: 20; color: white; }
         }
-        .scope-select { background: #e2e8f0; border: none; padding: 0.4rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; appearance: none; cursor: pointer; }
+        .scope-select { background: #e2e8f0; border: none; padding: 0.4rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; cursor: pointer; }
         .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
@@ -32,11 +32,10 @@
             <div class="max-w-[1600px] mx-auto">
                 
                 <div class="flex flex-col lg:flex-row items-center lg:items-end mb-10 relative">
-                    <!-- 左：タイトル ＆ 部署フィルターを復活 -->
                     <div class="flex items-end gap-6 w-full lg:w-auto">
                         <div>
                             <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">月別実績一覧</h1>
-                            <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Monthly Sales Performance Matrix</nav>
+                            <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Monthly Performance Matrix</nav>
                         </div>
                         <select id="deptFilter" onchange="window.init()" class="scope-select shadow-inner mb-2">
                             <option value="ALL">全社表示</option>
@@ -44,12 +43,11 @@
                         </select>
                     </div>
 
-                    <!-- 🌟 中央：前年・翌年ツール（携帯でも絶対中央） -->
                     <div class="lg:absolute lg:left-1/2 lg:transform lg:-translate-x-1/2 mt-6 lg:mt-0">
                         <div class="flex items-center gap-3 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100">
-                            <button onclick="window.changeYear(-1)" class="year-btn shadow-sm">前年</button>
-                            <span id="displayYear" class="text-base font-black text-slate-700 px-6 min-w-[120px] text-center">2025年度</span>
-                            <button onclick="window.changeYear(1)" class="year-btn shadow-sm">翌年</button>
+                            <button onclick="window.changeYear(-1)" class="p-2 text-slate-300 hover:text-slate-600"><i class="fa-solid fa-chevron-left fa-lg"></i></button>
+                            <span id="displayYear" class="text-base font-black text-slate-700 px-6 min-w-[120px] text-center">----年度</span>
+                            <button onclick="window.changeYear(1)" class="p-2 text-slate-300 hover:text-slate-600"><i class="fa-solid fa-chevron-right fa-lg"></i></button>
                         </div>
                     </div>
                 </div>
@@ -59,7 +57,6 @@
                         <thead>
                             <tr class="text-white text-[10px] font-black uppercase tracking-widest text-center">
                                 <th class="p-4 sticky-rank">Rank</th><th class="p-4 sticky-name text-left">お客様名</th><th class="p-4 w-24">属性</th>
-                                <!-- 🌟 7月期首に合わせて変更 -->
                                 <th class="month-col">7月</th><th class="month-col">8月</th><th class="month-col">9月</th><th class="month-col">10月</th><th class="month-col">11月</th><th class="month-col">12月</th>
                                 <th class="month-col">1月</th><th class="month-col">2月</th><th class="month-col">3月</th><th class="month-col">4月</th><th class="month-col">5月</th><th class="month-col">6月</th>
                                 <th class="p-4 bg-slate-900 w-20">合計</th>
@@ -68,7 +65,7 @@
                         <tbody id="monthlyTableBody" class="text-[11px] lg:text-xs font-bold divide-y divide-slate-50 bg-white"></tbody>
                     </table>
                 </div>
-                <div id="loading" class="py-20 text-center"><div class="animate-spin text-blue-500 text-4xl mb-4"><i class="fa-solid fa-circle-notch"></i></div><p class="text-slate-400 font-bold">データを集計中...</p></div>
+                <div id="loading" class="py-20 text-center"><div class="animate-spin text-blue-500 text-4xl mb-4"><i class="fa-solid fa-circle-notch"></i></div><p class="text-slate-400 font-bold italic uppercase text-[10px]">Processing Matrix...</p></div>
             </div>
         </div>
     </main>
@@ -81,19 +78,26 @@
         let currentYear = 2025; 
 
         window.init = async () => {
-            const loading = document.getElementById('loading');
-            loading.style.display = 'block';
-            const tbody = document.getElementById('monthlyTableBody');
-            tbody.innerHTML = "";
+            const loading = document.getElementById('loading'); loading.style.display = 'block';
+            const tbody = document.getElementById('monthlyTableBody'); tbody.innerHTML = "";
             document.getElementById('displayYear').innerText = `${currentYear}年度`;
-            
             const selectedDept = document.getElementById('deptFilter').value;
-            const startFiscal = `${currentYear}-07-01`;
-            const endFiscal = `${currentYear + 1}-06-30`;
 
             try {
-                // 🌟 年度実績を取得（ハイフンとスラッシュの両方をカバーするために広めに取得）
-                const q = query(collection(db, "activity_records"), where("visitDate", ">=", `${currentYear}`), where("visitDate", "<=", `${currentYear + 1}\uf8ff`), limit(1000));
+                // 🌟 【省エネ】部署フィルターと連動してFirebaseへのリクエストを最小化
+                let q;
+                if (selectedDept === 'ALL') {
+                    q = query(collection(db, "activity_records"), 
+                              where("visitDate", ">=", `${currentYear}`), 
+                              where("visitDate", "<=", `${currentYear + 1}\uf8ff`), 
+                              limit(1000));
+                } else {
+                    q = query(collection(db, "activity_records"), 
+                              where("visitorDept", "==", selectedDept),
+                              where("visitDate", ">=", `${currentYear}`), 
+                              where("visitDate", "<=", `${currentYear + 1}\uf8ff`));
+                }
+
                 const snap = await getDocs(q);
                 const records = snap.docs.map(d => d.data());
 
@@ -105,9 +109,8 @@
                     const d = dateStr.split('-');
                     const y = parseInt(d[0]), m = parseInt(d[1]);
                     const isTargetYear = (y === currentYear && m >= 7) || (y === currentYear + 1 && m <= 6);
-                    const isTargetDept = (selectedDept === 'ALL' || r.visitorDept === selectedDept);
 
-                    if (isTargetYear && isTargetDept) {
+                    if (isTargetYear) {
                         if (!activeMap.has(r.customerName)) {
                             activeMap.set(r.customerName, { rank: r.customerRank, type: r.customerType, counts: Array(12).fill(0), total: 0 });
                         }
@@ -124,22 +127,12 @@
                     sortedNames.forEach(name => {
                         const d = activeMap.get(name);
                         let monthCells = "";
-                        d.counts.forEach(c => {
-                            monthCells += `<td class="month-col">${c > 0 ? `<div class="val-active">${c}</div>` : '<div class="val-zero">0</div>'}</td>`;
-                        });
-                        tbody.insertAdjacentHTML('beforeend', `
-                            <tr class="hover:bg-slate-50 transition-colors border-b border-slate-50 text-center">
-                                <td class="p-4 sticky-rank text-[10px] text-slate-400 font-black bg-white">${d.rank || '-'}</td>
-                                <td class="p-4 sticky-name text-left text-slate-800 font-black truncate max-w-[200px] cursor-pointer hover:text-blue-600 bg-white" onclick="location.href='customer_history.html?name=${encodeURIComponent(name)}'">${name}</td>
-                                <td class="p-4 text-slate-400 text-[10px]">${d.type || '-'}</td>
-                                ${monthCells}
-                                <td class="p-4 bg-slate-50 font-black text-slate-700">${d.total}</td>
-                            </tr>
-                        `);
+                        d.counts.forEach(c => { monthCells += `<td class="month-col">${c > 0 ? `<div class="val-active">${c}</div>` : '<div class="val-zero">0</div>'}</td>`; });
+                        tbody.insertAdjacentHTML('beforeend', `<tr class="hover:bg-slate-50 transition-colors border-b border-slate-50 text-center"><td class="p-4 sticky-rank text-[10px] text-slate-400 font-black bg-white">${d.rank || '-'}</td><td class="p-4 sticky-name text-left text-slate-800 font-black truncate max-w-[200px] cursor-pointer hover:text-blue-600 bg-white" onclick="location.href='customer_history.html?name=${encodeURIComponent(name)}'">${name}</td><td class="p-4 text-slate-400 text-[10px]">${d.type || '-'}</td>${monthCells}<td class="p-4 bg-slate-50 font-black text-slate-700">${d.total}</td></tr>`);
                     });
                 }
                 loading.style.display = 'none';
-            } catch (e) { console.error(e); loading.innerHTML = "集計失敗"; }
+            } catch (e) { console.error(e); loading.innerHTML = "Sync Error. Please wait for Quota."; }
         };
 
         window.changeYear = (val) => { currentYear += val; window.init(); };
