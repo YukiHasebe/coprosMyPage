@@ -11,9 +11,9 @@
         .tab-btn.active { opacity: 1; color: #0ea5e9; border-bottom-color: #0ea5e9; }
         .table-container { border-radius: 1.5rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
         thead tr { background-color: #3c4b5a; }
-        .year-btn { padding: 0.5rem 1rem; border-radius: 0.75rem; font-weight: 900; font-size: 0.75rem; transition: all 0.2s; border: 1px solid #e2e8f0; background: white; color: #64748b; }
-        .year-btn:hover { background: #f1f5f9; color: var(--copros-orange); }
         .scope-select { background: #e2e8f0; border: none; padding: 0.4rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; cursor: pointer; }
+        .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700">
@@ -22,10 +22,12 @@
         <div id="header-placeholder"></div>
         <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1200px] mx-auto">
+                
+                <!-- ヘッドエリア -->
                 <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-6">
-                    <div class="flex items-end gap-6">
+                    <div class="flex items-end gap-6 shrink-0">
                         <div>
-                            <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">組織員利用状況</h1>
+                            <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-1">組織員利用状況</h1>
                             <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Performance Analytics Dashboard</nav>
                         </div>
                         <select id="deptFilter" onchange="window.renderTable()" class="scope-select shadow-inner mb-2">
@@ -35,47 +37,60 @@
                     </div>
                 </div>
 
-                <div class="flex flex-col lg:flex-row justify-between items-center mb-8 gap-4">
+                <!-- 🌟 操作エリア：月ツールを中央へ -->
+                <div class="relative flex flex-col lg:flex-row justify-between items-center mb-8 gap-4 min-h-[50px]">
+                    <!-- 左：タブ -->
                     <div class="flex gap-2 bg-white p-1 rounded-2xl shadow-sm border border-slate-200">
                         <button onclick="window.switchMode('visit')" id="tab-visit" class="tab-btn active rounded-xl">お客様訪問状況</button>
                         <button onclick="window.switchMode('usage')" id="tab-usage" class="tab-btn rounded-xl">実績登録状況</button>
                     </div>
-                    <div class="flex items-center gap-3 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100">
-                        <button onclick="window.changeMonth(-1)" class="p-2 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-chevron-left"></i></button>
-                        <span id="displayMonth" class="text-base font-black text-slate-700 px-4 min-w-[120px] text-center">----年 --月</span>
-                        <button onclick="window.changeMonth(1)" class="p-2 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-chevron-right"></i></button>
+
+                    <!-- 中央：月切り替えツール（PCのみ絶対配置で中央） -->
+                    <div class="lg:absolute lg:left-1/2 lg:-translate-x-1/2 flex items-center gap-6 bg-white py-2 px-6 rounded-2xl shadow-sm border border-slate-100">
+                        <button onclick="window.changeMonth(-1)" class="text-slate-300 hover:text-slate-600 transition-colors"><i class="fa-solid fa-chevron-left fa-lg"></i></button>
+                        <span id="displayMonth" class="text-lg font-black text-slate-700 min-w-[140px] text-center tracking-tighter">----年 --月</span>
+                        <button onclick="window.changeMonth(1)" class="text-slate-300 hover:text-slate-600 transition-colors"><i class="fa-solid fa-chevron-right fa-lg"></i></button>
                     </div>
                 </div>
 
                 <div class="table-container overflow-x-auto bg-white">
                     <table class="w-full text-left border-collapse min-w-[800px]">
-                        <thead><tr id="tableHead" class="text-white text-[10px] font-black uppercase text-center"></tr></thead>
+                        <thead><tr id="tableHead" class="text-white text-[10px] font-black uppercase text-center tracking-widest"></tr></thead>
                         <tbody id="statsTable" class="divide-y divide-slate-100 text-sm font-bold"></tbody>
                     </table>
                 </div>
-                <div id="loading" class="py-20 text-center"><div class="animate-spin mb-4 text-blue-400 text-4xl"><i class="fa-solid fa-circle-notch"></i></div><p class="text-slate-400 font-bold">集計中...</p></div>
+                <!-- ぐるぐるエリア -->
+                <div id="loading" class="py-20 text-center"><div class="animate-spin mb-4 text-blue-400 text-4xl"><i class="fa-solid fa-circle-notch"></i></div><p class="text-slate-400 font-bold italic uppercase tracking-widest text-[10px]">Analyzing Data...</p></div>
             </div>
         </div>
     </main>
+
     <script type="module" src="common.js"></script>
     <script type="module">
         import { db } from "./common.js";
         import { collection, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
         let staffStats = []; let currentMode = 'visit'; let targetDate = new Date();
 
         async function fetchAndRender() {
-            const loading = document.getElementById('loading'); loading.style.display = 'block';
+            const loading = document.getElementById('loading');
+            loading.style.display = 'block';
             document.getElementById('statsTable').innerHTML = "";
+            
             const y = targetDate.getFullYear(); const m = targetDate.getMonth() + 1;
             document.getElementById('displayMonth').innerText = `${y}年 ${m}月`;
+            
+            // 🌟 検索条件：スラッシュとハイフンの両方に対応
             const t1 = `${y}-${m}-`; const t2 = `${y}-${String(m).padStart(2, '0')}-`;
             const t3 = `${y}/${m}/`; const t4 = `${y}/${String(m).padStart(2, '0')}/`;
 
             try {
+                // 省エネ：期間を絞って実績を取得
                 const [staffSnap, recordSnap] = await Promise.all([
                     getDocs(collection(db, "staffs")),
-                    getDocs(query(collection(db, "activity_records"), limit(2000))) // 広めに取得
+                    getDocs(query(collection(db, "activity_records"), where("visitDate", ">=", `${y}`), where("visitDate", "<=", `${y}\uf8ff`)))
                 ]);
+
                 const staffs = staffSnap.docs.map(d => d.data());
                 const records = recordSnap.docs.map(d => d.data());
 
@@ -85,6 +100,7 @@
                         return r.visitorName === staff.name && (d.startsWith(t1) || d.startsWith(t2) || d.startsWith(t3) || d.startsWith(t4));
                     });
                     if (myRecords.length === 0) return null;
+
                     let mins = 0;
                     myRecords.forEach(r => {
                         if(r.startTime && r.endTime) {
@@ -93,10 +109,21 @@
                             if (diff > 0) mins += diff;
                         }
                     });
-                    return { id: staff.id, name: staff.name, dept: staff.dept, recordCount: myRecords.length, visitCount: new Set(myRecords.map(r => r.customerName)).size, avgTime: Math.round(mins / myRecords.length) || 0 };
+
+                    return { 
+                        id: staff.id, name: staff.name, dept: staff.dept, 
+                        recordCount: myRecords.length, 
+                        visitCount: new Set(myRecords.map(r => r.customerName)).size, 
+                        avgTime: Math.round(mins / myRecords.length) || 0 
+                    };
                 }).filter(Boolean);
-                loading.style.display = 'none'; window.renderTable();
-            } catch (e) { console.error(e); }
+
+                loading.style.display = 'none';
+                window.renderTable();
+            } catch (e) { 
+                console.error(e);
+                loading.innerHTML = '<p class="text-rose-400 font-bold italic text-xs uppercase">Wait for Cloud Sync...</p>';
+            }
         }
 
         window.changeMonth = (val) => { targetDate.setMonth(targetDate.getMonth() + val); fetchAndRender(); };
@@ -113,14 +140,33 @@
             const filtered = selectedDept === 'ALL' ? staffStats : staffStats.filter(s => s.dept === selectedDept);
 
             if (currentMode === 'visit') {
-                head.innerHTML = '<th class="p-6 w-24">社員番号</th><th class="p-6 text-left">氏名</th><th class="p-6 text-left">部署</th><th class="p-6 text-center">訪問顧客数</th><th class="p-6 text-center">平均滞在時間</th>';
+                head.innerHTML = '<th class="p-6 w-24">NO</th><th class="p-6 text-left">氏名</th><th class="p-6 text-left">部署</th><th class="p-6 text-center">訪問顧客数</th><th class="p-6 text-center">平均滞在時間</th>';
                 filtered.sort((a,b)=>b.visitCount-a.visitCount).forEach(s => {
-                    body.insertAdjacentHTML('beforeend', `<tr class="hover:bg-emerald-50/30 border-b border-slate-50 text-center"><td class="p-6 text-slate-400 font-mono text-xs border-r border-slate-50">${s.id}</td><td class="p-6 text-slate-800 text-left font-black">${s.name}</td><td class="p-6 text-slate-500 text-left text-xs">${s.dept}</td><td class="p-6 text-emerald-600 font-black cursor-pointer hover:underline" onclick="location.href='list_records.html?staff=${encodeURIComponent(s.name)}'">${s.visitCount}社</td><td class="p-6 text-slate-700 font-black">${s.avgTime}分</td></tr>`);
+                    // 🌟 リンク先を customer_history.html へ変更
+                    body.insertAdjacentHTML('beforeend', `
+                        <tr class="hover:bg-emerald-50/30 transition-all border-b border-slate-50 text-center">
+                            <td class="p-6 text-slate-400 font-mono text-xs border-r border-slate-50">${s.id || ''}</td>
+                            <td class="p-6 text-slate-800 text-left font-black">${s.name}</td>
+                            <td class="p-6 text-slate-500 text-left text-xs">${s.dept}</td>
+                            <td class="p-6 text-emerald-600 font-black cursor-pointer hover:underline" onclick="location.href='customer_history.html?name=${encodeURIComponent(s.name)}'">
+                                ${s.visitCount}社
+                            </td>
+                            <td class="p-6 text-slate-700 font-black">${s.avgTime}分</td>
+                        </tr>`);
                 });
             } else {
-                head.innerHTML = '<th class="p-6 w-24">社員番号</th><th class="p-6 text-left">氏名</th><th class="p-6 text-left">部署</th><th class="p-6 text-center">実績登録数</th>';
+                head.innerHTML = '<th class="p-6 w-24">NO</th><th class="p-6 text-left">氏名</th><th class="p-6 text-left">部署</th><th class="p-6 text-center">実績登録数</th>';
                 filtered.sort((a,b)=>b.recordCount-a.recordCount).forEach(s => {
-                    body.insertAdjacentHTML('beforeend', `<tr class="hover:bg-sky-50/30 border-b border-slate-50 text-center"><td class="p-6 text-slate-400 font-mono text-xs border-r border-slate-50">${s.id}</td><td class="p-6 text-slate-800 text-left font-black">${s.name}</td><td class="p-6 text-slate-500 text-left text-xs">${s.dept}</td><td class="p-6 text-blue-600 font-black cursor-pointer hover:underline" onclick="location.href='list_records.html?staff=${encodeURIComponent(s.name)}'">${s.recordCount}件</td></tr>`);
+                    // 🌟 リンク先を customer_history.html へ変更
+                    body.insertAdjacentHTML('beforeend', `
+                        <tr class="hover:bg-sky-50/30 transition-all border-b border-slate-50 text-center">
+                            <td class="p-6 text-slate-400 font-mono text-xs border-r border-slate-50">${s.id || ''}</td>
+                            <td class="p-6 text-slate-800 text-left font-black">${s.name}</td>
+                            <td class="p-6 text-slate-500 text-left text-xs">${s.dept}</td>
+                            <td class="p-6 text-blue-600 font-black cursor-pointer hover:underline" onclick="location.href='customer_history.html?name=${encodeURIComponent(s.name)}'">
+                                ${s.recordCount}件
+                            </td>
+                        </tr>`);
                 });
             }
         };
