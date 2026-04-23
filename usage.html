@@ -41,7 +41,6 @@
                         <button onclick="window.switchMode('visit')" id="tab-visit" class="tab-btn active rounded-xl">お客様訪問状況</button>
                         <button onclick="window.switchMode('usage')" id="tab-usage" class="tab-btn rounded-xl">実績登録状況</button>
                     </div>
-
                     <div class="lg:absolute lg:left-1/2 lg:-translate-x-1/2 flex items-center gap-6 bg-white py-2 px-6 rounded-2xl shadow-sm border border-slate-100">
                         <button onclick="window.changeMonth(-1)" class="text-slate-300 hover:text-slate-600 transition-colors"><i class="fa-solid fa-chevron-left fa-lg"></i></button>
                         <span id="displayMonth" class="text-lg font-black text-slate-700 min-w-[140px] text-center tracking-tighter">----年 --月</span>
@@ -55,7 +54,7 @@
                         <tbody id="statsTable" class="divide-y divide-slate-100 text-sm font-bold"></tbody>
                     </table>
                 </div>
-                <div id="loading" class="py-20 text-center"><div class="animate-spin mb-4 text-blue-400 text-4xl"><i class="fa-solid fa-circle-notch"></i></div><p class="text-slate-400 font-bold italic uppercase tracking-widest text-[10px]">Filtering Database...</p></div>
+                <div id="loading" class="py-20 text-center"><div class="animate-spin mb-4 text-blue-400 text-4xl"><i class="fa-solid fa-circle-notch"></i></div><p class="text-slate-400 font-bold italic uppercase tracking-widest text-[10px]">Processing Database...</p></div>
             </div>
         </div>
     </main>
@@ -65,22 +64,16 @@
         import { db } from "./common.js";
         import { collection, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        let allRecords = []; 
-        let allStaffs = [];
-        let currentMode = 'visit'; 
-        let targetDate = new Date();
+        let allRecords = []; let allStaffs = [];
+        let currentMode = 'visit'; let targetDate = new Date();
 
-        // 🌟 強力な日付マッチング関数
-        function isMatch(dateStr, targetY, targetM) {
-            if (!dateStr) return false;
-            // 全ての区切り文字をハイフンに統一
-            const d = dateStr.replace(/\//g, '-');
-            const parts = d.split('-');
-            if (parts.length < 2) return false;
-            
-            const y = parseInt(parts[0]);
-            const m = parseInt(parts[1]);
-            return y === targetY && m === targetM;
+        // 🌟 日付を「2026/1」や「2026-01」などあらゆる形式から「年-月」に変換する超柔軟関数
+        function parseToYearMonth(dateStr) {
+            if (!dateStr) return "";
+            const clean = dateStr.replace(/\//g, '-'); // スラッシュをハイフンに
+            const parts = clean.split('-');
+            if (parts.length < 2) return "";
+            return `${parseInt(parts[0])}-${parseInt(parts[1])}`; // "2026-1" という形式を返す
         }
 
         async function fetchAndRender() {
@@ -91,21 +84,20 @@
             const targetY = targetDate.getFullYear();
             const targetM = targetDate.getMonth() + 1;
             document.getElementById('displayMonth').innerText = `${targetY}年 ${targetM}月`;
+            const currentYearMonth = `${targetY}-${targetM}`;
 
             const selectedDept = document.getElementById('deptFilter').value;
 
             try {
-                // スタッフ名簿は常に取得
+                // 1. スタッフ全員を取得
                 const staffSnap = await getDocs(collection(db, "staffs"));
                 allStaffs = staffSnap.docs.map(d => d.data());
 
-                // 実績データの取得（省エネ：部署指定がある場合は絞り込む）
+                // 2. 実績データを取得（部署指定があれば絞り込み、なければ全取得）
                 let recordQuery;
                 if (selectedDept === "ALL") {
-                    // 全社の場合は念のため直近1000件程度に制限（安全策）
-                    recordQuery = query(collection(db, "activity_records"), limit(1000));
+                    recordQuery = query(collection(db, "activity_records"), limit(2000));
                 } else {
-                    // 部署指定がある場合はインデックスを活用して全力で取得
                     recordQuery = query(collection(db, "activity_records"), where("visitorDept", "==", selectedDept));
                 }
 
@@ -129,18 +121,20 @@
         };
 
         window.renderTable = () => {
-            const head = document.getElementById('tableHead'); 
             const body = document.getElementById('statsTable');
+            const head = document.getElementById('tableHead');
+            const selectedDept = document.getElementById('deptFilter').value;
             const targetY = targetDate.getFullYear();
             const targetM = targetDate.getMonth() + 1;
-            const selectedDept = document.getElementById('deptFilter').value;
+            const targetKey = `${targetY}-${targetM}`;
+            
             body.innerHTML = "";
-
             const targetStaffs = selectedDept === 'ALL' ? allStaffs : allStaffs.filter(s => s.dept === selectedDept);
 
             const stats = targetStaffs.map(staff => {
+                // 🌟 JavaScript側で柔軟にフィルタリング
                 const myRecords = allRecords.filter(r => 
-                    r.visitorName === staff.name && isMatch(r.visitDate, targetY, targetM)
+                    r.visitorName === staff.name && parseToYearMonth(r.visitDate) === targetKey
                 );
                 
                 if (myRecords.length === 0) return null;
@@ -165,32 +159,17 @@
             if (currentMode === 'visit') {
                 head.innerHTML = '<th class="p-6 w-24 text-center">NO</th><th class="p-6 text-left">氏名</th><th class="p-6 text-left">部署</th><th class="p-6 text-center">訪問顧客数</th><th class="p-6 text-center">平均滞在時間</th>';
                 stats.sort((a,b)=>b.visitCount-a.visitCount).forEach(s => {
-                    body.insertAdjacentHTML('beforeend', `
-                        <tr class="hover:bg-emerald-50/30 transition-all border-b border-slate-50">
-                            <td class="p-6 text-slate-400 font-mono text-xs text-center border-r border-slate-50">${s.id}</td>
-                            <td class="p-6 text-slate-800 text-left font-black">${s.name}</td>
-                            <td class="p-6 text-slate-500 text-left text-xs">${s.dept}</td>
-                            <td class="p-6 text-emerald-600 font-black text-center">${s.visitCount}社</td>
-                            <td class="p-6 text-slate-700 font-black text-center">${s.avgTime}分</td>
-                        </tr>`);
+                    body.insertAdjacentHTML('beforeend', `<tr class="hover:bg-emerald-50/30 border-b border-slate-50"><td class="p-6 text-slate-400 font-mono text-xs text-center border-r border-slate-50">${s.id}</td><td class="p-6 text-slate-800 text-left font-black">${s.name}</td><td class="p-6 text-slate-500 text-left text-xs">${s.dept}</td><td class="p-6 text-emerald-600 font-black text-center">${s.visitCount}社</td><td class="p-6 text-slate-700 font-black text-center">${s.avgTime}分</td></tr>`);
                 });
             } else {
                 head.innerHTML = '<th class="p-6 w-24 text-center">NO</th><th class="p-6 text-left">氏名</th><th class="p-6 text-left">部署</th><th class="p-6 text-center">実績登録数</th>';
                 stats.sort((a,b)=>b.recordCount-a.recordCount).forEach(s => {
-                    body.insertAdjacentHTML('beforeend', `
-                        <tr class="hover:bg-sky-50/30 transition-all border-b border-slate-50">
-                            <td class="p-6 text-slate-400 font-mono text-xs text-center border-r border-slate-50">${s.id}</td>
-                            <td class="p-6 text-slate-800 text-left font-black">${s.name}</td>
-                            <td class="p-6 text-slate-500 text-left text-xs">${s.dept}</td>
-                            <td class="p-6 text-blue-600 font-black text-center">${s.recordCount}件</td>
-                        </tr>`);
+                    body.insertAdjacentHTML('beforeend', `<tr class="hover:bg-sky-50/30 border-b border-slate-50"><td class="p-6 text-slate-400 font-mono text-xs text-center border-r border-slate-50">${s.id}</td><td class="p-6 text-slate-800 text-left font-black">${s.name}</td><td class="p-6 text-slate-500 text-left text-xs">${s.dept}</td><td class="p-6 text-blue-600 font-black text-center">${s.recordCount}件</td></tr>`);
                 });
             }
         };
 
-        // 部署フィルター変更時に再読み込み
         document.getElementById('deptFilter').addEventListener('change', fetchAndRender);
-
         fetchAndRender();
     </script>
 </body>
