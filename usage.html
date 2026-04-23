@@ -29,6 +29,7 @@
                             <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-1">組織員利用状況</h1>
                             <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Performance Analytics Dashboard</nav>
                         </div>
+                        <!-- 🌟 common.jsにより、ログインユーザーの部署が自動選択されます -->
                         <select id="deptFilter" onchange="window.renderTable()" class="scope-select shadow-inner mb-2">
                             <option value="ALL">全社表示</option>
                             <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option><option>土木部</option><option>建築部</option><option>建機部</option><option>総務部</option><option>購買課</option><option>宮崎産商</option><option>企画部</option>
@@ -55,7 +56,7 @@
                         <tbody id="statsTable" class="divide-y divide-slate-100 text-sm font-bold"></tbody>
                     </table>
                 </div>
-                <div id="loading" class="py-20 text-center"><div class="animate-spin mb-4 text-blue-400 text-4xl"><i class="fa-solid fa-circle-notch"></i></div><p class="text-slate-400 font-bold italic uppercase tracking-widest text-[10px]">Processing Database...</p></div>
+                <div id="loading" class="py-20 text-center"><div class="animate-spin mb-4 text-blue-400 text-4xl"><i class="fa-solid fa-circle-notch"></i></div><p class="text-slate-400 font-bold italic uppercase tracking-widest text-[10px]">Filtering for your department...</p></div>
             </div>
         </div>
     </main>
@@ -65,12 +66,14 @@
         import { db } from "./common.js";
         import { collection, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        let staffStats = []; let currentMode = 'visit'; let targetDate = new Date();
+        let allRecords = []; 
+        let allStaffs = [];
+        let currentMode = 'visit'; 
+        let targetDate = new Date();
 
-        // 🌟 あらゆる日付形式（2026/1/1, 2026-01-01等）を判定する関数
         function isTargetMonth(dateStr, targetY, targetM) {
             if (!dateStr) return false;
-            const cleanDate = dateStr.replace(/\//g, '-'); // 全てハイフンに統一
+            const cleanDate = dateStr.replace(/\//g, '-');
             const parts = cleanDate.split('-');
             if (parts.length < 2) return false;
             return parseInt(parts[0]) === targetY && parseInt(parts[1]) === targetM;
@@ -85,58 +88,30 @@
             const targetM = targetDate.getMonth() + 1;
             document.getElementById('displayMonth').innerText = `${targetY}年 ${targetM}月`;
 
-            try {
-                // インデックスを活用した絞り込み（省エネ）
-                // 2026-01-01形式と2026/1/1形式の両方をカバーするため広めに取得
-                const [staffSnap, recordSnap] = await Promise.all([
-                    getDocs(collection(db, "staffs")),
-                    getDocs(query(collection(db, "activity_records"), 
-                                  where("visitDate", ">=", `${targetY}-${String(targetM).padStart(2, '0')}`),
-                                  where("visitDate", "<=", `${targetY}-${String(targetM).padStart(2, '0')}\uf8ff`)))
-                ]);
+            const selectedDept = document.getElementById('deptFilter').value;
 
-                // もしハイフン形式で取れなかった場合、スラッシュ形式でも試行（保険ロジック）
-                let records = recordSnap.docs.map(d => d.data());
-                if(records.length === 0) {
-                    const altSnap = await getDocs(query(collection(db, "activity_records"), 
-                                      where("visitDate", ">=", `${targetY}/${targetM}/`),
-                                      where("visitDate", "<=", `${targetY}/${targetM}/\uf8ff`)));
-                    records = altSnap.docs.map(d => d.data());
+            try {
+                // 🌟 最強の省エネ：全社ではなく「選択された部署」のデータだけを取りに行く
+                let recordQuery;
+                if (selectedDept === "ALL") {
+                    recordQuery = query(collection(db, "activity_records"), limit(2000));
+                } else {
+                    recordQuery = query(collection(db, "activity_records"), where("visitorDept", "==", selectedDept));
                 }
 
-                const staffs = staffSnap.docs.map(d => d.data());
+                const [staffSnap, recordSnap] = await Promise.all([
+                    getDocs(collection(db, "staffs")),
+                    getDocs(recordQuery)
+                ]);
 
-                staffStats = staffs.map(staff => {
-                    const myRecords = records.filter(r => 
-                        r.visitorName === staff.name && isTargetMonth(r.visitDate, targetY, targetM)
-                    );
-                    
-                    if (myRecords.length === 0) return null;
-
-                    let totalMins = 0;
-                    myRecords.forEach(r => {
-                        if(r.startTime && r.endTime) {
-                            const s = r.startTime.split(':'); const e = r.endTime.split(':');
-                            const diff = (parseInt(e[0])*60 + parseInt(e[1])) - (parseInt(s[0])*60 + parseInt(s[1]));
-                            if (diff > 0) totalMins += diff;
-                        }
-                    });
-
-                    return { 
-                        id: staff.id || '---', 
-                        name: staff.name, 
-                        dept: staff.dept || '未設定', 
-                        recordCount: myRecords.length, 
-                        visitCount: new Set(myRecords.map(r => r.customerName)).size, 
-                        avgTime: Math.round(totalMins / myRecords.length) || 0 
-                    };
-                }).filter(Boolean);
+                allStaffs = staffSnap.docs.map(d => d.data());
+                allRecords = recordSnap.docs.map(d => d.data());
 
                 loading.style.display = 'none';
                 window.renderTable();
             } catch (e) { 
-                console.error("Fetch Error:", e);
-                loading.innerHTML = '<p class="text-rose-400 font-bold">Sync Error: Please check index.</p>';
+                console.error(e);
+                loading.innerHTML = '<p class="text-rose-400 font-bold">Index required. Please wait for build.</p>';
             }
         }
 
@@ -149,13 +124,45 @@
         };
 
         window.renderTable = () => {
-            const head = document.getElementById('tableHead'); const body = document.getElementById('statsTable');
-            const selectedDept = document.getElementById('deptFilter').value; body.innerHTML = "";
-            const filtered = selectedDept === 'ALL' ? staffStats : staffStats.filter(s => s.dept === selectedDept);
+            const head = document.getElementById('tableHead'); 
+            const body = document.getElementById('statsTable');
+            const targetY = targetDate.getFullYear();
+            const targetM = targetDate.getMonth() + 1;
+            const selectedDept = document.getElementById('deptFilter').value;
+            body.innerHTML = "";
 
+            // 部署でフィルタリング
+            const targetStaffs = selectedDept === 'ALL' ? allStaffs : allStaffs.filter(s => s.dept === selectedDept);
+
+            // 集計計算
+            const stats = targetStaffs.map(staff => {
+                const myRecords = allRecords.filter(r => 
+                    r.visitorName === staff.name && isTargetMonth(r.visitDate, targetY, targetM)
+                );
+                
+                if (myRecords.length === 0) return null;
+
+                let totalMins = 0;
+                myRecords.forEach(r => {
+                    if(r.startTime && r.endTime) {
+                        const s = r.startTime.split(':'); const e = r.endTime.split(':');
+                        const diff = (parseInt(e[0])*60 + parseInt(e[1])) - (parseInt(s[0])*60 + parseInt(s[1]));
+                        if (diff > 0) totalMins += diff;
+                    }
+                });
+
+                return { 
+                    id: staff.id || '---', name: staff.name, dept: staff.dept || '未設定', 
+                    recordCount: myRecords.length, 
+                    visitCount: new Set(myRecords.map(r => r.customerName)).size, 
+                    avgTime: Math.round(totalMins / myRecords.length) || 0 
+                };
+            }).filter(Boolean);
+
+            // 表示
             if (currentMode === 'visit') {
                 head.innerHTML = '<th class="p-6 w-24 text-center">NO</th><th class="p-6 text-left">氏名</th><th class="p-6 text-left">部署</th><th class="p-6 text-center">訪問顧客数</th><th class="p-6 text-center">平均滞在時間</th>';
-                filtered.sort((a,b)=>b.visitCount-a.visitCount).forEach(s => {
+                stats.sort((a,b)=>b.visitCount-a.visitCount).forEach(s => {
                     body.insertAdjacentHTML('beforeend', `
                         <tr class="hover:bg-emerald-50/30 transition-all border-b border-slate-50">
                             <td class="p-6 text-slate-400 font-mono text-xs text-center border-r border-slate-50">${s.id}</td>
@@ -167,7 +174,7 @@
                 });
             } else {
                 head.innerHTML = '<th class="p-6 w-24 text-center">NO</th><th class="p-6 text-left">氏名</th><th class="p-6 text-left">部署</th><th class="p-6 text-center">実績登録数</th>';
-                filtered.sort((a,b)=>b.recordCount-a.recordCount).forEach(s => {
+                stats.sort((a,b)=>b.recordCount-a.recordCount).forEach(s => {
                     body.insertAdjacentHTML('beforeend', `
                         <tr class="hover:bg-sky-50/30 transition-all border-b border-slate-50">
                             <td class="p-6 text-slate-400 font-mono text-xs text-center border-r border-slate-50">${s.id}</td>
@@ -178,6 +185,10 @@
                 });
             }
         };
+
+        // 🌟 修正：部署フィルターが変更されたらデータを再取得する
+        document.getElementById('deptFilter').addEventListener('change', fetchAndRender);
+
         fetchAndRender();
     </script>
 </body>
