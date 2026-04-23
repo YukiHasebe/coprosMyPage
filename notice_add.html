@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --copros-orange: #ff7e11; }
+        :root { --copros-orange: #ff7e11; --copros-navy: #004098; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
         .form-card { background: white; border-radius: 2rem; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04); }
         .form-input { width: 100%; padding: 1rem; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 1rem; font-weight: 600; transition: all 0.2s; }
@@ -24,18 +24,23 @@
         <div class="flex-1 overflow-y-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-3xl mx-auto">
                 
-                <!-- ヘッドエリア：プロ仕様の統一デザイン -->
+                <!-- 🌟 ヘッドエリア：実績登録と完全同期のボタン配置 -->
                 <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-4">
                     <div>
-                        <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-2">お知らせ登録</h1>
-                        <nav class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Notice & Information Setup</nav>
+                        <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-1">お知らせ登録</h1>
+                        <nav class="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">Notice & Information Setup</nav>
                     </div>
-                    <button onclick="location.href='notice_list.html'" class="px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-xs hover:bg-slate-50 shadow-sm transition-all">
-                        <i class="fa-solid fa-arrow-left mr-1"></i> 戻る
-                    </button>
+                    <div class="flex gap-2 w-full lg:w-auto">
+                        <button type="button" onclick="location.href='notice_list.html'" class="flex-1 lg:flex-none px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-full font-bold text-xs hover:bg-slate-50 shadow-sm transition-all active:scale-95">
+                            一覧へ戻る
+                        </button>
+                        <button type="button" onclick="document.getElementById('saveBtnMain').click()" class="flex-1 lg:flex-none px-8 py-2.5 bg-[#004098] text-white rounded-full font-bold text-xs hover:shadow-lg transition-all flex items-center justify-center gap-2 active:scale-95">
+                            <i class="fa-solid fa-cloud-arrow-up text-[10px]"></i> 保存・公開
+                        </button>
+                    </div>
                 </div>
 
-                <div class="form-card p-6 lg:p-10 mb-20">
+                <div class="form-card p-6 lg:p-10 mb-10">
                     <form id="noticeForm" class="space-y-8">
                         <div>
                             <label class="label-text">件名（タイトル） <span class="text-rose-500">*</span></label>
@@ -59,18 +64,22 @@
                                 <input type="date" id="endDate" class="form-input font-bold" required>
                             </div>
                         </div>
-                        <div class="pt-6 border-t border-slate-100">
-                            <button type="submit" id="saveBtn" class="w-full py-4 bg-[#004098] text-white rounded-2xl font-black text-lg hover:shadow-xl transition-all active:scale-95 flex items-center justify-center gap-3">
-                                <i class="fa-solid fa-paper-plane"></i> 登録情報を保存・公開
-                            </button>
-                        </div>
+                        <!-- 🌟 非表示の送信ボタン（右上のボタンからキックされます） -->
+                        <button type="submit" id="saveBtnMain" class="hidden"></button>
                     </form>
+                </div>
+
+                <!-- 🌟 下部ボタン：オーナー標準の巨大2連ボタン風 -->
+                <div class="flex justify-center gap-4 py-8 mb-20 border-t border-slate-200">
+                    <button type="button" id="saveBtnBottom" onclick="document.getElementById('saveBtnMain').click()" class="px-20 py-4 bg-[#004098] text-white rounded-2xl font-black text-sm hover:shadow-xl flex items-center gap-3 active:scale-95 transition-all">
+                        <i class="fa-solid fa-paper-plane"></i> 登録情報を保存・公開
+                    </button>
                 </div>
             </div>
         </div>
     </main>
 
-    <!-- 🌟 V2同期 ＆ 編集モード対応 -->
+    <script type="module" src="common.js"></script>
     <script type="module">
         import { db } from "./common.js";
         import { collection, addDoc, serverTimestamp, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -89,11 +98,9 @@
                         document.getElementById('linkUrl').value = d.linkUrl || '';
                         document.getElementById('startDate').value = d.startDate;
                         document.getElementById('endDate').value = d.endDate;
-                        document.getElementById('saveBtn').innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> 登録情報を更新する';
                     }
                 } catch (e) { console.error("Load Error:", e); }
             } else {
-                // 新規登録時のデフォルト日（今日〜1ヶ月後）
                 document.getElementById('startDate').valueAsDate = new Date();
                 const nextMonth = new Date(); 
                 nextMonth.setMonth(nextMonth.getMonth() + 1);
@@ -103,7 +110,8 @@
 
         document.getElementById('noticeForm').onsubmit = async (e) => {
             e.preventDefault();
-            const btn = document.getElementById('saveBtn');
+            const btn = document.getElementById('saveBtnBottom');
+            const originalHTML = btn.innerHTML;
             btn.disabled = true;
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>保存中...';
 
@@ -127,9 +135,9 @@
                 location.href = 'notice_list.html';
             } catch (e) {
                 console.error("Save Error:", e);
-                alert("保存に失敗しました。Firebaseの権限設定を確認してください。");
+                alert("保存に失敗しました。");
                 btn.disabled = false;
-                btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> 登録情報を保存・公開';
+                btn.innerHTML = originalHTML;
             }
         };
 
