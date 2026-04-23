@@ -12,13 +12,17 @@
         .calendar-day.other-month { background: #f8fafc; color: #cbd5e1; }
         .day-num { font-weight: 900; font-size: 0.85rem; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
         .is-today .day-num { background: var(--copros-orange); color: white; border-radius: 50%; }
-        .event-label { font-size: 9px; font-weight: 800; padding: 2px 5px; border-radius: 4px; margin-bottom: 2px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 3px solid; transition: transform 0.1s; }
-        .event-label:hover { transform: scale(1.02); opacity: 0.8; }
+        
+        /* 🌟 ラベルの質感を改善（灰色を消し、鮮やかに動かす） */
+        .event-label { font-size: 9px; font-weight: 800; padding: 3px 6px; border-radius: 4px; margin-bottom: 2px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 3px solid; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .event-label:hover { transform: translateX(3px); filter: brightness(1.05); }
+        
         .label-result { border-left-color: var(--copros-orange); background: #fff7ed; color: #ea580c; }
         .label-next { border-left-color: #10b981; background: #f0fdf4; color: #16a34a; }
         .label-appoint { border-left-color: #3b82f6; background: #eff6ff; color: #1d4ed8; }
+        
         .month-btn { padding: 0.5rem 0.2rem; border-radius: 0.75rem; font-size: 0.7rem; font-weight: 900; flex: 1; text-align: center; transition: 0.2s; }
-        .month-btn:hover { background: #f1f5f9; }
+        .month-btn:hover { background: #f1f5f9; color: var(--copros-navy); }
         .month-btn.active { background: var(--copros-navy); color: white; }
         .scope-select { background: #e2e8f0; border: none; padding: 0.4rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; cursor: pointer; }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
@@ -45,9 +49,9 @@
                             <label class="flex items-center gap-1 cursor-pointer text-emerald-600"><input type="checkbox" id="showNext" checked onchange="renderCalendar()" class="accent-emerald-500"> 次回</label>
                             <label class="flex items-center gap-1 cursor-pointer text-blue-600"><input type="checkbox" id="showApp" checked onchange="renderCalendar()" class="accent-blue-500"> アポ</label>
                         </div>
-                        <button onclick="window.changeMonth(-1)" class="p-2 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-chevron-left"></i></button>
-                        <button onclick="window.setToday()" class="px-4 py-1.5 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200">今日</button>
-                        <button onclick="window.changeMonth(1)" class="p-2 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-chevron-right"></i></button>
+                        <button onclick="window.changeMonth(-1)" class="p-2 text-slate-400 hover:text-slate-600 transition-colors"><i class="fa-solid fa-chevron-left"></i></button>
+                        <button onclick="window.setToday()" class="px-4 py-1.5 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors">今日</button>
+                        <button onclick="window.changeMonth(1)" class="p-2 text-slate-400 hover:text-slate-600 transition-colors"><i class="fa-solid fa-chevron-right"></i></button>
                     </div>
                 </div>
                 <div class="flex overflow-x-auto p-1 bg-white rounded-2xl border border-slate-200 shadow-sm mb-6 whitespace-nowrap custom-scrollbar">
@@ -66,12 +70,11 @@
     <script type="module" src="common.js"></script>
     <script type="module">
         import { db } from "./common.js";
-        import { collection, getDocs, query, where, doc, writeBatch, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, getDocs, query, where, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let currentDate = new Date();
         let loadedData = { records: [], appoints: [] };
 
-        // 🌟 日付を「YYYY-M-D」形式に統一する関数（比較用）
         function formatDateKey(dateStr) {
             if (!dateStr) return null;
             const d = new Date(dateStr.replace(/\//g, '-'));
@@ -82,48 +85,30 @@
         async function fetchMonthData() {
             const y = currentDate.getFullYear();
             const m = currentDate.getMonth() + 1;
-            
-            // 🌟 1桁月と2桁月(2026-4- と 2026-04-) 両方に対応する前方一致検索
             const m1 = `${y}-${m}-`;
             const m2 = `${y}-${String(m).padStart(2, '0')}-`;
 
             try {
-                // 実績データの取得 (visitDate)
+                // 読み取り範囲の最適化（省エネ）
                 const qRes1 = query(collection(db, "activity_records"), where("visitDate", ">=", m1), where("visitDate", "<=", m1 + "\uf8ff"));
                 const qRes2 = query(collection(db, "activity_records"), where("visitDate", ">=", m2), where("visitDate", "<=", m2 + "\uf8ff"));
-                
-                // 次回予定データの取得 (nextVisitDate) ※実績データの中に含まれているので、日付でフィルタ
                 const qNext1 = query(collection(db, "activity_records"), where("nextVisitDate", ">=", m1), where("nextVisitDate", "<=", m1 + "\uf8ff"));
                 const qNext2 = query(collection(db, "activity_records"), where("nextVisitDate", ">=", m2), where("nextVisitDate", "<=", m2 + "\uf8ff"));
-
-                // アポデータの取得 (appointDate)
                 const qApp1 = query(collection(db, "appointments"), where("appointDate", ">=", m1), where("appointDate", "<=", m1 + "\uf8ff"));
                 const qApp2 = query(collection(db, "appointments"), where("appointDate", ">=", m2), where("appointDate", "<=", m2 + "\uf8ff"));
 
                 const snaps = await Promise.all([
-                    getDocs(qRes1), getDocs(qRes2), 
-                    getDocs(qNext1), getDocs(qNext2),
-                    getDocs(qApp1), getDocs(qApp2)
+                    getDocs(qRes1), getDocs(qRes2), getDocs(qNext1), getDocs(qNext2), getDocs(qApp1), getDocs(qApp2)
                 ]);
 
-                // 重複を除去して格納
                 const recordMap = new Map();
-                [...snaps[0].docs, ...snaps[1].docs, ...snaps[2].docs, ...snaps[3].docs].forEach(d => {
-                    recordMap.set(d.id, d.data());
-                });
-                loadedData.records = Array.from(recordMap.values());
-
-                 loadedData.records.sort((a, b) => (a.startTime || "00:00").localeCompare(b.startTime || "00:00"));
+                [...snaps[0].docs, ...snaps[1].docs, ...snaps[2].docs, ...snaps[3].docs].forEach(d => recordMap.set(d.id, d.data()));
+                loadedData.records = Array.from(recordMap.values()).sort((a, b) => (a.startTime || "00:00").localeCompare(b.startTime || "00:00"));
 
                 const appointMap = new Map();
-                [...snaps[4].docs, ...snaps[5].docs].forEach(d => {
-                    appointMap.set(d.id, { id: d.id, ...d.data() });
-                });
+                [...snaps[4].docs, ...snaps[5].docs].forEach(d => appointMap.set(d.id, { id: d.id, ...d.data() }));
                 loadedData.appoints = Array.from(appointMap.values());
-
-            } catch (e) {
-                console.error("Firebase Load Error:", e);
-            }
+            } catch (e) { console.error("Firebase Load Error:", e); }
         }
 
         window.renderCalendar = () => {
@@ -142,17 +127,14 @@
             const startOffset = (firstDay === 0) ? 6 : firstDay - 1;
             const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-            // 前月の埋め
             for(let i=0; i<startOffset; i++) grid.insertAdjacentHTML('beforeend', '<div class="calendar-day other-month"></div>');
 
-            // 当月の日付
             for(let d=1; d<=daysInMonth; d++) {
                 const targetKey = `${year}-${month + 1}-${d}`;
                 const isTodayClass = (year === today.getFullYear() && month === today.getMonth() && d === today.getDate()) ? "is-today" : "";
-                
                 let eventsHtml = "";
 
-                 // 実績 (visitDate)
+                // 実績 (橙) -> 個別履歴へ
                 if (document.getElementById('showRes').checked) {
                     loadedData.records
                         .filter(r => formatDateKey(r.visitDate) === targetKey && (dept === 'ALL' || r.visitorDept === dept))
@@ -161,17 +143,16 @@
                         });
                 }
 
-                // 次回予定 (nextVisitDate)
+                // 次回予定 (緑) -> 個別履歴へ（ご指示通り）
                 if (document.getElementById('showNext').checked) {
                     loadedData.records
                         .filter(r => formatDateKey(r.nextVisitDate) === targetKey && (dept === 'ALL' || r.visitorDept === dept))
                         .forEach(r => {
-                            eventsHtml += `<div class="event-label label-next" title="担当:${r.visitorName}">次回: ${r.customerName}</div>`;
+                            eventsHtml += `<div class="event-label label-next" onclick="location.href='customer_history.html?name=${encodeURIComponent(r.customerName)}'" title="担当:${r.visitorName}">次回: ${r.customerName}</div>`;
                         });
                 }
 
-                // アポ (appointDate) 
-                // ※アポデータに部署(visitorDept)があればフィルタリング、なければ全表示
+                // アポ (青) -> 削除ポップアップ
                 if (document.getElementById('showApp').checked) {
                     loadedData.appoints
                         .filter(a => formatDateKey(a.appointDate) === targetKey && (dept === 'ALL' || !a.visitorDept || a.visitorDept === dept))
@@ -182,8 +163,10 @@
 
                 grid.insertAdjacentHTML('beforeend', `
                     <div class="calendar-day ${isTodayClass}">
-                        <div class="day-header mb-1"><span class="day-num">${d}</span></div>
-                        <div class="max-h-[90px] overflow-y-auto custom-scrollbar">${eventsHtml}</div>
+                        <div class="day-header mb-1 flex justify-between items-center">
+                            <span class="day-num">${d}</span>
+                        </div>
+                        <div class="max-h-[90px] overflow-y-auto custom-scrollbar space-y-0.5">${eventsHtml}</div>
                     </div>
                 `);
             }
@@ -207,7 +190,6 @@
             window.renderCalendar();
         };
 
-        // 初期化
         (async () => {
             await fetchMonthData();
             window.renderCalendar();
