@@ -30,36 +30,38 @@
             <div class="max-w-[1400px] mx-auto">
                 
                 <div class="flex flex-col gap-6 mb-6">
-                    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-                        <!-- 左：タイトルとチェックボックス -->
-                        <div class="flex flex-col gap-3 shrink-0">
+                    <!-- ヘッドエリア -->
+                    <div class="relative flex flex-col lg:flex-row items-start lg:items-center min-h-[80px] gap-4">
+                        
+                        <!-- 左：タイトルと会社表示（いつもの位置） -->
+                        <div class="flex items-end gap-4 lg:gap-6 shrink-0">
                             <div>
-                                <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter">CALENDAR</h1>
-                                <div class="h-1 w-20 bg-[#87ceeb] mt-1 mb-2"></div>
-                                <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Schedule & Appointment Management</nav>
+                                <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-1">カレンダー</h1>
+                                <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Schedule Management</nav>
                             </div>
-                            <div class="flex gap-4 items-center bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-100 text-[10px] font-black">
-                                <label class="flex items-center gap-1.5 cursor-pointer text-orange-600"><input type="checkbox" id="showRes" checked onchange="renderCalendar()" class="accent-orange-500"> 実績</label>
-                                <label class="flex items-center gap-1.5 cursor-pointer text-emerald-600"><input type="checkbox" id="showNext" checked onchange="renderCalendar()" class="accent-emerald-500"> 次回</label>
-                                <label class="flex items-center gap-1.5 cursor-pointer text-blue-600"><input type="checkbox" id="showApp" checked onchange="renderCalendar()" class="accent-blue-500"> アポ</label>
-                            </div>
+                            <select id="deptFilter" onchange="window.renderCalendar()" class="scope-select shadow-inner mb-2">
+                                <option value="ALL">全社表示</option>
+                                <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option><option>土木部</option><option>建築部</option><option>建機部</option><option>総務部</option><option>購買課</option><option>宮崎産商</option><option>企画部</option>
+                            </select>
                         </div>
 
-                        <!-- 中央：月切り替えツール -->
-                        <div class="lg:absolute lg:left-1/2 lg:-translate-x-1/2 flex items-center gap-3 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100">
+                        <!-- 中央：月切り替えツール（PCのみ中央） -->
+                        <div class="lg:absolute lg:left-1/2 lg:-translate-x-1/2 flex items-center gap-3 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100 mx-auto lg:mx-0">
                             <button onclick="window.changeMonth(-1)" class="p-2 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-chevron-left"></i></button>
                             <span id="displayMonthCenter" class="text-base font-black text-slate-700 px-4 min-w-[140px] text-center">----年 --月</span>
                             <button onclick="window.setToday()" class="px-4 py-1.5 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 text-[10px] font-black">今月</button>
                             <button onclick="window.changeMonth(1)" class="p-2 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-chevron-right"></i></button>
                         </div>
 
-                        <!-- 右：部署フィルター -->
-                        <select id="deptFilter" onchange="window.renderTable()" class="scope-select shadow-inner self-end lg:self-center">
-                            <option value="ALL">全社表示</option>
-                            <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option><option>土木部</option><option>建築部</option><option>建機部</option><option>総務部</option><option>購買課</option><option>宮崎産商</option><option>企画部</option>
-                        </select>
+                        <!-- 右：実績・次回・アポ（スマホでも右寄せ） -->
+                        <div class="flex gap-4 items-center bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-100 text-[10px] font-black ml-auto">
+                            <label class="flex items-center gap-1.5 cursor-pointer text-orange-600"><input type="checkbox" id="showRes" checked onchange="renderCalendar()" class="accent-orange-500"> 実績</label>
+                            <label class="flex items-center gap-1.5 cursor-pointer text-emerald-600"><input type="checkbox" id="showNext" checked onchange="renderCalendar()" class="accent-emerald-500"> 次回</label>
+                            <label class="flex items-center gap-1.5 cursor-pointer text-blue-600"><input type="checkbox" id="showApp" checked onchange="renderCalendar()" class="accent-blue-500"> アポ</label>
+                        </div>
                     </div>
 
+                    <!-- 月切り替えボタン -->
                     <div class="flex overflow-x-auto p-1 bg-white rounded-2xl border border-slate-200 shadow-sm whitespace-nowrap custom-scrollbar">
                         <script>for(let i=1; i<=12; i++) document.write(`<button onclick="window.jumpMonth(${i})" id="month-btn-${i}" class="month-btn">${i}月</button>`);</script>
                     </div>
@@ -74,10 +76,12 @@
             </div>
         </div>
     </main>
+
     <script type="module" src="common.js"></script>
     <script type="module">
         import { db } from "./common.js";
         import { collection, getDocs, query, where, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
         let currentDate = new Date();
         let loadedData = { records: [], appoints: [] };
 
