@@ -1,9 +1,7 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>お客様別滞在時間一覧 | CP My Page</title>
+    <meta charset="UTF-8"><title>お客様別滞在時間一覧 | CP My Page</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -14,155 +12,121 @@
         .scope-select { background: #e2e8f0; border: none; padding: 0.4rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; cursor: pointer; }
         .modern-page-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-weight: 800; font-size: 12px; color: #94a3b8; cursor: pointer; }
         .modern-page-btn.active { background: #334155; color: white; }
-        /* 🌟 由紀オーナーこだわりのタイムバッジ */
         .time-badge { background: #fff7ed; color: var(--copros-orange); padding: 4px 12px; border-radius: 20px; font-weight: 900; border: 1px solid #ffedd5; white-space: nowrap; }
         .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
-<body class="flex h-screen overflow-hidden text-slate-700 font-sans">
+<body class="flex h-screen overflow-hidden text-slate-700">
     <div id="sidebar-placeholder"></div>
     <main class="flex-1 flex flex-col overflow-hidden">
         <div id="header-placeholder"></div>
         <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1400px] mx-auto">
-                
-                <!-- ヘッドエリア -->
                 <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-6">
-                    <div class="flex items-end gap-4 lg:gap-6">
+                    <div class="flex items-end gap-6">
                         <div>
                             <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-2">滞在時間分析</h1>
-                            <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Customer Engagement Time Analysis</nav>
+                            <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Customer Engagement Time Analysis</nav>
                         </div>
-                        <div class="mb-2">
-                            <select id="deptFilter" onchange="window.updateView()" class="scope-select shadow-inner">
-                                <option value="ALL">全社表示</option>
-                                <option>ケコム部</option><option>関西支店</option><option>関東支店</option>
-                                <option>中部営業所</option><option>土木部</option><option>建築部</option>
-                                <option>建機部</option><option>総務部</option><option>購買課</option>
-                                <option>宮崎産商</option><option>企画部</option>
-                            </select>
-                        </div>
+                        <select id="deptFilter" onchange="window.init()" class="scope-select shadow-inner mb-2">
+                            <option value="ALL">全社表示</option>
+                            <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option><option>土木部</option><option>建築部</option><option>建機部</option><option>総務部</option><option>購買課</option><option>宮崎産商</option><option>企画部</option>
+                        </select>
                     </div>
-                    <div class="flex gap-2 w-full lg:w-auto">
-                        <button class="flex-1 lg:flex-none px-6 py-2.5 bg-slate-800 text-white rounded-xl font-bold text-xs shadow-lg flex items-center justify-center gap-2"><i class="fa-solid fa-file-csv"></i>CSV出力</button>
-                    </div>
+                    <button class="px-6 py-2.5 bg-slate-800 text-white rounded-xl font-bold text-xs shadow-lg flex items-center gap-2"><i class="fa-solid fa-file-csv"></i>CSV出力</button>
                 </div>
 
                 <div class="flex justify-between items-center mb-6 px-2">
-                    <div class="flex items-center gap-2 border-slate-200 h-8">
-                        <span id="pageRange" class="text-xl font-black text-slate-800 tracking-tighter">0-0</span>
-                        <span class="text-slate-300 font-bold">/</span>
-                        <span id="totalCount" class="text-sm font-bold text-slate-400">0</span>
-                        <span class="text-[9px] font-black text-slate-300 uppercase tracking-widest ml-1">Customers</span>
-                    </div>
-                    <div id="paginationTop" class="flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-2"></div>
+                    <div class="flex items-center gap-2"><span id="pageRange" class="text-xl font-black text-slate-800 tracking-tighter">0-0</span><span class="text-slate-300 font-bold">/</span><span id="totalCount" class="text-sm font-bold text-slate-400">0</span></div>
+                    <div id="paginationTop" class="flex items-center gap-1.5"></div>
                 </div>
 
-                <div class="table-container custom-scrollbar overflow-x-auto">
+                <div class="table-container overflow-x-auto bg-white">
                     <table class="w-full text-left border-collapse min-w-[900px]">
-                        <thead>
-                            <tr class="text-white text-[10px] font-black uppercase tracking-widest text-center">
-                                <th class="p-6 w-16 opacity-50 text-center">No</th>
-                                <th class="p-6 text-left">お客様名</th>
-                                <th class="p-6">属性・区分</th>
-                                <th class="p-6 w-24">訪問数</th>
-                                <th class="p-6">合計滞在時間</th>
-                                <th class="p-6">平均滞在時間</th>
-                            </tr>
-                        </thead>
-                        <tbody id="stayTableBody" class="divide-y divide-slate-100 text-[11px] lg:text-sm font-bold bg-white">
-                            <!-- JS注入 -->
-                        </tbody>
+                        <thead><tr class="text-white text-[10px] font-black uppercase text-center tracking-widest"><th class="p-6 w-16 opacity-50">No</th><th class="p-6 text-left">お客様名</th><th class="p-6">属性</th><th class="p-6 w-24">訪問数</th><th class="p-6">合計滞在時間</th><th class="p-6">平均滞在時間</th></tr></thead>
+                        <tbody id="stayTableBody" class="divide-y divide-slate-100 text-sm font-bold"></tbody>
                     </table>
                 </div>
 
-                <!-- 🌟 由紀オーナーこだわりのローディング演出 -->
                 <div id="loading" class="fixed inset-0 bg-white/80 backdrop-blur-sm z-[100] flex flex-col items-center justify-center">
                     <div class="animate-spin mb-4 text-orange-500 text-5xl"><i class="fa-solid fa-circle-notch"></i></div>
                     <p class="text-slate-800 font-black tracking-tighter">滞在時間を精密計算中...</p>
                 </div>
-
-                <div id="paginationBottom" class="mt-12 mb-24 flex justify-center items-center gap-1.5 overflow-x-auto custom-scrollbar pb-4"></div>
+                <div id="paginationBottom" class="mt-12 mb-24 flex justify-center items-center gap-1.5"></div>
             </div>
         </div>
     </main>
 
+    <script type="module" src="common.js"></script>
     <script type="module">
         import { db } from "./common.js";
-        import { collection, getDocs, query, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, getDocs, query, where, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let customerStats = [];
-        let filteredStats = [];
         let currentPage = 1;
         const perPage = 20;
 
-        async function init() {
-            try {
-                // 🌟 鉄壁・省エネ：お客様200件、最新実績500件に制限
-                const [cSnap, rSnap] = await Promise.all([
-                    getDocs(query(collection(db, "customers"), orderBy("name"), limit(200))), 
-                    getDocs(query(collection(db, "activity_records"), orderBy("visitDate", "desc"), limit(500)))
-                ]);
-                
-                const customers = cSnap.docs.map(d => d.data());
-                const records = rSnap.docs.map(d => d.data());
+        window.init = async () => {
+            const loading = document.getElementById('loading');
+            loading.style.display = 'flex';
+            const selectedDept = document.getElementById('deptFilter').value;
 
-                // メモリ内で集計（通信回数を劇的に削減）
+            try {
+                // 🌟 【省エネ】部署で実績をピンポイント取得（インデックス活用）
+                let rQuery;
+                if (selectedDept === 'ALL') {
+                    rQuery = query(collection(db, "activity_records"), limit(1000));
+                } else {
+                    rQuery = query(collection(db, "activity_records"), where("visitorDept", "==", selectedDept));
+                }
+
+                const [cSnap, rSnap] = await Promise.all([
+                    getDocs(query(collection(db, "customers"), limit(500))), // 500件程度に制限
+                    getDocs(rQuery)
+                ]);
+
+                const records = rSnap.docs.map(d => d.data());
+                const customers = cSnap.docs.map(d => d.data());
+
+                // メモリ内で集計（Firebase通信はこれ以上発生しない）
                 customerStats = customers.map(cust => {
                     const myRecords = records.filter(r => r.customerName === cust.name);
                     let totalMins = 0;
                     myRecords.forEach(r => {
-                        if(r.startTime && r.endTime && r.startTime !== '--:--') {
-                            const s = r.startTime.split(':'); const e = r.endTime.split(':');
-                            const diff = (parseInt(e[0]||0)*60 + parseInt(e[1]||0)) - (parseInt(s[0]||0)*60 + parseInt(s[1]||0));
+                        if(r.startTime && r.endTime) {
+                            const s = r.startTime.split(':'), e = r.endTime.split(':');
+                            const diff = (parseInt(e[0])*60 + parseInt(e[1])) - (parseInt(s[0])*60 + parseInt(s[1]));
                             if (diff > 0) totalMins += diff;
                         }
                     });
-                    return { 
-                        ...cust, 
-                        visitCount: myRecords.length, 
-                        totalMins, 
-                        avgMins: myRecords.length > 0 ? Math.round(totalMins / myRecords.length) : 0 
-                    };
-                });
+                    return { ...cust, visitCount: myRecords.length, totalMins, avgMins: myRecords.length > 0 ? Math.round(totalMins / myRecords.length) : 0 };
+                }).filter(c => c.visitCount > 0).sort((a, b) => b.totalMins - a.totalMins);
 
-                document.getElementById('loading').style.display = 'none';
+                loading.style.display = 'none';
                 window.updateView();
-            } catch (e) { 
-                console.error("Stats Error:", e);
-                document.getElementById('loading').innerHTML = '<p class="text-rose-500 font-bold">集計失敗。Firebase上限の可能性があります。</p>';
-            }
-        }
+            } catch (e) { console.error(e); }
+        };
 
         window.updateView = () => {
-            const deptK = document.getElementById('deptFilter').value;
-            // 部署フィルター
-            filteredStats = customerStats.filter(c => deptK === 'ALL' || c.visitCount > 0); 
-            
             const start = (currentPage - 1) * perPage;
-            const paged = filteredStats.slice(start, start + perPage);
-            
+            const paged = customerStats.slice(start, start + perPage);
             const tbody = document.getElementById('stayTableBody');
+            
             tbody.innerHTML = paged.map((c, i) => `
                 <tr class="hover:bg-slate-50 transition-colors text-center border-b border-slate-50">
                     <td class="p-6 text-slate-300 font-mono text-xs border-r border-slate-50">${start + i + 1}</td>
-                    <td class="p-6 text-left">
-                        <div class="text-slate-800 font-black cursor-pointer hover:text-blue-600" 
-                             onclick="location.href='customer_history.html?name=${encodeURIComponent(c.name)}'">
-                             ${c.name}
-                        </div>
-                    </td>
+                    <td class="p-6 text-left font-black text-slate-800 cursor-pointer hover:text-blue-600" onclick="location.href='customer_history.html?name=${encodeURIComponent(c.name)}'">${c.name}</td>
                     <td class="p-6 text-slate-400 text-[10px]">${c.type || '-'}</td>
-                    <td class="p-6"><span class="text-slate-600">${c.visitCount}</span><span class="text-[9px] ml-1 opacity-50">回</span></td>
+                    <td class="p-6">${c.visitCount}<span class="text-[9px] ml-1 opacity-50">回</span></td>
                     <td class="p-6"><span class="time-badge">${Math.floor(c.totalMins/60)}h ${c.totalMins%60}m</span></td>
-                    <td class="p-6 text-slate-500 text-xs font-black">${c.avgMins}分 <span class="font-normal opacity-50">/ 回</span></td>
+                    <td class="p-6 text-slate-500 text-xs">${c.avgMins}分 <span class="font-normal opacity-30">/ 回</span></td>
                 </tr>
             `).join('');
 
-            document.getElementById('totalCount').innerText = filteredStats.length;
-            document.getElementById('pageRange').innerText = filteredStats.length > 0 ? `${start+1}-${Math.min(start+perPage, filteredStats.length)}` : "0-0";
-            renderPagination(filteredStats.length);
+            document.getElementById('totalCount').innerText = customerStats.length;
+            document.getElementById('pageRange').innerText = `${start+1}-${Math.min(start+perPage, customerStats.length)}`;
+            renderPagination(customerStats.length);
         };
 
         function renderPagination(total) {
@@ -179,7 +143,7 @@
                 }
             });
         }
-        init();
+        window.init();
     </script>
 </body>
 </html>
