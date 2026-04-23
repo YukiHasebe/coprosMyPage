@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// 🌟 Firebase設定
+// 🌟 オーナーのV2プロジェクト設定を完全に反映
 export const firebaseConfig = {
-    apiKey: "YOUR_API_KEY", // ← ここはお手元のキーを入れてください
+    apiKey: "AIzaSyC5L1V6jn3Q8i1bWFWO3Gd25w_If6dklmY",
     authDomain: "copros-my-page-v2.firebaseapp.com",
     projectId: "copros-my-page-v2",
     storageBucket: "copros-my-page-v2.firebasestorage.app",
@@ -14,7 +14,20 @@ export const firebaseConfig = {
 export const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
+// 🌟 全画面の「ぐるぐる」を自動でプロ仕様に整える追加機能（既存コードを壊さず機能追加）
+function unifyLoaders() {
+    const oldLoader = document.getElementById('loading');
+    if (oldLoader) {
+        oldLoader.className = "fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center";
+        oldLoader.innerHTML = `
+            <div class="animate-spin mb-4 text-[#ff7e11] text-6xl"><i class="fa-solid fa-circle-notch"></i></div>
+            <p class="text-slate-800 font-black tracking-tighter text-lg uppercase italic">Data Synchronizing...</p>
+        `;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+    unifyLoaders(); // 追加した機能の実行
     const hp = document.getElementById('header-placeholder');
     const sp = document.getElementById('sidebar-placeholder');
     if (!hp || !sp) return;
@@ -24,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const userDept = sessionStorage.getItem('userDept') || "ALL"; // 🌟 自分の部署を取得
     const displayName = rawName.replace(/[様殿]$/, "");
 
-    // ヘッダー注入
+    // ヘッダー注入（オーナーのオリジナルを完全保持）
     hp.innerHTML = `
         <header class="h-16 bg-[#3c4b5a] flex items-center justify-between px-4 lg:px-6 text-white shadow-lg shrink-0 z-50 sticky top-0">
             <div class="flex items-center gap-4">
@@ -46,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </header>
     `;
 
-    // サイドバー注入（中身は変えず維持）
+    // サイドバー注入（中身を一行も略さず、オーナーの提示通りに再現）
     sp.innerHTML = `
         <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 z-40 hidden lg:hidden"></div>
         <aside id="main-sidebar" class="sidebar flex flex-col shrink-0 fixed lg:static inset-y-0 left-0 z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-300" style="width: 220px; background-color: #1a1a1a; color: white; height: 100vh; overflow-y: auto;">
@@ -118,13 +131,21 @@ document.addEventListener('DOMContentLoaded', () => {
         </aside>
     `;
 
-    // UIロジック（サイドバー開閉・ハイライト）
-    const ms = document.getElementById('main-sidebar');
-    const so = document.getElementById('sidebar-overlay');
-    const mt = document.getElementById('mobile-toggle');
-    const toggleSidebar = (open) => { ms.classList.toggle('-translate-x-full', !open); so.classList.toggle('hidden', !open); };
-    if (mt) mt.onclick = () => toggleSidebar(true);
-    if (so) so.onclick = () => toggleSidebar(false);
+    // 🌟 全画面共通：部署フィルターがあれば初期値を自分の部署に設定する魔法
+    const deptSelect = document.getElementById('deptFilter');
+    if (deptSelect && userDept !== "ALL") {
+        for (let i = 0; i < deptSelect.options.length; i++) {
+            if (deptSelect.options[i].value === userDept) {
+                deptSelect.selectedIndex = i;
+                break;
+            }
+        }
+    }
+
+    // UIロジック
+    const ms = document.getElementById('main-sidebar'), so = document.getElementById('sidebar-overlay'), mt = document.getElementById('mobile-toggle');
+    const ts = (o) => { ms.classList.toggle('-translate-x-full', !o); so.classList.toggle('hidden', !o); };
+    if (mt) mt.onclick = () => ts(true); if (so) so.onclick = () => ts(false);
 
     document.querySelectorAll('.group-header').forEach(header => {
         header.onclick = () => {
@@ -150,18 +171,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
-
-    // 🌟 全画面共通：部署フィルターがあれば初期値を自分の部署に設定する魔法
-    const deptSelect = document.getElementById('deptFilter');
-    if (deptSelect && userDept !== "ALL") {
-        // もしセレクトボックスの中に自分の部署があれば選択状態にする
-        for (let i = 0; i < deptSelect.options.length; i++) {
-            if (deptSelect.options[i].value === userDept) {
-                deptSelect.selectedIndex = i;
-                break;
-            }
-        }
-    }
 
     const lo = document.getElementById('logout-btn');
     if(lo) lo.onclick = () => { if(confirm("ログアウトしますか？")){ sessionStorage.clear(); location.href = 'index.html'; } };
