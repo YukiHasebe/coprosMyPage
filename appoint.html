@@ -34,16 +34,16 @@
         <div class="flex-1 overflow-y-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1000px] mx-auto">
                 
-                <!-- 🌟 ヘッドエリア：ボタンのサイズと質感を実績登録と同期 -->
-                <div class="flex flex-row justify-between items-end mb-8 gap-4">
+                <!-- 🌟 ヘッドエリア：PCは右寄せ、スマホは全体（実績登録と完全同期） -->
+                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-4">
                     <div>
                         <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">アポイント登録</h1>
                         <nav class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">SCHEDULE & APPOINTMENT SETUP</nav>
                     </div>
-                    <div class="flex items-center gap-3 mb-1">
-                        <button type="button" onclick="window.saveDraft()" class="px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-xs shadow-sm hover:bg-slate-50 transition-all">下書き保存</button>
-                        <button type="button" id="submitBtnTop" class="px-8 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-xs hover:shadow-lg flex items-center gap-2 active:scale-95 transition-all">
-                            <i class="fa-solid fa-paper-plane text-[10px]"></i> 登録を実行
+                    <div class="flex gap-2 w-full lg:w-auto">
+                        <button type="button" onclick="window.saveDraft()" class="flex-1 lg:flex-none px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 shadow-sm transition-all">下書き保存</button>
+                        <button type="button" id="submitBtnTop" class="flex-1 lg:flex-none px-10 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-sm hover:shadow-lg transition-all flex items-center justify-center gap-2 active:scale-95">
+                            <i class="fa-solid fa-paper-plane"></i> 登録を実行
                         </button>
                     </div>
                 </div>
@@ -74,7 +74,7 @@
                                     <label class="label-text">訪問予定者 <span class="text-rose-500">*</span></label>
                                     <div class="flex gap-2">
                                         <input type="text" id="visitorName" class="form-input bg-blue-50 text-blue-700 font-bold" readonly>
-                                        <button type="button" onclick="window.openStaffModal('visitor')" class="px-5 bg-white border border-slate-200 rounded-xl text-xs font-black shadow-sm shrink-0 hover:bg-slate-50 transition-all">選択</button>
+                                        <button type="button" onclick="window.openStaffModal('visitor')" class="px-5 bg-white border border-slate-200 rounded-xl text-xs font-black shadow-sm shrink-0">選択</button>
                                     </div>
                                 </div>
                                 <div><label class="label-text">内容（仮）</label><input type="text" id="appointSubject" placeholder="例：新工法の説明" class="form-input"></div>
@@ -90,7 +90,7 @@
                     </div>
                     
                     <div class="flex justify-center gap-4 py-12 border-t border-slate-100 mt-10">
-                        <button type="button" onclick="window.saveDraft()" class="px-8 py-3 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-50 transition-all">下書き保存</button>
+                        <button type="button" onclick="window.saveDraft()" class="px-8 py-3 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-50">下書き保存</button>
                         <button type="button" id="submitBtnBottom" onclick="document.getElementById('submitBtnTop').click()" class="px-16 py-3 bg-[#004098] text-white rounded-xl font-black text-sm hover:shadow-lg flex items-center gap-2 active:scale-95 transition-all">
                             <i class="fa-solid fa-paper-plane"></i> 登録を実行
                         </button>
@@ -100,7 +100,6 @@
         </div>
     </main>
 
-    <!-- スタッフモーダル -->
     <div id="staffModal" class="modal-overlay">
         <div class="modal-content">
             <div class="bg-slate-900 p-4 text-white flex justify-between items-center"><span id="modalTitle" class="font-black text-xs uppercase tracking-widest">社員選択</span><i class="fa-solid fa-xmark cursor-pointer hover:text-rose-400" onclick="window.closeModal()"></i></div>
@@ -108,7 +107,7 @@
                 <div class="grid grid-cols-2 gap-2"><input type="text" id="staffKeyword" oninput="window.renderStaffList()" placeholder="氏名検索..." class="p-3 rounded-lg border border-slate-200 text-xs font-bold outline-none"><select id="staffDeptFilter" onchange="window.renderStaffList()" class="p-3 rounded-lg border border-slate-200 text-xs font-bold outline-none"><option value="">全ての部署</option></select></div>
             </div>
             <div id="staffList" class="overflow-y-auto custom-scrollbar" style="height: 320px;"></div>
-            <div class="p-4 bg-slate-50 grid grid-cols-3 gap-2 border-t border-slate-100"><button onclick="window.applySelection()" class="col-span-2 py-4 bg-blue-600 text-white rounded-xl font-black shadow-lg hover:opacity-90 transition-all">決定する</button><button onclick="window.clearModalSelection()" class="py-4 bg-white border border-slate-200 text-slate-400 rounded-xl font-bold hover:bg-slate-100 transition-all">クリア</button></div>
+            <div class="p-4 bg-slate-50 grid grid-cols-3 gap-2 border-t border-slate-100"><button onclick="window.applySelection()" class="col-span-2 py-4 bg-blue-600 text-white rounded-xl font-black shadow-lg">決定する</button><button onclick="window.clearModalSelection()" class="py-4 bg-white border border-slate-200 text-slate-400 rounded-xl font-bold">クリア</button></div>
         </div>
     </div>
 
@@ -126,8 +125,7 @@
                 const sSnap = await getDocs(query(collection(db, "staffs"), limit(200)));
                 allStaffs = sSnap.docs.map(d => d.data());
                 const depts = [...new Set(allStaffs.map(s => s.dept).filter(Boolean))].sort();
-                const filter = document.getElementById('staffDeptFilter');
-                depts.forEach(d => filter.insertAdjacentHTML('beforeend', `<option value="${d}">${d}</option>`));
+                depts.forEach(d => document.getElementById('staffDeptFilter').insertAdjacentHTML('beforeend', `<option value="${d}">${d}</option>`));
                 setupCustomerSearch();
             } catch (e) { console.error(e); }
         }
@@ -139,7 +137,6 @@
                 clearTimeout(timeout);
                 const val = input.value.trim();
                 if (val.length < 1) { box.style.display = 'none'; return; }
-                // 🌟 省エネロジック：0.6秒入力が止まったら検索
                 timeout = setTimeout(async () => {
                     const q = query(collection(db, "customers"), where("name", ">=", val), where("name", "<=", val + "\uf8ff"), limit(10));
                     const snap = await getDocs(q);
