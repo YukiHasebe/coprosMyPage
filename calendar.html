@@ -30,10 +30,9 @@
             <div class="max-w-[1400px] mx-auto">
                 
                 <div class="flex flex-col gap-6 mb-6">
-                    <!-- ヘッドエリア -->
                     <div class="relative flex flex-col lg:flex-row items-start lg:items-center min-h-[80px] gap-4">
                         
-                        <!-- 左：タイトルと会社表示（いつもの位置） -->
+                        <!-- 左：タイトルと会社表示（いつもの場所） -->
                         <div class="flex items-end gap-4 lg:gap-6 shrink-0">
                             <div>
                                 <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-1">カレンダー</h1>
@@ -45,15 +44,14 @@
                             </select>
                         </div>
 
-                        <!-- 中央：月切り替えツール（PCのみ中央） -->
-                        <div class="lg:absolute lg:left-1/2 lg:-translate-x-1/2 flex items-center gap-3 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100 mx-auto lg:mx-0">
-                            <button onclick="window.changeMonth(-1)" class="p-2 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-chevron-left"></i></button>
-                            <span id="displayMonthCenter" class="text-base font-black text-slate-700 px-4 min-w-[140px] text-center">----年 --月</span>
-                            <button onclick="window.setToday()" class="px-4 py-1.5 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 text-[10px] font-black">今月</button>
-                            <button onclick="window.changeMonth(1)" class="p-2 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-chevron-right"></i></button>
+                        <!-- 中央：月切り替えツール（今月ボタンなし・スッキリ版） -->
+                        <div class="lg:absolute lg:left-1/2 lg:-translate-x-1/2 flex items-center gap-6 bg-white py-2 px-6 rounded-2xl shadow-sm border border-slate-100 mx-auto lg:mx-0">
+                            <button onclick="window.changeMonth(-1)" class="text-slate-300 hover:text-slate-600 transition-colors"><i class="fa-solid fa-chevron-left fa-lg"></i></button>
+                            <span id="displayMonthCenter" class="text-lg font-black text-slate-700 min-w-[140px] text-center tracking-tighter">----年 --月</span>
+                            <button onclick="window.changeMonth(1)" class="text-slate-300 hover:text-slate-600 transition-colors"><i class="fa-solid fa-chevron-right fa-lg"></i></button>
                         </div>
 
-                        <!-- 右：実績・次回・アポ（スマホでも右寄せ） -->
+                        <!-- 右：チェックボックス（スマホでも右寄せ） -->
                         <div class="flex gap-4 items-center bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-100 text-[10px] font-black ml-auto">
                             <label class="flex items-center gap-1.5 cursor-pointer text-orange-600"><input type="checkbox" id="showRes" checked onchange="renderCalendar()" class="accent-orange-500"> 実績</label>
                             <label class="flex items-center gap-1.5 cursor-pointer text-emerald-600"><input type="checkbox" id="showNext" checked onchange="renderCalendar()" class="accent-emerald-500"> 次回</label>
@@ -61,7 +59,6 @@
                         </div>
                     </div>
 
-                    <!-- 月切り替えボタン -->
                     <div class="flex overflow-x-auto p-1 bg-white rounded-2xl border border-slate-200 shadow-sm whitespace-nowrap custom-scrollbar">
                         <script>for(let i=1; i<=12; i++) document.write(`<button onclick="window.jumpMonth(${i})" id="month-btn-${i}" class="month-btn">${i}月</button>`);</script>
                     </div>
@@ -144,7 +141,6 @@
         };
         window.changeMonth = async (v) => { currentDate.setMonth(currentDate.getMonth() + v); await fetchMonthData(); window.renderCalendar(); };
         window.jumpMonth = async (m) => { currentDate.setMonth(m - 1); await fetchMonthData(); window.renderCalendar(); };
-        window.setToday = async () => { currentDate = new Date(); await fetchMonthData(); window.renderCalendar(); };
         (async () => { await fetchMonthData(); window.renderCalendar(); })();
         window.showAppointDetail = async (id, cust, date, subject) => {
             if(confirm(`【アポ詳細】\n顧客: ${cust}\n内容: ${subject || 'なし'}\n\nこのアポを削除しますか？`)) {
