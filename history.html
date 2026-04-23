@@ -15,8 +15,8 @@
         .label-text { font-size: 0.8rem; font-weight: 800; color: #475569; margin-bottom: 0.4rem; display: block; }
         .section-card { background: white; border-radius: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04); padding: 1.5rem; lg:padding: 2rem; margin-bottom: 1.5rem; }
         .section-title { font-size: 0.75rem; font-weight: 900; color: #94a3b8; letter-spacing: 0.1em; border-bottom: 2px solid #f1f5f9; padding-bottom: 0.5rem; margin-bottom: 1.5rem; text-transform: uppercase; }
-        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 1rem; }
-        .modal-content { background: white; width: 100%; max-width: 450px; border-radius: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); overflow: hidden; animation: popIn 0.3s ease-out; }
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; backdrop-filter: blur(8px); align-items: center; justify-content: center; padding: 1rem; }
+        .modal-content { background: white; width: 100%; max-width: 450px; border-radius: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); overflow: hidden; animation: popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
         @keyframes popIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         .staff-item { padding: 0.8rem 1.2rem; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-weight: 600; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center; }
         .staff-item:hover { background: #f8fafc; color: var(--copros-orange); }
@@ -116,12 +116,8 @@
                     <div class="section-card">
                         <p class="section-title">回覧設定</p>
                         <div class="flex flex-col gap-4">
-                            <label class="flex items-center gap-2 cursor-pointer w-fit bg-rose-50 px-4 py-2 rounded-xl border border-rose-100 transition-all hover:bg-rose-100">
-                                <input type="checkbox" id="emailCircular" checked class="w-4 h-4 accent-rose-500">
-                                <span class="text-xs font-black text-rose-600 uppercase">メール回覧を行う</span>
-                            </label>
                             <div class="flex items-center gap-4">
-                                <button type="button" onclick="window.openStaffModal('circular')" class="px-6 py-2 bg-[#004098] text-white rounded-xl text-xs font-black shadow-md hover:opacity-90 transition-all">回覧者を選択</button>
+                                <button type="button" onclick="window.openStaffModal('circular')" class="px-6 py-2.5 bg-[#004098] text-white rounded-xl text-xs font-black shadow-md hover:opacity-90 transition-all">回覧者を選択</button>
                             </div>
                             <div id="circularDisplay" class="p-4 bg-slate-50 border border-slate-200 rounded-2xl min-h-[60px] text-sm font-bold text-slate-600">未選択</div>
                         </div>
@@ -154,7 +150,7 @@
             <div id="staffList" class="overflow-y-auto custom-scrollbar" style="height: 300px;"></div>
             <div class="p-4 bg-slate-50 grid grid-cols-3 gap-2 border-t border-slate-100">
                 <button onclick="window.applySelection()" class="col-span-2 py-3 bg-blue-600 text-white rounded-xl font-black text-sm shadow-lg hover:bg-blue-700 transition-all">決定</button>
-                <button onclick="window.clearModalSelection()" class="py-3 bg-white border border-slate-200 text-slate-400 rounded-xl font-bold text-sm">クリア</button>
+                <button onclick="window.clearModalSelection()" class="py-3 bg-white border border-slate-200 text-slate-400 rounded-xl font-bold text-sm hover:bg-slate-100 transition-all">クリア</button>
             </div>
         </div>
     </div>
@@ -177,7 +173,7 @@
                 const sSnap = await getDocs(query(collection(db, "staffs"), limit(200)));
                 allStaffs = sSnap.docs.map(doc => ({ ...doc.data() }));
 
-                const depts = [...new Set(allStaffs.map(s => s.dept).filter(Boolean))];
+                const depts = [...new Set(allStaffs.map(s => s.dept).filter(Boolean))].sort();
                 const deptSelect = document.getElementById('staffDeptFilter');
                 depts.forEach(d => deptSelect.insertAdjacentHTML('beforeend', `<option value="${d}">${d}</option>`));
 
@@ -206,6 +202,7 @@
                 clearTimeout(timeout);
                 const val = input.value.trim();
                 if (val.length < 1) { box.style.display = 'none'; return; }
+                // 🌟 省エネ：0.6秒入力が止まったら検索実行
                 timeout = setTimeout(async () => {
                     const q = query(collection(db, "customers"), where("name", ">=", val), where("name", "<=", val + "\uf8ff"), limit(10));
                     const snap = await getDocs(q);
@@ -213,7 +210,7 @@
                         box.innerHTML = snap.docs.map(d => `<div class="suggestion-item" data-rank="${d.data().rank||'--'}" data-type="${d.data().type||'--'}">${d.data().name}</div>`).join('');
                         box.style.display = 'block';
                     } else { box.style.display = 'none'; }
-                }, 500);
+                }, 600);
             };
             box.onclick = (e) => {
                 const item = e.target.closest('.suggestion-item');
@@ -224,6 +221,7 @@
                     box.style.display = 'none';
                 }
             };
+            document.addEventListener('click', (e) => { if (!input.contains(e.target) && !box.contains(e.target)) box.style.display = 'none'; });
         }
 
         window.openStaffModal = (target) => {
@@ -325,6 +323,7 @@
                         isRead: false, createdAt: serverTimestamp(), type: "実績回覧"
                     });
                 }
+                localStorage.removeItem('cp_draft_history');
                 alert("登録完了！お客様名簿も自動更新しました。");
                 location.href = 'list_records.html';
             } catch (e) {
@@ -338,7 +337,6 @@
         document.getElementById('submitBtnBottom').onclick = handleRegister;
         init();
 　　　　　　　
-        　　　    // 🌟 下書き保存機能（ブラウザに保存）
     window.saveDraft = () => {
         const draftData = {
             customerName: document.getElementById('customerSearch').value,
@@ -354,10 +352,9 @@
             circular: document.getElementById('circularDisplay').innerText
         };
         localStorage.setItem('cp_draft_history', JSON.stringify(draftData));
-        alert("ブラウザに下書きを保存しました。\n※この端末（スマホ/PC）のこのブラウザでのみ復元できます。");
+        alert("下書きを保存しました。");
     };
 
-    // 🌟 ページ読み込み時に下書きがあれば復元する（即時実行関数）
     (() => {
         const saved = localStorage.getItem('cp_draft_history');
         if (saved) {
@@ -376,12 +373,11 @@
                     document.getElementById('staffThoughts').value = d.staffThoughts || "";
                     document.getElementById('circularDisplay').innerText = d.circular || "未選択";
                 } else {
-                    localStorage.removeItem('cp_draft_history'); // 復元しない場合は削除
+                    localStorage.removeItem('cp_draft_history');
                 }
-            }, 500); // 初期化待ち
+            }, 500);
         }
     })();
-        
     </script>
 </body>
 </html>
