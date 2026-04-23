@@ -29,6 +29,7 @@
                             <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-1">組織員利用状況</h1>
                             <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Performance Analytics Dashboard</nav>
                         </div>
+                        <!-- common.jsの魔法でログインユーザーの部署が自動選択されます -->
                         <select id="deptFilter" onchange="window.fetchAndRender()" class="scope-select shadow-inner mb-2">
                             <option value="ALL">全社表示</option>
                             <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option><option>土木部</option><option>建築部</option><option>建機部</option><option>総務部</option><option>購買課</option><option>宮崎産商</option><option>企画部</option>
@@ -36,6 +37,7 @@
                     </div>
                 </div>
 
+                <!-- 月ツール中央配置 -->
                 <div class="relative flex flex-col lg:flex-row justify-between items-center mb-8 gap-4 min-h-[50px]">
                     <div class="flex gap-2 bg-white p-1 rounded-2xl shadow-sm border border-slate-200">
                         <button onclick="window.switchMode('visit')" id="tab-visit" class="tab-btn active rounded-xl">お客様訪問状況</button>
@@ -55,7 +57,7 @@
                         <tbody id="statsTable" class="divide-y divide-slate-100 text-sm font-bold"></tbody>
                     </table>
                 </div>
-                <div id="loading" class="py-20 text-center"><div class="animate-spin mb-4 text-blue-400 text-4xl"><i class="fa-solid fa-circle-notch"></i></div><p class="text-slate-400 font-bold italic uppercase tracking-widest text-[10px]">Processing Database...</p></div>
+                <div id="loading" class="py-20 text-center"><div class="animate-spin mb-4 text-blue-400 text-4xl"><i class="fa-solid fa-circle-notch"></i></div><p id="loadingStatus" class="text-slate-400 font-bold italic uppercase tracking-widest text-[10px]">Processing Data...</p></div>
             </div>
         </div>
     </main>
@@ -65,24 +67,22 @@
         import { db } from "./common.js";
         import { collection, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        let allRecords = []; 
-        let allStaffs = [];
         let currentMode = 'visit'; 
         let targetDate = new Date();
 
-        // 🌟 成功実績のある柔軟な日付判定
-        function isMatchDate(dateStr, targetY, targetM) {
-            if (!dateStr) return false;
-            const clean = dateStr.replace(/\//g, '-');
-            const parts = clean.split('-');
-            if (parts.length < 2) return false;
-            return parseInt(parts[0]) === targetY && parseInt(parts[1]) === targetM;
+        // 🌟 あらゆる日付形式から「年」と「月」を抽出する万能関数
+        function getYearMonth(dateStr) {
+            if (!dateStr) return { y: 0, m: 0 };
+            const parts = dateStr.replace(/\//g, '-').split('-');
+            return { y: parseInt(parts[0]), m: parseInt(parts[1]) };
         }
 
         async function fetchAndRender() {
             const loading = document.getElementById('loading');
+            const status = document.getElementById('loadingStatus');
+            const body = document.getElementById('statsTable');
             loading.style.display = 'block';
-            document.getElementById('statsTable').innerHTML = "";
+            body.innerHTML = "";
             
             const targetY = targetDate.getFullYear();
             const targetM = targetDate.getMonth() + 1;
@@ -91,32 +91,84 @@
             const selectedDept = document.getElementById('deptFilter').value;
 
             try {
-                // 1. スタッフ名簿を取得
+                // 1. スタッフ名簿を最小限で取得
                 const staffSnap = await getDocs(collection(db, "staffs"));
-                allStaffs = staffSnap.docs.map(d => d.data());
+                const staffs = staffSnap.docs.map(d => d.data());
+                const targetStaffs = selectedDept === 'ALL' ? staffs : staffs.filter(s => s.dept === selectedDept);
 
-                // 2. 成功ロジック：年度で広めに取得（インデックスを活用）
+                // 2. 実績データを「年度」単位で1回だけ取得（部署で絞るのが最強の省エネ）
                 let recordQuery;
                 if (selectedDept === "ALL") {
-                    recordQuery = query(collection(db, "activity_records"), 
-                                        where("visitDate", ">=", `${targetY}`), 
-                                        where("visitDate", "<=", `${targetY}\uf8ff`), 
-                                        limit(1000));
+                    // 全社の場合は念のため最新500件程度に絞る（パンク防止）
+                    recordQuery = query(collection(db, "activity_records"), limit(500));
                 } else {
-                    recordQuery = query(collection(db, "activity_records"), 
-                                        where("visitorDept", "==", selectedDept),
-                                        where("visitDate", ">=", `${targetY}`), 
-                                        where("visitDate", "<=", `${targetY}\uf8ff`));
+                    // 部署指定がある場合はインデックスを使い、その年のデータだけを狙い撃ち
+                    recordQuery = query(
+                        collection(db, "activity_records"),
+                        where("visitorDept", "==", selectedDept),
+                        where("visitDate", ">=", `${targetY}`),
+                        where("visitDate", "<=", `${targetY}\uf8ff`)
+                    );
                 }
 
                 const recordSnap = await getDocs(recordQuery);
-                allRecords = recordSnap.docs.map(d => d.data());
+                const allRecords = recordSnap.docs.map(d => d.data());
+
+                // 3. ブラウザ側で月判定と集計を行う（Firebase読み取り消費は0）
+                const stats = targetStaffs.map(staff => {
+                    const myRecords = allRecords.filter(r => {
+                        const { y, m } = getYearMonth(r.visitDate);
+                        return r.visitorName === staff.name && y === targetY && m === targetM;
+                    });
+                    
+                    if (myRecords.length === 0) return null;
+
+                    let totalMins = 0;
+                    myRecords.forEach(r => {
+                        if(r.startTime && r.endTime) {
+                            const s = r.startTime.split(':'), e = r.endTime.split(':');
+                            const diff = (parseInt(e[0])*60 + parseInt(e[1])) - (parseInt(s[0])*60 + parseInt(s[1]));
+                            if (diff > 0) totalMins += diff;
+                        }
+                    });
+
+                    return { 
+                        id: staff.id || '---', name: staff.name, dept: staff.dept, 
+                        recordCount: myRecords.length, 
+                        visitCount: new Set(myRecords.map(r => r.customerName)).size, 
+                        avgTime: Math.round(totalMins / myRecords.length) || 0 
+                    };
+                }).filter(Boolean);
 
                 loading.style.display = 'none';
-                window.renderTable();
+                renderTableBody(stats);
+
             } catch (e) { 
                 console.error("Firebase Error:", e);
-                loading.innerHTML = '<p class="text-rose-400 font-bold">Sync Error. Please check Firestore.</p>';
+                status.innerText = "Quota Exceeded. Please try tomorrow 16:00 JST.";
+            }
+        }
+
+        function renderTableBody(stats) {
+            const head = document.getElementById('tableHead');
+            const body = document.getElementById('statsTable');
+            body.innerHTML = "";
+
+            if (stats.length === 0) {
+                body.innerHTML = `<tr><td colspan="5" class="p-20 text-center text-slate-400 font-bold">集計データはありません</td></tr>`;
+                return;
+            }
+
+            if (currentMode === 'visit') {
+                head.innerHTML = '<th class="p-6 w-24">NO</th><th class="p-6 text-left">氏名</th><th class="p-6 text-left">部署</th><th class="p-6 text-center">訪問顧客数</th><th class="p-6 text-center">平均滞在時間</th>';
+                stats.sort((a,b)=>b.visitCount-a.visitCount).forEach(s => {
+                    body.insertAdjacentHTML('beforeend', `<tr class="hover:bg-emerald-50/30 transition-all border-b border-slate-50 text-center"><td class="p-6 text-slate-400 font-mono text-xs border-r border-slate-50">${s.id}</td><td class="p-6 text-slate-800 text-left font-black">${s.name}</td><td class="p-6 text-slate-500 text-left text-xs">${s.dept}</td><td class="p-6 text-emerald-600 font-black">${s.visitCount}社</td><td class="p-6 text-slate-700 font-black">${s.avgTime}分</td></tr>`);
+                });
+            } else {
+                head.innerHTML = '<th class="p-6 w-24">NO</th><th class="p-6 text-left">氏名</th><th class="p-6 text-left">部署</th><th class="p-6 text-center">実績登録数</th>';
+                stats.sort((a,b)=>b.recordCount-a.recordCount).forEach(s => {
+                    body.insertAdjacentHTML('beforeend', `<tr class="hover:bg-sky-50/30 transition-all border-b border-slate-50 text-center"><td class="p-6 text-slate-400 font-mono text-xs border-r border-slate-50">${s.id}</td><td class="p-6 text-slate-800 text-left font-black">${s.name}</td><td class="p-6 text-slate-500 text-left text-xs">${s.dept}</td><td class="p-6 text-blue-600 font-black">${s.recordCount}件</td></tr>`);
+                });
             }
         }
 
@@ -125,57 +177,9 @@
             currentMode = mode;
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(`tab-${mode}`).classList.add('active');
-            window.renderTable();
+            fetchAndRender();
         };
 
-        window.renderTable = () => {
-            const head = document.getElementById('tableHead'); 
-            const body = document.getElementById('statsTable');
-            const targetY = targetDate.getFullYear();
-            const targetM = targetDate.getMonth() + 1;
-            const selectedDept = document.getElementById('deptFilter').value;
-            body.innerHTML = "";
-
-            const targetStaffs = selectedDept === 'ALL' ? allStaffs : allStaffs.filter(s => s.dept === selectedDept);
-
-            const stats = targetStaffs.map(staff => {
-                const myRecords = allRecords.filter(r => 
-                    r.visitorName === staff.name && isMatchDate(r.visitDate, targetY, targetM)
-                );
-                
-                if (myRecords.length === 0) return null;
-
-                let totalMins = 0;
-                myRecords.forEach(r => {
-                    if(r.startTime && r.endTime) {
-                        const s = r.startTime.split(':'); const e = r.endTime.split(':');
-                        const diff = (parseInt(e[0])*60 + parseInt(e[1])) - (parseInt(s[0])*60 + parseInt(s[1]));
-                        if (diff > 0) totalMins += diff;
-                    }
-                });
-
-                return { 
-                    id: staff.id || '---', name: staff.name, dept: staff.dept, 
-                    recordCount: myRecords.length, 
-                    visitCount: new Set(myRecords.map(r => r.customerName)).size, 
-                    avgTime: Math.round(totalMins / myRecords.length) || 0 
-                };
-            }).filter(Boolean);
-
-            if (currentMode === 'visit') {
-                head.innerHTML = '<th class="p-6 w-24 text-center">NO</th><th class="p-6 text-left">氏名</th><th class="p-6 text-left">部署</th><th class="p-6 text-center">訪問顧客数</th><th class="p-6 text-center">平均滞在時間</th>';
-                stats.sort((a,b)=>b.visitCount-a.visitCount).forEach(s => {
-                    body.insertAdjacentHTML('beforeend', `<tr class="hover:bg-emerald-50/30 transition-all border-b border-slate-50"><td class="p-6 text-slate-400 font-mono text-xs text-center border-r border-slate-50">${s.id}</td><td class="p-6 text-slate-800 text-left font-black">${s.name}</td><td class="p-6 text-slate-500 text-left text-xs">${s.dept}</td><td class="p-6 text-emerald-600 font-black text-center">${s.visitCount}社</td><td class="p-6 text-slate-700 font-black text-center">${s.avgTime}分</td></tr>`);
-                });
-            } else {
-                head.innerHTML = '<th class="p-6 w-24 text-center">NO</th><th class="p-6 text-left">氏名</th><th class="p-6 text-left">部署</th><th class="p-6 text-center">実績登録数</th>';
-                stats.sort((a,b)=>b.recordCount-a.recordCount).forEach(s => {
-                    body.insertAdjacentHTML('beforeend', `<tr class="hover:bg-sky-50/30 transition-all border-b border-slate-50"><td class="p-6 text-slate-400 font-mono text-xs text-center border-r border-slate-50">${s.id}</td><td class="p-6 text-slate-800 text-left font-black">${s.name}</td><td class="p-6 text-slate-500 text-left text-xs">${s.dept}</td><td class="p-6 text-blue-600 font-black text-center">${s.recordCount}件</td></tr>`);
-                });
-            }
-        };
-
-        // 🌟 fetchAndRenderをグローバルに公開
         window.fetchAndRender = fetchAndRender;
         fetchAndRender();
     </script>
