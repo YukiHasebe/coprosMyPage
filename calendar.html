@@ -13,7 +13,6 @@
         .day-num { font-weight: 900; font-size: 0.85rem; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
         .is-today .day-num { background: var(--copros-orange); color: white; border-radius: 50%; }
         
-        /* 🌟 ラベルの質感を改善（灰色を消し、鮮やかに動かす） */
         .event-label { font-size: 9px; font-weight: 800; padding: 3px 6px; border-radius: 4px; margin-bottom: 2px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 3px solid; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
         .event-label:hover { transform: translateX(3px); filter: brightness(1.05); }
         
@@ -35,28 +34,50 @@
         <div id="header-placeholder"></div>
         <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1400px] mx-auto">
-                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
-                    <div class="flex items-end gap-4 lg:gap-6">
-                        <div><h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-1">カレンダー</h1><p id="currentMonthDisplay" class="text-[10px] font-black text-slate-400 uppercase tracking-widest">--</p></div>
-                        <select id="deptFilter" onchange="window.renderCalendar()" class="scope-select shadow-inner">
-                            <option value="ALL">全社表示</option>
-                            <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option><option>土木部</option><option>建築部</option><option>建機部</option><option>総務部</option><option>購買課</option><option>宮崎産商</option><option>企画部</option>
-                        </select>
-                    </div>
-                    <div class="flex gap-4 items-center bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100 text-[10px] font-black">
-                        <div class="flex gap-3 px-3 border-r border-slate-100">
-                            <label class="flex items-center gap-1 cursor-pointer text-orange-600"><input type="checkbox" id="showRes" checked onchange="renderCalendar()" class="accent-orange-500"> 実績</label>
-                            <label class="flex items-center gap-1 cursor-pointer text-emerald-600"><input type="checkbox" id="showNext" checked onchange="renderCalendar()" class="accent-emerald-500"> 次回</label>
-                            <label class="flex items-center gap-1 cursor-pointer text-blue-600"><input type="checkbox" id="showApp" checked onchange="renderCalendar()" class="accent-blue-500"> アポ</label>
+                
+                <div class="flex flex-col gap-6 mb-6">
+                    <!-- 🌟 レイアウト修正：タイトル＆フィルタを左、操作を中央に -->
+                    <div class="relative flex flex-col lg:flex-row items-start lg:items-center min-h-[64px] gap-4">
+                        
+                        <!-- 左側：タイトルと部署フィルター（元の位置を死守） -->
+                        <div class="flex items-end gap-4 lg:gap-6 shrink-0">
+                            <div>
+                                <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-1">カレンダー</h1>
+                                <p id="currentMonthDisplay" class="text-[10px] font-black text-slate-400 uppercase tracking-widest">--</p>
+                            </div>
+                            <select id="deptFilter" onchange="window.renderCalendar()" class="scope-select shadow-inner mb-1">
+                                <option value="ALL">全社表示</option>
+                                <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option><option>土木部</option><option>建築部</option><option>建機部</option><option>総務部</option><option>購買課</option><option>宮崎産商</option><option>企画部</option>
+                            </select>
                         </div>
-                        <button onclick="window.changeMonth(-1)" class="p-2 text-slate-400 hover:text-slate-600 transition-colors"><i class="fa-solid fa-chevron-left"></i></button>
-                        <button onclick="window.setToday()" class="px-4 py-1.5 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors">今日</button>
-                        <button onclick="window.changeMonth(1)" class="p-2 text-slate-400 hover:text-slate-600 transition-colors"><i class="fa-solid fa-chevron-right"></i></button>
+                        
+                        <!-- 中央：操作パネル（ここだけを中央寄せ） -->
+                        <div class="lg:absolute lg:left-1/2 lg:-translate-x-1/2 flex flex-wrap gap-4 items-center bg-white p-2 rounded-2xl shadow-sm border border-slate-100 text-[10px] font-black w-fit mx-auto lg:mx-0">
+                            <div class="flex gap-4 px-4 border-r border-slate-100">
+                                <label class="flex items-center gap-1.5 cursor-pointer text-orange-600">
+                                    <input type="checkbox" id="showRes" checked onchange="renderCalendar()" class="accent-orange-500 w-3.5 h-3.5"> 実績
+                                </label>
+                                <label class="flex items-center gap-1.5 cursor-pointer text-emerald-600">
+                                    <input type="checkbox" id="showNext" checked onchange="renderCalendar()" class="accent-emerald-500 w-3.5 h-3.5"> 次回
+                                </label>
+                                <label class="flex items-center gap-1.5 cursor-pointer text-blue-600">
+                                    <input type="checkbox" id="showApp" checked onchange="renderCalendar()" class="accent-blue-500 w-3.5 h-3.5"> アポ
+                                </label>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <button onclick="window.changeMonth(-1)" class="p-2 text-slate-400 hover:text-slate-600 transition-colors"><i class="fa-solid fa-chevron-left"></i></button>
+                                <button onclick="window.setToday()" class="px-5 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-all active:scale-95">今月</button>
+                                <button onclick="window.changeMonth(1)" class="p-2 text-slate-400 hover:text-slate-600 transition-colors"><i class="fa-solid fa-chevron-right"></i></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 月切り替えボタン -->
+                    <div class="flex overflow-x-auto p-1 bg-white rounded-2xl border border-slate-200 shadow-sm whitespace-nowrap custom-scrollbar">
+                        <script>for(let i=1; i<=12; i++) document.write(`<button onclick="window.jumpMonth(${i})" id="month-btn-${i}" class="month-btn">${i}月</button>`);</script>
                     </div>
                 </div>
-                <div class="flex overflow-x-auto p-1 bg-white rounded-2xl border border-slate-200 shadow-sm mb-6 whitespace-nowrap custom-scrollbar">
-                    <script>for(let i=1; i<=12; i++) document.write(`<button onclick="window.jumpMonth(${i})" id="month-btn-${i}" class="month-btn">${i}月</button>`);</script>
-                </div>
+
                 <div class="bg-white p-2 lg:p-4 rounded-[1.5rem] lg:rounded-[2rem] shadow-xl border border-slate-200">
                     <div class="grid grid-cols-7 mb-4 font-black text-[10px] text-slate-400 uppercase text-center">
                         <div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div class="text-rose-400">Sat</div><div class="text-rose-600">Sun</div>
@@ -89,7 +110,6 @@
             const m2 = `${y}-${String(m).padStart(2, '0')}-`;
 
             try {
-                // 読み取り範囲の最適化（省エネ）
                 const qRes1 = query(collection(db, "activity_records"), where("visitDate", ">=", m1), where("visitDate", "<=", m1 + "\uf8ff"));
                 const qRes2 = query(collection(db, "activity_records"), where("visitDate", ">=", m2), where("visitDate", "<=", m2 + "\uf8ff"));
                 const qNext1 = query(collection(db, "activity_records"), where("nextVisitDate", ">=", m1), where("nextVisitDate", "<=", m1 + "\uf8ff"));
@@ -134,7 +154,6 @@
                 const isTodayClass = (year === today.getFullYear() && month === today.getMonth() && d === today.getDate()) ? "is-today" : "";
                 let eventsHtml = "";
 
-                // 実績 (橙) -> 個別履歴へ
                 if (document.getElementById('showRes').checked) {
                     loadedData.records
                         .filter(r => formatDateKey(r.visitDate) === targetKey && (dept === 'ALL' || r.visitorDept === dept))
@@ -143,16 +162,14 @@
                         });
                 }
 
-                // 次回予定 (緑) -> 個別履歴へ（ご指示通り）
                 if (document.getElementById('showNext').checked) {
                     loadedData.records
                         .filter(r => formatDateKey(r.nextVisitDate) === targetKey && (dept === 'ALL' || r.visitorDept === dept))
                         .forEach(r => {
-                            eventsHtml += `<div class="event-label label-next" onclick="location.href='customer_history.html?name=${encodeURIComponent(r.customerName)}'" title="担当:${r.visitorName}">次回: ${r.customerName}</div>`;
+                            eventsHtml += `<div class="event-label label-next" onclick="location.href='customer_history.html?name=${encodeURIComponent(r.customerName)}'">次回: ${r.customerName}</div>`;
                         });
                 }
 
-                // アポ (青) -> 削除ポップアップ
                 if (document.getElementById('showApp').checked) {
                     loadedData.appoints
                         .filter(a => formatDateKey(a.appointDate) === targetKey && (dept === 'ALL' || !a.visitorDept || a.visitorDept === dept))
@@ -163,9 +180,7 @@
 
                 grid.insertAdjacentHTML('beforeend', `
                     <div class="calendar-day ${isTodayClass}">
-                        <div class="day-header mb-1 flex justify-between items-center">
-                            <span class="day-num">${d}</span>
-                        </div>
+                        <div class="day-header mb-1"><span class="day-num">${d}</span></div>
                         <div class="max-h-[90px] overflow-y-auto custom-scrollbar space-y-0.5">${eventsHtml}</div>
                     </div>
                 `);
