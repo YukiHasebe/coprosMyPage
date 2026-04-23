@@ -1,8 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+// 🌟 1. Firebase設定（APIキーはお手元のものを入れてください）
 export const firebaseConfig = {
-    apiKey: "AIzaSyC5L1V6jn3Q8i1bWFWO3Gd25w_If6dklmY",
+    apiKey: "YOUR_API_KEY", // ← ここを書き換えてください
     authDomain: "copros-my-page-v2.firebaseapp.com",
     projectId: "copros-my-page-v2",
     storageBucket: "copros-my-page-v2.firebasestorage.app",
@@ -18,28 +19,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const sp = document.getElementById('sidebar-placeholder');
     if (!hp || !sp) return;
 
-    const currentFile = window.location.pathname.split("/").pop() || 'index.html';
+    // 現在のファイル名を取得（クエリパラメータを除去）
+    const currentFile = window.location.pathname.split("/").pop().split('?')[0] || 'index.html';
     const rawName = sessionStorage.getItem('userName') || "";
     const displayName = rawName.replace(/[様殿]$/, "");
 
-    // 🌟 1. ヘッダー注入（三本線と人型アイコンを確実に表示）
+    // 🌟 2. ヘッダー注入
     hp.innerHTML = `
         <header class="h-16 bg-[#3c4b5a] flex items-center justify-between px-4 lg:px-6 text-white shadow-lg shrink-0 z-50 sticky top-0">
             <div class="flex items-center gap-4">
-                <!-- 🌟 モバイル用三本線ボタン（非表示を解除） -->
                 <button id="mobile-toggle" class="lg:hidden text-white/80 hover:text-white p-2">
                     <i class="fa-solid fa-bars text-2xl"></i>
                 </button>
                 <img src="logo.jpg" alt="ロゴ" class="h-8 lg:h-10 w-auto object-contain">
                 <span class="hidden sm:inline text-lg lg:text-xl font-bold tracking-tighter text-[#87ceeb]">株式会社コプロス</span>
             </div>
-            
             <div class="flex items-center gap-3">
                 <div class="text-right mr-1">
                     <p class="text-[8px] lg:text-[10px] opacity-50 uppercase leading-none mb-1">Current User</p>
                     <p id="user-display-name" class="text-xs lg:text-sm font-black text-white">${displayName}</p>
                 </div>
-                <!-- 🌟 人型アイコン（確実に表示） -->
                 <div class="w-8 h-8 lg:w-10 lg:h-10 bg-slate-600 rounded-full flex items-center justify-center border-2 border-white/20 shadow-md">
                     <i class="fa-solid fa-user text-sm lg:text-lg text-white"></i>
                 </div>
@@ -47,108 +46,175 @@ document.addEventListener('DOMContentLoaded', () => {
         </header>
     `;
 
-    // 🌟 2. サイドバー注入（173行の全メニューを完全保持）
-     sp.innerHTML = `
+    // 🌟 3. サイドバー注入（173行の魂を継承しつつ改良）
+    sp.innerHTML = `
         <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 z-40 hidden lg:hidden"></div>
-        <aside id="main-sidebar" class="sidebar flex flex-col shrink-0 fixed lg:static inset-y-0 left-0 z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-300" style="width: 220px; background-color: #1a1a1a; color: white; height: 100vh;">
-            <div class="h-16 flex items-center px-6 text-gray-500 font-black tracking-widest text-xs border-b border-gray-800 uppercase">Menu</div>
-            <nav class="flex-1 overflow-y-auto py-2 custom-scrollbar text-[13px]">
-                <div class="nav-group"><div class="group-header flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-white/5"><div class="flex items-center gap-3"><i class="fa-solid fa-users w-5 icon-to-color"></i><span>お客様</span></div><i class="fa-solid fa-chevron-down text-[10px] opacity-30 arrow"></i></div>
-                    <div class="submenu hidden bg-black/20">
-                        <div class="py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='list.html?v=${Date.now()}'">お客様情報一覧</div>
-                        <div class="py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='add.html?v=${Date.now()}'">お客様情報登録</div>
+        <aside id="main-sidebar" class="sidebar flex flex-col shrink-0 fixed lg:static inset-y-0 left-0 z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-300" style="width: 220px; background-color: #1a1a1a; color: white; height: 100vh; overflow-y: auto;">
+            <div class="h-16 flex items-center px-6 text-gray-500 font-black tracking-widest text-xs border-b border-gray-800 uppercase shrink-0">Menu</div>
+            <nav class="flex-1 py-2 custom-scrollbar text-[13px]">
+                
+                <!-- お客様グループ -->
+                <div class="nav-group" data-group="customers">
+                    <div class="group-header flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-white/5 transition-colors">
+                        <div class="flex items-center gap-3"><i class="fa-solid fa-users w-5 icon-to-color"></i><span>お客様</span></div>
+                        <i class="fa-solid fa-chevron-down text-[10px] opacity-30 arrow transition-transform duration-300"></i>
+                    </div>
+                    <div class="submenu hidden bg-black/40">
+                        <div class="sub-item py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer transition-all border-l-4 border-transparent" data-page="list.html" onclick="location.href='list.html'">お客様情報一覧</div>
+                        <div class="sub-item py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer transition-all border-l-4 border-transparent" data-page="add.html" onclick="location.href='add.html'">お客様情報登録</div>
                     </div>
                 </div>
-                <div class="nav-group"><div class="group-header flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-white/5"><div class="flex items-center gap-3"><i class="fa-solid fa-file-invoice w-5 icon-to-color"></i><span>実績</span></div><i class="fa-solid fa-chevron-down text-[10px] opacity-30 arrow"></i></div>
-                    <div class="submenu hidden bg-black/20">
-                        <div class="py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='history.html?v=${Date.now()}'">実績登録</div>
-                        <div class="py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='list_records.html?v=${Date.now()}'">実績一覧</div>
+
+                <!-- 実績グループ -->
+                <div class="nav-group" data-group="records">
+                    <div class="group-header flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-white/5 transition-colors">
+                        <div class="flex items-center gap-3"><i class="fa-solid fa-file-invoice w-5 icon-to-color"></i><span>実績</span></div>
+                        <i class="fa-solid fa-chevron-down text-[10px] opacity-30 arrow transition-transform duration-300"></i>
+                    </div>
+                    <div class="submenu hidden bg-black/40">
+                        <div class="sub-item py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer transition-all border-l-4 border-transparent" data-page="history.html" onclick="location.href='history.html'">実績登録</div>
+                        <div class="sub-item py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer transition-all border-l-4 border-transparent" data-page="list_records.html" onclick="location.href='list_records.html'">実績一覧</div>
                     </div>
                 </div>
-                <div class="px-6 py-3 flex items-center gap-3 hover:bg-white/5 cursor-pointer item-link" onclick="location.href='calendar.html?v=${Date.now()}'"><i class="fa-solid fa-calendar-days w-5 icon-to-color"></i><span>カレンダー</span></div>
-                <div class="px-6 py-3 flex items-center justify-between hover:bg-white/5 cursor-pointer item-link" onclick="location.href='kairan.html?v=${Date.now()}'">
+
+                <!-- 単体メニュー -->
+                <div class="px-6 py-3 flex items-center gap-3 hover:bg-white/5 cursor-pointer item-link transition-colors border-l-4 border-transparent" data-page="calendar.html" onclick="location.href='calendar.html'">
+                    <i class="fa-solid fa-calendar-days w-5 icon-to-color"></i><span>カレンダー</span>
+                </div>
+                
+                <div class="px-6 py-3 flex items-center justify-between hover:bg-white/5 cursor-pointer item-link transition-colors border-l-4 border-transparent" data-page="kairan.html" onclick="location.href='kairan.html'">
                     <div class="flex items-center gap-3"><i class="fa-solid fa-envelope-open-text w-5 icon-to-color"></i><span>回覧一覧</span></div>
-                    <span id="unreadBadge" class="bg-rose-500 text-white text-[10px] px-2 py-0.5 rounded-full font-black animate-bounce" style="display:none;">!</span>
+                    <span id="unreadBadge" class="bg-rose-500 text-white text-[10px] px-2 py-0.5 rounded-full font-black animate-bounce" style="display:none;">0</span>
                 </div>
-                <div class="px-6 py-3 flex items-center gap-3 hover:bg-white/5 cursor-pointer item-link" onclick="location.href='map.html?v=${Date.now()}'"><i class="fa-solid fa-map-location-dot w-5 icon-to-color"></i><span>地図</span></div>
-                <div class="px-6 py-3 flex items-center gap-3 hover:bg-white/5 cursor-pointer item-link mb-4" onclick="location.href='appoint.html?v=${Date.now()}'"><i class="fa-solid fa-clock w-5 icon-to-color"></i><span>アポイント</span></div>
-                <div class="nav-group"><div class="group-header flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-white/5 border-t border-gray-800 pt-6"><div class="flex items-center gap-3"><i class="fa-solid fa-chart-line w-5 icon-to-color"></i><span>集計</span></div><i class="fa-solid fa-chevron-down text-[10px] opacity-30 arrow"></i></div>
-                    <div class="submenu hidden bg-black/20">
-                        <div class="py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='usage.html?v=${Date.now()}'">組織員利用状況</div>
-                        <div class="py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='monthly_list.html?v=${Date.now()}'">月別一覧</div>
-                        <div class="py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='customer_stay_time.html?v=${Date.now()}'">お客様別滞在時間</div>
-                        <div class="py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='monthly_stay_time.html?v=${Date.now()}'">月別滞在時間一覧</div>
-                        <div class="py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='view_graph.html?v=${Date.now()}'">実績グラフ出力</div>
+
+                <div class="px-6 py-3 flex items-center gap-3 hover:bg-white/5 cursor-pointer item-link transition-colors border-l-4 border-transparent" data-page="map.html" onclick="location.href='map.html'">
+                    <i class="fa-solid fa-map-location-dot w-5 icon-to-color"></i><span>地図</span>
+                </div>
+
+                <div class="px-6 py-3 flex items-center gap-3 hover:bg-white/5 cursor-pointer item-link mb-4 transition-colors border-l-4 border-transparent" data-page="appoint.html" onclick="location.href='appoint.html'">
+                    <i class="fa-solid fa-clock w-5 icon-to-color"></i><span>アポイント</span>
+                </div>
+
+                <!-- 集計グループ -->
+                <div class="nav-group" data-group="analytics">
+                    <div class="group-header flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-white/5 border-t border-gray-800 pt-6 transition-colors">
+                        <div class="flex items-center gap-3"><i class="fa-solid fa-chart-line w-5 icon-to-color"></i><span>集計</span></div>
+                        <i class="fa-solid fa-chevron-down text-[10px] opacity-30 arrow transition-transform duration-300"></i>
+                    </div>
+                    <div class="submenu hidden bg-black/40">
+                        <div class="sub-item py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer transition-all border-l-4 border-transparent" data-page="usage.html" onclick="location.href='usage.html'">組織員利用状況</div>
+                        <div class="sub-item py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer transition-all border-l-4 border-transparent" data-page="monthly_list.html" onclick="location.href='monthly_list.html'">月別一覧</div>
+                        <div class="sub-item py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer transition-all border-l-4 border-transparent" data-page="customer_stay_time.html" onclick="location.href='customer_stay_time.html'">お客様別滞在時間</div>
+                        <div class="sub-item py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer transition-all border-l-4 border-transparent" data-page="monthly_stay_time.html" onclick="location.href='monthly_stay_time.html'">月別滞在時間一覧</div>
+                        <div class="sub-item py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer transition-all border-l-4 border-transparent" data-page="view_graph.html" onclick="location.href='view_graph.html'">実績グラフ出力</div>
                     </div>
                 </div>
-                <div class="nav-group"><div class="group-header flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-white/5 border-t border-gray-800 pt-6"><div class="flex items-center gap-3"><i class="fa-solid fa-gear w-5 icon-to-color"></i><span>マスタ管理</span></div><i class="fa-solid fa-chevron-down text-[10px] opacity-30 arrow"></i></div>
-                    <div class="submenu hidden bg-black/20">
-                        <div class="py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='notice_list.html?v=${Date.now()}'">お知らせ管理</div>
-                        <div class="py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='staff_list.html?v=${Date.now()}'">組織員情報登録</div>
-                        <div class="py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer" onclick="location.href='import.html?v=${Date.now()}'">インポート</div>
+
+                <!-- マスタ管理グループ -->
+                <div class="nav-group" data-group="master">
+                    <div class="group-header flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-white/5 border-t border-gray-800 pt-6 transition-colors">
+                        <div class="flex items-center gap-3"><i class="fa-solid fa-gear w-5 icon-to-color"></i><span>マスタ管理</span></div>
+                        <i class="fa-solid fa-chevron-down text-[10px] opacity-30 arrow transition-transform duration-300"></i>
+                    </div>
+                    <div class="submenu hidden bg-black/40">
+                        <div class="sub-item py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer transition-all border-l-4 border-transparent" data-page="notice_list.html" onclick="location.href='notice_list.html'">お知らせ管理</div>
+                        <div class="sub-item py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer transition-all border-l-4 border-transparent" data-page="staff_list.html" onclick="location.href='staff_list.html'">組織員情報登録</div>
+                        <div class="sub-item py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer transition-all border-l-4 border-transparent" data-page="import.html" onclick="location.href='import.html'">インポート</div>
                     </div>
                 </div>
             </nav>
-            <div class="p-6 border-t border-gray-800 bg-[#1a1a1a]"><button id="logout-btn" class="flex items-center gap-3 text-gray-500 hover:text-rose-400 font-bold w-full"><i class="fa-solid fa-power-off"></i><span>ログアウト</span></button></div>
+            <div class="p-6 border-t border-gray-800 bg-[#1a1a1a] shrink-0">
+                <button id="logout-btn" class="flex items-center gap-3 text-gray-500 hover:text-rose-400 font-bold w-full transition-colors">
+                    <i class="fa-solid fa-power-off"></i><span>ログアウト</span>
+                </button>
+            </div>
         </aside>
     `;
-    // 🌟 3. UIロジック（三本線クリックでサイドバーを開く）
-    const mt = document.getElementById('mobile-toggle');
-    const so = document.getElementById('sidebar-overlay');
+
+    // 🌟 4. UIロジック
     const ms = document.getElementById('main-sidebar');
-    
+    const so = document.getElementById('sidebar-overlay');
+    const mt = document.getElementById('mobile-toggle');
+
     const toggleSidebar = (open) => {
-        if (open) {
-            ms.classList.remove('-translate-x-full');
-            so.classList.remove('hidden');
-        } else {
-            ms.classList.add('-translate-x-full');
-            so.classList.add('hidden');
-        }
+        ms.classList.toggle('-translate-x-full', !open);
+        so.classList.toggle('hidden', !open);
     };
 
     if (mt) mt.onclick = () => toggleSidebar(true);
     if (so) so.onclick = () => toggleSidebar(false);
 
-    document.querySelectorAll('.group-header').forEach(h => {
-        h.onclick = () => {
-            const s = h.nextElementSibling;
-            const a = h.querySelector('.arrow');
-            s.classList.toggle('hidden');
-            if(a) a.style.transform = s.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+    // アコーディオン開閉制御
+    document.querySelectorAll('.group-header').forEach(header => {
+        header.onclick = () => {
+            const submenu = header.nextElementSibling;
+            const arrow = header.querySelector('.arrow');
+            const isOpen = !submenu.classList.contains('hidden');
+            
+            // 閉じる動作
+            if (isOpen) {
+                submenu.classList.add('hidden');
+                arrow.style.transform = 'rotate(0deg)';
+            } else {
+                // 他を閉じる「厳格モード」を適用する場合のみ以下を有効に（現在は現在地を優先）
+                submenu.classList.remove('hidden');
+                arrow.style.transform = 'rotate(180deg)';
+            }
         };
     });
 
-    // 現在地のハイライト（水色）
-    document.querySelectorAll('[onclick], .item-link').forEach(el => {
-        const action = el.getAttribute('onclick') || "";
-        if (action.includes(`'${currentFile}'`)) {
-            el.classList.add('text-[#87ceeb]', 'font-black');
-            const pg = el.closest('.nav-group');
-            if(pg){ pg.querySelector('.submenu').classList.remove('hidden'); pg.querySelector('.arrow').style.transform = 'rotate(180deg)'; pg.querySelector('.icon-to-color').classList.add('text-[#87ceeb]'); }
-            else if(el.classList.contains('item-link')) el.querySelector('.icon-to-color').classList.add('text-[#87ceeb]');
-        }
-    });
+    // 🌟 5. 現在地の自動判定とハイライト（ここがキモです）
+    const highlightCurrentPage = () => {
+        // 全てのメニュー項目（サブアイテムと単体リンク）をチェック
+        document.querySelectorAll('.sub-item, .item-link').forEach(el => {
+            const pageName = el.getAttribute('data-page');
+            if (currentFile === pageName) {
+                // 1. 本人を光らせる
+                el.classList.add('text-[#87ceeb]', 'opacity-100', 'font-black', 'border-[#87ceeb]');
+                el.classList.remove('opacity-70');
 
+                // 2. 親のグループ（アコーディオン）があれば開く
+                const parentGroup = el.closest('.nav-group');
+                if (parentGroup) {
+                    const submenu = parentGroup.querySelector('.submenu');
+                    const header = parentGroup.querySelector('.group-header');
+                    const arrow = parentGroup.querySelector('.arrow');
+                    const icon = parentGroup.querySelector('.icon-to-color');
+
+                    submenu.classList.remove('hidden'); // 開きっぱなしにする
+                    if (arrow) arrow.style.transform = 'rotate(180deg)';
+                    if (header) header.classList.add('text-[#87ceeb]'); // 親の文字も光らせる
+                    if (icon) icon.classList.add('text-[#87ceeb]'); // 親のアイコンも光らせる
+                } else {
+                    // 単体メニューの場合のアイコン光らせ
+                    const icon = el.querySelector('.icon-to-color');
+                    if (icon) icon.classList.add('text-[#87ceeb]');
+                }
+            }
+        });
+    };
+    highlightCurrentPage();
+
+    // ログアウト処理
     const lo = document.getElementById('logout-btn');
     if(lo) lo.onclick = () => { if(confirm("ログアウトしますか？")){ sessionStorage.clear(); location.href = 'index.html'; } };
 
-        async function refreshBadge() {
+    // 通知バッジ（Firebase連携・省エネ）
+    async function refreshBadge() {
         if(!rawName) return;
         try { 
-            // 全ての未読通知を取得して件数を数える
             const q = query(collection(db, "notifications"), 
                             where("recipient", "==", rawName), 
                             where("isRead", "==", false)); 
             const snap = await getDocs(q); 
             const badge = document.getElementById('unreadBadge');
             if(!snap.empty && badge) {
-                badge.innerText = snap.size; // 🌟 ここを件数に変更！
+                badge.innerText = snap.size;
                 badge.style.display = 'flex';
             } else if(badge) {
                 badge.style.display = 'none';
             }
-        } catch(e){}
+        } catch(e){ console.error("Badge error:", e); }
     }
     refreshBadge();
 });
