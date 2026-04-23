@@ -29,8 +29,7 @@
                             <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-1">組織員利用状況</h1>
                             <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Performance Analytics Dashboard</nav>
                         </div>
-                        <!-- 🌟 common.jsにより、ログインユーザーの部署が自動選択されます -->
-                        <select id="deptFilter" onchange="window.renderTable()" class="scope-select shadow-inner mb-2">
+                        <select id="deptFilter" class="scope-select shadow-inner mb-2">
                             <option value="ALL">全社表示</option>
                             <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option><option>土木部</option><option>建築部</option><option>建機部</option><option>総務部</option><option>購買課</option><option>宮崎産商</option><option>企画部</option>
                         </select>
@@ -56,7 +55,7 @@
                         <tbody id="statsTable" class="divide-y divide-slate-100 text-sm font-bold"></tbody>
                     </table>
                 </div>
-                <div id="loading" class="py-20 text-center"><div class="animate-spin mb-4 text-blue-400 text-4xl"><i class="fa-solid fa-circle-notch"></i></div><p class="text-slate-400 font-bold italic uppercase tracking-widest text-[10px]">Filtering for your department...</p></div>
+                <div id="loading" class="py-20 text-center"><div class="animate-spin mb-4 text-blue-400 text-4xl"><i class="fa-solid fa-circle-notch"></i></div><p class="text-slate-400 font-bold italic uppercase tracking-widest text-[10px]">Filtering Database...</p></div>
             </div>
         </div>
     </main>
@@ -71,12 +70,17 @@
         let currentMode = 'visit'; 
         let targetDate = new Date();
 
-        function isTargetMonth(dateStr, targetY, targetM) {
+        // 🌟 強力な日付マッチング関数
+        function isMatch(dateStr, targetY, targetM) {
             if (!dateStr) return false;
-            const cleanDate = dateStr.replace(/\//g, '-');
-            const parts = cleanDate.split('-');
+            // 全ての区切り文字をハイフンに統一
+            const d = dateStr.replace(/\//g, '-');
+            const parts = d.split('-');
             if (parts.length < 2) return false;
-            return parseInt(parts[0]) === targetY && parseInt(parts[1]) === targetM;
+            
+            const y = parseInt(parts[0]);
+            const m = parseInt(parts[1]);
+            return y === targetY && m === targetM;
         }
 
         async function fetchAndRender() {
@@ -91,27 +95,28 @@
             const selectedDept = document.getElementById('deptFilter').value;
 
             try {
-                // 🌟 最強の省エネ：全社ではなく「選択された部署」のデータだけを取りに行く
+                // スタッフ名簿は常に取得
+                const staffSnap = await getDocs(collection(db, "staffs"));
+                allStaffs = staffSnap.docs.map(d => d.data());
+
+                // 実績データの取得（省エネ：部署指定がある場合は絞り込む）
                 let recordQuery;
                 if (selectedDept === "ALL") {
-                    recordQuery = query(collection(db, "activity_records"), limit(2000));
+                    // 全社の場合は念のため直近1000件程度に制限（安全策）
+                    recordQuery = query(collection(db, "activity_records"), limit(1000));
                 } else {
+                    // 部署指定がある場合はインデックスを活用して全力で取得
                     recordQuery = query(collection(db, "activity_records"), where("visitorDept", "==", selectedDept));
                 }
 
-                const [staffSnap, recordSnap] = await Promise.all([
-                    getDocs(collection(db, "staffs")),
-                    getDocs(recordQuery)
-                ]);
-
-                allStaffs = staffSnap.docs.map(d => d.data());
+                const recordSnap = await getDocs(recordQuery);
                 allRecords = recordSnap.docs.map(d => d.data());
 
                 loading.style.display = 'none';
                 window.renderTable();
             } catch (e) { 
-                console.error(e);
-                loading.innerHTML = '<p class="text-rose-400 font-bold">Index required. Please wait for build.</p>';
+                console.error("Firebase Error:", e);
+                loading.innerHTML = '<p class="text-rose-400 font-bold">Data Fetch Error.</p>';
             }
         }
 
@@ -131,13 +136,11 @@
             const selectedDept = document.getElementById('deptFilter').value;
             body.innerHTML = "";
 
-            // 部署でフィルタリング
             const targetStaffs = selectedDept === 'ALL' ? allStaffs : allStaffs.filter(s => s.dept === selectedDept);
 
-            // 集計計算
             const stats = targetStaffs.map(staff => {
                 const myRecords = allRecords.filter(r => 
-                    r.visitorName === staff.name && isTargetMonth(r.visitDate, targetY, targetM)
+                    r.visitorName === staff.name && isMatch(r.visitDate, targetY, targetM)
                 );
                 
                 if (myRecords.length === 0) return null;
@@ -152,14 +155,13 @@
                 });
 
                 return { 
-                    id: staff.id || '---', name: staff.name, dept: staff.dept || '未設定', 
+                    id: staff.id || '---', name: staff.name, dept: staff.dept, 
                     recordCount: myRecords.length, 
                     visitCount: new Set(myRecords.map(r => r.customerName)).size, 
                     avgTime: Math.round(totalMins / myRecords.length) || 0 
                 };
             }).filter(Boolean);
 
-            // 表示
             if (currentMode === 'visit') {
                 head.innerHTML = '<th class="p-6 w-24 text-center">NO</th><th class="p-6 text-left">氏名</th><th class="p-6 text-left">部署</th><th class="p-6 text-center">訪問顧客数</th><th class="p-6 text-center">平均滞在時間</th>';
                 stats.sort((a,b)=>b.visitCount-a.visitCount).forEach(s => {
@@ -186,7 +188,7 @@
             }
         };
 
-        // 🌟 修正：部署フィルターが変更されたらデータを再取得する
+        // 部署フィルター変更時に再読み込み
         document.getElementById('deptFilter').addEventListener('change', fetchAndRender);
 
         fetchAndRender();
