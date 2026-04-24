@@ -22,11 +22,12 @@
         <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1400px] mx-auto">
                 
+                <!-- ヘッドエリア：配置を実績一覧と同期 -->
                 <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-6">
                     <div class="flex items-end gap-6 shrink-0">
                         <div>
                             <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-1">お客様別滞在時間</h1>
-                            <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Customer Engagement Time Analysis</nav>
+                            <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Customer Engagement Analysis</nav>
                         </div>
                         <select id="deptFilter" onchange="window.init()" class="scope-select shadow-inner mb-2">
                             <option value="ALL">全社表示</option>
@@ -35,11 +36,12 @@
                     </div>
                 </div>
 
+                <!-- 月ツール中央配置 -->
                 <div class="flex justify-center mb-8">
                     <div class="flex items-center gap-6 bg-white py-2 px-6 rounded-2xl shadow-sm border border-slate-100">
-                        <button onclick="window.changeMonth(-1)" class="text-slate-300 hover:text-slate-600"><i class="fa-solid fa-chevron-left fa-lg"></i></button>
+                        <button onclick="window.changeMonth(-1)" class="text-slate-300 hover:text-slate-600 transition-colors"><i class="fa-solid fa-chevron-left fa-lg"></i></button>
                         <span id="displayMonth" class="text-lg font-black text-slate-700 min-w-[140px] text-center tracking-tighter">----年 --月</span>
-                        <button onclick="window.changeMonth(1)" class="text-slate-300 hover:text-slate-600"><i class="fa-solid fa-chevron-right fa-lg"></i></button>
+                        <button onclick="window.changeMonth(1)" class="text-slate-300 hover:text-slate-600 transition-colors"><i class="fa-solid fa-chevron-right fa-lg"></i></button>
                     </div>
                 </div>
 
@@ -53,92 +55,103 @@
                                 <th class="p-6 w-48">平均滞在時間</th>
                             </tr>
                         </thead>
-                        <tbody id="stayTableBody" class="divide-y divide-slate-100 text-sm font-bold bg-white"></tbody>
+                        <tbody id="stayTableBody" class="divide-y divide-slate-100 text-sm font-bold bg-white">
+                            <!-- JS注入 -->
+                        </tbody>
                     </table>
-                </div>
-                
-                <div id="loading" class="fixed inset-0 bg-white/80 backdrop-blur-sm z-[100] flex flex-col items-center justify-center">
-                    <div class="animate-spin mb-4 text-orange-500 text-5xl"><i class="fa-solid fa-circle-notch"></i></div>
-                    <p class="text-slate-800 font-black tracking-tighter">滞在時間を集計中...</p>
                 </div>
             </div>
         </div>
     </main>
 
-<script type="module" src="common.js"></script>
-<script type="module">
-    import { db } from "./common.js";
-    import { collection, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    <!-- 🌟 common.jsと統一されたローダー -->
+    <div id="loading" class="fixed inset-0 bg-white/80 backdrop-blur-sm z-[100] hidden flex-col items-center justify-center">
+        <div class="animate-spin mb-4 text-[#ff7e11] text-6xl"><i class="fa-solid fa-circle-notch"></i></div>
+        <p class="text-slate-800 font-black tracking-tighter italic uppercase text-xs">Processing Analysis...</p>
+    </div>
 
-    let currentYear = 2025; 
+    <script type="module" src="common.js"></script>
+    <script type="module">
+        import { db } from "./common.js";
+        import { collection, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    window.init = async () => {
-        const loading = document.getElementById('loading'); loading.style.display = 'flex';
-        const tbody = document.getElementById('monthlyTableBody'); tbody.innerHTML = "";
-        document.getElementById('displayYear').innerText = `${currentYear}年度`;
-        const selectedDept = document.getElementById('deptFilter').value;
+        let targetDate = new Date();
 
-        try {
-            // 🌟 成功ロジック：年度で広めに取得
-            let q = query(collection(db, "activity_records"), 
-                          where("visitDate", ">=", `${currentYear}`), 
-                          where("visitDate", "<=", `${currentYear + 1}\uf8ff`), 
-                          limit(2000));
+        function isMatch(dateStr, targetY, targetM) {
+            if (!dateStr) return false;
+            const parts = String(dateStr).replace(/\//g, '-').split('-');
+            return parseInt(parts[0]) === targetY && parseInt(parts[1]) === targetM;
+        }
+
+        window.init = async () => {
+            const loader = document.getElementById('loading');
+            loader.style.display = 'flex';
+            const tbody = document.getElementById('stayTableBody');
+            tbody.innerHTML = "";
             
-            const [cSnap, rSnap] = await Promise.all([
-                getDocs(query(collection(db, "customers"), limit(500))),
-                getDocs(q)
-            ]);
+            const targetY = targetDate.getFullYear(), targetM = targetDate.getMonth() + 1;
+            document.getElementById('displayMonth').innerText = `${targetY}年 ${targetM}月`;
+            const selectedDept = document.getElementById('deptFilter').value;
 
-            const records = rSnap.docs.map(d => d.data());
-            const customers = cSnap.docs.map(d => d.data());
-            const months = [7,8,9,10,11,12,1,2,3,4,5,6];
-            
-            let statsMap = new Map();
-            records.forEach(r => {
-                const dateStr = String(r.visitDate || '').replace(/\//g, '-');
-                const d = dateStr.split('-');
-                const y = parseInt(d[0]), m = parseInt(d[1]);
-                const isTargetYear = (y === currentYear && m >= 7) || (y === currentYear + 1 && m <= 6);
-                const isTargetDept = (selectedDept === 'ALL' || r.visitorDept === selectedDept);
-
-                if (isTargetYear && isTargetDept) {
-                    if (!statsMap.has(r.customerName)) {
-                        statsMap.set(r.customerName, { counts: Array(12).fill(0), totalMins: 0 });
-                    }
-                    const data = statsMap.get(r.customerName);
-                    const monthIdx = months.indexOf(m);
-                    if(monthIdx !== -1 && r.startTime && r.endTime) {
-                        const s = r.startTime.split(':'), e = r.endTime.split(':');
-                        const diff = (parseInt(e[0])*60 + parseInt(e[1]||0)) - (parseInt(s[0])*60 + parseInt(s[1]||0));
-                        if (diff > 0) { data.counts[monthIdx] += diff; data.totalMins += diff; }
-                    }
+            try {
+                // 🌟 【省エネ】部署で実績をピンポイント取得
+                let q;
+                if (selectedDept === 'ALL') {
+                    q = query(collection(db, "activity_records"), 
+                              where("visitDate", ">=", `${targetY}`), 
+                              where("visitDate", "<=", `${targetY}\uf8ff`), 
+                              limit(1500));
+                } else {
+                    q = query(collection(db, "activity_records"), 
+                              where("visitorDept", "==", selectedDept),
+                              where("visitDate", ">=", `${targetY}`), 
+                              where("visitDate", "<=", `${targetY}\uf8ff`));
                 }
-            });
 
-            const sortedNames = Array.from(statsMap.keys()).sort((a,b) => a.localeCompare(b, 'ja'));
-            loading.style.display = 'none';
-            if (sortedNames.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="14" class="p-20 text-center text-slate-400">実績データはありません</td></tr>';
-            } else {
-                sortedNames.forEach(name => {
-                    const d = statsMap.get(name);
-                    let monthCells = "";
-                    d.counts.forEach(mins => {
-                        monthCells += `<td class="month-col">${mins > 0 ? `<div class="val-active">${mins}m</div>` : '<div class="text-slate-200">0</div>'}</td>`;
-                    });
-                    tbody.insertAdjacentHTML('beforeend', `
-                        <tr class="hover:bg-slate-50 transition-colors border-b border-slate-50 text-center">
-                            <td class="p-4 sticky-name text-left text-slate-800 font-black truncate max-w-[250px] cursor-pointer hover:text-blue-600 bg-white" onclick="location.href='customer_history.html?name=${encodeURIComponent(name)}'">${name}</td>
-                            ${monthCells}
-                            <td class="p-4 bg-slate-50 font-black text-slate-700">${Math.floor(d.totalMins/60)}時間 ${d.totalMins%60}分</td>
-                        </tr>`);
+                const snap = await getDocs(q);
+                const records = snap.docs.map(d => d.data());
+
+                const stayMap = new Map();
+                records.forEach(r => {
+                    if (isMatch(r.visitDate, targetY, targetM)) {
+                        if(!stayMap.has(r.customerName)) stayMap.set(r.customerName, { count: 0, totalMins: 0 });
+                        const data = stayMap.get(r.customerName);
+                        data.count++;
+                        if(r.startTime && r.endTime && r.startTime !== "00:00") {
+                            const s = r.startTime.split(':'), e = r.endTime.split(':');
+                            const diff = (parseInt(e[0])*60 + parseInt(e[1]||0)) - (parseInt(s[0])*60 + parseInt(s[1]||0));
+                            if(diff > 0) data.totalMins += diff;
+                        }
+                    }
                 });
+
+                const stats = Array.from(stayMap.entries()).map(([name, d]) => ({
+                    name, count: d.count, total: d.totalMins, avg: Math.round(d.totalMins / d.count)
+                })).sort((a,b) => b.total - a.total);
+
+                loader.style.display = 'none';
+                if (stats.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="p-20 text-center text-slate-400">実績データはありません</td></tr>';
+                } else {
+                    stats.forEach(s => {
+                        tbody.insertAdjacentHTML('beforeend', `
+                            <tr class="hover:bg-slate-50 border-b border-slate-50 text-center">
+                                <td class="p-6 text-left font-black text-slate-800 cursor-pointer hover:text-blue-600" onclick="location.href='customer_history.html?name=${encodeURIComponent(s.name)}'">${s.name}</td>
+                                <td class="p-6 text-slate-500">${s.count}回</td>
+                                <td class="p-6 text-emerald-600 font-black"><span class="time-badge">${Math.floor(s.total/60)}時間 ${s.total%60}分</span></td>
+                                <td class="p-6 text-slate-400 font-mono">${s.avg}分 / 回</td>
+                            </tr>`);
+                    });
+                }
+            } catch (e) { 
+                console.error(e); 
+                loader.style.display = 'none';
+                tbody.innerHTML = '<tr><td colspan="4" class="p-20 text-center text-rose-400">データ同期エラー</td></tr>';
             }
-        } catch (e) { console.error(e); loading.style.display = 'none'; }
-    };
-    window.changeYear = (val) => { currentYear += val; window.init(); };
-    window.addEventListener('load', () => { setTimeout(() => window.init(), 300); });
-</script>
+        };
+
+        window.changeMonth = (v) => { targetDate.setMonth(targetDate.getMonth() + v); window.init(); };
+        window.addEventListener('load', () => { setTimeout(() => window.init(), 300); });
+    </script>
 </body>
 </html>
