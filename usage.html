@@ -12,8 +12,8 @@
         .table-container { border-radius: 1.5rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
         thead tr { background-color: #3c4b5a; }
         .scope-select { background: #e2e8f0; border: none; padding: 0.4rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; appearance: none; cursor: pointer; }
-        .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        /* 🌟 common.jsと喧嘩しない専用ローダー */
+        #usage-loader { position: fixed; inset: 0; background: rgba(255,255,255,0.8); backdrop-filter: blur(4px); z-index: 9999; display: none; flex-direction: column; align-items: center; justify-content: center; }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700 font-sans">
@@ -23,16 +23,14 @@
         <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1200px] mx-auto">
                 <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-6">
-                    <div class="flex items-end gap-6 shrink-0">
-                        <div>
-                            <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-1">組織員利用状況</h1>
-                            <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Performance Analytics Dashboard</nav>
-                        </div>
-                        <select id="deptFilter" onchange="window.fetchAndRender()" class="scope-select shadow-inner mb-2">
-                            <option value="ALL">全社表示</option>
-                            <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option><option>土木部</option><option>建築部</option><option>建機部</option><option>総務部</option><option>購買課</option><option>宮崎産商</option><option>企画部</option>
-                        </select>
+                    <div>
+                        <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-1">組織員利用状況</h1>
+                        <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Performance Analytics Dashboard</nav>
                     </div>
+                    <select id="deptFilter" onchange="window.fetchAndRender()" class="scope-select shadow-inner mb-2">
+                        <option value="ALL">全社表示</option>
+                        <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option><option>土木部</option><option>建築部</option><option>建機部</option><option>総務部</option><option>購買課</option><option>宮崎産商</option><option>企画部</option>
+                    </select>
                 </div>
 
                 <div class="relative flex flex-col lg:flex-row justify-between items-center mb-8 gap-4 min-h-[50px]">
@@ -41,9 +39,9 @@
                         <button onclick="window.switchMode('usage')" id="tab-usage" class="tab-btn rounded-xl">実績登録状況</button>
                     </div>
                     <div class="lg:absolute lg:left-1/2 lg:-translate-x-1/2 flex items-center gap-6 bg-white py-2 px-6 rounded-2xl shadow-sm border border-slate-100">
-                        <button onclick="window.changeMonth(-1)" class="text-slate-300 hover:text-slate-600 transition-colors"><i class="fa-solid fa-chevron-left fa-lg"></i></button>
+                        <button onclick="window.changeMonth(-1)" class="text-slate-300 hover:text-slate-600"><i class="fa-solid fa-chevron-left fa-lg"></i></button>
                         <span id="displayMonth" class="text-lg font-black text-slate-700 min-w-[140px] text-center tracking-tighter">----年 --月</span>
-                        <button onclick="window.changeMonth(1)" class="text-slate-300 hover:text-slate-600 transition-colors"><i class="fa-solid fa-chevron-right fa-lg"></i></button>
+                        <button onclick="window.changeMonth(1)" class="text-slate-300 hover:text-slate-600"><i class="fa-solid fa-chevron-right fa-lg"></i></button>
                     </div>
                 </div>
 
@@ -53,10 +51,14 @@
                         <tbody id="statsTable" class="divide-y divide-slate-100 text-sm font-bold"></tbody>
                     </table>
                 </div>
-                <div id="loading" class="py-20 text-center"><div class="animate-spin mb-4 text-blue-400 text-4xl"><i class="fa-solid fa-circle-notch"></i></div><p id="loadingStatus" class="text-slate-400 font-bold italic uppercase tracking-widest text-[10px]">Analyzing Database...</p></div>
             </div>
         </div>
     </main>
+
+    <div id="usage-loader">
+        <div class="animate-spin mb-4 text-[#ff7e11] text-6xl"><i class="fa-solid fa-circle-notch"></i></div>
+        <p class="text-slate-800 font-black tracking-tighter italic uppercase text-xs">Loading Analytics...</p>
+    </div>
 
     <script type="module" src="common.js"></script>
     <script type="module">
@@ -65,6 +67,7 @@
 
         let currentMode = 'visit'; let targetDate = new Date();
 
+        // 🌟 2026/1/7 も 2026-01-07 も完璧に判定する関数
         function isMatchDate(dateStr, targetY, targetM) {
             if (!dateStr) return false;
             const parts = dateStr.replace(/\//g, '-').split('-');
@@ -73,9 +76,9 @@
         }
 
         window.fetchAndRender = async () => {
-            const loading = document.getElementById('loading');
+            const loader = document.getElementById('usage-loader');
             const body = document.getElementById('statsTable');
-            loading.style.display = 'block';
+            loader.style.display = 'flex';
             body.innerHTML = "";
             
             const targetY = targetDate.getFullYear();
@@ -88,62 +91,52 @@
                 const staffSnap = await getDocs(collection(db, "staffs"));
                 const staffs = staffSnap.docs.map(d => d.data());
 
-                // 2. 🌟 成功パターン：年度で広めに取得し、JS側で仕分ける
-                const q = query(collection(db, "activity_records"), 
-                                where("visitDate", ">=", `${targetY}`), 
-                                where("visitDate", "<=", `${targetY}\uf8ff`), 
-                                limit(2000));
+                // 2. 🌟 年度単位で実績を広めに取得（インデックスをフル活用）
+                const q = (selectedDept === "ALL") 
+                    ? query(collection(db, "activity_records"), where("visitDate", ">=", `${targetY}`), where("visitDate", "<=", `${targetY}\uf8ff`), limit(2000))
+                    : query(collection(db, "activity_records"), where("visitorDept", "==", selectedDept), where("visitDate", ">=", `${targetY}`), where("visitDate", "<=", `${targetY}\uf8ff`));
+
                 const recordSnap = await getDocs(q);
                 const records = recordSnap.docs.map(d => d.data());
 
-                // 3. 集計ロジック（部署でフィルタリング）
+                // 3. ブラウザ側で集計
                 const targetStaffs = selectedDept === 'ALL' ? staffs : staffs.filter(s => s.dept === selectedDept);
-
                 const stats = targetStaffs.map(staff => {
-                    const myRecords = records.filter(r => 
-                        r.visitorName === staff.name && isMatchDate(r.visitDate, targetY, targetM)
-                    );
-                    
+                    const myRecords = records.filter(r => r.visitorName === staff.name && isMatchDate(r.visitDate, targetY, targetM));
                     if (myRecords.length === 0) return null;
-
-                    let totalMins = 0;
+                    let mins = 0;
                     myRecords.forEach(r => {
                         if(r.startTime && r.endTime && r.startTime !== "00:00") {
                             const s = r.startTime.split(':'), e = r.endTime.split(':');
                             const diff = (parseInt(e[0])*60 + parseInt(e[1]||0)) - (parseInt(s[0])*60 + parseInt(s[1]||0));
-                            if (diff > 0) totalMins += diff;
+                            if (diff > 0) mins += diff;
                         }
                     });
-
-                    return { 
-                        id: staff.id || '---', name: staff.name, dept: staff.dept, 
-                        recordCount: myRecords.length, 
-                        visitCount: new Set(myRecords.map(r => r.customerName)).size, 
-                        avgTime: Math.round(totalMins / myRecords.length) || 0 
-                    };
+                    return { id: staff.id || '---', name: staff.name, dept: staff.dept, recordCount: myRecords.length, visitCount: new Set(myRecords.map(r => r.customerName)).size, avgTime: Math.round(mins / myRecords.length) || 0 };
                 }).filter(Boolean);
 
-                loading.style.display = 'none';
+                loader.style.display = 'none';
                 renderTableBody(stats);
             } catch (e) { 
                 console.error(e);
-                document.getElementById('loadingStatus').innerText = "Sync Error. Please retry.";
+                loader.style.display = 'none';
+                body.innerHTML = `<tr><td colspan="5" class="p-20 text-center text-rose-500 font-bold">データ同期エラー。ページを再読み込みしてください。</td></tr>`;
             }
         };
 
         function renderTableBody(stats) {
             const head = document.getElementById('tableHead');
             const body = document.getElementById('statsTable');
-            body.innerHTML = (stats.length === 0) ? `<tr><td colspan="5" class="p-20 text-center text-slate-400 font-bold">この条件の実績はありません</td></tr>` : "";
+            body.innerHTML = (stats.length === 0) ? `<tr><td colspan="5" class="p-20 text-center text-slate-400 font-bold">この月の実績データはありません</td></tr>` : "";
             if (stats.length === 0) return;
 
             if (currentMode === 'visit') {
-                head.innerHTML = '<th class="p-6 w-24">NO</th><th class="p-6 text-left">氏名</th><th class="p-6 text-left">部署</th><th class="p-6">訪問顧客数</th><th class="p-6">平均滞在時間</th>';
+                head.innerHTML = '<th class="p-6 w-24">NO</th><th class="p-6 text-left">氏名</th><th class="p-6 text-left">部署</th><th class="p-6 text-center">訪問顧客数</th><th class="p-6 text-center">平均滞在時間</th>';
                 stats.sort((a,b)=>b.visitCount-a.visitCount).forEach(s => {
                     body.insertAdjacentHTML('beforeend', `<tr class="hover:bg-emerald-50/30 transition-all border-b border-slate-50 text-center"><td class="p-6 text-slate-400 font-mono text-xs border-r border-slate-50">${s.id}</td><td class="p-6 text-slate-800 text-left font-black">${s.name}</td><td class="p-6 text-slate-500 text-left text-xs">${s.dept}</td><td class="p-6 text-emerald-600 font-black">${s.visitCount}社</td><td class="p-6 text-slate-700 font-black">${s.avgTime}分</td></tr>`);
                 });
             } else {
-                head.innerHTML = '<th class="p-6 w-24">NO</th><th class="p-6 text-left">氏名</th><th class="p-6 text-left">部署</th><th class="p-6">実績登録数</th>';
+                head.innerHTML = '<th class="p-6 w-24">NO</th><th class="p-6 text-left">氏名</th><th class="p-6 text-left">部署</th><th class="p-6 text-center">実績登録数</th>';
                 stats.sort((a,b)=>b.recordCount-a.recordCount).forEach(s => {
                     body.insertAdjacentHTML('beforeend', `<tr class="hover:bg-sky-50/30 transition-all border-b border-slate-50 text-center"><td class="p-6 text-slate-400 font-mono text-xs border-r border-slate-50">${s.id}</td><td class="p-6 text-slate-800 text-left font-black">${s.name}</td><td class="p-6 text-slate-500 text-left text-xs">${s.dept}</td><td class="p-6 text-blue-600 font-black">${s.recordCount}件</td></tr>`);
                 });
@@ -158,7 +151,7 @@
             window.fetchAndRender();
         };
 
-        window.addEventListener('load', () => { setTimeout(() => window.fetchAndRender(), 300); });
+        window.addEventListener('load', () => { setTimeout(() => window.fetchAndRender(), 500); });
     </script>
 </body>
 </html>
