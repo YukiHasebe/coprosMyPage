@@ -28,7 +28,6 @@
                             <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-1">組織員利用状況</h1>
                             <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Performance Analytics Dashboard</nav>
                         </div>
-                        <!-- 🌟 修正：onchangeを追加し、切り替え時に再取得するように強化 -->
                         <select id="deptFilter" onchange="window.fetchAndRender()" class="scope-select shadow-inner mb-2">
                             <option value="ALL">全社表示</option>
                             <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option><option>土木部</option><option>建築部</option><option>建機部</option><option>総務部</option><option>購買課</option><option>宮崎産商</option><option>企画部</option>
@@ -54,7 +53,7 @@
                         <tbody id="statsTable" class="divide-y divide-slate-100 text-sm font-bold"></tbody>
                     </table>
                 </div>
-                <div id="loading" class="py-20 text-center"><div class="animate-spin mb-4 text-blue-400 text-4xl"><i class="fa-solid fa-circle-notch"></i></div><p id="loadingStatus" class="text-slate-400 font-bold italic uppercase tracking-widest text-[10px]">Analyzing Data...</p></div>
+                <div id="loading" class="py-20 text-center"><div class="animate-spin mb-4 text-blue-400 text-4xl"><i class="fa-solid fa-circle-notch"></i></div><p id="loadingStatus" class="text-slate-400 font-bold italic uppercase tracking-widest text-[10px]">Analyzing Database...</p></div>
             </div>
         </div>
     </main>
@@ -66,16 +65,15 @@
 
         let currentMode = 'visit'; let targetDate = new Date();
 
-        function isMatch(dateStr, targetY, targetM) {
+        function isMatchDate(dateStr, targetY, targetM) {
             if (!dateStr) return false;
-            const clean = dateStr.replace(/\//g, '-');
-            const parts = clean.split('-');
+            const parts = dateStr.replace(/\//g, '-').split('-');
+            if (parts.length < 2) return false;
             return parseInt(parts[0]) === targetY && parseInt(parts[1]) === targetM;
         }
 
         window.fetchAndRender = async () => {
             const loading = document.getElementById('loading');
-            const status = document.getElementById('loadingStatus');
             const body = document.getElementById('statsTable');
             loading.style.display = 'block';
             body.innerHTML = "";
@@ -83,58 +81,61 @@
             const targetY = targetDate.getFullYear();
             const targetM = targetDate.getMonth() + 1;
             document.getElementById('displayMonth').innerText = `${targetY}年 ${targetM}月`;
-
             const selectedDept = document.getElementById('deptFilter').value;
 
             try {
-                // 1. スタッフ全員を取得
+                // 1. スタッフ名簿を取得
                 const staffSnap = await getDocs(collection(db, "staffs"));
                 const staffs = staffSnap.docs.map(d => d.data());
-                const targetStaffs = selectedDept === 'ALL' ? staffs : staffs.filter(s => s.dept === selectedDept);
 
-                // 2. 実績データを取得（🌟ここが最強の省エネ絞り込み）
-                let q;
-                if (selectedDept === "ALL") {
-                    q = query(collection(db, "activity_records"), limit(1000));
-                } else {
-                    q = query(collection(db, "activity_records"), where("visitorDept", "==", selectedDept));
-                }
-
+                // 2. 🌟 成功パターン：年度で広めに取得し、JS側で仕分ける
+                const q = query(collection(db, "activity_records"), 
+                                where("visitDate", ">=", `${targetY}`), 
+                                where("visitDate", "<=", `${targetY}\uf8ff`), 
+                                limit(2000));
                 const recordSnap = await getDocs(q);
                 const records = recordSnap.docs.map(d => d.data());
 
+                // 3. 集計ロジック（部署でフィルタリング）
+                const targetStaffs = selectedDept === 'ALL' ? staffs : staffs.filter(s => s.dept === selectedDept);
+
                 const stats = targetStaffs.map(staff => {
                     const myRecords = records.filter(r => 
-                        r.visitorName === staff.name && isMatch(r.visitDate, targetY, targetM)
+                        r.visitorName === staff.name && isMatchDate(r.visitDate, targetY, targetM)
                     );
+                    
                     if (myRecords.length === 0) return null;
-                    let mins = 0;
+
+                    let totalMins = 0;
                     myRecords.forEach(r => {
                         if(r.startTime && r.endTime && r.startTime !== "00:00") {
                             const s = r.startTime.split(':'), e = r.endTime.split(':');
                             const diff = (parseInt(e[0])*60 + parseInt(e[1]||0)) - (parseInt(s[0])*60 + parseInt(s[1]||0));
-                            if (diff > 0) mins += diff;
+                            if (diff > 0) totalMins += diff;
                         }
                     });
-                    return { id: staff.id || '---', name: staff.name, dept: staff.dept, recordCount: myRecords.length, visitCount: new Set(myRecords.map(r => r.customerName)).size, avgTime: Math.round(mins / myRecords.length) || 0 };
+
+                    return { 
+                        id: staff.id || '---', name: staff.name, dept: staff.dept, 
+                        recordCount: myRecords.length, 
+                        visitCount: new Set(myRecords.map(r => r.customerName)).size, 
+                        avgTime: Math.round(totalMins / myRecords.length) || 0 
+                    };
                 }).filter(Boolean);
 
                 loading.style.display = 'none';
                 renderTableBody(stats);
             } catch (e) { 
                 console.error(e);
-                status.innerText = "Sync Error. Please check Cloud Firestore.";
+                document.getElementById('loadingStatus').innerText = "Sync Error. Please retry.";
             }
         };
 
         function renderTableBody(stats) {
             const head = document.getElementById('tableHead');
             const body = document.getElementById('statsTable');
-            body.innerHTML = "";
-            if (stats.length === 0) {
-                body.innerHTML = `<tr><td colspan="5" class="p-20 text-center text-slate-400 font-bold">集計データは見つかりませんでした</td></tr>`;
-                return;
-            }
+            body.innerHTML = (stats.length === 0) ? `<tr><td colspan="5" class="p-20 text-center text-slate-400 font-bold">この条件の実績はありません</td></tr>` : "";
+            if (stats.length === 0) return;
 
             if (currentMode === 'visit') {
                 head.innerHTML = '<th class="p-6 w-24">NO</th><th class="p-6 text-left">氏名</th><th class="p-6 text-left">部署</th><th class="p-6">訪問顧客数</th><th class="p-6">平均滞在時間</th>';
