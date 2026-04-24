@@ -21,7 +21,6 @@
         <div id="header-placeholder"></div>
         <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1200px] mx-auto">
-                <!-- 🌟 配置復元：タイトルと全社表示を左側に -->
                 <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-6">
                     <div class="flex items-end gap-6 shrink-0">
                         <div>
@@ -68,13 +67,12 @@
         import { collection, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let currentMode = 'visit'; let targetDate = new Date();
+        let fetchedRecords = []; // 🌟 省エネ：一度取得したデータを保持
 
         function isMatch(dateVal, targetY, targetM) {
             if (!dateVal) return false;
-            // 🌟 インポートデータの「型」に関わらず文字に変換して判定
             const dateStr = String(dateVal).replace(/\//g, '-');
             const parts = dateStr.split('-');
-            if (parts.length < 2) return false;
             return parseInt(parts[0]) === targetY && parseInt(parts[1]) === targetM;
         }
 
@@ -84,29 +82,30 @@
             loader.style.display = 'flex';
             body.innerHTML = "";
             
-            const targetY = targetDate.getFullYear();
-            const targetM = targetDate.getMonth() + 1;
+            const targetY = targetDate.getFullYear(), targetM = targetDate.getMonth() + 1;
             document.getElementById('displayMonth').innerText = `${targetY}年 ${targetM}月`;
             const selectedDept = document.getElementById('deptFilter').value;
 
             try {
+                // 1. スタッフ名簿を取得
                 const staffSnap = await getDocs(collection(db, "staffs"));
                 const staffs = staffSnap.docs.map(d => d.data());
 
-                // 月別一覧と同じ「年度広域取得」で確実に拾う
-                const q = query(collection(db, "activity_records"), 
-                                where("visitDate", ">=", `${targetY}`), 
-                                where("visitDate", "<=", `${targetY}\uf8ff`), 
-                                limit(2000));
+                // 2. 🌟 グラフと同じ成功ロジック：年度で広めに、部署で絞って取得
+                let q;
+                if (selectedDept === 'ALL') {
+                    q = query(collection(db, "activity_records"), where("visitDate", ">=", `${targetY}`), where("visitDate", "<=", `${targetY}\uf8ff`), limit(1500));
+                } else {
+                    q = query(collection(db, "activity_records"), where("visitorDept", "==", selectedDept), where("visitDate", ">=", `${targetY}`), where("visitDate", "<=", `${targetY}\uf8ff`));
+                }
+
                 const recordSnap = await getDocs(q);
-                const records = recordSnap.docs.map(d => d.data());
+                fetchedRecords = recordSnap.docs.map(d => d.data());
 
+                // 3. ブラウザ側で仕分け（ここからはFirebase負荷 0）
                 const targetStaffs = selectedDept === 'ALL' ? staffs : staffs.filter(s => s.dept === selectedDept);
-
                 const stats = targetStaffs.map(staff => {
-                    const myRecords = records.filter(r => 
-                        r.visitorName === staff.name && isMatch(r.visitDate, targetY, targetM)
-                    );
+                    const myRecords = fetchedRecords.filter(r => r.visitorName === staff.name && isMatch(r.visitDate, targetY, targetM));
                     if (myRecords.length === 0) return null;
                     let mins = 0;
                     myRecords.forEach(r => {
@@ -120,28 +119,24 @@
 
                 loader.style.display = 'none';
                 renderTableBody(stats);
-            } catch (e) { 
-                console.error(e);
-                loader.style.display = 'none';
-                body.innerHTML = `<tr><td colspan="5" class="p-20 text-center text-rose-500 font-bold">データ同期エラー</td></tr>`;
-            }
+            } catch (e) { console.error(e); loader.style.display = 'none'; }
         };
 
         function renderTableBody(stats) {
             const head = document.getElementById('tableHead');
             const body = document.getElementById('statsTable');
-            body.innerHTML = (stats.length === 0) ? `<tr><td colspan="5" class="p-20 text-center text-slate-400 font-bold">この月の実績データはありません</td></tr>` : "";
+            body.innerHTML = (stats.length === 0) ? `<tr><td colspan="5" class="p-20 text-center text-slate-400 font-bold">実績データはありません</td></tr>` : "";
             if (stats.length === 0) return;
 
             if (currentMode === 'visit') {
                 head.innerHTML = '<th class="p-6 w-24">NO</th><th class="p-6 text-left">氏名</th><th class="p-6 text-left">部署</th><th class="p-6">訪問顧客数</th><th class="p-6">平均滞在時間</th>';
                 stats.sort((a,b)=>b.visitCount-a.visitCount).forEach(s => {
-                    body.insertAdjacentHTML('beforeend', `<tr class="hover:bg-emerald-50/30 transition-all border-b border-slate-50 text-center"><td class="p-6 text-slate-400 font-mono text-xs border-r border-slate-50">${s.id}</td><td class="p-6 text-slate-800 text-left font-black">${s.name}</td><td class="p-6 text-slate-500 text-left text-xs">${s.dept}</td><td class="p-6 text-emerald-600 font-black">${s.visitCount}社</td><td class="p-6 text-slate-700 font-black">${s.avgTime}分</td></tr>`);
+                    body.insertAdjacentHTML('beforeend', `<tr class="hover:bg-emerald-50/30 border-b border-slate-50 text-center"><td class="p-6 text-slate-400 font-mono text-xs border-r border-slate-50">${s.id}</td><td class="p-6 text-slate-800 text-left font-black">${s.name}</td><td class="p-6 text-slate-500 text-left text-xs">${s.dept}</td><td class="p-6 text-emerald-600 font-black">${s.visitCount}社</td><td class="p-6 text-slate-700 font-black">${s.avgTime}分</td></tr>`);
                 });
             } else {
                 head.innerHTML = '<th class="p-6 w-24">NO</th><th class="p-6 text-left">氏名</th><th class="p-6 text-left">部署</th><th class="p-6">実績登録数</th>';
                 stats.sort((a,b)=>b.recordCount-a.recordCount).forEach(s => {
-                    body.insertAdjacentHTML('beforeend', `<tr class="hover:bg-sky-50/30 transition-all border-b border-slate-50 text-center"><td class="p-6 text-slate-400 font-mono text-xs border-r border-slate-50">${s.id}</td><td class="p-6 text-slate-800 text-left font-black">${s.name}</td><td class="p-6 text-slate-500 text-left text-xs">${s.dept}</td><td class="p-6 text-blue-600 font-black">${s.recordCount}件</td></tr>`);
+                    body.insertAdjacentHTML('beforeend', `<tr class="hover:bg-sky-50/30 border-b border-slate-50 text-center"><td class="p-6 text-slate-400 font-mono text-xs border-r border-slate-50">${s.id}</td><td class="p-6 text-slate-800 text-left font-black">${s.name}</td><td class="p-6 text-slate-500 text-left text-xs">${s.dept}</td><td class="p-6 text-blue-600 font-black">${s.recordCount}件</td></tr>`);
                 });
             }
         }
