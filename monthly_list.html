@@ -19,7 +19,7 @@
             .sticky-name { position: sticky; left: 50px; background: white; z-index: 10; border-right: 2px solid #f1f5f9; min-width: 200px; }
             thead .sticky-rank, thead .sticky-name { background: #3c4b5a; z-index: 20; color: white; }
         }
-        .scope-select { background: #e2e8f0; border: none; padding: 0.4rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; cursor: pointer; }
+        .scope-select { background: #e2e8f0; border: none; padding: 0.4rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; appearance: none; cursor: pointer; }
         .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
@@ -37,6 +37,7 @@
                             <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">月別実績一覧</h1>
                             <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Monthly Performance Matrix</nav>
                         </div>
+                        <!-- 🌟 onchangeで自部門抽出をキック -->
                         <select id="deptFilter" onchange="window.init()" class="scope-select shadow-inner mb-2">
                             <option value="ALL">全社表示</option>
                             <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option><option>土木部</option><option>建築部</option><option>建機部</option><option>総務部</option><option>購買課</option><option>宮崎産商</option><option>企画部</option>
@@ -65,7 +66,7 @@
                         <tbody id="monthlyTableBody" class="text-[11px] lg:text-xs font-bold divide-y divide-slate-50 bg-white"></tbody>
                     </table>
                 </div>
-                <div id="loading" class="py-20 text-center"><div class="animate-spin text-blue-500 text-4xl mb-4"><i class="fa-solid fa-circle-notch"></i></div><p class="text-slate-400 font-bold italic uppercase text-[10px]">Processing Matrix...</p></div>
+                <div id="loading" class="py-20 text-center"><div class="animate-spin text-blue-500 text-4xl mb-4"><i class="fa-solid fa-circle-notch"></i></div><p class="text-slate-400 font-bold">データを同期中...</p></div>
             </div>
         </div>
     </main>
@@ -78,19 +79,22 @@
         let currentYear = 2025; 
 
         window.init = async () => {
-            const loading = document.getElementById('loading'); loading.style.display = 'block';
-            const tbody = document.getElementById('monthlyTableBody'); tbody.innerHTML = "";
+            const loading = document.getElementById('loading');
+            loading.style.display = 'block';
+            const tbody = document.getElementById('monthlyTableBody');
+            tbody.innerHTML = "";
             document.getElementById('displayYear').innerText = `${currentYear}年度`;
+            
             const selectedDept = document.getElementById('deptFilter').value;
 
             try {
-                // 🌟 【省エネ】部署フィルターと連動してFirebaseへのリクエストを最小化
+                // 🌟 最強の省エネ：部署指定があればFirebase側でガッチリ絞り込む
                 let q;
                 if (selectedDept === 'ALL') {
                     q = query(collection(db, "activity_records"), 
                               where("visitDate", ">=", `${currentYear}`), 
                               where("visitDate", "<=", `${currentYear + 1}\uf8ff`), 
-                              limit(1000));
+                              limit(2000));
                 } else {
                     q = query(collection(db, "activity_records"), 
                               where("visitorDept", "==", selectedDept),
@@ -105,7 +109,7 @@
                 let activeMap = new Map();
 
                 records.forEach(r => {
-                    const dateStr = (r.visitDate || '').replace(/\//g, '-');
+                    const dateStr = String(r.visitDate || '').replace(/\//g, '-');
                     const d = dateStr.split('-');
                     const y = parseInt(d[0]), m = parseInt(d[1]);
                     const isTargetYear = (y === currentYear && m >= 7) || (y === currentYear + 1 && m <= 6);
@@ -127,16 +131,32 @@
                     sortedNames.forEach(name => {
                         const d = activeMap.get(name);
                         let monthCells = "";
-                        d.counts.forEach(c => { monthCells += `<td class="month-col">${c > 0 ? `<div class="val-active">${c}</div>` : '<div class="val-zero">0</div>'}</td>`; });
-                        tbody.insertAdjacentHTML('beforeend', `<tr class="hover:bg-slate-50 transition-colors border-b border-slate-50 text-center"><td class="p-4 sticky-rank text-[10px] text-slate-400 font-black bg-white">${d.rank || '-'}</td><td class="p-4 sticky-name text-left text-slate-800 font-black truncate max-w-[200px] cursor-pointer hover:text-blue-600 bg-white" onclick="location.href='customer_history.html?name=${encodeURIComponent(name)}'">${name}</td><td class="p-4 text-slate-400 text-[10px]">${d.type || '-'}</td>${monthCells}<td class="p-4 bg-slate-50 font-black text-slate-700">${d.total}</td></tr>`);
+                        d.counts.forEach(c => {
+                            monthCells += `<td class="month-col">${c > 0 ? `<div class="val-active">${c}</div>` : '<div class="val-zero">0</div>'}</td>`;
+                        });
+                        tbody.insertAdjacentHTML('beforeend', `
+                            <tr class="hover:bg-slate-50 transition-colors border-b border-slate-50 text-center">
+                                <td class="p-4 sticky-rank text-[10px] text-slate-400 font-black bg-white">${d.rank || '-'}</td>
+                                <td class="p-4 sticky-name text-left text-slate-800 font-black truncate max-w-[200px] cursor-pointer hover:text-blue-600 bg-white" onclick="location.href='customer_history.html?name=${encodeURIComponent(name)}'">${name}</td>
+                                <td class="p-4 text-slate-400 text-[10px]">${d.type || '-'}</td>
+                                ${monthCells}
+                                <td class="p-4 bg-slate-50 font-black text-slate-700">${d.total}</td>
+                            </tr>
+                        `);
                     });
                 }
                 loading.style.display = 'none';
-            } catch (e) { console.error(e); loading.innerHTML = "Sync Error. Please wait for Quota."; }
+            } catch (e) { 
+                console.error(e); 
+                loading.style.display = 'none';
+                tbody.innerHTML = '<tr><td colspan="16" class="p-20 text-center text-rose-400">データ取得に失敗しました。</td></tr>';
+            }
         };
 
         window.changeYear = (val) => { currentYear += val; window.init(); };
-        window.init();
+        
+        // 🌟 起動時：common.jsの部署選択を待ってから実行
+        window.addEventListener('load', () => { setTimeout(() => window.init(), 300); });
     </script>
 </body>
 </html>
