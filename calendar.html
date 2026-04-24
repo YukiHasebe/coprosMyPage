@@ -22,134 +22,111 @@
         .scope-select { background: #e2e8f0; border: none; padding: 0.4rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; cursor: pointer; }
     </style>
 </head>
-<body class="flex h-screen overflow-hidden text-slate-700">
+<body class="flex h-screen overflow-hidden text-slate-700 font-sans">
     <div id="sidebar-placeholder"></div>
     <main class="flex-1 flex flex-col overflow-hidden">
         <div id="header-placeholder"></div>
         <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1400px] mx-auto">
-                
                 <div class="flex flex-col gap-6 mb-6">
                     <div class="relative flex flex-col lg:flex-row items-start lg:items-center min-h-[80px] gap-4">
-                        
-                        <!-- 左：タイトルと会社表示（いつもの場所） -->
                         <div class="flex items-end gap-4 lg:gap-6 shrink-0">
-                            <div>
-                                <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-1">カレンダー</h1>
-                                <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Schedule Management</nav>
-                            </div>
-                            <select id="deptFilter" onchange="window.renderCalendar()" class="scope-select shadow-inner mb-2">
+                            <div><h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-1">カレンダー</h1><nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Schedule Management</nav></div>
+                            <!-- 🌟 修正：onchange を追加し、切り替え時に fetchMonthData を実行 -->
+                            <select id="deptFilter" onchange="window.fetchMonthData()" class="scope-select shadow-inner mb-2">
                                 <option value="ALL">全社表示</option>
                                 <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option><option>土木部</option><option>建築部</option><option>建機部</option><option>総務部</option><option>購買課</option><option>宮崎産商</option><option>企画部</option>
                             </select>
                         </div>
-
-                        <!-- 中央：月切り替えツール（今月ボタンなし・スッキリ版） -->
                         <div class="lg:absolute lg:left-1/2 lg:-translate-x-1/2 flex items-center gap-6 bg-white py-2 px-6 rounded-2xl shadow-sm border border-slate-100 mx-auto lg:mx-0">
-                            <button onclick="window.changeMonth(-1)" class="text-slate-300 hover:text-slate-600 transition-colors"><i class="fa-solid fa-chevron-left fa-lg"></i></button>
+                            <button onclick="window.changeMonth(-1)" class="text-slate-300 hover:text-slate-600"><i class="fa-solid fa-chevron-left fa-lg"></i></button>
                             <span id="displayMonthCenter" class="text-lg font-black text-slate-700 min-w-[140px] text-center tracking-tighter">----年 --月</span>
-                            <button onclick="window.changeMonth(1)" class="text-slate-300 hover:text-slate-600 transition-colors"><i class="fa-solid fa-chevron-right fa-lg"></i></button>
+                            <button onclick="window.changeMonth(1)" class="text-slate-300 hover:text-slate-600"><i class="fa-solid fa-chevron-right fa-lg"></i></button>
                         </div>
-
-                        <!-- 右：チェックボックス（スマホでも右寄せ） -->
                         <div class="flex gap-4 items-center bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-100 text-[10px] font-black ml-auto">
                             <label class="flex items-center gap-1.5 cursor-pointer text-orange-600"><input type="checkbox" id="showRes" checked onchange="renderCalendar()" class="accent-orange-500"> 実績</label>
                             <label class="flex items-center gap-1.5 cursor-pointer text-emerald-600"><input type="checkbox" id="showNext" checked onchange="renderCalendar()" class="accent-emerald-500"> 次回</label>
                             <label class="flex items-center gap-1.5 cursor-pointer text-blue-600"><input type="checkbox" id="showApp" checked onchange="renderCalendar()" class="accent-blue-500"> アポ</label>
                         </div>
                     </div>
-
                     <div class="flex overflow-x-auto p-1 bg-white rounded-2xl border border-slate-200 shadow-sm whitespace-nowrap custom-scrollbar">
                         <script>for(let i=1; i<=12; i++) document.write(`<button onclick="window.jumpMonth(${i})" id="month-btn-${i}" class="month-btn">${i}月</button>`);</script>
                     </div>
                 </div>
-
-                <div class="bg-white p-2 lg:p-4 rounded-[1.5rem] lg:rounded-[2rem] shadow-xl border border-slate-200">
-                    <div class="grid grid-cols-7 mb-4 font-black text-[10px] text-slate-400 uppercase text-center">
-                        <div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div class="text-rose-400">Sat</div><div class="text-rose-600">Sun</div>
-                    </div>
-                    <div id="calendarGrid" class="calendar-grid"></div>
-                </div>
+                <div id="calendarGrid" class="calendar-grid"></div>
             </div>
         </div>
     </main>
 
-   <!-- スクリプト部分の強化版 -->
-<script type="module" src="common.js"></script>
-<script type="module">
-    import { db } from "./common.js";
-    import { collection, getDocs, query, where, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    <script type="module" src="common.js"></script>
+    <script type="module">
+        import { db } from "./common.js";
+        import { collection, getDocs, query, where, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    let currentDate = new Date();
-    let loadedData = { records: [], appoints: [] };
+        let currentDate = new Date();
+        let loadedData = { records: [], appoints: [] };
 
-    function formatDateKey(dateStr) {
-        if (!dateStr) return null;
-        const d = new Date(dateStr.replace(/\//g, '-'));
-        return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
-    }
-
-    async function fetchMonthData() {
-        const y = currentDate.getFullYear(); const m = currentDate.getMonth() + 1;
-        document.getElementById('displayMonthCenter').innerText = `${y}年 ${m}月`;
-        const dept = document.getElementById('deptFilter').value;
-
-        try {
-            // 🌟 部署がALLでない場合はFirebase側で絞り込んで省エネ
-            let q;
-            if (dept !== 'ALL') {
-                q = query(collection(db, "activity_records"), where("visitorDept", "==", dept));
-            } else {
-                q = query(collection(db, "activity_records"), limit(1000));
-            }
-
-            const snap = await getDocs(q);
-            loadedData.records = snap.docs.map(d => d.data());
-            
-            // アポも同様
-            let qa = dept !== 'ALL' ? query(collection(db, "appointments"), where("visitorDept", "==", dept)) : query(collection(db, "appointments"), limit(500));
-            const snapA = await getDocs(qa);
-            loadedData.appoints = snapA.docs.map(d => ({ id: d.id, ...d.data() }));
-
-            window.renderCalendar();
-        } catch (e) { console.error(e); }
-    }
-
-    window.renderCalendar = () => {
-        const grid = document.getElementById('calendarGrid'); grid.innerHTML = "";
-        const year = currentDate.getFullYear(); const month = currentDate.getMonth();
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-        const firstDay = new Date(year, month, 1).getDay();
-        const startOffset = (firstDay === 0) ? 6 : firstDay - 1;
-
-        for(let i=0; i<startOffset; i++) grid.insertAdjacentHTML('beforeend', '<div class="calendar-day other-month"></div>');
-
-        for(let d=1; d<=daysInMonth; d++) {
-            const targetKey = `${year}-${month + 1}-${d}`;
-            let eventsHtml = "";
-
-            if (document.getElementById('showRes').checked) {
-                loadedData.records.filter(r => formatDateKey(r.visitDate) === targetKey)
-                    .forEach(r => { eventsHtml += `<div class="event-label label-result" onclick="location.href='customer_history.html?name=${encodeURIComponent(r.customerName)}'">実績: ${r.customerName}</div>`; });
-            }
-            if (document.getElementById('showNext').checked) {
-                loadedData.records.filter(r => formatDateKey(r.nextVisitDate) === targetKey)
-                    .forEach(r => { eventsHtml += `<div class="event-label label-next" onclick="location.href='customer_history.html?name=${encodeURIComponent(r.customerName)}'">次回: ${r.customerName}</div>`; });
-            }
-            if (document.getElementById('showApp').checked) {
-                loadedData.appoints.filter(a => formatDateKey(a.appointDate) === targetKey)
-                    .forEach(a => { eventsHtml += `<div class="event-label label-appoint" onclick="window.showAppointDetail('${a.id}','${a.customerName}','${a.appointDate}','${a.subject}')">アポ: ${a.customerName}</div>`; });
-            }
-            grid.insertAdjacentHTML('beforeend', `<div class="calendar-day"><div class="day-header mb-1"><span class="day-num">${d}</span></div><div class="max-h-[90px] overflow-y-auto custom-scrollbar space-y-0.5">${eventsHtml}</div></div>`);
+        function formatDateKey(dateStr) {
+            if (!dateStr) return null;
+            const d = new Date(dateStr.replace(/\//g, '-'));
+            return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
         }
-    };
 
-    window.changeMonth = async (v) => { currentDate.setMonth(currentDate.getMonth() + v); await fetchMonthData(); };
-    window.jumpMonth = async (m) => { currentDate.setMonth(m - 1); await fetchMonthData(); };
-    window.setToday = async () => { currentDate = new Date(); await fetchMonthData(); };
+        window.fetchMonthData = async () => {
+            const y = currentDate.getFullYear(); const m = currentDate.getMonth() + 1;
+            document.getElementById('displayMonthCenter').innerText = `${y}年 ${m}月`;
+            const dept = document.getElementById('deptFilter').value;
 
-    // 🌟 common.jsの反映を待って起動
-    window.addEventListener('load', () => { setTimeout(() => fetchMonthData(), 300); });
-</script>
+            try {
+                let q;
+                if (dept !== 'ALL') {
+                    q = query(collection(db, "activity_records"), where("visitorDept", "==", dept));
+                } else {
+                    q = query(collection(db, "activity_records"), limit(500));
+                }
+                const snap = await getDocs(q);
+                loadedData.records = snap.docs.map(d => d.data());
+                
+                let qa = dept !== 'ALL' ? query(collection(db, "appointments"), where("visitorDept", "==", dept)) : query(collection(db, "appointments"), limit(200));
+                const snapA = await getDocs(qa);
+                loadedData.appoints = snapA.docs.map(d => ({ id: d.id, ...d.data() }));
+
+                window.renderCalendar();
+            } catch (e) { console.error(e); }
+        };
+
+        window.renderCalendar = () => {
+            const grid = document.getElementById('calendarGrid'); grid.innerHTML = "";
+            const year = currentDate.getFullYear(); const month = currentDate.getMonth();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const firstDay = new Date(year, month, 1).getDay();
+            const startOffset = (firstDay === 0) ? 6 : firstDay - 1;
+
+            for(let i=0; i<startOffset; i++) grid.insertAdjacentHTML('beforeend', '<div class="calendar-day other-month"></div>');
+            for(let d=1; d<=daysInMonth; d++) {
+                const targetKey = `${year}-${month + 1}-${d}`;
+                let eventsHtml = "";
+                if (document.getElementById('showRes').checked) {
+                    loadedData.records.filter(r => formatDateKey(r.visitDate) === targetKey)
+                        .forEach(r => { eventsHtml += `<div class="event-label label-result" onclick="location.href='customer_history.html?name=${encodeURIComponent(r.customerName)}'">実績: ${r.customerName}</div>`; });
+                }
+                if (document.getElementById('showNext').checked) {
+                    loadedData.records.filter(r => formatDateKey(r.nextVisitDate) === targetKey)
+                        .forEach(r => { eventsHtml += `<div class="event-label label-next" onclick="location.href='customer_history.html?name=${encodeURIComponent(r.customerName)}'">次回: ${r.customerName}</div>`; });
+                }
+                if (document.getElementById('showApp').checked) {
+                    loadedData.appoints.filter(a => formatDateKey(a.appointDate) === targetKey)
+                        .forEach(a => { eventsHtml += `<div class="event-label label-appoint" onclick="window.showAppointDetail('${a.id}','${a.customerName}','${a.appointDate}','${a.subject}')">アポ: ${a.customerName}</div>`; });
+                }
+                grid.insertAdjacentHTML('beforeend', `<div class="calendar-day"><div class="day-header mb-1"><span class="day-num">${d}</span></div><div class="max-h-[90px] overflow-y-auto custom-scrollbar space-y-0.5">${eventsHtml}</div></div>`);
+            }
+        };
+
+        window.changeMonth = async (v) => { currentDate.setMonth(currentDate.getMonth() + v); await fetchMonthData(); };
+        window.jumpMonth = async (m) => { currentDate.setMonth(m - 1); await fetchMonthData(); };
+        window.setToday = async () => { currentDate = new Date(); await fetchMonthData(); };
+
+        window.addEventListener('load', () => { setTimeout(() => fetchMonthData(), 300); });
+    </script>
 </body>
 </html>
