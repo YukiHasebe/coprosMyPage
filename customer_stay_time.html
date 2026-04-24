@@ -65,72 +65,80 @@
         </div>
     </main>
 
-    <script type="module" src="common.js"></script>
-    <script type="module">
-        import { db } from "./common.js";
-        import { collection, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+<script type="module" src="common.js"></script>
+<script type="module">
+    import { db } from "./common.js";
+    import { collection, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        let targetDate = new Date();
+    let currentYear = 2025; 
 
-        window.init = async () => {
-            const loading = document.getElementById('loading'); loading.style.display = 'flex';
-            const tbody = document.getElementById('stayTableBody'); tbody.innerHTML = "";
-            const targetY = targetDate.getFullYear(), targetM = targetDate.getMonth() + 1;
-            document.getElementById('displayMonth').innerText = `${targetY}年 ${targetM}月`;
-            const selectedDept = document.getElementById('deptFilter').value;
+    window.init = async () => {
+        const loading = document.getElementById('loading'); loading.style.display = 'flex';
+        const tbody = document.getElementById('monthlyTableBody'); tbody.innerHTML = "";
+        document.getElementById('displayYear').innerText = `${currentYear}年度`;
+        const selectedDept = document.getElementById('deptFilter').value;
 
-            try {
-                // 🌟 【成功ロジック】年度で広く取得し、JSでフィルタリング
-                let q;
-                if (selectedDept === 'ALL') {
-                    q = query(collection(db, "activity_records"), where("visitDate", ">=", `${targetY}`), where("visitDate", "<=", `${targetY}\uf8ff`), limit(1500));
-                } else {
-                    q = query(collection(db, "activity_records"), where("visitorDept", "==", selectedDept), where("visitDate", ">=", `${targetY}`), where("visitDate", "<=", `${targetY}\uf8ff`));
-                }
+        try {
+            // 🌟 成功ロジック：年度で広めに取得
+            let q = query(collection(db, "activity_records"), 
+                          where("visitDate", ">=", `${currentYear}`), 
+                          where("visitDate", "<=", `${currentYear + 1}\uf8ff`), 
+                          limit(2000));
+            
+            const [cSnap, rSnap] = await Promise.all([
+                getDocs(query(collection(db, "customers"), limit(500))),
+                getDocs(q)
+            ]);
 
-                const snap = await getDocs(q);
-                const records = snap.docs.map(d => d.data());
+            const records = rSnap.docs.map(d => d.data());
+            const customers = cSnap.docs.map(d => d.data());
+            const months = [7,8,9,10,11,12,1,2,3,4,5,6];
+            
+            let statsMap = new Map();
+            records.forEach(r => {
+                const dateStr = String(r.visitDate || '').replace(/\//g, '-');
+                const d = dateStr.split('-');
+                const y = parseInt(d[0]), m = parseInt(d[1]);
+                const isTargetYear = (y === currentYear && m >= 7) || (y === currentYear + 1 && m <= 6);
+                const isTargetDept = (selectedDept === 'ALL' || r.visitorDept === selectedDept);
 
-                const stayMap = new Map();
-                records.forEach(r => {
-                    // 日付判定
-                    const dateStr = String(r.visitDate || '').replace(/\//g, '-');
-                    const parts = dateStr.split('-');
-                    if (parseInt(parts[0]) === targetY && parseInt(parts[1]) === targetM) {
-                        if(!stayMap.has(r.customerName)) stayMap.set(r.customerName, { count: 0, totalMins: 0 });
-                        const data = stayMap.get(r.customerName);
-                        data.count++;
-                        if(r.startTime && r.endTime && r.startTime !== "00:00") {
-                            const s = r.startTime.split(':'), e = r.endTime.split(':');
-                            const diff = (parseInt(e[0])*60 + parseInt(e[1]||0)) - (parseInt(s[0])*60 + parseInt(s[1]||0));
-                            if(diff > 0) data.totalMins += diff;
-                        }
+                if (isTargetYear && isTargetDept) {
+                    if (!statsMap.has(r.customerName)) {
+                        statsMap.set(r.customerName, { counts: Array(12).fill(0), totalMins: 0 });
                     }
-                });
-
-                const stats = Array.from(stayMap.entries()).map(([name, d]) => ({
-                    name, count: d.count, total: d.totalMins, avg: Math.round(d.totalMins / d.count)
-                })).sort((a,b) => b.total - a.total);
-
-                loading.style.display = 'none';
-                if (stats.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4" class="p-20 text-center text-slate-400">実績データはありません</td></tr>';
-                } else {
-                    stats.forEach(s => {
-                        tbody.insertAdjacentHTML('beforeend', `
-                            <tr class="hover:bg-slate-50 border-b border-slate-50 text-center">
-                                <td class="p-6 text-left font-black text-slate-800 cursor-pointer hover:text-blue-600" onclick="location.href='customer_history.html?name=${encodeURIComponent(s.name)}'">${s.name}</td>
-                                <td class="p-6 text-slate-500">${s.count}回</td>
-                                <td class="p-6 text-emerald-600 font-black"><span class="time-badge">${Math.floor(s.total/60)}時間 ${s.total%60}分</span></td>
-                                <td class="p-6 text-slate-400">${s.avg}分 / 回</td>
-                            </tr>`);
-                    });
+                    const data = statsMap.get(r.customerName);
+                    const monthIdx = months.indexOf(m);
+                    if(monthIdx !== -1 && r.startTime && r.endTime) {
+                        const s = r.startTime.split(':'), e = r.endTime.split(':');
+                        const diff = (parseInt(e[0])*60 + parseInt(e[1]||0)) - (parseInt(s[0])*60 + parseInt(s[1]||0));
+                        if (diff > 0) { data.counts[monthIdx] += diff; data.totalMins += diff; }
+                    }
                 }
-            } catch (e) { console.error(e); loading.style.display = 'none'; }
-        };
+            });
 
-        window.changeMonth = (v) => { targetDate.setMonth(targetDate.getMonth() + v); window.init(); };
-        window.addEventListener('load', () => { setTimeout(() => window.init(), 300); });
-    </script>
+            const sortedNames = Array.from(statsMap.keys()).sort((a,b) => a.localeCompare(b, 'ja'));
+            loading.style.display = 'none';
+            if (sortedNames.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="14" class="p-20 text-center text-slate-400">実績データはありません</td></tr>';
+            } else {
+                sortedNames.forEach(name => {
+                    const d = statsMap.get(name);
+                    let monthCells = "";
+                    d.counts.forEach(mins => {
+                        monthCells += `<td class="month-col">${mins > 0 ? `<div class="val-active">${mins}m</div>` : '<div class="text-slate-200">0</div>'}</td>`;
+                    });
+                    tbody.insertAdjacentHTML('beforeend', `
+                        <tr class="hover:bg-slate-50 transition-colors border-b border-slate-50 text-center">
+                            <td class="p-4 sticky-name text-left text-slate-800 font-black truncate max-w-[250px] cursor-pointer hover:text-blue-600 bg-white" onclick="location.href='customer_history.html?name=${encodeURIComponent(name)}'">${name}</td>
+                            ${monthCells}
+                            <td class="p-4 bg-slate-50 font-black text-slate-700">${Math.floor(d.totalMins/60)}時間 ${d.totalMins%60}分</td>
+                        </tr>`);
+                });
+            }
+        } catch (e) { console.error(e); loading.style.display = 'none'; }
+    };
+    window.changeYear = (val) => { currentYear += val; window.init(); };
+    window.addEventListener('load', () => { setTimeout(() => window.init(), 300); });
+</script>
 </body>
 </html>
