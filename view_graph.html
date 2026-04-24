@@ -6,55 +6,67 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; }
+        :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; --copros-navy: #004098; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
         .scope-select { background: #e2e8f0; border: none; padding: 0.4rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; cursor: pointer; }
         .stat-card { background: white; border-radius: 1.5rem; padding: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
         .tab-btn { padding: 0.6rem 1.2rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; transition: all 0.2s; white-space: nowrap; }
         .tab-btn.active { background: #334155; color: white; }
+        .year-btn { padding: 0.5rem 1rem; border-radius: 0.75rem; font-weight: 900; font-size: 0.75rem; border: 1px solid #e2e8f0; background: white; color: #64748b; }
+        .year-btn:hover { background: #f8fafc; color: var(--copros-orange); border-color: var(--copros-orange); }
     </style>
 </head>
-<body class="flex h-screen overflow-hidden text-slate-700">
+<body class="flex h-screen overflow-hidden text-slate-700 font-sans">
     <div id="sidebar-placeholder"></div>
     <main class="flex-1 flex flex-col overflow-hidden">
         <div id="header-placeholder"></div>
         <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1200px] mx-auto">
+                
                 <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-6">
-                    <div class="flex items-end gap-4 lg:gap-6">
+                    <div class="flex items-end gap-6 shrink-0">
                         <div>
                             <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-1">実績グラフ出力</h1>
-                            <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Performance Data Analysis</nav>
+                            <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Performance Analytics Dashboard</nav>
                         </div>
                         <select id="deptFilter" onchange="window.updateCharts()" class="scope-select shadow-inner mb-1">
                             <option value="ALL">全社表示</option>
                             <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option><option>土木部</option><option>建築部</option><option>建機部</option><option>総務部</option><option>購買課</option><option>宮崎産商</option><option>企画部</option>
                         </select>
                     </div>
-                    <div class="flex gap-2 bg-white p-1 rounded-xl shadow-sm border border-slate-200">
+                    <div class="flex gap-2 bg-white p-1 rounded-xl shadow-sm border border-slate-200 w-full lg:w-auto">
                         <button onclick="window.switchChart('trend')" id="btn-trend" class="tab-btn active flex-1">月別推移</button>
                         <button onclick="window.switchChart('quality')" id="btn-quality" class="tab-btn flex-1">内容分析</button>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8 text-center">
-                    <div class="stat-card"><p class="text-[10px] font-black text-slate-400 mb-1 uppercase">Total Visits</p><p id="statTotalVisits" class="text-3xl lg:text-4xl font-black text-slate-800">--</p></div>
-                    <div class="stat-card"><p class="text-[10px] font-black text-slate-400 mb-1 uppercase">Total Hours</p><p id="statTotalTime" class="text-3xl lg:text-4xl font-black text-blue-600">--</p></div>
-                    <div class="stat-card"><p class="text-[10px] font-black text-slate-400 mb-1 uppercase">Average Time</p><p id="statAvgTime" class="text-3xl lg:text-4xl font-black text-[#ff7e11]">--</p></div>
+                <!-- 🌟 年度ツールを中央配置 -->
+                <div class="flex justify-center mb-8">
+                    <div class="flex items-center gap-3 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100">
+                        <button onclick="window.changeYear(-1)" class="p-2 text-slate-300 hover:text-slate-600 transition-colors"><i class="fa-solid fa-chevron-left fa-lg"></i></button>
+                        <span id="displayYear" class="text-base font-black text-slate-700 px-6 min-w-[120px] text-center">----年度</span>
+                        <button onclick="window.changeYear(1)" class="p-2 text-slate-300 hover:text-slate-600 transition-colors"><i class="fa-solid fa-chevron-right fa-lg"></i></button>
+                    </div>
                 </div>
 
-                <div class="bg-white p-6 lg:p-10 rounded-[2rem] shadow-2xl border border-slate-100 min-h-[400px] flex flex-col items-center mb-20">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8 text-center">
+                    <div class="stat-card"><p class="text-[10px] font-black text-slate-400 mb-1 uppercase">Total Visits</p><p id="statTotalVisits" class="text-3xl font-black text-slate-800">--</p></div>
+                    <div class="stat-card"><p class="text-[10px] font-black text-slate-400 mb-1 uppercase">Total Hours</p><p id="statTotalTime" class="text-3xl font-black text-blue-600">--</p></div>
+                    <div class="stat-card"><p class="text-[10px] font-black text-slate-400 mb-1 uppercase">Average Time</p><p id="statAvgTime" class="text-3xl font-black text-[#ff7e11]">--</p></div>
+                </div>
+
+                <div class="bg-white p-6 lg:p-10 rounded-[2.5rem] shadow-2xl border border-slate-100 min-h-[450px] flex flex-col items-center mb-20">
                     <div id="qualityControls" class="mb-8 hidden w-full max-w-md">
                         <select id="qualityType" onchange="window.updateCharts()" class="scope-select bg-slate-50 font-black w-full border border-slate-200">
                             <option value="qualData1">定性データ1 (リサーチ・受注等)</option><option value="qualData2">定性データ2 (工法・市場等)</option><option value="qualData3">定性データ3 (エリア等)</option>
                         </select>
                     </div>
-                    <div class="w-full relative h-[350px] lg:h-[450px]"><canvas id="mainChart"></canvas></div>
+                    <div class="w-full relative h-[350px] lg:h-[400px]"><canvas id="mainChart"></canvas></div>
                 </div>
 
                 <div id="loading" class="fixed inset-0 bg-white/80 backdrop-blur-sm z-[100] flex flex-col items-center justify-center">
-                    <div class="animate-spin mb-4 text-blue-500 text-5xl"><i class="fa-solid fa-circle-notch"></i></div>
-                    <p class="text-slate-800 font-black tracking-tighter italic uppercase text-[10px]">Processing Performance Data...</p>
+                    <div class="animate-spin mb-4 text-[#ff7e11] text-6xl"><i class="fa-solid fa-circle-notch"></i></div>
+                    <p class="text-slate-800 font-black tracking-tighter uppercase italic text-xs">Analyzing Data...</p>
                 </div>
             </div>
         </div>
@@ -63,33 +75,50 @@
     <script type="module" src="common.js"></script>
     <script type="module">
         import { db } from "./common.js";
-        import { collection, getDocs, query, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let allRecords = []; let chartInstance = null; let currentChartType = 'trend';
+        let currentYear = 2025; 
 
-        async function init() {
+        window.init = async () => {
+            const loading = document.getElementById('loading'); loading.style.display = 'flex';
+            const selectedDept = document.getElementById('deptFilter').value;
+            document.getElementById('displayYear').innerText = `${currentYear}年度`;
+
             try {
-                // 🌟 【省エネ】最新1,000件を取得
-                const q = query(collection(db, "activity_records"), orderBy("visitDate", "desc"), limit(1000));
+                // 🌟 成功ロジック：年度で広めに取得（省エネ）
+                let q;
+                if (selectedDept === 'ALL') {
+                    q = query(collection(db, "activity_records"), where("visitDate", ">=", `${currentYear}`), where("visitDate", "<=", `${currentYear + 1}\uf8ff`), limit(1500));
+                } else {
+                    q = query(collection(db, "activity_records"), where("visitorDept", "==", selectedDept), where("visitDate", ">=", `${currentYear}`), where("visitDate", "<=", `${currentYear + 1}\uf8ff`));
+                }
+
                 const snap = await getDocs(q);
                 allRecords = snap.docs.map(d => d.data());
-                document.getElementById('loading').style.display = 'none';
+                loading.style.display = 'none';
                 window.updateCharts();
             } catch (e) { console.error(e); }
-        }
+        };
 
         window.updateCharts = () => {
             const dept = document.getElementById('deptFilter').value;
-            const filtered = dept === 'ALL' ? allRecords : allRecords.filter(r => r.visitorDept === dept);
+            // 🌟 フィルタリングも「年度」を考慮
+            const filtered = allRecords.filter(r => {
+                const parts = String(r.visitDate).replace(/\//g, '-').split('-');
+                const y = parseInt(parts[0]), m = parseInt(parts[1]);
+                const isTargetYear = (y === currentYear && m >= 7) || (y === currentYear + 1 && m <= 6);
+                return isTargetYear;
+            });
 
             let totalMins = 0;
             filtered.forEach(r => {
-                if(r.startTime && r.endTime) {
+                if(r.startTime && r.endTime && r.startTime !== "00:00") {
                     const s = r.startTime.split(':'), e = r.endTime.split(':');
-                    const diff = (parseInt(e[0])*60 + parseInt(e[1])) - (parseInt(s[0])*60 + parseInt(s[1]));
-                    if (diff > 0) totalMins += diff;
+                    totalMins += (parseInt(e[0])*60 + parseInt(e[1]||0)) - (parseInt(s[0])*60 + parseInt(s[1]||0));
                 }
             });
+
             document.getElementById('statTotalVisits').innerHTML = `${filtered.length} <span class="text-xs">件</span>`;
             document.getElementById('statTotalTime').innerHTML = `${Math.floor(totalMins/60)} <span class="text-xs">時間</span>`;
             document.getElementById('statAvgTime').innerHTML = `${filtered.length ? Math.round(totalMins/filtered.length) : 0} <span class="text-xs">分</span>`;
@@ -98,20 +127,20 @@
             else renderQualityChart(filtered);
         };
 
-       function renderTrendChart(data) {
-    const months = ["7月", "8月", "9月", "10月", "11月", "12月", "1月", "2月", "3月", "4月", "5月", "6月"];
-    const counts = new Array(12).fill(0);
-    data.forEach(r => {
-        if(!r.visitDate) return;
-        const parts = String(r.visitDate).replace(/\//g, '-').split('-');
-        const y = parseInt(parts[0]), m = parseInt(parts[1]);
-        // 🌟 2025年7月〜2026年6月の範囲のみを集計
-        const isTargetYear = (y === currentYear && m >= 7) || (y === currentYear + 1 && m <= 6);
-        if (isTargetYear) {
-            const idx = (m >= 7) ? m - 7 : m + 5; 
-            if (idx >= 0 && idx < 12) counts[idx]++;
-        }
-    });
+        function renderTrendChart(data) {
+            const months = ["7月", "8月", "9月", "10月", "11月", "12月", "1月", "2月", "3月", "4月", "5月", "6月"];
+            const counts = new Array(12).fill(0);
+            data.forEach(r => {
+                const parts = String(r.visitDate).replace(/\//g, '-').split('-');
+                const m = parseInt(parts[1]);
+                const idx = (m >= 7) ? m - 7 : m + 5; 
+                if (idx >= 0 && idx < 12) counts[idx]++;
+            });
+            if (chartInstance) chartInstance.destroy();
+            chartInstance = new Chart(document.getElementById('mainChart'), {
+                type: 'bar', data: { labels: months, datasets: [{ data: counts, backgroundColor: '#0ea5e9', borderRadius: 6 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } } }
+            });
         }
 
         function renderQualityChart(data) {
@@ -133,7 +162,8 @@
             window.updateCharts();
         };
 
-        init();
+        window.changeYear = (val) => { currentYear += val; window.init(); };
+        window.addEventListener('load', () => { setTimeout(() => window.init(), 300); });
     </script>
 </body>
 </html>
