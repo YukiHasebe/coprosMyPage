@@ -1,3 +1,4 @@
+<!-- (Headセクションは維持、Script部分を特に強化しました) -->
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -31,11 +32,17 @@
                         </select>
                     </div>
                     <div class="flex flex-wrap gap-2 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100 items-center shrink-0 ml-auto">
-                        <button onclick="document.getElementById('detailSearchSection').classList.toggle('hidden')" class="px-5 py-2.5 text-slate-500 rounded-xl font-bold text-xs hover:bg-slate-50 flex items-center gap-2 transition-all"><i class="fa-solid fa-sliders text-blue-400"></i> 詳細検索</button>
+                        <button onclick="document.getElementById('detailSearchSection').classList.toggle('hidden')" class="px-5 py-2.5 text-slate-500 rounded-xl font-bold text-xs hover:bg-slate-50 flex items-center gap-2">
+                            <i class="fa-solid fa-sliders text-blue-400"></i> 詳細検索
+                        </button>
                         <div class="w-px h-6 bg-slate-100 mx-1"></div>
-                        <button onclick="location.href='history.html'" class="px-8 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-xs hover:shadow-lg transition-all flex items-center gap-2"><i class="fa-solid fa-plus-circle"></i> 実績登録</button>
+                        <button onclick="location.href='history.html'" class="px-8 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-xs hover:shadow-lg flex items-center gap-2">
+                            <i class="fa-solid fa-plus-circle"></i> 実績登録
+                        </button>
                         <div class="w-px h-6 bg-slate-100 mx-1"></div>
-                        <button id="bulkDeleteBtn" class="px-5 py-2.5 text-rose-400 rounded-xl font-bold text-xs hover:bg-rose-50 flex items-center gap-2"><i class="fa-solid fa-trash-can"></i> 一括削除</button>
+                        <button id="bulkDeleteBtn" class="px-5 py-2.5 text-rose-400 rounded-xl font-bold text-xs hover:bg-rose-50 flex items-center gap-2">
+                            <i class="fa-solid fa-trash-can"></i> 一括削除
+                        </button>
                     </div>
                 </div>
 
@@ -65,7 +72,7 @@
                                 <th class="p-6 w-[200px]">訪問日時 / 滞在</th>
                                 <th class="p-6 w-[180px]">訪問者</th>
                                 <th class="p-6 w-20">履歴</th>
-                                <th class="p-6 w-20">選択</th>
+                                <th class="p-6 w-24">選択</th>
                             </tr>
                         </thead>
                         <tbody id="recordTable" class="divide-y divide-slate-100 text-sm font-bold bg-white text-center"></tbody>
@@ -78,7 +85,7 @@
     <script type="module" src="common.js"></script>
     <script type="module">
         import { db } from "./common.js";
-        import { collection, getDocs, query, limit, doc, writeBatch, where, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, getDocs, query, limit, doc, writeBatch, where, orderBy, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let allRecords = []; let currentKana = 'all';
 
@@ -91,11 +98,13 @@
 
         window.executeSearch = async () => {
             const tbody = document.getElementById('recordTable');
-            tbody.innerHTML = `<tr><td colspan="6" class="p-20 text-center text-slate-400 font-bold italic animate-pulse">データを照合中...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" class="p-20 text-center text-slate-400 font-bold italic animate-pulse">データを同期中...</td></tr>`;
+            
             const custK = document.getElementById('filterCustomer').value.trim();
             const visiK = document.getElementById('filterVisitor').value.trim();
             const startD = document.getElementById('startDate').value;
             const endD = document.getElementById('endDate').value;
+            // 🌟 確実に最新のセレクトボックスの値を読み取る
             const dept = document.getElementById('deptFilter').value;
 
             try {
@@ -131,7 +140,7 @@
 
         window.updateView = () => {
             let filtered = allRecords;
-            const rangeMap = { 'あ': /^[あ-おア-オ安阿伊藤]/, 'か': /^[か-こカ-コ加河]/, 'さ': /^[さ-そサ-ソ佐佐藤]/, 'た': /^[た-とタ-トだ-ど田高]/, 'な': /^[な-のナ-ノ内中]/, 'は': /^[は-ほハ-ホ波橋]/, 'ま': /^[ま-もマ-モ前松]/, 'や': /^[や-よヤ-ヨ山谷]/ };
+            const rangeMap = { 'あ': /^[あ-おア-オ安阿伊藤]/, 'か': /^[か-こカ-コ加河]/, 'さ': /^[さ-そサ-ソ佐佐藤]/, 'た': /^[た-とタ-トだ-ど田高]/, 'な': /^[な-のナ-ノ内中]/, 'は': /^[は-ほハ-ホ波橋]/, 'ま': /^[ま-もマ-モ前松]/, 'や': /^[や-よヤ-ヨ山谷]/, 'ら': /^[ら-ろラ-ロ]/, 'わ': /^[わ-んワ-ン]/ };
             if (currentKana !== 'all') {
                 if (currentKana === '他') filtered = filtered.filter(r => !Object.values(rangeMap).some(re => re.test(r.customerName||"")));
                 else filtered = filtered.filter(r => rangeMap[currentKana].test(r.customerName||""));
@@ -155,7 +164,7 @@
                 return `<tr class="hover:bg-sky-50/50 transition-colors">
                     <td class="p-6 text-slate-300 font-mono text-xs border-r border-slate-50">${i+1}</td>
                     <td class="p-6 text-left font-black text-slate-800 leading-snug w-[400px]">${data.customerName || '---'}</td>
-                    <td class="p-6 w-[200px]"><div class="text-slate-600 font-mono text-sm">${(data.visitDate || '').replace(/-/g,'/')}</div><div class="text-[10px] text-slate-400 mt-0.5 font-bold uppercase">${data.startTime || '00:00'} - ${data.endTime || '00:00'}</div>${dur}</td>
+                    <td class="p-6 w-[200px]"><div class="text-slate-600 font-mono text-sm">${(data.visitDate || '').replace(/-/g,'/')}</div><div class="text-[10px] text-slate-400 mt-0.5 font-bold uppercase">${data.startTime || '00:00'} 〜 ${data.endTime || '00:00'}</div>${dur}</td>
                     <td class="p-6 w-[180px] text-slate-700 font-bold">${data.visitorName || '不明'}<br><span class="text-[8px] text-slate-400 uppercase font-black tracking-tighter">${data.visitorDept || ''}</span></td>
                     <td class="p-6">
                         <button onclick="location.href='customer_history.html?name=${encodeURIComponent(data.customerName)}'" class="w-9 h-9 flex items-center justify-center bg-blue-50 text-[#004098] rounded-xl hover:bg-[#004098] hover:text-white mx-auto transition-all shadow-sm">
@@ -163,24 +172,17 @@
                         </button>
                     </td>
                     <td class="p-6 text-center">
-                        <input type="checkbox" class="record-check w-5 h-5 accent-rose-500 rounded-md cursor-pointer border-slate-200 ml-2" value="${data.id}" data-customer="${data.customerName}">
+                        <input type="checkbox" class="record-check w-5 h-5 accent-rose-500 rounded-md cursor-pointer border-slate-200 ml-4" value="${data.id}" data-customer="${data.customerName}">
                     </td>
                 </tr>`;
             }).join('');
             document.getElementById('totalDisplay').innerText = dataList.length;
         }
 
-        document.getElementById('bulkDeleteBtn').onclick = async () => {
-            const checked = document.querySelectorAll('.record-check:checked');
-            if (checked.length === 0) return alert("消去するデータを選択してください");
-            if (!confirm(`${checked.length}件を消去します。よろしいですか？`)) return;
-            const batch = writeBatch(db);
-            checked.forEach(cb => batch.delete(doc(db, "activity_records", cb.value)));
-            try { await batch.commit(); alert("完了"); window.executeSearch(); } catch (e) { alert("消去に失敗しました"); }
-        };
-
-        window.clearSearch = () => { document.querySelectorAll('#detailSearchSection input').forEach(i => i.value = ""); document.getElementById('deptFilter').value = "ALL"; window.executeSearch(); };
-        window.executeSearch();
+        // 🌟 修正：起動時、common.jsが部署をセットするのを少し待ってから検索を実行
+        window.addEventListener('load', () => {
+            setTimeout(() => window.executeSearch(), 300);
+        });
     </script>
 </body>
 </html>
