@@ -150,7 +150,7 @@
                 if(data.startTime && data.endTime && data.startTime !== "00:00") {
                     const s = data.startTime.split(':'), e = data.endTime.split(':');
                     const diff = (parseInt(e[0])*60+parseInt(e[1]||0)) - (parseInt(s[0])*60+parseInt(s[1]||0));
-                    if(diff > 0) dur = `<div class="text-[#0ea5e9] text-[10px] mt-1 font-black italic">Stay: ${diff} min</div>`;
+                    if(diff > 0) dur = `<div class="text-[#0ea5e9] text-[10px] mt-1 font-black">🕒 滞在時間: ${diff}分</div>`;
                 }
                 return `<tr class="hover:bg-sky-50/50 transition-colors">
                     <td class="p-6 text-slate-300 font-mono text-xs border-r border-slate-50">${i+1}</td>
