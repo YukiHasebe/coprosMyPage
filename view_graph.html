@@ -98,22 +98,20 @@
             else renderQualityChart(filtered);
         };
 
-        function renderTrendChart(data) {
-            const months = ["4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月", "1月", "2月", "3月"];
-            const counts = new Array(12).fill(0);
-            data.forEach(r => {
-                if(!r.visitDate) return;
-                // 🌟 スラッシュ・ハイフン両対応の日付解析
-                const parts = r.visitDate.replace(/\//g, '-').split('-');
-                const m = parseInt(parts[1]);
-                const idx = (m >= 4) ? m - 4 : m + 8;
-                if (idx >= 0 && idx < 12) counts[idx]++;
-            });
-            if (chartInstance) chartInstance.destroy();
-            chartInstance = new Chart(document.getElementById('mainChart'), {
-                type: 'bar', data: { labels: months, datasets: [{ data: counts, backgroundColor: '#0ea5e9', borderRadius: 6 }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } } }
-            });
+       function renderTrendChart(data) {
+    const months = ["7月", "8月", "9月", "10月", "11月", "12月", "1月", "2月", "3月", "4月", "5月", "6月"];
+    const counts = new Array(12).fill(0);
+    data.forEach(r => {
+        if(!r.visitDate) return;
+        const parts = String(r.visitDate).replace(/\//g, '-').split('-');
+        const y = parseInt(parts[0]), m = parseInt(parts[1]);
+        // 🌟 2025年7月〜2026年6月の範囲のみを集計
+        const isTargetYear = (y === currentYear && m >= 7) || (y === currentYear + 1 && m <= 6);
+        if (isTargetYear) {
+            const idx = (m >= 7) ? m - 7 : m + 5; 
+            if (idx >= 0 && idx < 12) counts[idx]++;
+        }
+    });
         }
 
         function renderQualityChart(data) {
