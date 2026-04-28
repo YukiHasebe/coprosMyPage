@@ -30,30 +30,26 @@
     <div id="sidebar-placeholder"></div>
     <main class="flex-1 flex flex-col overflow-hidden">
         <div id="header-placeholder"></div>
-        <!-- 🌟 真っ白回避用の隠しローダー（common.jsが制御します） -->
-        <div id="loading" style="display:none;"></div>
 
         <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1200px] mx-auto">
                 
-                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-6">
-                    <div class="flex items-end gap-6 shrink-0">
-                        <div>
-                            <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-1">組織員利用状況</h1>
-                            <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Staff Activity Timeline</nav>
-                        </div>
-                        <select id="deptFilter" onchange="window.renderStaffList()" class="scope-select shadow-inner mb-2">
-                            <option value="ALL">全ての部署</option>
-                            <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option><option>土木部</option><option>建築部</option><option>建機部</option><option>総務部</option><option>購買課</option><option>宮崎産商</option><option>企画部</option>
-                        </select>
-                    </div>
+                <div class="mb-8">
+                    <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-1">組織員利用状況</h1>
+                    <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Staff Activity Monitoring</nav>
                 </div>
 
                 <!-- 1. 社員選択エリア -->
                 <div class="staff-selector-card p-6 mb-8">
-                    <div class="relative mb-6">
-                        <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-slate-300"></i>
-                        <input type="text" id="staffSearch" oninput="window.renderStaffList()" placeholder="社員名で検索..." class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-blue-400 outline-none font-bold transition-all">
+                    <div class="flex flex-col lg:flex-row gap-4 mb-6">
+                        <div class="relative flex-1">
+                            <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-slate-300"></i>
+                            <input type="text" id="staffSearch" oninput="window.renderStaffList()" placeholder="社員名で検索..." class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-blue-400 outline-none font-bold transition-all">
+                        </div>
+                        <select id="deptFilter" onchange="window.renderStaffList()" class="scope-select min-w-[200px]">
+                            <option value="ALL">全ての部署</option>
+                            <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option><option>土木部</option><option>建築部</option><option>建機部</option><option>総務部</option><option>購買課</option><option>宮崎産商</option><option>企画部</option>
+                        </select>
                     </div>
                     <div id="staffList" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 max-h-[160px] overflow-y-auto custom-scrollbar p-1"></div>
                 </div>
@@ -69,7 +65,7 @@
                         <div class="flex justify-between items-center mb-10 border-b-2 border-slate-50 pb-6">
                             <div>
                                 <h3 id="selectedStaffLabel" class="text-2xl font-black text-slate-800">---</h3>
-                                <p id="selectedMonthLabel" class="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Target Period</p>
+                                <p id="selectedMonthLabel" class="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Select month</p>
                             </div>
                             <div id="countBadgeArea">
                                 <span class="count-badge"><span id="recordCount">0</span> 件の実績</span>
@@ -83,10 +79,15 @@
                     <div class="text-slate-200 text-7xl mb-6"><i class="fa-solid fa-address-book"></i></div>
                     <p class="text-slate-400 font-bold text-lg">社員を選択してください</p>
                 </div>
-
             </div>
         </div>
     </main>
+
+    <!-- 🌟 common.jsと喧嘩しない、画面内ローダー -->
+    <div id="local-loading" class="fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] hidden flex-col items-center justify-center">
+        <div class="animate-spin mb-4 text-[#ff7e11] text-6xl"><i class="fa-solid fa-circle-notch"></i></div>
+        <p class="text-slate-800 font-black tracking-tighter uppercase italic text-xs">Fetching Data...</p>
+    </div>
 
     <script type="module" src="common.js"></script>
     <script type="module">
@@ -96,14 +97,12 @@
         let allStaffs = [];
         let fetchedRecords = [];
         let selectedName = "";
-        let currentY = new Date().getFullYear();
         let currentM = new Date().getMonth() + 1;
 
         async function init() {
             try {
                 const snap = await getDocs(query(collection(db, "staffs"), orderBy("name")));
                 allStaffs = snap.docs.map(d => d.data());
-                // 🌟 最初から自分の部署が出るように調整
                 setTimeout(() => window.renderStaffList(), 300);
             } catch (e) { console.error(e); }
         }
@@ -128,24 +127,22 @@
             window.renderStaffList();
             document.getElementById('guideMsg').style.display = 'none';
             document.getElementById('toolArea').style.display = 'block';
-            
-            // 🌟 読み込み開始（真っ白回避のため関数を正しく呼ぶ）
-            if(window.showLoading) window.showLoading(`${name} さんのデータを取得中...`);
+            document.getElementById('local-loading').style.display = 'flex';
             
             try {
+                // 🌟 【解決】日付フィルターをFirebase側で持たず、人だけで取得
                 const q = query(collection(db, "activity_records"), 
                                 where("visitorName", "==", name),
-                                where("visitDate", ">=", `${currentY}-01-01`),
-                                where("visitDate", "<=", `${currentY}-12-31\uf8ff`));
+                                limit(500)); // 直近500件
                 const snap = await getDocs(q);
                 fetchedRecords = snap.docs.map(d => d.data());
                 
-                if(window.hideLoading) window.hideLoading();
+                document.getElementById('local-loading').style.display = 'none';
                 document.getElementById('selectedStaffLabel').innerText = `${name} さんの履歴`;
                 window.setMonth(currentM); 
             } catch (e) { 
                 console.error(e);
-                if(window.hideLoading) window.hideLoading();
+                document.getElementById('local-loading').style.display = 'none';
             }
         };
 
@@ -153,7 +150,7 @@
             currentM = m;
             document.querySelectorAll('.month-btn').forEach(btn => btn.classList.remove('active'));
             if(document.getElementById(`m-btn-${m}`)) document.getElementById(`m-btn-${m}`).classList.add('active');
-            document.getElementById('selectedMonthLabel').innerText = `${currentY}年 ${m}月`;
+            document.getElementById('selectedMonthLabel').innerText = `${m}月`;
             window.renderTimeline();
         };
 
@@ -162,7 +159,8 @@
             const countLabel = document.getElementById('recordCount');
             
             const filtered = fetchedRecords.filter(r => {
-                const parts = String(r.visitDate).replace(/\//g, '-').split('-');
+                const dateStr = String(r.visitDate).replace(/\//g, '-');
+                const parts = dateStr.split('-');
                 return parseInt(parts[1]) === currentM;
             }).sort((a,b) => String(b.visitDate).localeCompare(String(a.visitDate)));
 
@@ -177,6 +175,14 @@
 
             countLabel.innerText = filtered.length;
         };
+
+            // 🌟 修正：外部からのローダー停止命令に対応
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                const l = document.getElementById('loading');
+                if(l) l.style.display = 'none';
+            }, 500);
+        });
 
         init();
     </script>
