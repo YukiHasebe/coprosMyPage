@@ -7,150 +7,108 @@
     <style>
         :root { --copros-orange: #ff7e11; --copros-navy: #004098; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
-        
-        .accordion-item { background: white; border-radius: 1.2rem; border: 1px solid #e2e8f0; overflow: hidden; margin-bottom: 1rem; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
-        .accordion-header { padding: 1.2rem 2rem; cursor: pointer; display: flex; align-items: center; justify-content: space-between; position: relative; }
-        .accordion-item.unread { border-left: 6px solid var(--copros-orange); }
+        .accordion-item { background: white; border-radius: 1.2rem; border: 1px solid #e2e8f0; overflow: hidden; margin-bottom: 1rem; box-shadow: 0 4px 10px rgba(0,0,0,0.03); border-left: 6px solid transparent; }
+        .accordion-item.unread { border-left-color: var(--copros-orange); }
+        .accordion-header { padding: 1.2rem 2rem; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
         .accordion-content { display: none; padding: 2.5rem; background: white; border-top: 1px solid #f1f5f9; }
-        
-        .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem; margin-bottom: 2.5rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 2rem; }
-        .info-label { font-size: 11px; font-weight: 800; color: #94a3b8; margin-bottom: 0.5rem; }
+        .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; margin-bottom: 2rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 2rem; }
+        .info-label { font-size: 11px; color: #94a3b8; font-weight: 800; }
         .info-value { font-size: 14px; font-weight: 800; color: #475569; }
-        .report-label { font-size: 11px; font-weight: 900; color: var(--copros-orange); margin-bottom: 1rem; display: block; }
-        .report-box { background: #f8fafc; border-radius: 1.2rem; padding: 2rem; border: 1px solid #f1f5f9; font-size: 14px; line-height: 1.8; color: #475569; }
-        
-        .badge { padding: 3px 10px; border-radius: 10px; font-size: 10px; font-weight: 900; color: white; text-transform: uppercase; }
+        .report-box { background: #f8fafc; border-radius: 1.2rem; padding: 1.5rem; border: 1px solid #f1f5f9; font-size: 14px; line-height: 1.7; }
+        .badge { padding: 3px 10px; border-radius: 10px; font-size: 10px; font-weight: 900; color: white; }
         .badge-apo { background: #3b82f6; }
         .badge-rec { background: var(--copros-orange); }
     </style>
 </head>
-<body class="flex h-screen overflow-hidden text-slate-700 font-sans">
+<body class="flex h-screen overflow-hidden text-slate-700">
     <div id="sidebar-placeholder"></div>
     <main class="flex-1 flex flex-col overflow-hidden">
         <div id="header-placeholder"></div>
         <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1000px] mx-auto">
-                <div class="flex justify-between items-end mb-10">
-                    <div>
-                        <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-1">回覧一覧</h1>
-                        <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Circular Reports</nav>
+                <div class="flex justify-between items-end mb-8">
+                    <div><h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter">回覧一覧</h1><nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Circular Board</nav></div>
+                    <div class="flex gap-2">
+                        <button onclick="window.bulkAction('read')" class="px-5 py-2 bg-white border border-slate-200 text-slate-500 rounded-xl font-black text-[10px] hover:bg-slate-50">一括既読</button>
+                        <button onclick="window.bulkAction('delete')" class="px-5 py-2 bg-rose-50 border border-rose-100 text-rose-500 rounded-xl font-black text-[10px] hover:bg-rose-100">一括削除</button>
                     </div>
-                    <button onclick="window.markAllAsRead()" class="px-8 py-3 bg-[#004098] text-white rounded-xl font-black text-xs hover:shadow-lg transition-all active:scale-95">すべて既読にする</button>
                 </div>
-
-                <div id="kairanList" class="space-y-4 mb-20">
-                    <!-- JS注入 -->
-                </div>
+                <div id="kairanList" class="space-y-3 mb-20"></div>
             </div>
         </div>
     </main>
-
-    <div id="local-loading" class="fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] hidden flex-col items-center justify-center">
-        <div class="animate-spin mb-4 text-[#ff7e11] text-6xl"><i class="fa-solid fa-circle-notch"></i></div>
-        <p class="text-slate-800 font-black tracking-tighter uppercase italic text-xs">Syncing Circulars...</p>
-    </div>
-
     <script type="module" src="common.js"></script>
     <script type="module">
         import { db } from "./common.js";
-        import { collection, getDocs, query, where, updateDoc, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, getDocs, updateDoc, deleteDoc, doc, writeBatch, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let myName = sessionStorage.getItem('userName');
 
         async function init() {
-            if(!myName) return;
             const container = document.getElementById('kairanList');
-            const loader = document.getElementById('local-loading');
-            loader.style.display = 'flex';
-
             try {
-                // 🌟 【名寄せ解決】Firebase側での並び替えをせず、まずは全件取得（省エネ）
                 const snap = await getDocs(collection(db, "notifications"));
                 const clean = (s) => (s||"").replace(/\s+/g, '');
+                const data = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+                                 .filter(n => clean(n.recipient) === clean(myName))
+                                 .sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
                 
-                // ブラウザ側で自分宛てを抽出 ＆ 最新順にソート
-                const data = snap.docs
-                    .map(d => ({ id: d.id, ...d.data() }))
-                    .filter(n => clean(n.recipient) === clean(myName))
-                    .sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-
-                loader.style.display = 'none';
-
-                if(data.length === 0) {
-                    container.innerHTML = '<p class="text-center py-20 text-slate-300 font-bold">回覧はありません</p>';
-                    return;
-                }
-
-                container.innerHTML = data.map(n => {
-                    const isApo = n.type === "アポ回覧";
-                    const dateStr = n.visitDate ? String(n.visitDate).replace(/-/g,'/') : '日付なし';
-                    
-                    return `
-                        <div class="accordion-item ${n.isRead ? '' : 'unread'}">
-                            <div class="accordion-header" onclick="window.toggleKairan(this, '${n.id}', ${n.isRead})">
-                                <div class="flex items-center gap-6">
-                                    <span class="badge ${isApo ? 'badge-apo' : 'badge-rec'}">${isApo ? 'アポ' : '実績'}</span>
-                                    <span class="text-sm font-mono font-black text-slate-800">${dateStr}</span>
-                                    <span class="text-base font-black text-slate-700">${n.visitorName} ➔ ${n.customerName}</span>
+                container.innerHTML = data.length ? data.map(n => `
+                    <div class="accordion-item ${n.isRead ? '' : 'unread'}">
+                        <div class="accordion-header">
+                            <div class="flex items-center gap-4">
+                                <input type="checkbox" class="bulk-check w-4 h-4 accent-[#004098]" value="${n.id}">
+                                <div onclick="window.toggleKairan(this.parentElement.parentElement, '${n.id}', ${n.isRead})" class="flex items-center gap-4 cursor-pointer">
+                                    <span class="badge ${n.type === 'アポ回覧' ? 'badge-apo' : 'badge-rec'}">${n.type === 'アポ回覧' ? 'アポ' : '実績'}</span>
+                                    <span class="text-sm font-mono font-black">${String(n.visitDate||'').replace(/-/g,'/')}</span>
+                                    <span class="text-sm font-black text-slate-700">${n.visitorName} ➔ ${n.customerName}</span>
                                 </div>
-                                <i class="fa-solid fa-chevron-down opacity-30 text-xs transition-transform"></i>
                             </div>
-                            <div class="accordion-content">
-                                <div class="info-grid">
-                                    <div><p class="info-label">お客様名</p><p class="info-value text-[#004098]">${n.customerName}</p></div>
-                                    <div><p class="info-label">訪問/予定日</p><p class="info-value font-mono font-black">${dateStr}</p></div>
-                                    <div><p class="info-label">報告者</p><p class="info-value">${n.visitorName}</p></div>
-                                    <div><p class="info-label">区分</p><p class="info-value font-black text-orange-500">${n.type || '実績回覧'}</p></div>
-                                </div>
-                                <div>
-                                    <span class="report-label">◆ 詳細内容</span>
-                                    <div class="report-box">${n.content || '報告内容の詳細はUsage画面で確認できます。'}</div>
-                                </div>
-                                <div class="mt-10 flex justify-end">
-                                    <button onclick="window.goUsage('${n.visitorName}', '${n.visitDate}', '${n.customerName}')" class="px-6 py-2 bg-slate-100 text-[#004098] rounded-lg text-xs font-black hover:bg-[#004098] hover:text-white transition-all">
-                                        この社員の全履歴を確認する ➔
-                                    </button>
-                                </div>
+                            <i class="fa-solid fa-chevron-down opacity-20 text-xs"></i>
+                        </div>
+                        <div class="accordion-content">
+                            <div class="info-grid">
+                                <div><p class="info-label">お客様名</p><p class="info-value text-blue-600">${n.customerName}</p></div>
+                                <div><p class="info-label">報告者</p><p class="info-value">${n.visitorName}</p></div>
+                            </div>
+                            <div class="report-box">${n.content || '報告内容あり'}</div>
+                            <div class="mt-8 flex justify-end">
+                                <button onclick="window.goUsage('${n.visitorName}', '${n.visitDate}', '${n.customerName}')" class="text-xs font-black text-[#004098] hover:underline">この社員の全履歴を確認 ➔</button>
                             </div>
                         </div>
-                    `;
-                }).join('');
-            } catch (e) { console.error(e); loader.style.display = 'none'; }
+                    </div>`).join('') : '<p class="text-center py-20 text-slate-300 font-bold">新しい回覧はありません</p>';
+            } catch (e) { console.error(e); }
         }
 
-        window.toggleKairan = async (header, id, isRead) => {
-            const content = header.nextElementSibling;
-            const arrow = header.querySelector('i');
-            const item = header.parentElement;
-            const open = content.style.display === 'block';
-            content.style.display = open ? 'none' : 'block';
-            arrow.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
-
-            if (!open && !isRead) {
-                await updateDoc(doc(db, "notifications", id), { isRead: true });
-                item.classList.remove('unread');
-            }
+        window.toggleKairan = async (item, id, isRead) => {
+            const content = item.querySelector('.accordion-content');
+            const arrow = item.querySelector('.fa-chevron-down');
+            const isOpen = content.style.display === 'block';
+            content.style.display = isOpen ? 'none' : 'block';
+            arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+            if (!isOpen && !isRead) { await updateDoc(doc(db, "notifications", id), { isRead: true }); item.classList.remove('unread'); }
         };
 
-        window.markAllAsRead = async () => {
-            if(!confirm("未読の回覧をすべて既読にします。よろしいですか？")) return;
-            const q = query(collection(db, "notifications"), where("recipient", "==", myName), where("isRead", "==", false));
-            const snap = await getDocs(q);
+        window.bulkAction = async (action) => {
+            const checks = document.querySelectorAll('.bulk-check:checked');
+            if (!checks.length) return alert("項目を選択してください");
+            if (!confirm(`${checks.length}件を${action === 'read' ? '既読' : '削除'}にしますか？`)) return;
             const batch = writeBatch(db);
-            snap.docs.forEach(d => batch.update(d.ref, { isRead: true }));
-            await batch.commit();
-            alert("すべて既読にしました");
-            location.reload();
+            checks.forEach(cb => {
+                const ref = doc(db, "notifications", cb.value);
+                if (action === 'read') batch.update(ref, { isRead: true });
+                else batch.delete(ref);
+            });
+            await batch.commit(); alert("完了しました"); location.reload();
         };
 
         window.goUsage = (name, date, customer) => {
             const m = date ? parseInt(date.split(/[-/]/)[1]) : (new Date().getMonth() + 1);
-            sessionStorage.setItem('cp_usage_jump_name', name);
+            sessionStorage.setItem('cp_usage_jump_name', name.trim()); // 🌟 スペースを除去してバトンを渡す
             sessionStorage.setItem('cp_usage_jump_month', m);
             sessionStorage.setItem('cp_usage_jump_customer', customer);
             location.href = 'usage.html';
         };
-
         init();
     </script>
 </body>
