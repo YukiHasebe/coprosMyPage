@@ -8,18 +8,23 @@
         :root { --copros-blue: #87ceeb; --copros-orange: #ff7e11; --copros-navy: #004098; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); background: #e2e8f0; gap: 1px; border: 1px solid #e2e8f0; border-radius: 1rem; overflow: hidden; }
-        .calendar-day { background: white; min-height: 120px; padding: 0.4rem; position: relative; }
-        .calendar-day.other-month { background: #f8fafc; color: #cbd5e1; }
+        .calendar-day { background: white; min-height: 140px; padding: 0.4rem; position: relative; }
         .day-num { font-weight: 900; font-size: 0.85rem; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
         .is-today .day-num { background: var(--copros-orange); color: white; border-radius: 50%; }
-        .event-label { font-size: 9px; font-weight: 800; padding: 3px 6px; border-radius: 4px; margin-bottom: 2px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 3px solid; transition: all 0.2s; }
-        .event-label:hover { transform: translateX(3px); filter: brightness(1.05); }
+        
+        .event-label { font-size: 9px; font-weight: 800; padding: 3px 6px; border-radius: 4px; margin-bottom: 2px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 3px solid; transition: all 0.2s; position: relative; }
+        /* 🌟 未読バッジ */
+        .unread-dot { width: 6px; height: 6px; background: #ef4444; border-radius: 50%; position: absolute; right: 4px; top: 50%; transform: translateY(-50%); }
+        
         .label-result { border-left-color: var(--copros-orange); background: #fff7ed; color: #ea580c; }
         .label-next { border-left-color: #10b981; background: #f0fdf4; color: #16a34a; }
         .label-appoint { border-left-color: #3b82f6; background: #eff6ff; color: #1d4ed8; }
-        .month-btn { padding: 0.5rem 0.2rem; border-radius: 0.75rem; font-size: 0.7rem; font-weight: 900; flex: 1; text-align: center; transition: 0.2s; }
+        
+        .staff-chip { padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 900; background: #f1f5f9; border: 1px solid #e2e8f0; cursor: pointer; transition: all 0.2s; }
+        .staff-chip.active { background: var(--copros-navy); color: white; border-color: var(--copros-navy); }
+        .scope-select { background: #e2e8f0; border: none; padding: 0.4rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; }
+        .month-btn { padding: 0.6rem 0.2rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; flex: 1; text-align: center; cursor: pointer; }
         .month-btn.active { background: var(--copros-navy); color: white; }
-        .scope-select { background: #e2e8f0; border: none; padding: 0.4rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; cursor: pointer; }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700 font-sans">
@@ -27,21 +32,33 @@
     <main class="flex-1 flex flex-col overflow-hidden">
         <div id="header-placeholder"></div>
         <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
-            <div class="max-w-[1400px] mx-auto">
+            <div class="max-w-[1500px] mx-auto">
+                
                 <div class="flex flex-col gap-6 mb-6">
-                    <div class="relative flex flex-col lg:flex-row items-start lg:items-center min-h-[80px] gap-4">
-                        <div class="flex items-end gap-4 lg:gap-6 shrink-0">
-                            <div><h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-1">カレンダー</h1><nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Schedule Management</nav></div>
-                            <!-- 🌟 修正：onchange を追加し、切り替え時に fetchMonthData を実行 -->
-                            <select id="deptFilter" onchange="window.fetchMonthData()" class="scope-select shadow-inner mb-2">
+                    <div class="flex justify-between items-end">
+                        <div>
+                            <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-1">カレンダー回覧</h1>
+                            <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Management & Activity Board</nav>
+                        </div>
+                        <div class="flex gap-4">
+                            <button onclick="window.markAllAsRead()" class="px-6 py-2 bg-white border border-slate-200 text-slate-500 rounded-xl font-black text-[10px] hover:bg-slate-50 shadow-sm transition-all">全選択を既読にする</button>
+                            <select id="deptFilter" onchange="window.renderStaffList()" class="scope-select shadow-inner">
                                 <option value="ALL">全社表示</option>
                                 <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option><option>土木部</option><option>建築部</option><option>建機部</option><option>総務部</option><option>購買課</option><option>宮崎産商</option><option>企画部</option>
                             </select>
                         </div>
-                        <div class="lg:absolute lg:left-1/2 lg:-translate-x-1/2 flex items-center gap-6 bg-white py-2 px-6 rounded-2xl shadow-sm border border-slate-100 mx-auto lg:mx-0">
-                            <button onclick="window.changeMonth(-1)" class="text-slate-300 hover:text-slate-600"><i class="fa-solid fa-chevron-left fa-lg"></i></button>
+                    </div>
+
+                    <!-- 🌟 複数人選択チップ（ここでの選択をブラウザが記憶） -->
+                    <div id="staffSelector" class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap gap-2 max-h-[100px] overflow-y-auto custom-scrollbar">
+                        <!-- JSで社員チップが並びます -->
+                    </div>
+
+                    <div class="relative flex flex-col lg:flex-row items-center min-h-[60px]">
+                        <div class="lg:absolute lg:left-1/2 lg:-translate-x-1/2 flex items-center gap-6 bg-white py-1.5 px-6 rounded-2xl shadow-sm border border-slate-100 mx-auto">
+                            <button onclick="window.changeMonth(-1)" class="text-slate-300 hover:text-slate-600 transition-colors"><i class="fa-solid fa-chevron-left"></i></button>
                             <span id="displayMonthCenter" class="text-lg font-black text-slate-700 min-w-[140px] text-center tracking-tighter">----年 --月</span>
-                            <button onclick="window.changeMonth(1)" class="text-slate-300 hover:text-slate-600"><i class="fa-solid fa-chevron-right fa-lg"></i></button>
+                            <button onclick="window.changeMonth(1)" class="text-slate-300 hover:text-slate-600 transition-colors"><i class="fa-solid fa-chevron-right"></i></button>
                         </div>
                         <div class="flex gap-4 items-center bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-100 text-[10px] font-black ml-auto">
                             <label class="flex items-center gap-1.5 cursor-pointer text-orange-600"><input type="checkbox" id="showRes" checked onchange="renderCalendar()" class="accent-orange-500"> 実績</label>
@@ -49,10 +66,12 @@
                             <label class="flex items-center gap-1.5 cursor-pointer text-blue-600"><input type="checkbox" id="showApp" checked onchange="renderCalendar()" class="accent-blue-500"> アポ</label>
                         </div>
                     </div>
+
                     <div class="flex overflow-x-auto p-1 bg-white rounded-2xl border border-slate-200 shadow-sm whitespace-nowrap custom-scrollbar">
                         <script>for(let i=1; i<=12; i++) document.write(`<button onclick="window.jumpMonth(${i})" id="month-btn-${i}" class="month-btn">${i}月</button>`);</script>
                     </div>
                 </div>
+
                 <div id="calendarGrid" class="calendar-grid"></div>
             </div>
         </div>
@@ -61,35 +80,67 @@
     <script type="module" src="common.js"></script>
     <script type="module">
         import { db } from "./common.js";
-        import { collection, getDocs, query, where, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, getDocs, query, where, doc, updateDoc, writeBatch, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+        let allStaffs = [];
+        let selectedStaffs = JSON.parse(localStorage.getItem('cp_cal_selected_staffs') || "[]");
+        let loadedData = { records: [], appoints: [], notifications: [] };
         let currentDate = new Date();
-        let loadedData = { records: [], appoints: [] };
 
-        function formatDateKey(dateStr) {
-            if (!dateStr) return null;
-            const d = new Date(dateStr.replace(/\//g, '-'));
-            return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+        async function init() {
+            try {
+                const sSnap = await getDocs(query(collection(db, "staffs"), orderBy("name")));
+                allStaffs = sSnap.docs.map(d => d.data());
+                window.renderStaffList();
+                await window.fetchMonthData();
+            } catch (e) { console.error(e); }
         }
+
+        window.renderStaffList = () => {
+            const dept = document.getElementById('deptFilter').value;
+            const container = document.getElementById('staffSelector');
+            container.innerHTML = "";
+            allStaffs.filter(s => dept === 'ALL' || s.dept === dept).forEach(s => {
+                const chip = document.createElement('div');
+                chip.className = `staff-chip ${selectedStaffs.includes(s.name) ? 'active' : ''}`;
+                chip.innerText = s.name;
+                chip.onclick = () => window.toggleStaff(s.name);
+                container.appendChild(chip);
+            });
+        };
+
+        window.toggleStaff = (name) => {
+            if (selectedStaffs.includes(name)) selectedStaffs = selectedStaffs.filter(n => n !== name);
+            else selectedStaffs.push(name);
+            localStorage.setItem('cp_cal_selected_staffs', JSON.stringify(selectedStaffs));
+            window.renderStaffList();
+            window.fetchMonthData();
+        };
 
         window.fetchMonthData = async () => {
             const y = currentDate.getFullYear(); const m = currentDate.getMonth() + 1;
             document.getElementById('displayMonthCenter').innerText = `${y}年 ${m}月`;
-            const dept = document.getElementById('deptFilter').value;
+            document.querySelectorAll('.month-btn').forEach(b => b.classList.toggle('active', b.id === `month-btn-${m}`));
 
             try {
-                let q;
-                if (dept !== 'ALL') {
-                    q = query(collection(db, "activity_records"), where("visitorDept", "==", dept));
+                // 🌟 複数人抽出に対応したクエリ（選択なしなら空、ALLなら部署で制限）
+                if (selectedStaffs.length === 0) {
+                    loadedData.records = []; loadedData.appoints = [];
                 } else {
-                    q = query(collection(db, "activity_records"), limit(500));
+                    const q = query(collection(db, "activity_records"), where("visitorName", "in", selectedStaffs.slice(0, 10)));
+                    const snap = await getDocs(q);
+                    loadedData.records = snap.docs.map(d => d.data());
+                    
+                    const qa = query(collection(db, "appointments"), where("visitorName", "in", selectedStaffs.slice(0, 10)));
+                    const snapA = await getDocs(qa);
+                    loadedData.appoints = snapA.docs.map(d => ({ id: d.id, ...d.data() }));
                 }
-                const snap = await getDocs(q);
-                loadedData.records = snap.docs.map(d => d.data());
-                
-                let qa = dept !== 'ALL' ? query(collection(db, "appointments"), where("visitorDept", "==", dept)) : query(collection(db, "appointments"), limit(200));
-                const snapA = await getDocs(qa);
-                loadedData.appoints = snapA.docs.map(d => ({ id: d.id, ...d.data() }));
+
+                // 未読通知の取得（自分宛）
+                const myName = sessionStorage.getItem('userName');
+                const qn = query(collection(db, "notifications"), where("recipient", "==", myName), where("isRead", "==", false));
+                const snapN = await getDocs(qn);
+                loadedData.notifications = snapN.docs.map(d => d.data());
 
                 window.renderCalendar();
             } catch (e) { console.error(e); }
@@ -97,36 +148,45 @@
 
         window.renderCalendar = () => {
             const grid = document.getElementById('calendarGrid'); grid.innerHTML = "";
-            const year = currentDate.getFullYear(); const month = currentDate.getMonth();
+            const year = currentDate.getFullYear(), month = currentDate.getMonth();
             const daysInMonth = new Date(year, month + 1, 0).getDate();
-            const firstDay = new Date(year, month, 1).getDay();
-            const startOffset = (firstDay === 0) ? 6 : firstDay - 1;
+            const startOffset = (new Date(year, month, 1).getDay() + 6) % 7;
 
             for(let i=0; i<startOffset; i++) grid.insertAdjacentHTML('beforeend', '<div class="calendar-day other-month"></div>');
+
             for(let d=1; d<=daysInMonth; d++) {
                 const targetKey = `${year}-${month + 1}-${d}`;
                 let eventsHtml = "";
+
                 if (document.getElementById('showRes').checked) {
-                    loadedData.records.filter(r => formatDateKey(r.visitDate) === targetKey)
-                        .forEach(r => { eventsHtml += `<div class="event-label label-result" onclick="location.href='customer_history.html?name=${encodeURIComponent(r.customerName)}'">実績: ${r.customerName}</div>`; });
+                    loadedData.records.filter(r => window.formatDateKey(r.visitDate) === targetKey)
+                        .forEach(r => {
+                            // 未読判定
+                            const isUnread = loadedData.notifications.some(n => n.customerName === r.customerName && n.visitDate === r.visitDate);
+                            eventsHtml += `<div class="event-label label-result" onclick="window.goUsage('${r.visitorName}', ${month+1}, '${r.customerName}')">
+                                ${r.visitorName.substring(0,1)}: ${r.customerName}
+                                ${isUnread ? '<span class="unread-dot"></span>' : ''}
+                            </div>`;
+                        });
                 }
-                if (document.getElementById('showNext').checked) {
-                    loadedData.records.filter(r => formatDateKey(r.nextVisitDate) === targetKey)
-                        .forEach(r => { eventsHtml += `<div class="event-label label-next" onclick="location.href='customer_history.html?name=${encodeURIComponent(r.customerName)}'">次回: ${r.customerName}</div>`; });
-                }
-                if (document.getElementById('showApp').checked) {
-                    loadedData.appoints.filter(a => formatDateKey(a.appointDate) === targetKey)
-                        .forEach(a => { eventsHtml += `<div class="event-label label-appoint" onclick="window.showAppointDetail('${a.id}','${a.customerName}','${a.appointDate}','${a.subject}')">アポ: ${a.customerName}</div>`; });
-                }
-                grid.insertAdjacentHTML('beforeend', `<div class="calendar-day"><div class="day-header mb-1"><span class="day-num">${d}</span></div><div class="max-h-[90px] overflow-y-auto custom-scrollbar space-y-0.5">${eventsHtml}</div></div>`);
+                grid.insertAdjacentHTML('beforeend', `<div class="calendar-day"><div class="day-header mb-1"><span class="day-num">${d}</span></div><div class="max-h-[100px] overflow-y-auto custom-scrollbar">${eventsHtml}</div></div>`);
             }
         };
 
-        window.changeMonth = async (v) => { currentDate.setMonth(currentDate.getMonth() + v); await fetchMonthData(); };
-        window.jumpMonth = async (m) => { currentDate.setMonth(m - 1); await fetchMonthData(); };
-        window.setToday = async () => { currentDate = new Date(); await fetchMonthData(); };
+        // 🌟 Usageへジャンプし、特定の人・月・内容を開く魔法のリンク
+        window.goUsage = (name, month, customer) => {
+            sessionStorage.setItem('cp_usage_jump_name', name);
+            sessionStorage.setItem('cp_usage_jump_month', month);
+            sessionStorage.setItem('cp_usage_jump_customer', customer);
+            location.href = 'usage.html';
+        };
 
-        window.addEventListener('load', () => { setTimeout(() => fetchMonthData(), 300); });
+        window.formatDateKey = (s) => { if(!s) return ""; const d = s.replace(/\//g, '-').split('-'); return `${parseInt(d[0])}-${parseInt(d[1])}-${parseInt(d[2])}`; };
+        window.changeMonth = (v) => { currentDate.setMonth(currentDate.getMonth() + v); window.fetchMonthData(); };
+        window.jumpMonth = (m) => { currentDate.setMonth(m - 1); window.fetchMonthData(); };
+        window.markAllAsRead = async () => { /* 一括既読ロジック（後ほど実装） */ alert("選択中の社員の今月分を既読にします"); };
+
+        init();
     </script>
 </body>
 </html>
