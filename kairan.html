@@ -8,18 +8,20 @@
         :root { --copros-orange: #ff7e11; --copros-navy: #004098; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
         
-        /* 🌟 未読・既読のスタイル定義 */
         .accordion-item { background: white; border-radius: 1.2rem; border: 1px solid #e2e8f0; overflow: hidden; margin-bottom: 1rem; border-left: 6px solid transparent; transition: all 0.3s; }
-        .accordion-item.unread { border-left-color: var(--copros-orange); box-shadow: 0 4px 15px rgba(255,126,17,0.1); }
-        .accordion-item.read { opacity: 0.8; }
+        .accordion-item.unread { border-left-color: var(--copros-orange); }
         
         .accordion-header { padding: 1.2rem 2rem; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
         .accordion-content { display: none; padding: 2.5rem; background: white; border-top: 1px solid #f1f5f9; }
         
+        /* 🌟 未読・既読ラベル */
+        .status-txt { font-size: 10px; font-weight: 900; padding: 2px 8px; border-radius: 4px; min-width: 45px; text-align: center; }
+        .status-unread { background: var(--copros-orange); color: white; }
+        .status-read { background: #e2e8f0; color: #94a3b8; }
+
         .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; margin-bottom: 2rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 2rem; }
         .info-label { font-size: 11px; color: #94a3b8; font-weight: 800; }
         .info-value { font-size: 14px; font-weight: 800; color: #475569; }
-        .report-label { font-size: 11px; font-weight: 900; color: var(--copros-orange); margin-bottom: 1rem; display: block; }
         .report-box { background: #f8fafc; border-radius: 1.2rem; padding: 1.5rem; border: 1px solid #f1f5f9; font-size: 14px; line-height: 1.7; color: #334155; }
         
         .badge { padding: 3px 10px; border-radius: 10px; font-size: 10px; font-weight: 900; color: white; }
@@ -32,11 +34,11 @@
     <main class="flex-1 flex flex-col overflow-hidden">
         <div id="header-placeholder"></div>
         <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
-            <div class="max-w-[1000px] mx-auto">
+            <div class="max-w-[1100px] mx-auto">
                 <div class="flex justify-between items-end mb-8">
                     <div>
                         <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-1">回覧一覧</h1>
-                        <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Circular Management</nav>
+                        <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Review & Circular Management</nav>
                     </div>
                     <div class="flex gap-2">
                         <button onclick="window.bulkAction('read')" class="px-5 py-2 bg-white border border-slate-200 text-slate-500 rounded-xl font-black text-[10px] hover:bg-slate-50">一括既読</button>
@@ -57,7 +59,7 @@
     <script type="module" src="common.js"></script>
     <script type="module">
         import { db } from "./common.js";
-        import { collection, getDocs, updateDoc, deleteDoc, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, getDocs, updateDoc, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let myName = sessionStorage.getItem('userName');
         const clean = (s) => (s||"").replace(/\s+/g, '');
@@ -74,12 +76,13 @@
                 
                 loader.style.display = 'none';
                 container.innerHTML = data.length ? data.map(n => `
-                    <div class="accordion-item ${n.isRead ? 'read' : 'unread'}" id="item-${n.id}">
+                    <div class="accordion-item ${n.isRead ? '' : 'unread'}" id="item-${n.id}">
                         <div class="accordion-header" onclick="window.toggleKairan('${n.id}', ${n.isRead})">
                             <div class="flex items-center gap-4">
                                 <input type="checkbox" class="bulk-check w-4 h-4 accent-[#004098]" onclick="event.stopPropagation()" value="${n.id}">
+                                <span class="status-txt ${n.isRead ? 'status-read' : 'status-unread'}">${n.isRead ? '既読' : '未読'}</span>
                                 <span class="badge ${n.type === 'アポ回覧' ? 'badge-apo' : 'badge-rec'}">${n.type === 'アポ回覧' ? 'アポ' : '実績'}</span>
-                                <span class="text-sm font-mono font-black ${n.isRead ? 'text-slate-800' : 'text-orange-500'}">${String(n.visitDate||'').replace(/-/g,'/')}</span>
+                                <span class="text-sm font-mono font-black ${n.isRead ? 'text-slate-800' : 'text-orange-600'}">${String(n.visitDate||n.appointDate||'---').replace(/-/g,'/')}</span>
                                 <span class="text-sm font-black ${n.isRead ? 'text-slate-800' : 'text-slate-700'}">${n.visitorName} ➔ ${n.customerName}</span>
                             </div>
                             <i class="fa-solid fa-chevron-down opacity-20 text-xs transition-transform"></i>
@@ -89,9 +92,9 @@
                                 <div><p class="info-label">お客様名</p><p class="info-value text-blue-600">${n.customerName}</p></div>
                                 <div><p class="info-label">報告者</p><p class="info-value">${n.visitorName}</p></div>
                             </div>
-                            <div class="report-box">${n.content || '報告内容あり'}</div>
+                            <div class="report-box">${n.content || '詳細内容はUsage画面で確認してください'}</div>
                             <div class="mt-8 flex justify-end">
-                                <button onclick="window.goUsage('${n.visitorName}', '${n.visitDate}', '${n.customerName}')" class="text-xs font-black text-[#004098] hover:underline">この社員の全履歴を確認 ➔</button>
+                                <button onclick="window.goUsage('${n.visitorName}', '${n.visitDate || n.appointDate}', '${n.customerName}')" class="text-xs font-black text-[#004098] hover:underline">この社員の全履歴を確認 ➔</button>
                             </div>
                         </div>
                     </div>`).join('') : '<p class="text-center py-20 text-slate-300 font-bold">回覧はありません</p>';
@@ -102,24 +105,22 @@
             const item = document.getElementById(`item-${id}`);
             const content = item.querySelector('.accordion-content');
             const arrow = item.querySelector('.fa-chevron-down');
+            const statusLabel = item.querySelector('.status-txt');
             const isOpen = content.style.display === 'block';
             
-            // アコーディオンの開閉
             content.style.display = isOpen ? 'none' : 'block';
             arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
             
-            // 🌟 開いた瞬間にオート既読処理
             if (!isOpen && !isRead) {
                 try {
                     await updateDoc(doc(db, "notifications", id), { isRead: true });
                     item.classList.remove('unread');
-                    item.classList.add('read');
-                    // 日付や名前の色を黒くする
-                    item.querySelectorAll('.text-orange-500').forEach(el => {
-                        el.classList.remove('text-orange-500');
-                        el.classList.add('text-slate-800');
+                    statusLabel.innerText = "既読";
+                    statusLabel.className = "status-txt status-read";
+                    item.querySelectorAll('.text-orange-600').forEach(el => {
+                        el.classList.replace('text-orange-600', 'text-slate-800');
                     });
-                } catch (e) { console.error("Update Error:", e); }
+                } catch (e) { console.error(e); }
             }
         };
 
@@ -134,8 +135,7 @@
                 else batch.delete(ref);
             });
             await batch.commit();
-            alert("処理が完了しました");
-            init(); // 再読み込み
+            init();
         };
 
         window.goUsage = (name, date, customer) => {
