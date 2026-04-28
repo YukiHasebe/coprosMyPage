@@ -7,7 +7,7 @@
     <style>
         :root { --copros-orange: #ff7e11; --copros-navy: #004098; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
-        .accordion-item { background: white; border-radius: 1.2rem; border: 1px solid #e2e8f0; overflow: hidden; margin-bottom: 1rem; box-shadow: 0 4px 10px rgba(0,0,0,0.03); border-left: 6px solid transparent; }
+        .accordion-item { background: white; border-radius: 1.2rem; border: 1px solid #e2e8f0; overflow: hidden; margin-bottom: 1rem; border-left: 6px solid transparent; }
         .accordion-item.unread { border-left-color: var(--copros-orange); }
         .accordion-header { padding: 1.2rem 2rem; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
         .accordion-content { display: none; padding: 2.5rem; background: white; border-top: 1px solid #f1f5f9; }
@@ -27,10 +27,10 @@
         <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1000px] mx-auto">
                 <div class="flex justify-between items-end mb-8">
-                    <div><h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter">回覧一覧</h1><nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Circular Board</nav></div>
+                    <div><h1 class="text-4xl font-black text-slate-800 tracking-tighter">回覧一覧</h1><nav class="text-[10px] font-black text-slate-400 uppercase italic">Circular Management</nav></div>
                     <div class="flex gap-2">
-                        <button onclick="window.bulkAction('read')" class="px-5 py-2 bg-white border border-slate-200 text-slate-500 rounded-xl font-black text-[10px] hover:bg-slate-50">一括既読</button>
-                        <button onclick="window.bulkAction('delete')" class="px-5 py-2 bg-rose-50 border border-rose-100 text-rose-500 rounded-xl font-black text-[10px] hover:bg-rose-100">一括削除</button>
+                        <button onclick="window.bulkAction('read')" class="px-5 py-2 bg-white border border-slate-200 text-slate-500 rounded-xl font-black text-[10px]">一括既読</button>
+                        <button onclick="window.bulkAction('delete')" class="px-5 py-2 bg-rose-50 border border-rose-100 text-rose-500 rounded-xl font-black text-[10px]">一括削除</button>
                     </div>
                 </div>
                 <div id="kairanList" class="space-y-3 mb-20"></div>
@@ -40,31 +40,29 @@
     <script type="module" src="common.js"></script>
     <script type="module">
         import { db } from "./common.js";
-        import { collection, getDocs, updateDoc, deleteDoc, doc, writeBatch, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, getDocs, updateDoc, deleteDoc, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let myName = sessionStorage.getItem('userName');
+        const clean = (s) => (s||"").replace(/\s+/g, '');
 
         async function init() {
             const container = document.getElementById('kairanList');
             try {
                 const snap = await getDocs(collection(db, "notifications"));
-                const clean = (s) => (s||"").replace(/\s+/g, '');
                 const data = snap.docs.map(d => ({ id: d.id, ...d.data() }))
                                  .filter(n => clean(n.recipient) === clean(myName))
                                  .sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
                 
-                container.innerHTML = data.length ? data.map(n => `
-                    <div class="accordion-item ${n.isRead ? '' : 'unread'}">
-                        <div class="accordion-header">
+                container.innerHTML = data.map(n => `
+                    <div class="accordion-item ${n.isRead ? '' : 'unread'}" id="item-${n.id}">
+                        <div class="accordion-header" onclick="window.toggleKairan('${n.id}', ${n.isRead})">
                             <div class="flex items-center gap-4">
-                                <input type="checkbox" class="bulk-check w-4 h-4 accent-[#004098]" value="${n.id}">
-                                <div onclick="window.toggleKairan(this.parentElement.parentElement, '${n.id}', ${n.isRead})" class="flex items-center gap-4 cursor-pointer">
-                                    <span class="badge ${n.type === 'アポ回覧' ? 'badge-apo' : 'badge-rec'}">${n.type === 'アポ回覧' ? 'アポ' : '実績'}</span>
-                                    <span class="text-sm font-mono font-black">${String(n.visitDate||'').replace(/-/g,'/')}</span>
-                                    <span class="text-sm font-black text-slate-700">${n.visitorName} ➔ ${n.customerName}</span>
-                                </div>
+                                <input type="checkbox" class="bulk-check w-4 h-4 accent-[#004098]" onclick="event.stopPropagation()" value="${n.id}">
+                                <span class="badge ${n.type === 'アポ回覧' ? 'badge-apo' : 'badge-rec'}">${n.type === 'アポ回覧' ? 'アポ' : '実績'}</span>
+                                <span class="text-sm font-mono font-black">${String(n.visitDate||'').replace(/-/g,'/')}</span>
+                                <span class="text-sm font-black text-slate-700">${n.visitorName} ➔ ${n.customerName}</span>
                             </div>
-                            <i class="fa-solid fa-chevron-down opacity-20 text-xs"></i>
+                            <i class="fa-solid fa-chevron-down opacity-20 text-xs transition-transform"></i>
                         </div>
                         <div class="accordion-content">
                             <div class="info-grid">
@@ -76,11 +74,12 @@
                                 <button onclick="window.goUsage('${n.visitorName}', '${n.visitDate}', '${n.customerName}')" class="text-xs font-black text-[#004098] hover:underline">この社員の全履歴を確認 ➔</button>
                             </div>
                         </div>
-                    </div>`).join('') : '<p class="text-center py-20 text-slate-300 font-bold">新しい回覧はありません</p>';
+                    </div>`).join('');
             } catch (e) { console.error(e); }
         }
 
-        window.toggleKairan = async (item, id, isRead) => {
+        window.toggleKairan = async (id, isRead) => {
+            const item = document.getElementById(`item-${id}`);
             const content = item.querySelector('.accordion-content');
             const arrow = item.querySelector('.fa-chevron-down');
             const isOpen = content.style.display === 'block';
@@ -94,17 +93,13 @@
             if (!checks.length) return alert("項目を選択してください");
             if (!confirm(`${checks.length}件を${action === 'read' ? '既読' : '削除'}にしますか？`)) return;
             const batch = writeBatch(db);
-            checks.forEach(cb => {
-                const ref = doc(db, "notifications", cb.value);
-                if (action === 'read') batch.update(ref, { isRead: true });
-                else batch.delete(ref);
-            });
-            await batch.commit(); alert("完了しました"); location.reload();
+            checks.forEach(cb => { const ref = doc(db, "notifications", cb.value); if (action === 'read') batch.update(ref, { isRead: true }); else batch.delete(ref); });
+            await batch.commit(); location.reload();
         };
 
         window.goUsage = (name, date, customer) => {
             const m = date ? parseInt(date.split(/[-/]/)[1]) : (new Date().getMonth() + 1);
-            sessionStorage.setItem('cp_usage_jump_name', name.trim()); // 🌟 スペースを除去してバトンを渡す
+            sessionStorage.setItem('cp_usage_jump_name', name);
             sessionStorage.setItem('cp_usage_jump_month', m);
             sessionStorage.setItem('cp_usage_jump_customer', customer);
             location.href = 'usage.html';
