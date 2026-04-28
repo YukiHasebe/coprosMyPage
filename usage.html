@@ -7,34 +7,27 @@
     <style>
         :root { --copros-blue: #87ceeb; --copros-orange: #ff7e11; --copros-navy: #004098; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
-        
-        /* 社員選択エリア */
         .staff-selector-card { background: white; border-radius: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px rgba(0,0,0,0.04); }
         .staff-item { padding: 0.8rem 1.2rem; cursor: pointer; border-radius: 0.75rem; transition: all 0.2s; border: 1px solid transparent; text-align: center; }
         .staff-item:hover { background: #f8fafc; border-color: #e2e8f0; }
         .staff-item.active { background: var(--copros-navy); color: white; box-shadow: 0 4px 12px rgba(0,64,152,0.2); }
-        
-        /* 月選択ボタン */
         .month-btn { padding: 0.6rem 0.2rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; flex: 1; text-align: center; transition: 0.2s; border: 1px solid transparent; }
         .month-btn:hover { background: #f1f5f9; color: var(--copros-navy); }
         .month-btn.active { background: var(--copros-navy); color: white; }
-
-        /* 🌟 訪問実績履歴（アコーディオン）の再現 */
-        .accordion-item { background: white; border-radius: 1rem; border: 1px solid #e2e8f0; overflow: hidden; margin-bottom: 0.8rem; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
-        .accordion-header { padding: 1.2rem 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: space-between; background: #3c4b5a; color: white; transition: all 0.2s; }
-        .accordion-header:hover { background: #2d3748; }
-        .accordion-content { display: none; padding: 2rem; background: white; border-top: 1px solid #f1f5f9; }
         
-        .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; margin-bottom: 2rem; }
-        .info-label { font-size: 10px; font-weight: 800; color: #94a3b8; margin-bottom: 0.4rem; text-transform: uppercase; }
-        .info-value { font-size: 13px; font-weight: 800; color: #475569; }
-        .report-box { background: #f8fafc; border-radius: 1rem; padding: 1.5rem; border: 1px solid #f1f5f9; margin-top: 1rem; }
+        /* 🌟 訪問実績履歴アコーディオン（画像1枚目を完全再現） */
+        .accordion-item { background: white; border-radius: 1rem; border: 1px solid #e2e8f0; overflow: hidden; margin-bottom: 1rem; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
+        .accordion-header { padding: 1.2rem 2rem; cursor: pointer; display: flex; align-items: center; justify-content: space-between; background: #3c4b5a; color: white; }
+        .accordion-header:hover { background: #2d3748; }
+        .accordion-content { display: none; padding: 2.5rem; background: white; }
+        .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem; margin-bottom: 2.5rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 2rem; }
+        .info-label { font-size: 11px; font-weight: 800; color: #94a3b8; margin-bottom: 0.5rem; }
+        .info-value { font-size: 14px; font-weight: 800; color: #475569; }
+        .report-label { font-size: 11px; font-weight: 900; color: var(--copros-orange); margin-bottom: 1rem; display: block; }
+        .report-box { background: #f8fafc; border-radius: 1.2rem; padding: 2rem; border: 1px solid #f1f5f9; font-size: 14px; line-height: 1.8; color: #475569; }
 
         .scope-select { background: #f8fafc; border: 1px solid #e2e8f0; padding: 0.6rem 1rem; border-radius: 0.75rem; font-size: 0.8rem; font-weight: 800; color: #475569; outline: none; }
         .count-badge { background: #fff7ed; color: var(--copros-orange); padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 900; border: 1px solid #ffedd5; }
-        
-        .custom-scrollbar::-webkit-scrollbar { height: 4px; width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700 font-sans">
@@ -47,7 +40,7 @@
             <div class="max-w-[1200px] mx-auto">
                 <div class="mb-8">
                     <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-1">組織員利用状況</h1>
-                    <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Staff Activity Monitoring</nav>
+                    <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Staff Activity Logs</nav>
                 </div>
 
                 <!-- 1. 社員選択エリア -->
@@ -80,19 +73,18 @@
                     <div class="mb-20">
                         <div class="flex justify-between items-center mb-8 px-4">
                             <div>
-                                <h3 id="selectedStaffLabel" class="text-2xl font-black text-slate-800">---</h3>
+                                <h3 id="selectedStaffLabel" class="text-2xl font-black text-slate-800 tracking-tighter">---</h3>
                                 <p id="selectedDateLabel" class="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest italic">2026年 --月</p>
                             </div>
                             <span class="count-badge"><span id="recordCount">0</span> 件の実績</span>
                         </div>
-                        <!-- 🌟 アコーディオンが並ぶエリア -->
-                        <div id="activityAccordion" class="space-y-3"></div>
+                        <div id="activityAccordion" class="space-y-4"></div>
                     </div>
                 </div>
 
                 <div id="guideMsg" class="py-20 text-center">
                     <div class="text-slate-200 text-7xl mb-6"><i class="fa-solid fa-address-book"></i></div>
-                    <p class="text-slate-400 font-bold text-lg">社員を選択してください</p>
+                    <p class="text-slate-400 font-bold text-lg">社員を選択して活動履歴を表示してください</p>
                 </div>
             </div>
         </div>
@@ -100,7 +92,7 @@
 
     <div id="local-loading" class="fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] hidden flex-col items-center justify-center">
         <div class="animate-spin mb-4 text-[#ff7e11] text-6xl"><i class="fa-solid fa-circle-notch"></i></div>
-        <p class="text-slate-800 font-black tracking-tighter uppercase italic text-xs">Fetching Data...</p>
+        <p class="text-slate-800 font-black tracking-tighter uppercase italic text-xs">Syncing Performance Data...</p>
     </div>
 
     <script type="module" src="common.js"></script>
@@ -108,11 +100,7 @@
         import { db } from "./common.js";
         import { collection, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        let allStaffs = [];
-        let fetchedRecords = [];
-        let selectedName = "";
-        let currentY = 2026;
-        let currentM = new Date().getMonth() + 1;
+        let allStaffs = [], currentDeptRecords = [], selectedName = "", currentY = 2026, currentM = new Date().getMonth() + 1;
 
         async function init() {
             try {
@@ -132,12 +120,12 @@
                     const div = document.createElement('div');
                     div.className = `staff-item ${selectedName === s.name ? 'active' : ''}`;
                     div.innerHTML = `<p class="font-black text-xs">${s.name}</p><p class="text-[8px] opacity-60 uppercase">${s.dept || ''}</p>`;
-                    div.onclick = () => window.selectStaff(s.name);
+                    div.onclick = () => window.selectStaff(s.name, s.dept);
                     container.appendChild(div);
                 });
         };
 
-        window.selectStaff = async (name) => {
+        window.selectStaff = async (name, dept) => {
             selectedName = name;
             window.renderStaffList();
             document.getElementById('guideMsg').style.display = 'none';
@@ -145,20 +133,18 @@
             document.getElementById('local-loading').style.display = 'flex';
             
             try {
-                // 🌟 【一本釣り】日付指定を外して名前だけで全取得（確実に拾うため）
+                // 🌟 【名寄せ解決】人ではなく「部署」で全取得（名前にスペースがあってもJSで拾うため）
                 const q = query(collection(db, "activity_records"), 
-                                where("visitorName", "==", name),
-                                limit(1000));
+                                where("visitorDept", "==", dept || "不明"),
+                                where("visitDate", ">=", `${currentY}`),
+                                where("visitDate", "<=", `${currentY}\uf8ff`));
                 const snap = await getDocs(q);
-                fetchedRecords = snap.docs.map(d => d.data());
+                currentDeptRecords = snap.docs.map(d => d.data());
                 
                 document.getElementById('local-loading').style.display = 'none';
                 document.getElementById('selectedStaffLabel').innerText = `${name} さんの履歴`;
                 window.setMonth(currentM); 
-            } catch (e) { 
-                console.error(e);
-                document.getElementById('local-loading').style.display = 'none';
-            }
+            } catch (e) { console.error(e); document.getElementById('local-loading').style.display = 'none'; }
         };
 
         window.setMonth = (m) => {
@@ -173,33 +159,34 @@
             const container = document.getElementById('activityAccordion');
             const countLabel = document.getElementById('recordCount');
             
-            // 🌟 丁寧な仕分けロジック
-            const filtered = fetchedRecords.filter(r => {
-                if (!r.visitDate) return false;
-                const d = String(r.visitDate).replace(/\//g, '-').split('-');
-                return parseInt(d[0]) === currentY && parseInt(d[1]) === currentM;
+            // 🌟 丁寧な名寄せ ＆ 日付判定
+            const clean = (s) => (s||"").replace(/\s+/g, ''); // スペースを消去
+            const filtered = currentDeptRecords.filter(r => {
+                const dateParts = String(r.visitDate).replace(/\//g, '-').split('-');
+                const matchName = clean(r.visitorName) === clean(selectedName);
+                const matchMonth = parseInt(dateParts[1]) === currentM;
+                return matchName && matchMonth;
             }).sort((a,b) => String(b.visitDate).localeCompare(String(a.visitDate)));
 
             container.innerHTML = filtered.length ? filtered.map((r, i) => `
                 <div class="accordion-item">
-                    <div class="accordion-header" onclick="window.toggleAccordion(this)">
-                        <div class="flex items-center gap-4">
-                            <span class="text-[10px] font-black opacity-50">#${filtered.length - i}</span>
-                            <span class="text-xs font-mono font-black">${String(r.visitDate).replace(/-/g,'/')}</span>
-                            <span class="text-sm font-black">${r.customerName}</span>
+                    <div class="accordion-header" onclick="window.toggleAcc(this)">
+                        <div class="flex items-center gap-6">
+                            <span class="text-xs font-mono font-black opacity-60">${String(r.visitDate).replace(/-/g,'/')}</span>
+                            <span class="text-base font-black">${r.customerName}</span>
                         </div>
                         <i class="fa-solid fa-chevron-down opacity-30 text-xs transition-transform"></i>
                     </div>
                     <div class="accordion-content">
                         <div class="info-grid">
                             <div><p class="info-label">お客様担当者</p><p class="info-value">${r.customerStaff || '-'}</p></div>
-                            <div><p class="info-label">訪問時間</p><p class="info-value">${r.startTime || '--:--'} 〜 ${r.endTime || '--:--'}</p></div>
+                            <div><p class="info-label">訪問時間</p><p class="info-value font-mono">${r.startTime || '--:--'} 〜 ${r.endTime || '--:--'}</p></div>
                             <div><p class="info-label">同行者</p><p class="info-value">${r.companion || '-'}</p></div>
-                            <div><p class="info-label">定性データ</p><p class="info-value text-blue-500">${r.qualData1 || '-'}</p></div>
+                            <div><p class="info-label">定性データ</p><p class="info-value text-blue-500 font-black">${r.qualData1 || '-'}</p></div>
                         </div>
-                        <div class="space-y-4">
-                            <div><p class="info-label">お客様からの情報</p><div class="report-box text-sm leading-relaxed">${r.customerReport || 'なし'}</div></div>
-                            <div><p class="info-label">自分・スタッフの考え</p><div class="report-box text-sm leading-relaxed border-orange-50">${r.staffThoughts || 'なし'}</div></div>
+                        <div class="space-y-6">
+                            <div><span class="report-label">▼ お客様からの情報</span><div class="report-box">${r.customerReport || 'なし'}</div></div>
+                            <div><span class="report-label">▼ 自分・スタッフの考え</span><div class="report-box border-orange-100">${r.staffThoughts || 'なし'}</div></div>
                         </div>
                     </div>
                 </div>
@@ -208,12 +195,11 @@
             countLabel.innerText = filtered.length;
         };
 
-        window.toggleAccordion = (header) => {
-            const content = header.nextElementSibling;
-            const arrow = header.querySelector('i');
-            const isOpen = content.style.display === 'block';
-            content.style.display = isOpen ? 'none' : 'block';
-            arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+        window.toggleAcc = (h) => {
+            const c = h.nextElementSibling; const a = h.querySelector('i');
+            const open = c.style.display === 'block';
+            c.style.display = open ? 'none' : 'block';
+            a.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
         };
 
         window.addEventListener('load', () => { setTimeout(() => { const l = document.getElementById('loading'); if(l) l.style.display='none'; }, 500); });
