@@ -16,18 +16,17 @@
         .month-btn:hover { background: #f1f5f9; color: var(--copros-navy); }
         .month-btn.active { background: var(--copros-navy); color: white; }
 
-        /* アコーディオン演出 */
         .accordion-item { background: white; border-radius: 1rem; border: 1px solid #e2e8f0; overflow: hidden; margin-bottom: 1rem; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
         .accordion-header { padding: 1.2rem 2rem; cursor: pointer; display: flex; align-items: center; justify-content: space-between; background: #3c4b5a; color: white; transition: 0.2s; }
         .accordion-header:hover { background: #2d3748; }
         .accordion-content { display: none; padding: 2rem; background: white; border-top: 1px solid #f1f5f9; }
         
-        /* 🌟 アイコンバッジ */
         .type-badge { font-size: 9px; padding: 2px 8px; border-radius: 10px; font-weight: 900; margin-left: 8px; }
         .badge-success { background: #10b981; color: white; }
         .badge-warn { background: #f59e0b; color: white; }
         .badge-info { background: #3b82f6; color: white; }
 
+        /* サマリーカードの日本語化対応 */
         .summary-card { background: linear-gradient(135deg, #004098 0%, #2d3748 100%); color: white; border-radius: 1.5rem; padding: 1.5rem 2rem; margin-bottom: 2rem; display: flex; gap: 4rem; }
         .scope-select { background: #f8fafc; border: 1px solid #e2e8f0; padding: 0.6rem 1rem; border-radius: 0.75rem; font-size: 0.8rem; font-weight: 800; color: #475569; outline: none; }
         .custom-scrollbar::-webkit-scrollbar { height: 4px; width: 4px; }
@@ -43,22 +42,22 @@
             <div class="max-w-[1200px] mx-auto">
                 <div class="mb-8">
                     <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-1">組織員利用状況</h1>
-                    <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Performance Analytics Dashboard</nav>
+                    <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic font-bold">Performance Analytics Dashboard</nav>
                 </div>
 
                 <!-- 1. 部署・社員選択 -->
                 <div class="staff-selector-card p-6 mb-8">
                     <div class="flex flex-col lg:flex-row gap-4 mb-6">
                         <div class="flex flex-col gap-1.5 min-w-[240px]">
-                            <label class="text-[10px] font-black text-slate-400 uppercase ml-2">Department</label>
+                            <label class="text-[10px] font-black text-slate-400 uppercase ml-2">所属部署で絞り込む</label>
                             <select id="deptFilter" onchange="window.renderStaffList()" class="scope-select">
                                 <option value="ALL">全ての部署</option>
                                 <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option><option>土木部</option><option>建築部</option><option>建機部</option><option>総務部</option><option>購買課</option><option>宮崎産商</option><option>企画部</option>
                             </select>
                         </div>
                         <div class="flex flex-col gap-1.5 flex-1">
-                            <label class="text-[10px] font-black text-slate-400 uppercase ml-2">Search Name</label>
-                            <div class="relative"><i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-slate-300"></i><input type="text" id="staffSearch" oninput="window.renderStaffList()" placeholder="社員名で検索..." class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold transition-all"></div>
+                            <label class="text-[10px] font-black text-slate-400 uppercase ml-2">氏名で検索</label>
+                            <div class="relative"><i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-slate-300"></i><input type="text" id="staffSearch" oninput="window.renderStaffList()" placeholder="例：コプロス太郎" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold transition-all"></div>
                         </div>
                     </div>
                     <div id="staffList" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 max-h-[160px] overflow-y-auto custom-scrollbar p-1"></div>
@@ -66,10 +65,10 @@
 
                 <!-- 2. 月選択 ＆ 結果 -->
                 <div id="toolArea" class="hidden">
-                    <!-- 🌟 月間サマリー -->
+                    <!-- 🌟 日本語サマリー -->
                     <div class="summary-card shadow-lg">
-                        <div><p class="text-[10px] opacity-60 font-black uppercase mb-1">Monthly Visits</p><p class="text-3xl font-black"><span id="sumVisits">0</span> <span class="text-xs">件</span></p></div>
-                        <div><p class="text-[10px] opacity-60 font-black uppercase mb-1">Total Time</p><p class="text-3xl font-black"><span id="sumTime">0</span> <span class="text-xs">時間</span></p></div>
+                        <div><p class="text-[10px] opacity-60 font-black uppercase mb-1">今月の訪問件数</p><p class="text-3xl font-black"><span id="sumVisits">0</span> <span class="text-xs">件</span></p></div>
+                        <div><p class="text-[10px] opacity-60 font-black uppercase mb-1">合計滞在時間</p><p class="text-3xl font-black"><span id="sumTime">0</span> <span class="text-xs">時間</span></p></div>
                     </div>
 
                     <div class="bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm mb-8 flex overflow-x-auto whitespace-nowrap custom-scrollbar">
@@ -89,7 +88,7 @@
 
     <div id="local-loading" class="fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] hidden flex-col items-center justify-center">
         <div class="animate-spin mb-4 text-[#ff7e11] text-6xl"><i class="fa-solid fa-circle-notch"></i></div>
-        <p class="text-slate-800 font-black tracking-tighter uppercase italic text-xs">Syncing Performance Data...</p>
+        <p class="text-slate-800 font-black tracking-tighter uppercase italic text-xs">データを同期中...</p>
     </div>
 
     <script type="module" src="common.js"></script>
@@ -105,7 +104,6 @@
                 allStaffs = snap.docs.map(d => d.data());
                 window.renderStaffList();
                 
-                // 🌟 カレンダーからのジャンプ対応
                 const jumpName = sessionStorage.getItem('cp_usage_jump_name');
                 const jumpMonth = sessionStorage.getItem('cp_usage_jump_month');
                 if (jumpName) {
@@ -140,6 +138,7 @@
             document.getElementById('local-loading').style.display = 'flex';
             
             try {
+                // 年度広域取得
                 const q = query(collection(db, "activity_records"), where("visitorDept", "==", dept || "不明"), where("visitDate", ">=", `${currentY}`), where("visitDate", "<=", `${currentY}\uf8ff`));
                 const snap = await getDocs(q);
                 currentDeptRecords = snap.docs.map(d => d.data());
@@ -163,7 +162,6 @@
                 return clean(r.visitorName) === clean(selectedName) && parseInt(d[1]) === currentM;
             }).sort((a,b) => String(b.visitDate).localeCompare(String(a.visitDate)));
 
-            // サマリー計算
             let totalMins = 0;
             filtered.forEach(r => {
                 const s = (r.startTime||"00:00").split(':'), e = (r.endTime||"00:00").split(':');
@@ -178,7 +176,6 @@
                 const isTarget = r.customerName === jumpTarget;
                 if(isTarget) sessionStorage.removeItem('cp_usage_jump_customer');
                 
-                // バッジ色
                 let bClass = "badge-info", bText = r.qualData1 || "営業";
                 if(bText.includes("受注")) bClass = "badge-success";
                 if(bText.includes("叱り")) bClass = "badge-warn";
@@ -195,14 +192,14 @@
                     </div>
                     <div class="accordion-content" style="${isTarget ? 'display:block' : ''}">
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8 border-b pb-6">
-                            <div><p class="text-[10px] text-slate-400 font-bold uppercase mb-1">Contact</p><p class="font-black text-sm text-slate-700">${r.customerStaff || '-'}</p></div>
-                            <div><p class="text-[10px] text-slate-400 font-bold uppercase mb-1">Time</p><p class="font-black text-sm text-slate-700">${r.startTime}〜${r.endTime}</p></div>
-                            <div><p class="text-[10px] text-slate-400 font-bold uppercase mb-1">With</p><p class="font-black text-sm text-slate-700">${r.companion || '-'}</p></div>
-                            <div><p class="text-[10px] text-slate-400 font-bold uppercase mb-1">Type</p><p class="font-black text-sm text-blue-600">${r.qualData2 || '-'}</p></div>
+                            <div><p class="text-[10px] text-slate-400 font-bold uppercase mb-1">お客様担当者</p><p class="font-black text-sm text-slate-700">${r.customerStaff || '-'}</p></div>
+                            <div><p class="text-[10px] text-slate-400 font-bold uppercase mb-1">訪問時間</p><p class="font-black text-sm text-slate-700">${r.startTime}〜${r.endTime}</p></div>
+                            <div><p class="text-[10px] text-slate-400 font-bold uppercase mb-1">同行者</p><p class="font-black text-sm text-slate-700">${r.companion || '-'}</p></div>
+                            <div><p class="text-[10px] text-slate-400 font-bold uppercase mb-1">項目</p><p class="font-black text-sm text-blue-600">${r.qualData2 || '-'}</p></div>
                         </div>
                         <div class="space-y-6">
-                            <div><span class="text-[11px] font-black text-orange-500 uppercase italic">◆ Customer Info</span><div class="bg-slate-50 p-6 rounded-2xl border border-slate-100 text-sm leading-relaxed mt-2">${r.customerReport || 'なし'}</div></div>
-                            <div><span class="text-[11px] font-black text-blue-500 uppercase italic">◆ Staff Thoughts</span><div class="bg-blue-50/30 p-6 rounded-2xl border border-blue-50 text-sm leading-relaxed mt-2">${r.staffThoughts || 'なし'}</div></div>
+                            <div><span class="text-[11px] font-black text-orange-500 uppercase italic">◆ お客様からの情報</span><div class="bg-slate-50 p-6 rounded-2xl border border-slate-100 text-sm leading-relaxed mt-2">${r.customerReport || 'なし'}</div></div>
+                            <div><span class="text-[11px] font-black text-blue-500 uppercase italic">◆ 自分・スタッフの考え</span><div class="bg-blue-50/30 p-6 rounded-2xl border border-blue-50 text-sm leading-relaxed mt-2">${r.staffThoughts || 'なし'}</div></div>
                         </div>
                     </div>
                 </div>`;
