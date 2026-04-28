@@ -8,17 +8,20 @@
         :root { --copros-blue: #87ceeb; --copros-orange: #ff7e11; --copros-navy: #004098; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
         .staff-selector-card { background: white; border-radius: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px rgba(0,0,0,0.04); }
-        .staff-item { padding: 0.8rem 1.2rem; cursor: pointer; border-radius: 0.75rem; transition: all 0.2s; border: 1px solid transparent; }
+        .staff-item { padding: 0.8rem 1.2rem; cursor: pointer; border-radius: 0.75rem; transition: all 0.2s; border: 1px solid transparent; text-align: center; }
         .staff-item:hover { background: #f8fafc; border-color: #e2e8f0; }
         .staff-item.active { background: var(--copros-navy); color: white; box-shadow: 0 4px 12px rgba(0,64,152,0.2); }
+        
+        /* 🌟 カレンダー同期の月ボタン */
         .month-btn { padding: 0.6rem 0.2rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; flex: 1; text-align: center; transition: 0.2s; border: 1px solid transparent; }
         .month-btn:hover { background: #f1f5f9; color: var(--copros-navy); }
         .month-btn.active { background: var(--copros-navy); color: white; }
-        .history-card { background: white; border-radius: 1.5rem; border: 1px solid #e2e8f0; }
+
+        .history-card { background: white; border-radius: 1.5rem; border: 1px solid #e2e8f0; min-height: 400px; }
         .history-line { border-left: 3px solid #f1f5f9; margin-left: 1.5rem; padding: 1.5rem 0 1.5rem 2rem; position: relative; }
         .history-line::before { content: ''; position: absolute; left: -9px; top: 2rem; width: 15px; height: 15px; background: white; border: 3px solid var(--copros-orange); border-radius: 50%; }
         .scope-select { background: #f8fafc; border: 1px solid #e2e8f0; padding: 0.6rem 1rem; border-radius: 0.75rem; font-size: 0.8rem; font-weight: 800; color: #475569; outline: none; }
-        .count-badge { background: #fff7ed; color: var(--copros-orange); padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 900; border: 1px solid #ffedd5; }
+        .count-badge { background: #fff7ed; color: var(--copros-orange); padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 900; border: 1px solid #ffedd5; }
         .custom-scrollbar::-webkit-scrollbar { height: 4px; width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
@@ -27,50 +30,48 @@
     <div id="sidebar-placeholder"></div>
     <main class="flex-1 flex flex-col overflow-hidden">
         <div id="header-placeholder"></div>
+        <!-- 🌟 真っ白回避用の隠しローダー（common.jsが制御します） -->
+        <div id="loading" style="display:none;"></div>
+
         <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1200px] mx-auto">
                 
-                <div class="mb-8">
-                    <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-1">組織員利用状況</h1>
-                    <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Staff Individual Performance tracking</nav>
-                </div>
-
-                <!-- 1. 社員選択エリア -->
-                <div class="staff-selector-card p-6 mb-8">
-                    <div class="flex flex-col lg:flex-row gap-4 mb-6">
-                        <div class="relative flex-1">
-                            <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-slate-300"></i>
-                            <input type="text" id="staffSearch" oninput="window.renderStaffList()" placeholder="社員名で検索..." class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-blue-400 outline-none font-bold transition-all">
+                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-6">
+                    <div class="flex items-end gap-6 shrink-0">
+                        <div>
+                            <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-1">組織員利用状況</h1>
+                            <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Staff Activity Timeline</nav>
                         </div>
-                        <select id="deptFilter" onchange="window.renderStaffList()" class="scope-select min-w-[200px]">
+                        <select id="deptFilter" onchange="window.renderStaffList()" class="scope-select shadow-inner mb-2">
                             <option value="ALL">全ての部署</option>
                             <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option><option>土木部</option><option>建築部</option><option>建機部</option><option>総務部</option><option>購買課</option><option>宮崎産商</option><option>企画部</option>
                         </select>
                     </div>
-                    <div id="staffList" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 max-h-[160px] overflow-y-auto custom-scrollbar p-1 text-center"></div>
                 </div>
 
-                <!-- 2. 月別切り替えツール（中央） -->
+                <!-- 1. 社員選択エリア -->
+                <div class="staff-selector-card p-6 mb-8">
+                    <div class="relative mb-6">
+                        <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-slate-300"></i>
+                        <input type="text" id="staffSearch" oninput="window.renderStaffList()" placeholder="社員名で検索..." class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-blue-400 outline-none font-bold transition-all">
+                    </div>
+                    <div id="staffList" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 max-h-[160px] overflow-y-auto custom-scrollbar p-1"></div>
+                </div>
+
+                <!-- 2. カレンダー同期の月選択ツール -->
                 <div id="toolArea" class="hidden">
-                    <div class="flex flex-col lg:flex-row items-center justify-between gap-4 mb-8 bg-white p-3 rounded-[2rem] border border-slate-100 shadow-sm">
-                        <div class="flex items-center gap-4 px-4 border-r border-slate-100">
-                            <button onclick="window.changeYear(-1)" class="text-slate-300 hover:text-slate-600"><i class="fa-solid fa-chevron-left"></i></button>
-                            <span id="displayYear" class="text-lg font-black text-slate-700">2026年</span>
-                            <button onclick="window.changeYear(1)" class="text-slate-300 hover:text-slate-600"><i class="fa-solid fa-chevron-right"></i></button>
-                        </div>
-                        <div class="flex-1 flex overflow-x-auto gap-1 custom-scrollbar px-2">
-                            <script>for(let i=1; i<=12; i++) document.write(`<button onclick="window.setMonth(${i})" id="m-btn-${i}" class="month-btn">${i}月</button>`);</script>
-                        </div>
+                    <div class="bg-white p-1 rounded-2xl border border-slate-200 shadow-sm mb-8 flex overflow-x-auto whitespace-nowrap custom-scrollbar">
+                        <script>for(let i=1; i<=12; i++) document.write(`<button onclick="window.setMonth(${i})" id="m-btn-${i}" class="month-btn">${i}月</button>`);</script>
                     </div>
 
-                    <!-- 3. 結果表示エリア -->
-                    <div class="history-card p-8 min-h-[400px] mb-20">
-                        <div class="flex justify-between items-end mb-8 border-b-2 border-slate-50 pb-4">
+                    <!-- 3. 履歴表示カード -->
+                    <div class="history-card p-8 mb-20">
+                        <div class="flex justify-between items-center mb-10 border-b-2 border-slate-50 pb-6">
                             <div>
                                 <h3 id="selectedStaffLabel" class="text-2xl font-black text-slate-800">---</h3>
-                                <p id="selectedMonthLabel" class="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Select month to view details</p>
+                                <p id="selectedMonthLabel" class="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Target Period</p>
                             </div>
-                            <div id="countBadgeArea" class="hidden">
+                            <div id="countBadgeArea">
                                 <span class="count-badge"><span id="recordCount">0</span> 件の実績</span>
                             </div>
                         </div>
@@ -79,14 +80,10 @@
                 </div>
 
                 <div id="guideMsg" class="py-20 text-center">
-                    <div class="text-slate-200 text-6xl mb-6"><i class="fa-solid fa-user-check"></i></div>
-                    <p class="text-slate-400 font-bold">社員を選択して活動履歴を表示してください</p>
+                    <div class="text-slate-200 text-7xl mb-6"><i class="fa-solid fa-address-book"></i></div>
+                    <p class="text-slate-400 font-bold text-lg">社員を選択してください</p>
                 </div>
 
-                <div id="loading" class="fixed inset-0 bg-white/80 backdrop-blur-sm z-[100] hidden flex-col items-center justify-center">
-                    <div class="animate-spin mb-4 text-[#ff7e11] text-6xl"><i class="fa-solid fa-circle-notch"></i></div>
-                    <p class="text-slate-800 font-black tracking-tighter uppercase italic text-xs">Loading Activities...</p>
-                </div>
             </div>
         </div>
     </main>
@@ -94,7 +91,7 @@
     <script type="module" src="common.js"></script>
     <script type="module">
         import { db } from "./common.js";
-        import { collection, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let allStaffs = [];
         let fetchedRecords = [];
@@ -106,6 +103,7 @@
             try {
                 const snap = await getDocs(query(collection(db, "staffs"), orderBy("name")));
                 allStaffs = snap.docs.map(d => d.data());
+                // 🌟 最初から自分の部署が出るように調整
                 setTimeout(() => window.renderStaffList(), 300);
             } catch (e) { console.error(e); }
         }
@@ -130,53 +128,55 @@
             window.renderStaffList();
             document.getElementById('guideMsg').style.display = 'none';
             document.getElementById('toolArea').style.display = 'block';
-            document.getElementById('loading').style.display = 'flex';
+            
+            // 🌟 読み込み開始（真っ白回避のため関数を正しく呼ぶ）
+            if(window.showLoading) window.showLoading(`${name} さんのデータを取得中...`);
             
             try {
-                // 🌟 その社員の「その年」の全データを1回だけ取得（究極の省エネ）
                 const q = query(collection(db, "activity_records"), 
                                 where("visitorName", "==", name),
-                                where("visitDate", ">=", `${currentY}`),
-                                where("visitDate", "<=", `${currentY}\uf8ff`));
+                                where("visitDate", ">=", `${currentY}-01-01`),
+                                where("visitDate", "<=", `${currentY}-12-31\uf8ff`));
                 const snap = await getDocs(q);
                 fetchedRecords = snap.docs.map(d => d.data());
                 
-                document.getElementById('loading').style.display = 'none';
+                if(window.hideLoading) window.hideLoading();
                 document.getElementById('selectedStaffLabel').innerText = `${name} さんの履歴`;
-                window.setMonth(currentM); // 現在の月を表示
-            } catch (e) { console.error(e); }
+                window.setMonth(currentM); 
+            } catch (e) { 
+                console.error(e);
+                if(window.hideLoading) window.hideLoading();
+            }
         };
 
         window.setMonth = (m) => {
             currentM = m;
             document.querySelectorAll('.month-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(`m-btn-${m}`).classList.add('active');
+            if(document.getElementById(`m-btn-${m}`)) document.getElementById(`m-btn-${m}`).classList.add('active');
             document.getElementById('selectedMonthLabel').innerText = `${currentY}年 ${m}月`;
             window.renderTimeline();
         };
 
         window.renderTimeline = () => {
             const timeline = document.getElementById('activityTimeline');
-            const badgeArea = document.getElementById('countBadgeArea');
             const countLabel = document.getElementById('recordCount');
             
             const filtered = fetchedRecords.filter(r => {
                 const parts = String(r.visitDate).replace(/\//g, '-').split('-');
-                return parseInt(parts[0]) === currentY && parseInt(parts[1]) === currentM;
+                return parseInt(parts[1]) === currentM;
             }).sort((a,b) => String(b.visitDate).localeCompare(String(a.visitDate)));
 
             timeline.innerHTML = filtered.length ? filtered.map(r => `
                 <div class="history-line">
                     <p class="text-xs text-slate-400 font-mono font-bold mb-1">${String(r.visitDate).replace(/-/g,'/')}</p>
                     <p class="text-base font-black text-[#004098] mb-1">${r.customerName}</p>
-                    <p class="text-xs text-slate-500 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-100">${r.customerReport || '報告なし'}</p>
-                </div>`).join('') : '<p class="text-center py-20 text-slate-300 font-bold">この月の実績はありません</p>';
+                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                        <p class="text-xs text-slate-500 leading-relaxed">${r.customerReport || '報告なし'}</p>
+                    </div>
+                </div>`).join('') : '<p class="text-center py-20 text-slate-300 font-bold">この月の実績登録はありません</p>';
 
-            badgeArea.style.display = 'block';
             countLabel.innerText = filtered.length;
         };
-
-        window.changeYear = (v) => { currentY += v; document.getElementById('displayYear').innerText = `${currentY}年`; if(selectedName) window.selectStaff(selectedName); };
 
         init();
     </script>
