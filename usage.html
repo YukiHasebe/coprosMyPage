@@ -7,21 +7,26 @@
     <style>
         :root { --copros-blue: #87ceeb; --copros-orange: #ff7e11; --copros-navy: #004098; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
+        
+        /* 社員選択エリア */
         .staff-selector-card { background: white; border-radius: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px rgba(0,0,0,0.04); }
         .staff-item { padding: 0.8rem 1.2rem; cursor: pointer; border-radius: 0.75rem; transition: all 0.2s; border: 1px solid transparent; text-align: center; }
         .staff-item:hover { background: #f8fafc; border-color: #e2e8f0; }
         .staff-item.active { background: var(--copros-navy); color: white; box-shadow: 0 4px 12px rgba(0,64,152,0.2); }
         
-        /* 🌟 カレンダー同期の月ボタン */
+        /* 月選択ボタン（カレンダー同期） */
         .month-btn { padding: 0.6rem 0.2rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; flex: 1; text-align: center; transition: 0.2s; border: 1px solid transparent; }
         .month-btn:hover { background: #f1f5f9; color: var(--copros-navy); }
         .month-btn.active { background: var(--copros-navy); color: white; }
 
+        /* 履歴表示 */
         .history-card { background: white; border-radius: 1.5rem; border: 1px solid #e2e8f0; min-height: 400px; }
         .history-line { border-left: 3px solid #f1f5f9; margin-left: 1.5rem; padding: 1.5rem 0 1.5rem 2rem; position: relative; }
         .history-line::before { content: ''; position: absolute; left: -9px; top: 2rem; width: 15px; height: 15px; background: white; border: 3px solid var(--copros-orange); border-radius: 50%; }
+        
         .scope-select { background: #f8fafc; border: 1px solid #e2e8f0; padding: 0.6rem 1rem; border-radius: 0.75rem; font-size: 0.8rem; font-weight: 800; color: #475569; outline: none; }
         .count-badge { background: #fff7ed; color: var(--copros-orange); padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 900; border: 1px solid #ffedd5; }
+        
         .custom-scrollbar::-webkit-scrollbar { height: 4px; width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
@@ -39,33 +44,41 @@
                     <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Staff Activity Monitoring</nav>
                 </div>
 
-                <!-- 1. 社員選択エリア -->
+                <!-- 1. 社員選択エリア（配置変更：部署を左、検索を右へ） -->
                 <div class="staff-selector-card p-6 mb-8">
                     <div class="flex flex-col lg:flex-row gap-4 mb-6">
-                        <div class="relative flex-1">
-                            <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-slate-300"></i>
-                            <input type="text" id="staffSearch" oninput="window.renderStaffList()" placeholder="社員名で検索..." class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-blue-400 outline-none font-bold transition-all">
+                        <!-- 🌟 部署選択を左側へ -->
+                        <div class="flex flex-col gap-1.5 min-w-[240px]">
+                            <label class="text-[10px] font-black text-slate-400 uppercase ml-2">Department</label>
+                            <select id="deptFilter" onchange="window.renderStaffList()" class="scope-select">
+                                <option value="ALL">全ての部署</option>
+                                <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option><option>土木部</option><option>建築部</option><option>建機部</option><option>総務部</option><option>購買課</option><option>宮崎産商</option><option>企画部</option>
+                            </select>
                         </div>
-                        <select id="deptFilter" onchange="window.renderStaffList()" class="scope-select min-w-[200px]">
-                            <option value="ALL">全ての部署</option>
-                            <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option><option>土木部</option><option>建築部</option><option>建機部</option><option>総務部</option><option>購買課</option><option>宮崎産商</option><option>企画部</option>
-                        </select>
+                        <!-- 🌟 社員検索を右側へ -->
+                        <div class="flex flex-col gap-1.5 flex-1">
+                            <label class="text-[10px] font-black text-slate-400 uppercase ml-2">Search Name</label>
+                            <div class="relative">
+                                <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-slate-300"></i>
+                                <input type="text" id="staffSearch" oninput="window.renderStaffList()" placeholder="社員名で検索..." class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:border-blue-400 outline-none font-bold transition-all">
+                            </div>
+                        </div>
                     </div>
+                    <!-- 社員名簿一覧 -->
                     <div id="staffList" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 max-h-[160px] overflow-y-auto custom-scrollbar p-1"></div>
                 </div>
 
-                <!-- 2. カレンダー同期の月選択ツール -->
+                <!-- 2. 月選択ツール ＆ 結果表示 -->
                 <div id="toolArea" class="hidden">
-                    <div class="bg-white p-1 rounded-2xl border border-slate-200 shadow-sm mb-8 flex overflow-x-auto whitespace-nowrap custom-scrollbar">
+                    <div class="bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm mb-8 flex overflow-x-auto whitespace-nowrap custom-scrollbar">
                         <script>for(let i=1; i<=12; i++) document.write(`<button onclick="window.setMonth(${i})" id="m-btn-${i}" class="month-btn">${i}月</button>`);</script>
                     </div>
 
-                    <!-- 3. 履歴表示カード -->
                     <div class="history-card p-8 mb-20">
                         <div class="flex justify-between items-center mb-10 border-b-2 border-slate-50 pb-6">
                             <div>
                                 <h3 id="selectedStaffLabel" class="text-2xl font-black text-slate-800">---</h3>
-                                <p id="selectedMonthLabel" class="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Select month</p>
+                                <p id="selectedMonthLabel" class="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest italic">Viewing activity for the selected period</p>
                             </div>
                             <div id="countBadgeArea">
                                 <span class="count-badge"><span id="recordCount">0</span> 件の実績</span>
@@ -77,16 +90,16 @@
 
                 <div id="guideMsg" class="py-20 text-center">
                     <div class="text-slate-200 text-7xl mb-6"><i class="fa-solid fa-address-book"></i></div>
-                    <p class="text-slate-400 font-bold text-lg">社員を選択してください</p>
+                    <p class="text-slate-400 font-bold text-lg">まずは社員を選択してください</p>
                 </div>
             </div>
         </div>
     </main>
 
-    <!-- 🌟 common.jsと喧嘩しない、画面内ローダー -->
+    <!-- ローダー -->
     <div id="local-loading" class="fixed inset-0 bg-white/80 backdrop-blur-sm z-[9999] hidden flex-col items-center justify-center">
         <div class="animate-spin mb-4 text-[#ff7e11] text-6xl"><i class="fa-solid fa-circle-notch"></i></div>
-        <p class="text-slate-800 font-black tracking-tighter uppercase italic text-xs">Fetching Data...</p>
+        <p class="text-slate-800 font-black tracking-tighter uppercase italic text-xs">Synchronizing Activity Data...</p>
     </div>
 
     <script type="module" src="common.js"></script>
@@ -101,8 +114,11 @@
 
         async function init() {
             try {
+                // スタッフ名簿のみ取得
                 const snap = await getDocs(query(collection(db, "staffs"), orderBy("name")));
                 allStaffs = snap.docs.map(d => d.data());
+                
+                // common.jsの部署設定が反映されるのを少し待って名簿を表示
                 setTimeout(() => window.renderStaffList(), 300);
             } catch (e) { console.error(e); }
         }
@@ -112,14 +128,16 @@
             const dept = document.getElementById('deptFilter').value;
             const container = document.getElementById('staffList');
             container.innerHTML = "";
-            allStaffs.filter(s => (!kw || s.name.includes(kw)) && (dept === 'ALL' || s.dept === dept))
-                .forEach(s => {
-                    const div = document.createElement('div');
-                    div.className = `staff-item ${selectedName === s.name ? 'active' : ''}`;
-                    div.innerHTML = `<p class="font-black text-xs">${s.name}</p><p class="text-[8px] opacity-60 uppercase">${s.dept || ''}</p>`;
-                    div.onclick = () => window.selectStaff(s.name);
-                    container.appendChild(div);
-                });
+
+            allStaffs.filter(s => {
+                return (!kw || (s.name||"").includes(kw)) && (dept === 'ALL' || s.dept === dept);
+            }).forEach(s => {
+                const div = document.createElement('div');
+                div.className = `staff-item ${selectedName === s.name ? 'active' : ''}`;
+                div.innerHTML = `<p class="font-black text-xs">${s.name}</p><p class="text-[8px] opacity-60 uppercase">${s.dept || ''}</p>`;
+                div.onclick = () => window.selectStaff(s.name);
+                container.appendChild(div);
+            });
         };
 
         window.selectStaff = async (name) => {
@@ -130,10 +148,11 @@
             document.getElementById('local-loading').style.display = 'flex';
             
             try {
-                // 🌟 【解決】日付フィルターをFirebase側で持たず、人だけで取得
+                // 🌟 【最重要】Firebase側では「名前」だけを条件にして取得（日付の不一致を防ぐ）
                 const q = query(collection(db, "activity_records"), 
                                 where("visitorName", "==", name),
-                                limit(500)); // 直近500件
+                                orderBy("visitDate", "desc"),
+                                limit(500));
                 const snap = await getDocs(q);
                 fetchedRecords = snap.docs.map(d => d.data());
                 
@@ -158,25 +177,27 @@
             const timeline = document.getElementById('activityTimeline');
             const countLabel = document.getElementById('recordCount');
             
+            // 🌟 丁寧な日付判定：ブラウザ側で月を確実に仕分ける
             const filtered = fetchedRecords.filter(r => {
+                if (!r.visitDate) return false;
                 const dateStr = String(r.visitDate).replace(/\//g, '-');
                 const parts = dateStr.split('-');
                 return parseInt(parts[1]) === currentM;
-            }).sort((a,b) => String(b.visitDate).localeCompare(String(a.visitDate)));
+            });
 
             timeline.innerHTML = filtered.length ? filtered.map(r => `
                 <div class="history-line">
                     <p class="text-xs text-slate-400 font-mono font-bold mb-1">${String(r.visitDate).replace(/-/g,'/')}</p>
                     <p class="text-base font-black text-[#004098] mb-1">${r.customerName}</p>
                     <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                        <p class="text-xs text-slate-500 leading-relaxed">${r.customerReport || '報告なし'}</p>
+                        <p class="text-xs text-slate-500 leading-relaxed">${r.customerReport || '（報告内容なし）'}</p>
                     </div>
                 </div>`).join('') : '<p class="text-center py-20 text-slate-300 font-bold">この月の実績登録はありません</p>';
 
             countLabel.innerText = filtered.length;
         };
 
-            // 🌟 修正：外部からのローダー停止命令に対応
+        // 画面が固まらないよう、不要なローダーを隠す
         window.addEventListener('load', () => {
             setTimeout(() => {
                 const l = document.getElementById('loading');
