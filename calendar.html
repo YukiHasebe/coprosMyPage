@@ -8,26 +8,40 @@
         :root { --copros-blue: #87ceeb; --copros-orange: #ff7e11; --copros-navy: #004098; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); background: #e2e8f0; gap: 1px; border: 1px solid #e2e8f0; border-radius: 1rem; overflow: hidden; }
-        .calendar-day { background: white; min-height: 140px; padding: 0.4rem; position: relative; }
+        .calendar-day { background: white; min-height: 140px; padding: 0.4rem; position: relative; transition: background 0.2s; }
+        .calendar-day:hover { background: #f8fafc; }
+        .day-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
         .day-num { font-weight: 900; font-size: 0.85rem; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
         .is-today .day-num { background: var(--copros-orange); color: white; border-radius: 50%; }
         
+        /* ＋ボタンのデザイン */
+        .add-btn { width: 20px; height: 20px; border-radius: 6px; background: #f1f5f9; color: #64748b; display: flex; align-items: center; justify-content: center; font-size: 10px; cursor: pointer; transition: all 0.2s; }
+        .add-btn:hover { background: var(--copros-orange); color: white; }
+
         .event-item { display: flex; align-items: center; gap: 4px; margin-bottom: 2px; }
         .event-label { flex: 1; font-size: 9px; font-weight: 800; padding: 3px 6px; border-radius: 4px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 3px solid; transition: all 0.2s; position: relative; }
         
-        /* 🌟 色分け維持 ＋ 既読は黒字 */
         .label-result { border-left-color: var(--copros-orange); background: #fff7ed; color: #ea580c; }
         .label-next { border-left-color: #10b981; background: #f0fdf4; color: #16a34a; }
         .label-appoint { border-left-color: #3b82f6; background: #eff6ff; color: #1d4ed8; }
-        .is-read { color: #000 !important; font-weight: 900; } /* 既読は黒字に強調 */
+        .is-read { color: #000 !important; font-weight: 900; opacity: 0.7; }
 
         .unread-dot { width: 6px; height: 6px; background: #ef4444; border-radius: 50%; position: absolute; right: 4px; top: 50%; transform: translateY(-50%); }
+        
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; backdrop-filter: blur(4px); align-items: center; justify-content: center; }
-        .modal-content { background: white; width: 100%; max-width: 450px; border-radius: 1.5rem; overflow: hidden; }
+        .modal-content { background: white; width: 95%; max-width: 500px; border-radius: 1.5rem; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
+        
         .staff-item { padding: 0.8rem 1.5rem; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
         .staff-item.selected { background: #eff6ff; color: var(--copros-navy); border-left: 4px solid var(--copros-navy); }
         .month-btn { padding: 0.6rem 0.2rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; flex: 1; text-align: center; cursor: pointer; }
         .month-btn.active { background: var(--copros-navy); color: white; }
+
+        /* 実績詳細ポップアップ用 */
+        .detail-card { border-left: 4px solid var(--copros-orange); background: white; margin-bottom: 8px; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700 font-sans">
@@ -39,24 +53,28 @@
                 <div class="flex flex-col gap-6 mb-6">
                     <div class="flex justify-between items-end">
                         <div><h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-1">カレンダー回覧</h1><nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Management & Activity Board</nav></div>
-                        <button onclick="window.markSelectedAsRead()" class="px-6 py-2.5 bg-[#004098] text-white rounded-xl font-black text-xs hover:shadow-lg transition-all active:scale-95">選択済を既読にする</button>
+                        <div class="flex gap-2">
+                            <button onclick="window.markSelectedAsRead()" class="px-4 py-2 bg-[#004098] text-white rounded-xl font-black text-xs hover:shadow-lg transition-all active:scale-95">選択済を既読にする</button>
+                        </div>
                     </div>
 
                     <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                         <div class="flex justify-between items-center mb-4">
-                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Selected Staff Members</p>
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">表示対象メンバー</p>
                             <button onclick="window.openStaffModal()" class="text-xs font-black text-[#004098] bg-blue-50 px-4 py-1.5 rounded-lg hover:bg-[#004098] hover:text-white transition-all"><i class="fa-solid fa-users-viewfinder mr-1"></i> 社員を選択</button>
                         </div>
                         <div id="selectedNamesDisplay" class="flex flex-wrap gap-2 text-sm font-black text-slate-600"></div>
                     </div>
 
-                    <div class="relative flex items-center min-h-[60px]">
-                        <div class="lg:absolute lg:left-1/2 lg:-translate-x-1/2 flex items-center gap-6 bg-white py-1.5 px-6 rounded-2xl shadow-sm border border-slate-100 mx-auto">
+                    <div class="relative flex flex-col md:flex-row items-center gap-4">
+                        <div class="flex items-center gap-6 bg-white py-1.5 px-6 rounded-2xl shadow-sm border border-slate-100">
                             <button onclick="window.changeMonth(-1)" class="text-slate-300 hover:text-slate-600 transition-colors"><i class="fa-solid fa-chevron-left fa-lg"></i></button>
                             <span id="displayMonthCenter" class="text-lg font-black text-slate-700 min-w-[140px] text-center tracking-tighter">----年 --月</span>
                             <button onclick="window.changeMonth(1)" class="text-slate-300 hover:text-slate-600 transition-colors"><i class="fa-solid fa-chevron-right fa-lg"></i></button>
                         </div>
-                        <div class="flex gap-4 items-center bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-100 text-[10px] font-black ml-auto">
+                        
+                        <div class="flex flex-wrap gap-3 items-center bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-100 text-[10px] font-black md:ml-auto">
+                            <label class="flex items-center gap-1.5 cursor-pointer text-slate-500 border-r pr-3"><input type="checkbox" id="showUnreadOnly" onchange="renderCalendar()" class="accent-rose-500"> 未読のみ表示</label>
                             <label class="flex items-center gap-1.5 cursor-pointer text-orange-600"><input type="checkbox" id="showRes" checked onchange="renderCalendar()" class="accent-orange-500"> 実績</label>
                             <label class="flex items-center gap-1.5 cursor-pointer text-emerald-600"><input type="checkbox" id="showNext" checked onchange="renderCalendar()" class="accent-emerald-500"> 次回</label>
                             <label class="flex items-center gap-1.5 cursor-pointer text-blue-600"><input type="checkbox" id="showApp" checked onchange="renderCalendar()" class="accent-blue-500"> アポ</label>
@@ -72,12 +90,42 @@
         </div>
     </main>
 
-    <div id="staffModal" class="modal-overlay"><div class="modal-content"><div class="bg-slate-900 p-4 text-white flex justify-between items-center"><span class="font-black text-xs uppercase">社員選択</span><i class="fa-solid fa-xmark cursor-pointer" onclick="window.closeModal()"></i></div><div class="p-4 bg-slate-50 border-b"><div class="grid grid-cols-2 gap-2"><input type="text" id="modalSearch" oninput="window.renderModalList()" placeholder="氏名検索..." class="p-2.5 rounded-lg border text-xs font-bold outline-none"><select id="modalDept" onchange="window.renderModalList()" class="p-2.5 rounded-lg border text-xs font-bold outline-none"><option value="ALL">全ての部署</option><option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option><option>土木部</option><option>建築部</option><option>建機部</option><option>総務部</option><option>購買課</option><option>宮崎産商</option><option>企画部</option></select></div></div><div id="modalStaffList" class="max-h-[300px] overflow-y-auto custom-scrollbar"></div><div class="p-4 bg-slate-50 grid grid-cols-2 gap-3"><button onclick="window.applyModal()" class="py-3 bg-[#004098] text-white rounded-xl font-black">決定</button><button onclick="window.clearModal()" class="py-3 bg-white border rounded-xl font-bold">クリア</button></div></div></div>
+    <!-- 社員選択モーダル -->
+    <div id="staffModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="bg-slate-900 p-4 text-white flex justify-between items-center"><span class="font-black text-xs uppercase">社員選択</span><i class="fa-solid fa-xmark cursor-pointer" onclick="window.closeModal()"></i></div>
+            <div class="p-4 bg-slate-50 border-b">
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="text" id="modalSearch" oninput="window.renderModalList()" placeholder="氏名検索..." class="p-2.5 rounded-lg border text-xs font-bold outline-none">
+                    <select id="modalDept" onchange="window.renderModalList()" class="p-2.5 rounded-lg border text-xs font-bold outline-none">
+                        <option value="ALL">全ケコム関連</option>
+                        <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option>
+                    </select>
+                </div>
+            </div>
+            <div id="modalStaffList" class="max-h-[300px] overflow-y-auto custom-scrollbar"></div>
+            <div class="p-4 bg-slate-50 grid grid-cols-2 gap-3">
+                <button onclick="window.applyModal()" class="py-3 bg-[#004098] text-white rounded-xl font-black">決定</button>
+                <button onclick="window.clearModal()" class="py-3 bg-white border rounded-xl font-bold">クリア</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 実績詳細ポップアップ（組織員利用状況風） -->
+    <div id="detailModal" class="modal-overlay" onclick="if(event.target==this)this.style.display='none'">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="bg-[#ff7e11] p-4 text-white flex justify-between items-center">
+                <span id="detailDateLabel" class="font-black text-sm tracking-widest"></span>
+                <i class="fa-solid fa-xmark cursor-pointer" onclick="document.getElementById('detailModal').style.display='none'"></i>
+            </div>
+            <div id="detailContainer" class="p-4 max-h-[70vh] overflow-y-auto bg-slate-50 custom-scrollbar"></div>
+        </div>
+    </div>
 
     <script type="module" src="common.js"></script>
     <script type="module">
-        import { db } from "./common.js";
-        import { collection, getDocs, query, where, doc, updateDoc, writeBatch, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { db, TARGET_DEPTS } from "./common.js";
+        import { collection, getDocs, query, where, doc, updateDoc, writeBatch, orderBy, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let allStaffs = [], selectedStaffs = JSON.parse(localStorage.getItem('cp_cal_selected_staffs') || "[]");
         let loadedData = { records: [], appoints: [], notifications: [] };
@@ -85,7 +133,8 @@
 
         async function init() {
             try {
-                const sSnap = await getDocs(query(collection(db, "staffs"), orderBy("name")));
+                // 部署限定フィルタを適用して取得
+                const sSnap = await getDocs(query(collection(db, "staffs"), where("dept", "in", TARGET_DEPTS), orderBy("name")));
                 allStaffs = sSnap.docs.map(d => d.data());
                 window.updateSelectedDisplay();
                 await window.fetchMonthData();
@@ -94,11 +143,12 @@
 
         window.updateSelectedDisplay = () => {
             const container = document.getElementById('selectedNamesDisplay');
-            container.innerHTML = selectedStaffs.length ? selectedStaffs.map(name => `<span class="bg-blue-50 text-[#004098] px-3 py-1 rounded-full border border-blue-100">${name}</span>`).join('') : '<span class="text-slate-300 italic">社員が選択されていません</span>';
+            container.innerHTML = selectedStaffs.length ? selectedStaffs.map(name => `<span class="bg-blue-50 text-[#004098] px-3 py-1 rounded-full border border-blue-100">${name}</span>`).join('') : '<span class="text-slate-300 italic">表示する社員を選択してください</span>';
         };
 
         window.openStaffModal = () => { document.getElementById('staffModal').style.display = 'flex'; window.renderModalList(); };
         window.closeModal = () => { document.getElementById('staffModal').style.display = 'none'; };
+        
         window.renderModalList = () => {
             const kw = document.getElementById('modalSearch').value.toLowerCase();
             const dept = document.getElementById('modalDept').value;
@@ -106,31 +156,42 @@
             container.innerHTML = allStaffs.filter(s => (!kw || s.name.includes(kw)) && (dept === 'ALL' || s.dept === dept)).map(s => `
                 <div class="staff-item ${selectedStaffs.includes(s.name) ? 'selected' : ''}" onclick="window.toggleModalStaff('${s.name}')"><span>${s.name}</span><span class="text-[10px] opacity-40">${s.dept || ''}</span></div>`).join('');
         };
+
         window.toggleModalStaff = (name) => {
             if (selectedStaffs.includes(name)) selectedStaffs = selectedStaffs.filter(n => n !== name);
             else selectedStaffs.push(name);
             window.renderModalList();
         };
+
         window.applyModal = () => { localStorage.setItem('cp_cal_selected_staffs', JSON.stringify(selectedStaffs)); window.updateSelectedDisplay(); window.fetchMonthData(); window.closeModal(); };
         window.clearModal = () => { selectedStaffs = []; window.renderModalList(); };
 
         window.fetchMonthData = async () => {
             const y = currentDate.getFullYear(); const m = currentDate.getMonth() + 1;
+            const mStr = m.toString().padStart(2, '0');
             document.getElementById('displayMonthCenter').innerText = `${y}年 ${m}月`;
             document.querySelectorAll('.month-btn').forEach(b => b.classList.toggle('active', b.id === `month-btn-${m}`));
 
             try {
-                if (selectedStaffs.length === 0) { loadedData.records = []; loadedData.appoints = []; }
-                else {
-                    const depts = [...new Set(allStaffs.filter(s => selectedStaffs.includes(s.name)).map(s => s.dept))];
-                    // 実績 & 次回
-                    const q = query(collection(db, "activity_records"), where("visitorDept", "in", depts.slice(0, 10)), where("visitDate", ">=", `${y}`), where("visitDate", "<=", `${y}\uf8ff`));
-                    const snap = await getDocs(q);
-                    loadedData.records = snap.docs.map(d => d.data());
-                    // 🌟 アポ
-                    const qa = query(collection(db, "appointments"), where("visitorDept", "in", depts.slice(0, 10)), where("appointDate", ">=", `${y}`), where("appointDate", "<=", `${y}\uf8ff`));
-                    const snapA = await getDocs(qa);
-                    loadedData.appoints = snapA.docs.map(d => ({ id: d.id, ...d.data() }));
+                if (selectedStaffs.length === 0) { 
+                    loadedData.records = []; loadedData.appoints = []; 
+                } else {
+                    // Firebase負荷軽減のため、名前でピンポイント取得（10人ずつ分割して取得）
+                    const recordsTemp = [];
+                    const appointsTemp = [];
+                    for (let i = 0; i < selectedStaffs.length; i += 10) {
+                        const chunk = selectedStaffs.slice(i, i + 10);
+                        // 実績
+                        const qr = query(collection(db, "activity_records"), where("visitorName", "in", chunk), where("visitDate", ">=", `${y}-${mStr}-01`), where("visitDate", "<=", `${y}-${mStr}-31`));
+                        const snapR = await getDocs(qr);
+                        recordsTemp.push(...snapR.docs.map(d => ({id: d.id, ...d.data()})));
+                        // アポ
+                        const qa = query(collection(db, "appointments"), where("visitorName", "in", chunk), where("appointDate", ">=", `${y}-${mStr}-01`), where("appointDate", "<=", `${y}-${mStr}-31`));
+                        const snapA = await getDocs(qa);
+                        appointsTemp.push(...snapA.docs.map(d => ({id: d.id, ...d.data()})));
+                    }
+                    loadedData.records = recordsTemp;
+                    loadedData.appoints = appointsTemp;
                 }
                 const myName = sessionStorage.getItem('userName');
                 const qn = query(collection(db, "notifications"), where("recipient", "==", myName), where("isRead", "==", false));
@@ -149,45 +210,96 @@
 
             const clean = (s) => (s||"").replace(/\s+/g, '');
             const selectedCleans = selectedStaffs.map(n => clean(n));
+            const showUnreadOnly = document.getElementById('showUnreadOnly').checked;
 
             for(let d=1; d<=daysInMonth; d++) {
-                const targetKey = `${year}-${month + 1}-${d}`;
+                const dayStr = d.toString().padStart(2, '0');
+                const monthStr = (month + 1).toString().padStart(2, '0');
+                const targetKey = `${year}-${monthStr}-${dayStr}`;
                 let eventsHtml = "";
 
                 // 実績
                 if (document.getElementById('showRes').checked) {
-                    loadedData.records.filter(r => window.formatDateKey(r.visitDate) === targetKey && selectedCleans.includes(clean(r.visitorName)))
+                    loadedData.records.filter(r => window.formatDateKey(r.visitDate) === window.formatDateKey(targetKey) && selectedCleans.includes(clean(r.visitorName)))
                         .forEach(r => {
-                            const noti = loadedData.notifications.find(n => clean(n.visitorName) === clean(r.visitorName) && n.customerName === r.customerName && window.formatDateKey(n.visitDate) === targetKey);
-                            eventsHtml += `<div class="event-item"><input type="checkbox" class="event-check w-3 h-3 accent-[#004098]" data-noti-id="${noti ? noti.id : ''}"><div class="event-label label-result ${!noti ? 'is-read' : ''}" onclick="window.goUsage('${r.visitorName}', ${month+1}, '${r.customerName}')">${r.visitorName}: ${r.customerName}${noti ? '<span class="unread-dot"></span>' : ''}</div></div>`;
+                            const noti = loadedData.notifications.find(n => clean(n.visitorName) === clean(r.visitorName) && n.customerName === r.customerName && window.formatDateKey(n.visitDate) === window.formatDateKey(targetKey));
+                            if (showUnreadOnly && !noti) return; 
+                            eventsHtml += `<div class="event-item"><input type="checkbox" class="event-check w-3 h-3 accent-[#004098]" data-noti-id="${noti ? noti.id : ''}"><div class="event-label label-result ${!noti ? 'is-read' : ''}" onclick="window.showDailyDetail('${targetKey}')">${r.visitorName}: ${r.customerName}${noti ? '<span class="unread-dot"></span>' : ''}</div></div>`;
                         });
-                }
-                // 次回
-                if (document.getElementById('showNext').checked) {
-                    loadedData.records.filter(r => window.formatDateKey(r.nextVisitDate) === targetKey && selectedCleans.includes(clean(r.visitorName)))
-                        .forEach(r => { eventsHtml += `<div class="event-item"><div class="event-label label-next" onclick="window.goUsage('${r.visitorName}', ${month+1}, '${r.customerName}')">${r.visitorName}: ${r.customerName}</div></div>`; });
                 }
                 // アポ
                 if (document.getElementById('showApp').checked) {
-                    loadedData.appoints.filter(a => window.formatDateKey(a.appointDate) === targetKey && selectedCleans.includes(clean(a.visitorName)))
-                        .forEach(a => { eventsHtml += `<div class="event-item"><div class="event-label label-appoint" onclick="window.showAppointDetail('${a.id}','${a.customerName}','${a.appointDate}','${a.subject}')">${a.visitorName}: ${a.customerName}</div></div>`; });
+                    loadedData.appoints.filter(a => window.formatDateKey(a.appointDate) === window.formatDateKey(targetKey) && selectedCleans.includes(clean(a.visitorName)))
+                        .forEach(a => { 
+                            if (showUnreadOnly) return;
+                            eventsHtml += `<div class="event-item"><div class="event-label label-appoint" onclick="window.handleAppoint('${a.id}','${a.customerName}','${a.appointDate}','${a.subject}')">${a.visitorName}: ${a.customerName}</div></div>`; 
+                        });
                 }
-                grid.insertAdjacentHTML('beforeend', `<div class="calendar-day"><div class="day-header mb-1"><span class="day-num">${d}</span></div><div class="max-h-[110px] overflow-y-auto custom-scrollbar">${eventsHtml}</div></div>`);
+                
+                grid.insertAdjacentHTML('beforeend', `
+                    <div class="calendar-day">
+                        <div class="day-header">
+                            <span class="day-num">${d}</span>
+                            <div class="add-btn" onclick="window.goAddHistory('${targetKey}')" title="この日に実績登録"><i class="fa-solid fa-plus"></i></div>
+                        </div>
+                        <div class="max-h-[110px] overflow-y-auto custom-scrollbar">${eventsHtml}</div>
+                    </div>`);
             }
         };
 
+        // 🌟 新機能：その日の実績をポップアップ表示（組織員利用状況風）
+        window.showDailyDetail = (date) => {
+            const container = document.getElementById('detailContainer');
+            const label = document.getElementById('detailDateLabel');
+            label.innerText = `【実績詳細】 ${date}`;
+            
+            const dayRecords = loadedData.records.filter(r => window.formatDateKey(r.visitDate) === window.formatDateKey(date));
+            
+            if (dayRecords.length === 0) {
+                container.innerHTML = '<p class="text-center py-8 text-slate-400 font-bold">実績はありません</p>';
+            } else {
+                container.innerHTML = dayRecords.map(r => `
+                    <div class="detail-card">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="font-black text-[#004098] text-sm">${r.visitorName}</span>
+                            <span class="text-[10px] font-bold bg-slate-100 px-2 py-0.5 rounded">${r.visitTime || '--:--'} 〜</span>
+                        </div>
+                        <div class="text-xs font-black mb-1">${r.customerName}</div>
+                        <div class="text-[10px] text-slate-500 mb-2">${r.location || '（場所未登録）'}</div>
+                        <div class="p-2 bg-slate-50 rounded text-[10px] leading-relaxed border-l-2 border-slate-200">
+                            <strong>■ 内容:</strong> ${r.content || 'なし'}
+                        </div>
+                    </div>
+                `).join('');
+            }
+            document.getElementById('detailModal').style.display = 'flex';
+        };
+
+        // 🌟 アポのハンドリング（昇格・削除の選択）
+        window.handleAppoint = (id, cust, date, subject) => {
+            const action = confirm(`【アポ詳細】\n顧客: ${cust}\n内容: ${subject || 'なし'}\n\n[OK] 実績に昇格して登録する\n[キャンセル] 削除のみ行う、または戻る`);
+            if (action) {
+                sessionStorage.setItem('cp_promote_appoint', JSON.stringify({id, cust, date, subject}));
+                location.href = 'history.html';
+            } else {
+                if(confirm("このアポを完全に削除しますか？")) {
+                    deleteDoc(doc(db, "appointments", id)).then(() => { alert("削除完了"); window.fetchMonthData(); });
+                }
+            }
+        };
+
+        window.goAddHistory = (date) => { sessionStorage.setItem('cp_add_date', date); location.href = 'history.html'; };
+
         window.markSelectedAsRead = async () => {
             const checks = document.querySelectorAll('.event-check:checked');
-            if (checks.length === 0) return alert("項目を選択してください");
+            if (checks.length === 0) return alert("既読にしたい項目にチェックを入れてください");
             const batch = writeBatch(db);
             checks.forEach(cb => { if(cb.dataset.notiId) batch.update(doc(db, "notifications", cb.dataset.notiId), { isRead: true }); });
             await batch.commit();
-            alert("既読にしました"); window.fetchMonthData();
+            alert("既読処理が完了しました"); window.fetchMonthData();
         };
 
-        window.goUsage = (name, month, customer) => { sessionStorage.setItem('cp_usage_jump_name', name); sessionStorage.setItem('cp_usage_jump_month', month); sessionStorage.setItem('cp_usage_jump_customer', customer); location.href = 'usage.html'; };
-        window.showAppointDetail = (id, cust, date, subject) => { if(confirm(`【アポ詳細】\n顧客: ${cust}\n内容: ${subject || 'なし'}\n\nこのアポを削除しますか？`)) { const batch = writeBatch(db); batch.delete(doc(db, "appointments", id)); batch.commit().then(() => { alert("削除完了"); window.fetchMonthData(); }); } };
-        window.formatDateKey = (s) => { if(!s) return ""; const d = s.replace(/\//g, '-').split('-'); return `${parseInt(d[0])}-${parseInt(d[1])}-${parseInt(d[2])}`; };
+        window.formatDateKey = (s) => { if(!s) return ""; return s.replace(/\//g, '-'); };
         window.changeMonth = (v) => { currentDate.setMonth(currentDate.getMonth() + v); window.fetchMonthData(); };
         window.jumpMonth = (m) => { currentDate.setMonth(m - 1); window.fetchMonthData(); };
 
