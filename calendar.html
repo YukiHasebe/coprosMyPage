@@ -13,34 +13,32 @@
         .day-num { font-weight: 900; font-size: 0.85rem; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
         .is-today .day-num { background: var(--copros-orange); color: white; border-radius: 50%; }
         
-        /* ＋ボタン：画像通り右上に配置 */
-        .add-btn { width: 18px; height: 18px; border-radius: 4px; background: #f8fafc; color: #cbd5e1; display: flex; align-items: center; justify-content: center; font-size: 9px; cursor: pointer; transition: all 0.2s; border: 1px solid #e2e8f0; }
+        .add-btn { width: 18px; height: 18px; border-radius: 4px; background: #f8fafc; color: #cbd5e1; display: flex; align-items: center; justify-content: center; font-size: 9px; cursor: pointer; border: 1px solid #e2e8f0; }
         .add-btn:hover { background: var(--copros-orange); color: white; border-color: var(--copros-orange); }
 
         .event-item { display: flex; align-items: center; gap: 4px; margin-bottom: 2px; }
-        .event-label { flex: 1; font-size: 9px; font-weight: 800; padding: 2px 5px; border-radius: 4px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 3px solid; transition: all 0.2s; position: relative; }
+        .event-label { flex: 1; font-size: 9px; font-weight: 800; padding: 2px 5px; border-radius: 4px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 3px solid; position: relative; }
         
         .label-result { border-left-color: var(--copros-orange); background: #fff7ed; color: #ea580c; }
         .label-next { border-left-color: #10b981; background: #f0fdf4; color: #16a34a; }
         .label-appoint { border-left-color: #3b82f6; background: #eff6ff; color: #1d4ed8; }
         .is-read { color: #000 !important; font-weight: 900; opacity: 0.7; }
 
-        .unread-dot { width: 5px; height: 5px; background: #ef4444; border-radius: 50%; position: absolute; right: 2px; top: 50%; transform: translateY(-50%); }
-        
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; backdrop-filter: blur(4px); align-items: center; justify-content: center; }
-        .modal-content { background: white; width: 95%; max-width: 500px; border-radius: 1.5rem; overflow: hidden; }
+        .modal-content { background: white; width: 95%; max-width: 500px; border-radius: 1.5rem; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
         
-        .staff-item { padding: 0.8rem 1.5rem; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+        .staff-item { padding: 0.8rem 1.5rem; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-weight: 600; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s; }
+        .staff-item:hover { background: #f8fafc; }
         .staff-item.selected { background: #eff6ff; color: var(--copros-navy); border-left: 4px solid var(--copros-navy); }
+        
+        /* 🌟 ×ボタン付き社員タグのデザイン修正 */
+        .staff-tag { background: #f0f9ff; color: #004098; padding: 0.4rem 0.8rem; border-radius: 9999px; border: 1px solid #bae6fd; font-weight: 900; font-size: 0.75rem; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .remove-staff-x { cursor: pointer; color: #94a3b8; transition: color 0.2s; font-size: 1rem; }
+        .remove-staff-x:hover { color: #ef4444; }
+
         .month-btn { padding: 0.6rem 0.2rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; flex: 1; text-align: center; cursor: pointer; }
         .month-btn.active { background: var(--copros-navy); color: white; }
-
-        /* 社員タグの×ボタン */
-        .remove-staff-btn { margin-left: 8px; color: #94a3b8; cursor: pointer; transition: color 0.2s; }
-        .remove-staff-btn:hover { color: #ef4444; }
-
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
@@ -50,48 +48,78 @@
         <div id="header-placeholder"></div>
         <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1500px] mx-auto">
-                <div class="flex flex-col gap-6 mb-6">
-                    <div class="flex justify-between items-end">
-                        <div><h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-1">カレンダー回覧</h1><nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Management & Activity Board</nav></div>
-                        <button onclick="window.markSelectedAsRead()" class="px-6 py-2.5 bg-[#004098] text-white rounded-xl font-black text-xs hover:shadow-lg transition-all active:scale-95">選択済を既読にする</button>
-                    </div>
+                
+                <div class="flex justify-between items-end mb-6">
+                    <div><h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-1">カレンダー回覧</h1><nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Management & Activity Board</nav></div>
+                    <button onclick="window.markSelectedAsRead()" class="px-6 py-2.5 bg-[#004098] text-white rounded-xl font-black text-xs hover:shadow-lg active:scale-95 transition-all">選択済を既読にする</button>
+                </div>
 
-                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                        <div class="flex justify-between items-center mb-4">
-                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">表示対象メンバー</p>
-                            <button onclick="window.openStaffModal()" class="text-xs font-black text-[#004098] bg-blue-50 px-4 py-1.5 rounded-lg hover:bg-[#004098] hover:text-white transition-all border border-blue-100"><i class="fa-solid fa-users-viewfinder mr-1"></i> 社員を選択</button>
-                        </div>
-                        <div id="selectedNamesDisplay" class="flex flex-wrap gap-2 text-sm font-black text-slate-600"></div>
+                <!-- 社員選択エリア -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-6">
+                    <div class="flex justify-between items-center mb-4 border-b pb-2">
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Selected Members</p>
+                        <button onclick="window.openStaffModal()" class="text-xs font-black text-[#004098] bg-blue-50 px-4 py-1.5 rounded-lg hover:bg-[#004098] hover:text-white transition-all border border-blue-100"><i class="fa-solid fa-users-viewfinder mr-1"></i> 社員を選択</button>
                     </div>
-
-                    <!-- 🌟 ここを修正：日付セレクターを中央寄せ -->
-                    <div class="flex flex-col md:flex-row items-center justify-center relative gap-4">
-                        <div class="flex items-center gap-8 bg-white py-2 px-8 rounded-2xl shadow-sm border border-slate-200">
-                            <button onclick="window.changeMonth(-1)" class="text-slate-300 hover:text-slate-600 transition-colors"><i class="fa-solid fa-chevron-left fa-lg"></i></button>
-                            <span id="displayMonthCenter" class="text-xl font-black text-slate-700 min-w-[160px] text-center tracking-tighter">----年 --月</span>
-                            <button onclick="window.changeMonth(1)" class="text-slate-300 hover:text-slate-600 transition-colors"><i class="fa-solid fa-chevron-right fa-lg"></i></button>
-                        </div>
-                        
-                        <div class="md:absolute md:right-0 flex flex-wrap gap-4 items-center bg-white px-5 py-2.5 rounded-xl shadow-sm border border-slate-200 text-[11px] font-black">
-                            <label class="flex items-center gap-2 cursor-pointer text-slate-500 border-r pr-4"><input type="checkbox" id="showUnreadOnly" onchange="renderCalendar()" class="accent-rose-500"> 未読のみ</label>
-                            <label class="flex items-center gap-2 cursor-pointer text-orange-600"><input type="checkbox" id="showRes" checked onchange="renderCalendar()" class="accent-orange-500"> 実績</label>
-                            <label class="flex items-center gap-2 cursor-pointer text-emerald-600"><input type="checkbox" id="showNext" checked onchange="renderCalendar()" class="accent-emerald-500"> 次回</label>
-                            <label class="flex items-center gap-2 cursor-pointer text-blue-600"><input type="checkbox" id="showApp" checked onchange="renderCalendar()" class="accent-blue-500"> アポ</label>
-                        </div>
-                    </div>
-
-                    <div class="flex overflow-x-auto p-1 bg-white rounded-2xl border border-slate-200 shadow-sm whitespace-nowrap custom-scrollbar">
-                        <script>for(let i=1; i<=12; i++) document.write(`<button onclick="window.jumpMonth(${i})" id="month-btn-${i}" class="month-btn">${i}月</button>`);</script>
+                    <div id="selectedNamesDisplay" class="flex flex-wrap gap-2 min-h-[40px] items-center">
+                        <!-- ここに×ボタン付きのタグが出る -->
                     </div>
                 </div>
+
+                <!-- 🌟 日付切り替え（完全中央寄せ） -->
+                <div class="flex flex-col md:flex-row items-center justify-center relative mb-6 gap-4">
+                    <div class="flex items-center gap-8 bg-white py-2 px-10 rounded-2xl shadow-sm border border-slate-200">
+                        <button onclick="window.changeMonth(-1)" class="text-slate-300 hover:text-slate-600 transition-colors"><i class="fa-solid fa-chevron-left fa-xl"></i></button>
+                        <span id="displayMonthCenter" class="text-xl font-black text-slate-700 min-w-[180px] text-center tracking-tighter">----年 --月</span>
+                        <button onclick="window.changeMonth(1)" class="text-slate-300 hover:text-slate-600 transition-colors"><i class="fa-solid fa-chevron-right fa-xl"></i></button>
+                    </div>
+                    
+                    <div class="md:absolute md:right-0 flex gap-4 items-center bg-white px-5 py-2.5 rounded-xl shadow-sm border border-slate-200 text-[10px] font-black">
+                        <label class="flex items-center gap-2 cursor-pointer text-slate-400 border-r pr-4"><input type="checkbox" id="showUnreadOnly" onchange="renderCalendar()" class="accent-rose-500"> 未読のみ</label>
+                        <label class="flex items-center gap-2 cursor-pointer text-orange-600"><input type="checkbox" id="showRes" checked onchange="renderCalendar()" class="accent-orange-500"> 実績</label>
+                        <label class="flex items-center gap-2 cursor-pointer text-emerald-600"><input type="checkbox" id="showNext" checked onchange="renderCalendar()" class="accent-emerald-500"> 次回</label>
+                        <label class="flex items-center gap-2 cursor-pointer text-blue-600"><input type="checkbox" id="showApp" checked onchange="renderCalendar()" class="accent-blue-500"> アポ</label>
+                    </div>
+                </div>
+
+                <!-- 12ヶ月ジャンプボタン -->
+                <div class="flex overflow-x-auto p-1 bg-white rounded-2xl border border-slate-200 shadow-sm whitespace-nowrap custom-scrollbar mb-6">
+                    <script>for(let i=1; i<=12; i++) document.write(`<button onclick="window.jumpMonth(${i})" id="month-btn-${i}" class="month-btn">${i}月</button>`);</script>
+                </div>
+
                 <div id="calendarGrid" class="calendar-grid"></div>
             </div>
         </div>
     </main>
 
-    <!-- モーダル・ポップアップ -->
-    <div id="staffModal" class="modal-overlay"><div class="modal-content"><div class="bg-slate-900 p-4 text-white flex justify-between items-center"><span class="font-black text-xs uppercase">社員選択</span><i class="fa-solid fa-xmark cursor-pointer" onclick="window.closeModal()"></i></div><div class="p-4 bg-slate-50 border-b"><div class="grid grid-cols-2 gap-2"><input type="text" id="modalSearch" oninput="window.renderModalList()" placeholder="氏名検索..." class="p-2.5 rounded-lg border text-xs font-bold outline-none"><select id="modalDept" onchange="window.renderModalList()" class="p-2.5 rounded-lg border text-xs font-bold outline-none"><option value="ALL">全ケコム関連</option><option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option></select></div></div><div id="modalStaffList" class="max-h-[300px] overflow-y-auto custom-scrollbar"></div><div class="p-4 bg-slate-50 grid grid-cols-2 gap-3"><button onclick="window.applyModal()" class="py-3 bg-[#004098] text-white rounded-xl font-black">決定</button><button onclick="window.clearModal()" class="py-3 bg-white border rounded-xl font-bold">クリア</button></div></div></div>
-    <div id="detailModal" class="modal-overlay" onclick="if(event.target==this)this.style.display='none'"><div class="modal-content" style="max-width: 600px;"><div class="bg-[#ff7e11] p-4 text-white flex justify-between items-center"><span id="detailDateLabel" class="font-black text-sm tracking-widest"></span><i class="fa-solid fa-xmark cursor-pointer" onclick="document.getElementById('detailModal').style.display='none'"></i></div><div id="detailContainer" class="p-4 max-h-[70vh] overflow-y-auto bg-slate-50 custom-scrollbar"></div></div></div>
+    <!-- 社員選択モーダル -->
+    <div id="staffModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="bg-slate-900 p-4 text-white flex justify-between items-center"><span class="font-black text-xs uppercase tracking-widest">Select Staff</span><i class="fa-solid fa-xmark cursor-pointer hover:text-rose-400" onclick="window.closeModal()"></i></div>
+            <div class="p-4 bg-slate-50 border-b">
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="text" id="modalSearch" oninput="window.renderModalList()" placeholder="氏名で検索..." class="p-2.5 rounded-lg border text-xs font-bold outline-none focus:border-[#004098]">
+                    <select id="modalDept" onchange="window.renderModalList()" class="p-2.5 rounded-lg border text-xs font-bold outline-none">
+                        <option value="ALL">全ての部署</option>
+                        <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option>
+                        <option>土木部</option><option>建築部</option><option>建機部</option><option>総務部</option>
+                    </select>
+                </div>
+            </div>
+            <div id="modalStaffList" class="max-h-[350px] overflow-y-auto custom-scrollbar"></div>
+            <div class="p-4 bg-slate-50 grid grid-cols-2 gap-3">
+                <button onclick="window.applyModal()" class="py-3 bg-[#004098] text-white rounded-xl font-black shadow-lg active:scale-95 transition-all">決定</button>
+                <button onclick="window.clearModal()" class="py-3 bg-white border border-slate-200 rounded-xl font-bold hover:bg-slate-100">クリア</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 実績詳細ポップアップ -->
+    <div id="detailModal" class="modal-overlay" onclick="if(event.target==this)this.style.display='none'">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="bg-[#ff7e11] p-4 text-white flex justify-between items-center"><span id="detailDateLabel" class="font-black text-sm"></span><i class="fa-solid fa-xmark cursor-pointer" onclick="document.getElementById('detailModal').style.display='none'"></i></div>
+            <div id="detailContainer" class="p-4 max-h-[70vh] overflow-y-auto bg-slate-50 custom-scrollbar"></div>
+        </div>
+    </div>
 
     <script type="module" src="common.js"></script>
     <script type="module">
@@ -102,7 +130,6 @@
         let loadedData = { records: [], appoints: [], notifications: [] };
         let currentDate = new Date();
 
-        // 🌟 どんな日付形式でも「YYYY-MM-DD」に変換する最強のロジック
         window.standardizeDate = (s) => {
             if(!s) return "";
             const d = s.replace(/\//g, '-').split('-');
@@ -119,13 +146,19 @@
             } catch (e) { console.error(e); }
         }
 
+        // 🌟 確実に×ボタンが出るようにHTMLを修正
         window.updateSelectedDisplay = () => {
             const container = document.getElementById('selectedNamesDisplay');
-            container.innerHTML = selectedStaffs.length ? selectedStaffs.map(name => `
-                <span class="bg-blue-50 text-[#004098] px-4 py-1.5 rounded-full border border-blue-200 flex items-center gap-1 shadow-sm">
-                    ${name}
-                    <i class="fa-solid fa-xmark remove-staff-btn" onclick="window.removeStaff('${name}')"></i>
-                </span>`).join('') : '<span class="text-slate-300 italic">表示する社員を選択してください</span>';
+            if (selectedStaffs.length === 0) {
+                container.innerHTML = '<span class="text-slate-300 italic text-xs">表示する社員を選択してください</span>';
+                return;
+            }
+            container.innerHTML = selectedStaffs.map(name => `
+                <div class="staff-tag">
+                    <span>${name}</span>
+                    <i class="fa-solid fa-circle-xmark remove-staff-x" onclick="window.removeStaff('${name}')"></i>
+                </div>
+            `).join('');
         };
 
         window.removeStaff = (name) => {
@@ -137,24 +170,29 @@
 
         window.openStaffModal = () => { document.getElementById('staffModal').style.display = 'flex'; window.renderModalList(); };
         window.closeModal = () => { document.getElementById('staffModal').style.display = 'none'; };
+        
         window.renderModalList = () => {
             const kw = document.getElementById('modalSearch').value.toLowerCase();
             const dept = document.getElementById('modalDept').value;
             const container = document.getElementById('modalStaffList');
             container.innerHTML = allStaffs.filter(s => (!kw || s.name.includes(kw)) && (dept === 'ALL' || s.dept === dept)).map(s => `
-                <div class="staff-item ${selectedStaffs.includes(s.name) ? 'selected' : ''}" onclick="window.toggleModalStaff('${s.name}')"><span>${s.name}</span><span class="text-[10px] opacity-40">${s.dept || ''}</span></div>`).join('');
+                <div class="staff-item ${selectedStaffs.includes(s.name) ? 'selected' : ''}" onclick="window.toggleModalStaff('${s.name}')">
+                    <span>${s.name}</span>
+                    <span class="text-[10px] font-black opacity-30 uppercase tracking-tighter">${s.dept || ''}</span>
+                </div>`).join('');
         };
+
         window.toggleModalStaff = (name) => {
             if (selectedStaffs.includes(name)) selectedStaffs = selectedStaffs.filter(n => n !== name);
             else selectedStaffs.push(name);
             window.renderModalList();
         };
+
         window.applyModal = () => { localStorage.setItem('cp_cal_selected_staffs', JSON.stringify(selectedStaffs)); window.updateSelectedDisplay(); window.fetchMonthData(); window.closeModal(); };
         window.clearModal = () => { selectedStaffs = []; window.renderModalList(); };
 
         window.fetchMonthData = async () => {
-            const y = currentDate.getFullYear(); 
-            const m = currentDate.getMonth() + 1;
+            const y = currentDate.getFullYear(); const m = currentDate.getMonth() + 1;
             const mStr = m.toString().padStart(2, '0');
             document.getElementById('displayMonthCenter').innerText = `${y}年 ${m}月`;
             document.querySelectorAll('.month-btn').forEach(b => b.classList.toggle('active', b.id === `month-btn-${m}`));
@@ -163,30 +201,20 @@
                 if (selectedStaffs.length === 0) { 
                     loadedData.records = []; loadedData.appoints = []; 
                 } else {
-                    // 🌟 修正：Firebaseから年度単位で広めに取得し、JS側で確実にフィルタリング（これで1月分も出るはず）
+                    // 全データ取得してJS側でフィルタ（インポートデータ対応）
                     const qr = query(collection(db, "activity_records"), where("visitDate", ">=", `${y}-01-01`), where("visitDate", "<=", `${y}-12-31`));
                     const snapR = await getDocs(qr);
-                    // スラッシュ形式のデータも考慮して再度別の形式でも取得（念のため）
                     const qr2 = query(collection(db, "activity_records"), where("visitDate", ">=", `${y}/01/01`), where("visitDate", "<=", `${y}/12/31`));
                     const snapR2 = await getDocs(qr2);
-
                     const qa = query(collection(db, "appointments"), where("appointDate", ">=", `${y}-01-01`), where("appointDate", "<=", `${y}-12-31`));
                     const snapA = await getDocs(qa);
 
                     const clean = (s) => (s||"").replace(/\s+/g, '');
-                    const selectedCleans = selectedStaffs.map(n => clean(n));
-
-                    const allRecs = [...snapR.docs, ...snapR2.docs].map(d => ({id: d.id, ...d.data()}));
+                    const selCleans = selectedStaffs.map(n => clean(n));
+                    const allR = [...snapR.docs, ...snapR2.docs].map(d => ({id: d.id, ...d.data()}));
                     
-                    loadedData.records = allRecs.filter(r => {
-                        const sDate = window.standardizeDate(r.visitDate);
-                        return selectedCleans.includes(clean(r.visitorName)) && sDate.startsWith(`${y}-${mStr}`);
-                    });
-                    
-                    loadedData.appoints = snapA.docs.map(d => ({id: d.id, ...d.data()})).filter(a => {
-                        const sDate = window.standardizeDate(a.appointDate);
-                        return selectedCleans.includes(clean(a.visitorName)) && sDate.startsWith(`${y}-${mStr}`);
-                    });
+                    loadedData.records = allR.filter(r => selCleans.includes(clean(r.visitorName)) && window.standardizeDate(r.visitDate).startsWith(`${y}-${mStr}`));
+                    loadedData.appoints = snapA.docs.map(d => ({id: d.id, ...d.data()})).filter(a => selCleans.includes(clean(a.visitorName)) && window.standardizeDate(a.appointDate).startsWith(`${y}-${mStr}`));
                 }
                 const myName = sessionStorage.getItem('userName');
                 const qn = query(collection(db, "notifications"), where("recipient", "==", myName), where("isRead", "==", false));
@@ -204,58 +232,49 @@
             for(let i=0; i<startOffset; i++) grid.insertAdjacentHTML('beforeend', '<div class="calendar-day other-month bg-slate-50/50"></div>');
 
             const clean = (s) => (s||"").replace(/\s+/g, '');
-            const showUnreadOnly = document.getElementById('showUnreadOnly').checked;
+            const showUnread = document.getElementById('showUnreadOnly').checked;
 
             for(let d=1; d<=daysInMonth; d++) {
                 const targetKey = `${year}-${(month + 1).toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
-                let eventsHtml = "";
+                let evHtml = "";
 
-                // 実績
                 if (document.getElementById('showRes').checked) {
-                    loadedData.records.filter(r => window.standardizeDate(r.visitDate) === targetKey)
-                        .forEach(r => {
-                            const noti = loadedData.notifications.find(n => clean(n.visitorName) === clean(r.visitorName) && n.customerName === r.customerName && window.standardizeDate(n.visitDate) === targetKey);
-                            if (showUnreadOnly && !noti) return; 
-                            eventsHtml += `<div class="event-item"><input type="checkbox" class="event-check w-3 h-3 accent-[#004098]" data-noti-id="${noti ? noti.id : ''}"><div class="event-label label-result ${!noti ? 'is-read' : ''}" onclick="window.showDailyDetail('${targetKey}')">${r.visitorName}: ${r.customerName}${noti ? '<span class="unread-dot"></span>' : ''}</div></div>`;
-                        });
+                    loadedData.records.filter(r => window.standardizeDate(r.visitDate) === targetKey).forEach(r => {
+                        const noti = loadedData.notifications.find(n => clean(n.visitorName) === clean(r.visitorName) && n.customerName === r.customerName && window.standardizeDate(n.visitDate) === targetKey);
+                        if (showUnread && !noti) return;
+                        evHtml += `<div class="event-item"><input type="checkbox" class="event-check w-3 h-3 accent-[#004098]" data-noti-id="${noti?noti.id:''}"><div class="event-label label-result ${!noti?'is-read':''}" onclick="window.showDailyDetail('${targetKey}')">${r.visitorName}: ${r.customerName}${noti?'<span class="unread-dot"></span>':''}</div></div>`;
+                    });
                 }
-                // 次回
                 if (document.getElementById('showNext').checked) {
-                    loadedData.records.filter(r => window.standardizeDate(r.nextVisitDate) === targetKey)
-                        .forEach(r => { 
-                            if (showUnreadOnly) return;
-                            eventsHtml += `<div class="event-item"><div class="event-label label-next" onclick="window.showDailyDetail('${targetKey}')">${r.visitorName}: ${r.customerName}</div></div>`; 
-                        });
+                    loadedData.records.filter(r => window.standardizeDate(r.nextVisitDate) === targetKey).forEach(r => {
+                        if (showUnread) return;
+                        evHtml += `<div class="event-item"><div class="event-label label-next" onclick="window.showDailyDetail('${targetKey}')">${r.visitorName}: ${r.customerName}</div></div>`;
+                    });
                 }
-                // アポ
                 if (document.getElementById('showApp').checked) {
-                    loadedData.appoints.filter(a => window.standardizeDate(a.appointDate) === targetKey)
-                        .forEach(a => { 
-                            if (showUnreadOnly) return;
-                            eventsHtml += `<div class="event-item"><div class="event-label label-appoint" onclick="window.handleAppoint('${a.id}','${a.customerName}','${a.appointDate}','${a.subject}')">${a.visitorName}: ${a.customerName}</div></div>`; 
-                        });
+                    loadedData.appoints.filter(a => window.standardizeDate(a.appointDate) === targetKey).forEach(a => {
+                        if (showUnread) return;
+                        evHtml += `<div class="event-item"><div class="event-label label-appoint" onclick="window.handleAppoint('${a.id}','${a.customerName}','${a.appointDate}','${a.subject}')">${a.visitorName}: ${a.customerName}</div></div>`;
+                    });
                 }
                 
                 grid.insertAdjacentHTML('beforeend', `
-                    <div class="calendar-day">
-                        <div class="day-header">
-                            <span class="day-num">${d}</span>
-                            <div class="add-btn" onclick="window.goAddHistory('${targetKey}')" title="実績登録"><i class="fa-solid fa-plus"></i></div>
-                        </div>
-                        <div class="max-h-[110px] overflow-y-auto custom-scrollbar">${eventsHtml}</div>
+                    <div class="calendar-day ${new Date(year, month, d).getDay() === 0 ? 'bg-rose-50/30' : ''}">
+                        <div class="day-header"><span class="day-num">${d}</span><div class="add-btn" onclick="window.goAddHistory('${targetKey}')"><i class="fa-solid fa-plus"></i></div></div>
+                        <div class="max-h-[110px] overflow-y-auto custom-scrollbar">${evHtml}</div>
                     </div>`);
             }
         };
 
         window.showDailyDetail = (date) => {
             const container = document.getElementById('detailContainer');
-            document.getElementById('detailDateLabel').innerText = `【実績詳細】 ${date}`;
-            const dayRecords = loadedData.records.filter(r => window.standardizeDate(r.visitDate) === date);
-            container.innerHTML = dayRecords.length ? dayRecords.map(r => `
-                <div class="detail-card">
-                    <div class="flex justify-between items-start mb-2"><span class="font-black text-[#004098] text-sm">${r.visitorName}</span><span class="text-[10px] font-bold bg-slate-100 px-2 py-0.5 rounded">${r.visitTime || '--:--'}</span></div>
+            document.getElementById('detailDateLabel').innerText = `実績詳細: ${date}`;
+            const dayRecs = loadedData.records.filter(r => window.standardizeDate(r.visitDate) === date);
+            container.innerHTML = dayRecs.length ? dayRecs.map(r => `
+                <div class="p-3 bg-white border-l-4 border-[#ff7e11] mb-2 rounded shadow-sm">
+                    <div class="flex justify-between text-[10px] font-black mb-1"><span class="text-[#004098]">${r.visitorName}</span><span>${r.visitTime||''}</span></div>
                     <div class="text-xs font-black mb-1">${r.customerName}</div>
-                    <div class="p-2 bg-slate-50 rounded text-[10px] leading-relaxed border-l-2 border-slate-200"><strong>内容:</strong> ${r.content || 'なし'}</div>
+                    <div class="text-[10px] text-slate-500 bg-slate-50 p-2 rounded">内容: ${r.content||'なし'}</div>
                 </div>`).join('') : '<p class="text-center py-8 text-slate-400 font-bold">実績はありません</p>';
             document.getElementById('detailModal').style.display = 'flex';
         };
