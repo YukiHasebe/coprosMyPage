@@ -14,7 +14,6 @@
         .day-num { font-weight: 900; font-size: 0.85rem; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
         .is-today .day-num { background: var(--copros-orange); color: white; border-radius: 50%; }
         
-        /* ＋ボタンのデザイン */
         .add-btn { width: 20px; height: 20px; border-radius: 6px; background: #f1f5f9; color: #64748b; display: flex; align-items: center; justify-content: center; font-size: 10px; cursor: pointer; transition: all 0.2s; }
         .add-btn:hover { background: var(--copros-orange); color: white; }
 
@@ -36,7 +35,6 @@
         .month-btn { padding: 0.6rem 0.2rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; flex: 1; text-align: center; cursor: pointer; }
         .month-btn.active { background: var(--copros-navy); color: white; }
 
-        /* 実績詳細ポップアップ用 */
         .detail-card { border-left: 4px solid var(--copros-orange); background: white; margin-bottom: 8px; padding: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
 
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
@@ -111,7 +109,7 @@
         </div>
     </div>
 
-    <!-- 実績詳細ポップアップ（組織員利用状況風） -->
+    <!-- 実績詳細ポップアップ -->
     <div id="detailModal" class="modal-overlay" onclick="if(event.target==this)this.style.display='none'">
         <div class="modal-content" style="max-width: 600px;">
             <div class="bg-[#ff7e11] p-4 text-white flex justify-between items-center">
@@ -133,8 +131,8 @@
 
         async function init() {
             try {
-                // 部署限定フィルタを適用して取得
-                const sSnap = await getDocs(query(collection(db, "staffs"), where("dept", "in", TARGET_DEPTS), orderBy("name")));
+                // 🌟 ここ！TARGET_DEPTSを使わず、一旦全社員読み込んでから、後でフィルタすることで「データ入れ替え前」の状態でも社員が出るようにします。
+                const sSnap = await getDocs(query(collection(db, "staffs"), orderBy("name")));
                 allStaffs = sSnap.docs.map(d => d.data());
                 window.updateSelectedDisplay();
                 await window.fetchMonthData();
@@ -167,8 +165,8 @@
         window.clearModal = () => { selectedStaffs = []; window.renderModalList(); };
 
         window.fetchMonthData = async () => {
-            const y = currentDate.getFullYear(); const m = currentDate.getMonth() + 1;
-            const mStr = m.toString().padStart(2, '0');
+            const y = currentDate.getFullYear(); 
+            const m = currentDate.getMonth() + 1;
             document.getElementById('displayMonthCenter').innerText = `${y}年 ${m}月`;
             document.querySelectorAll('.month-btn').forEach(b => b.classList.toggle('active', b.id === `month-btn-${m}`));
 
@@ -176,22 +174,24 @@
                 if (selectedStaffs.length === 0) { 
                     loadedData.records = []; loadedData.appoints = []; 
                 } else {
-                    // Firebase負荷軽減のため、名前でピンポイント取得（10人ずつ分割して取得）
-                    const recordsTemp = [];
-                    const appointsTemp = [];
-                    for (let i = 0; i < selectedStaffs.length; i += 10) {
-                        const chunk = selectedStaffs.slice(i, i + 10);
-                        // 実績
-                        const qr = query(collection(db, "activity_records"), where("visitorName", "in", chunk), where("visitDate", ">=", `${y}-${mStr}-01`), where("visitDate", "<=", `${y}-${mStr}-31`));
-                        const snapR = await getDocs(qr);
-                        recordsTemp.push(...snapR.docs.map(d => ({id: d.id, ...d.data()})));
-                        // アポ
-                        const qa = query(collection(db, "appointments"), where("visitorName", "in", chunk), where("appointDate", ">=", `${y}-${mStr}-01`), where("appointDate", "<=", `${y}-${mStr}-31`));
-                        const snapA = await getDocs(qa);
-                        appointsTemp.push(...snapA.docs.map(d => ({id: d.id, ...d.data()})));
-                    }
-                    loadedData.records = recordsTemp;
-                    loadedData.appoints = appointsTemp;
+                    // 🌟 修正：Firebaseの負荷を抑えつつ、確実にその月のデータを取得する
+                    // 年度・月でフィルタ（前方一致検索のテクニック）
+                    const monthPrefix = `${y}-${m.toString().padStart(2, '0')}`;
+                    const monthPrefixSlash = `${y}/${m.toString().padStart(2, '0')}`;
+                    
+                    // 全部署の全データを一旦取得（省エネのため、日付範囲を絞る）
+                    const qr = query(collection(db, "activity_records"), where("visitDate", ">=", monthPrefix), where("visitDate", "<=", monthPrefix + "\uf8ff"));
+                    const snapR = await getDocs(qr);
+                    
+                    const qa = query(collection(db, "appointments"), where("appointDate", ">=", monthPrefix), where("appointDate", "<=", monthPrefix + "\uf8ff"));
+                    const snapA = await getDocs(qa);
+
+                    // 取得したデータの中から、選択された社員のものだけを抽出（JS側でフィルタ）
+                    const clean = (s) => (s||"").replace(/\s+/g, '');
+                    const selectedCleans = selectedStaffs.map(n => clean(n));
+
+                    loadedData.records = snapR.docs.map(d => ({id: d.id, ...d.data()})).filter(r => selectedCleans.includes(clean(r.visitorName)));
+                    loadedData.appoints = snapA.docs.map(d => ({id: d.id, ...d.data()})).filter(a => selectedCleans.includes(clean(a.visitorName)));
                 }
                 const myName = sessionStorage.getItem('userName');
                 const qn = query(collection(db, "notifications"), where("recipient", "==", myName), where("isRead", "==", false));
@@ -209,18 +209,15 @@
             for(let i=0; i<startOffset; i++) grid.insertAdjacentHTML('beforeend', '<div class="calendar-day other-month bg-slate-50/50"></div>');
 
             const clean = (s) => (s||"").replace(/\s+/g, '');
-            const selectedCleans = selectedStaffs.map(n => clean(n));
             const showUnreadOnly = document.getElementById('showUnreadOnly').checked;
 
             for(let d=1; d<=daysInMonth; d++) {
-                const dayStr = d.toString().padStart(2, '0');
-                const monthStr = (month + 1).toString().padStart(2, '0');
-                const targetKey = `${year}-${monthStr}-${dayStr}`;
+                const targetKey = `${year}-${(month + 1).toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
                 let eventsHtml = "";
 
                 // 実績
                 if (document.getElementById('showRes').checked) {
-                    loadedData.records.filter(r => window.formatDateKey(r.visitDate) === window.formatDateKey(targetKey) && selectedCleans.includes(clean(r.visitorName)))
+                    loadedData.records.filter(r => window.formatDateKey(r.visitDate) === window.formatDateKey(targetKey))
                         .forEach(r => {
                             const noti = loadedData.notifications.find(n => clean(n.visitorName) === clean(r.visitorName) && n.customerName === r.customerName && window.formatDateKey(n.visitDate) === window.formatDateKey(targetKey));
                             if (showUnreadOnly && !noti) return; 
@@ -229,7 +226,7 @@
                 }
                 // アポ
                 if (document.getElementById('showApp').checked) {
-                    loadedData.appoints.filter(a => window.formatDateKey(a.appointDate) === window.formatDateKey(targetKey) && selectedCleans.includes(clean(a.visitorName)))
+                    loadedData.appoints.filter(a => window.formatDateKey(a.appointDate) === window.formatDateKey(targetKey))
                         .forEach(a => { 
                             if (showUnreadOnly) return;
                             eventsHtml += `<div class="event-item"><div class="event-label label-appoint" onclick="window.handleAppoint('${a.id}','${a.customerName}','${a.appointDate}','${a.subject}')">${a.visitorName}: ${a.customerName}</div></div>`; 
@@ -247,14 +244,11 @@
             }
         };
 
-        // 🌟 新機能：その日の実績をポップアップ表示（組織員利用状況風）
         window.showDailyDetail = (date) => {
             const container = document.getElementById('detailContainer');
             const label = document.getElementById('detailDateLabel');
             label.innerText = `【実績詳細】 ${date}`;
-            
             const dayRecords = loadedData.records.filter(r => window.formatDateKey(r.visitDate) === window.formatDateKey(date));
-            
             if (dayRecords.length === 0) {
                 container.innerHTML = '<p class="text-center py-8 text-slate-400 font-bold">実績はありません</p>';
             } else {
@@ -275,7 +269,6 @@
             document.getElementById('detailModal').style.display = 'flex';
         };
 
-        // 🌟 アポのハンドリング（昇格・削除の選択）
         window.handleAppoint = (id, cust, date, subject) => {
             const action = confirm(`【アポ詳細】\n顧客: ${cust}\n内容: ${subject || 'なし'}\n\n[OK] 実績に昇格して登録する\n[キャンセル] 削除のみ行う、または戻る`);
             if (action) {
@@ -299,7 +292,14 @@
             alert("既読処理が完了しました"); window.fetchMonthData();
         };
 
-        window.formatDateKey = (s) => { if(!s) return ""; return s.replace(/\//g, '-'); };
+        // 🌟 修正：/ を - に変換し、1桁の数字を2桁（01など）に揃えて比較する
+        window.formatDateKey = (s) => { 
+            if(!s) return ""; 
+            const parts = s.replace(/\//g, '-').split('-');
+            if(parts.length < 3) return s;
+            return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+        };
+
         window.changeMonth = (v) => { currentDate.setMonth(currentDate.getMonth() + v); window.fetchMonthData(); };
         window.jumpMonth = (m) => { currentDate.setMonth(m - 1); window.fetchMonthData(); };
 
