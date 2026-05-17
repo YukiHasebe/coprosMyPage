@@ -10,17 +10,17 @@
         .staff-selector-card { background: white; border-radius: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px rgba(0,0,0,0.04); }
         .staff-item { padding: 0.8rem 1.2rem; cursor: pointer; border-radius: 0.75rem; transition: all 0.2s; border: 1px solid transparent; text-align: center; }
         .staff-item:hover { background: #f8fafc; }
-        .staff-item.active { background: var(--copros-navy); color: white; }
+        .staff-item.active { background: var(--copros-navy); color: white; box-shadow: 0 4px 12px rgba(0,64,152,0.3); }
         .month-btn { padding: 0.6rem 0.2rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; flex: 1; text-align: center; cursor: pointer; }
         .month-btn.active { background: var(--copros-navy); color: white; }
-        .accordion-item { background: white; border-radius: 1rem; border: 1px solid #e2e8f0; overflow: hidden; margin-bottom: 1rem; }
-        .accordion-header { padding: 1.2rem 2rem; cursor: pointer; display: flex; align-items: center; justify-content: space-between; background: #3c4b5a; color: white; }
-        .accordion-content { display: none; padding: 2rem; background: white; }
-        .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 1.5rem; margin-bottom: 1.5rem; }
-        .info-label { font-size: 10px; font-weight: 800; color: #94a3b8; }
+        .accordion-item { background: white; border-radius: 1rem; border: 1px solid #e2e8f0; overflow: hidden; margin-bottom: 1rem; transition: all 0.2s; }
+        .accordion-header { padding: 1rem 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: space-between; background: #3c4b5a; color: white; }
+        .accordion-content { display: none; padding: 1.5rem; background: white; }
+        .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 1rem; margin-bottom: 1rem; }
+        .info-label { font-size: 10px; font-weight: 800; color: #94a3b8; margin-bottom: 2px; }
         .info-value { font-size: 13px; font-weight: 800; color: #475569; }
-        .report-box { background: #f8fafc; border-radius: 1rem; padding: 1.5rem; border: 1px solid #f1f5f9; font-size: 13px; line-height: 1.7; }
-        .summary-card { background: linear-gradient(135deg, #004098 0%, #2d3748 100%); color: white; border-radius: 1.5rem; padding: 1.5rem; margin-bottom: 2rem; display: grid; grid-template-columns: repeat(3, 1fr); text-align: center; }
+        .report-box { background: #f8fafc; border-radius: 0.75rem; padding: 1rem; border: 1px solid #f1f5f9; font-size: 13px; line-height: 1.6; margin-bottom: 1rem; }
+        .summary-card { background: linear-gradient(135deg, #004098 0%, #2d3748 100%); color: white; border-radius: 1.5rem; padding: 1.5rem; margin-bottom: 2rem; display: grid; grid-template-columns: repeat(3, 1fr); text-align: center; box-shadow: 0 10px 20px -5px rgba(0,64,152,0.4); }
         .scope-select { background: #f8fafc; border: 1px solid #e2e8f0; padding: 0.6rem 1rem; border-radius: 0.75rem; font-size: 0.8rem; font-weight: 800; color: #475569; outline: none; }
     </style>
 </head>
@@ -30,46 +30,71 @@
         <div id="header-placeholder"></div>
         <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1200px] mx-auto">
-                <div class="flex justify-between items-end mb-8"><h1 class="text-4xl font-black text-slate-800 tracking-tighter">組織員利用状況</h1>
-                    <button onclick="location.href='calendar.html'" class="px-6 py-2 bg-white border rounded-xl font-bold text-xs">カレンダーへ戻る</button>
+                <div class="flex justify-between items-end mb-8">
+                    <div>
+                        <h1 class="text-4xl font-black text-slate-800 tracking-tighter">組織員利用状況</h1>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Staff Activity Timeline</p>
+                    </div>
+                    <button onclick="location.href='calendar.html'" class="px-6 py-2 bg-white border border-slate-200 rounded-xl font-black text-xs hover:bg-slate-50 transition-all active:scale-95 shadow-sm">カレンダーへ戻る</button>
                 </div>
-                <!-- 1. 社員選択 -->
+
+                <!-- 1. 社員選択セクション -->
                 <div class="staff-selector-card p-6 mb-8">
                     <div class="flex flex-col lg:flex-row gap-4 mb-6">
-                        <select id="deptFilter" onchange="window.renderStaffList()" class="scope-select min-w-[240px]"><option value="ALL">全ての部署</option><option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option><option>土木部</option><option>建築部</option><option>建機部</option><option>総務部</option><option>購買課</option><option>宮崎産商</option><option>企画部</option></select>
-                        <input type="text" id="staffSearch" oninput="window.renderStaffList()" placeholder="氏名で検索..." class="flex-1 px-4 py-3 bg-slate-50 border rounded-xl outline-none font-bold">
+                        <select id="deptFilter" onchange="window.renderStaffList()" class="scope-select min-w-[240px]">
+                            <option value="ALL">全ケコム関連</option>
+                            <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option>
+                        </select>
+                        <input type="text" id="staffSearch" oninput="window.renderStaffList()" placeholder="氏名で検索..." class="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold focus:border-orange-400 transition-all">
                     </div>
                     <div id="staffList" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 max-h-[160px] overflow-y-auto custom-scrollbar p-1"></div>
                 </div>
-                <!-- 2. 結果表示 -->
+
+                <!-- 2. 結果表示セクション -->
                 <div id="toolArea" class="hidden">
-                    <div class="summary-card shadow-lg">
-                        <div><p class="text-[10px] opacity-60 font-black uppercase mb-1">訪問件数</p><p class="text-2xl font-black"><span id="sumVisits">0</span>件</p></div>
+                    <div class="summary-card">
+                        <!-- 🌟 訪問件数から営業件数へ名称変更 -->
+                        <div><p class="text-[10px] opacity-60 font-black uppercase mb-1">営業件数</p><p class="text-2xl font-black"><span id="sumVisits">0</span>件</p></div>
                         <div><p class="text-[10px] opacity-60 font-black uppercase mb-1">合計滞在</p><p class="text-2xl font-black"><span id="sumTime">0</span>時間</p></div>
                         <div><p class="text-[10px] opacity-60 font-black uppercase mb-1">平均滞在</p><p class="text-2xl font-black"><span id="sumAvg">0</span>分</p></div>
                     </div>
-                    <div class="bg-white p-1 rounded-2xl border mb-8 flex overflow-x-auto whitespace-nowrap custom-scrollbar">
+                    
+                    <div class="bg-white p-1 rounded-2xl border border-slate-200 mb-8 flex overflow-x-auto whitespace-nowrap custom-scrollbar">
                         <script>for(let i=1; i<=12; i++) document.write(`<button onclick="window.setMonth(${i})" id="m-btn-${i}" class="month-btn">${i}月</button>`);</script>
                     </div>
-                    <div class="mb-20"><h3 id="selectedStaffLabel" class="text-xl font-black mb-8 px-4 text-slate-800"></h3><div id="activityAccordion" class="space-y-4"></div></div>
+
+                    <div class="mb-20">
+                        <h3 id="selectedStaffLabel" class="text-xl font-black mb-6 px-2 text-slate-800 border-l-4 border-orange-500 pl-4"></h3>
+                        <div id="activityAccordion" class="space-y-4"></div>
+                    </div>
                 </div>
-                <div id="guideMsg" class="py-20 text-center"><p class="text-slate-400 font-bold">社員を選択してください</p></div>
+
+                <div id="guideMsg" class="py-20 text-center">
+                    <div class="text-slate-200 text-6xl mb-4"><i class="fa-solid fa-user-check"></i></div>
+                    <p class="text-slate-400 font-bold tracking-widest uppercase">左上のリストから社員を選択してください</p>
+                </div>
             </div>
         </div>
     </main>
-    <div id="local-loading" class="fixed inset-0 bg-white/80 z-[9999] hidden flex-col items-center justify-center animate-spin text-[#ff7e11] text-6xl"><i class="fa-solid fa-circle-notch"></i></div>
+    
+    <!-- ローディング表示 -->
+    <div id="local-loading" class="fixed inset-0 bg-white/80 z-[9999] hidden flex-col items-center justify-center">
+        <div class="animate-spin text-[#ff7e11] text-6xl mb-4"><i class="fa-solid fa-circle-notch"></i></div>
+        <p class="text-slate-800 font-black uppercase italic tracking-tighter">Analyzing Activity...</p>
+    </div>
 
     <script type="module" src="common.js"></script>
     <script type="module">
-        import { db } from "./common.js";
+        import { db, TARGET_DEPTS } from "./common.js";
         import { collection, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        let allStaffs = [], currentDeptRecords = [], selectedName = "", currentY = 2026, currentM = new Date().getMonth() + 1;
+        let allStaffs = [], currentStaffRecords = [], selectedName = "", currentY = 2026, currentM = new Date().getMonth() + 1;
         const clean = (s) => (s||"").replace(/\s+/g, '');
 
         async function init() {
             try {
-                const snap = await getDocs(query(collection(db, "staffs"), orderBy("name")));
+                // 🌟 ケコム関連部署のみ取得
+                const snap = await getDocs(query(collection(db, "staffs"), where("dept", "in", TARGET_DEPTS), orderBy("name")));
                 allStaffs = snap.docs.map(d => d.data());
                 window.renderStaffList();
                 
@@ -80,7 +105,7 @@
                     sessionStorage.removeItem('cp_usage_jump_month');
                     currentM = parseInt(jumpMonth);
                     const staff = allStaffs.find(s => clean(s.name) === clean(jumpName));
-                    if(staff) window.selectStaff(staff.name, staff.dept);
+                    if(staff) window.selectStaff(staff.name);
                 }
             } catch (e) { console.error(e); }
         }
@@ -90,69 +115,111 @@
             const dept = document.getElementById('deptFilter').value;
             const container = document.getElementById('staffList');
             container.innerHTML = "";
+            
             allStaffs.filter(s => (!kw || s.name.includes(kw)) && (dept === 'ALL' || s.dept === dept)).forEach(s => {
-                const div = document.createElement('div'); div.className = `staff-item ${selectedName === s.name ? 'active' : ''}`;
+                const div = document.createElement('div');
+                div.className = `staff-item ${clean(selectedName) === clean(s.name) ? 'active' : ''}`;
                 div.innerHTML = `<p class="font-black text-xs">${s.name}</p><p class="text-[8px] opacity-60 uppercase">${s.dept || ''}</p>`;
-                div.onclick = () => window.selectStaff(s.name, s.dept); container.appendChild(div);
+                div.onclick = () => window.selectStaff(s.name); 
+                container.appendChild(div);
             });
         };
 
-        window.selectStaff = async (name, dept) => {
-            selectedName = name; window.renderStaffList();
-            document.getElementById('guideMsg').style.display = 'none'; document.getElementById('toolArea').style.display = 'block';
+        window.selectStaff = async (name) => {
+            selectedName = name; 
+            window.renderStaffList();
+            document.getElementById('guideMsg').style.display = 'none'; 
+            document.getElementById('toolArea').style.display = 'block';
             document.getElementById('local-loading').style.display = 'flex';
+            
             try {
-                const q = query(collection(db, "activity_records"), where("visitorDept", "==", dept || "不明"), where("visitDate", ">=", `${currentY}`), where("visitDate", "<=", `${currentY}\uf8ff`));
-                const snap = await getDocs(q); currentDeptRecords = snap.docs.map(d => d.data());
+                // 🌟 省エネ：名前でピンポイント検索
+                const q = query(collection(db, "activity_records"), where("visitorName", "==", name), where("visitDate", ">=", `${currentY}-01-01`), where("visitDate", "<=", `${currentY}-12-31`));
+                const snap = await getDocs(q);
+                
+                // スラッシュ形式のデータも考慮
+                const q2 = query(collection(db, "activity_records"), where("visitorName", "==", name), where("visitDate", ">=", `${currentY}/01/01`), where("visitDate", "<=", `${currentY}/12/31`));
+                const snap2 = await getDocs(q2);
+                
+                currentStaffRecords = [...snap.docs, ...snap2.docs].map(d => d.data());
+                
                 document.getElementById('local-loading').style.display = 'none';
-                document.getElementById('selectedStaffLabel').innerText = `${name} さんの履歴`;
+                document.getElementById('selectedStaffLabel').innerText = `${name} さんの活動履歴`;
                 window.setMonth(currentM); 
-            } catch (e) { document.getElementById('local-loading').style.display = 'none'; }
+            } catch (e) { 
+                console.error(e);
+                document.getElementById('local-loading').style.display = 'none'; 
+            }
         };
 
         window.setMonth = (m) => {
-            currentM = m; document.querySelectorAll('.month-btn').forEach(btn => btn.classList.toggle('active', btn.id === `m-btn-${m}`));
+            currentM = m; 
+            document.querySelectorAll('.month-btn').forEach(btn => btn.classList.toggle('active', btn.id === `m-btn-${m}`));
             window.renderAccordion();
         };
 
         window.renderAccordion = () => {
             const container = document.getElementById('activityAccordion');
-            const filtered = currentDeptRecords.filter(r => {
+            const mStr = currentM.toString().padStart(2, '0');
+            
+            // 日付形式を統一してフィルタリング
+            const filtered = currentStaffRecords.filter(r => {
                 const d = String(r.visitDate).replace(/\//g, '-').split('-');
-                return clean(r.visitorName) === clean(selectedName) && parseInt(d[1]) === currentM;
+                return d[0] == currentY && parseInt(d[1]) == currentM;
             }).sort((a,b) => String(b.visitDate).localeCompare(String(a.visitDate)));
 
             let totalMins = 0;
             filtered.forEach(r => {
-                const s = (r.startTime||"00:00").split(':'), e = (r.endTime||"00:00").split(':');
-                totalMins += (parseInt(e[0])*60+parseInt(e[1])) - (parseInt(s[0])*60+parseInt(s[1]));
+                if(r.startTime && r.endTime) {
+                    const s = r.startTime.split(':'), e = r.endTime.split(':');
+                    totalMins += (parseInt(e[0])*60+parseInt(e[1])) - (parseInt(s[0])*60+parseInt(s[1]));
+                }
             });
+
+            // 🌟 サマリー更新
             document.getElementById('sumVisits').innerText = filtered.length;
             document.getElementById('sumTime').innerText = Math.floor(totalMins/60);
             document.getElementById('sumAvg').innerText = filtered.length ? Math.round(totalMins / filtered.length) : 0;
 
             const jumpTarget = sessionStorage.getItem('cp_usage_jump_customer');
+            
             container.innerHTML = filtered.length ? filtered.map((r, i) => `
                 <div class="accordion-item ${r.customerName === jumpTarget ? 'ring-2 ring-orange-500' : ''}" id="acc-${i}">
                     <div class="accordion-header" onclick="window.toggleAcc('acc-${i}')">
-                        <div class="flex items-center gap-4"><span class="text-xs font-black opacity-60">${String(r.visitDate).replace(/-/g,'/')}</span><span class="text-base font-black">${r.customerName}</span></div>
-                        <i class="fa-solid fa-chevron-down opacity-30 text-xs"></i>
+                        <div class="flex items-center gap-4">
+                            <span class="text-[10px] font-black opacity-60 bg-white/20 px-2 py-0.5 rounded">${String(r.visitDate).replace(/-/g,'/')}</span>
+                            <span class="text-sm font-black tracking-tight">${r.customerName}</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-down opacity-30 text-xs transition-transform"></i>
                     </div>
                     <div class="accordion-content">
                         <div class="info-grid">
-                            <div><p class="info-label">お客様担当者</p><p class="info-value">${r.customerStaff || '-'}</p></div>
-                            <div><p class="info-label">訪問時間</p><p class="info-value">${r.startTime}〜${r.endTime}</p></div>
+                            <div><p class="info-label">お客様先 担当者</p><p class="info-value">${r.customerStaff || '未登録'}</p></div>
+                            <div><p class="info-label">訪問時間</p><p class="info-value"><i class="fa-regular fa-clock mr-1"></i> ${r.startTime} 〜 ${r.endTime}</p></div>
+                            <div><p class="info-label">定性データ</p><p class="text-[10px] font-bold text-slate-500">${r.qualData1 || '-'} / ${r.qualData2 || '-'} / ${r.qualData3 || '-'}</p></div>
+                            <div><p class="info-label">同行者</p><p class="info-value text-blue-600">${r.companion || 'なし'}</p></div>
                         </div>
-                        <div class="report-box">${r.customerReport || 'なし'}</div>
+                        <div class="mb-4">
+                            <p class="info-label">お客様からの情報</p>
+                            <div class="report-box">${r.content || '報告内容なし'}</div>
+                        </div>
+                        <div>
+                            <p class="info-label">自分・スタッフの考え</p>
+                            <div class="report-box border-l-4 border-orange-200 bg-orange-50/30">${r.staffThoughts || '未入力'}</div>
+                        </div>
                     </div>
-                </div>`).join('') : '<p class="text-center py-20 text-slate-300 font-bold">この月の実績登録はありません</p>';
+                </div>`).join('') : '<div class="py-20 text-center border-2 border-dashed border-slate-200 rounded-2xl"><p class="text-slate-300 font-black italic tracking-widest">NO ACTIVITY FOUND</p></div>';
+            
             if(jumpTarget) sessionStorage.removeItem('cp_usage_jump_customer');
         };
 
         window.toggleAcc = (id) => {
-            const item = document.getElementById(id); const content = item.querySelector('.accordion-content');
-            const open = content.style.display === 'block'; content.style.display = open ? 'none' : 'block';
-            item.querySelector('i').style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
+            const item = document.getElementById(id); 
+            const content = item.querySelector('.accordion-content');
+            const icon = item.querySelector('i');
+            const open = content.style.display === 'block'; 
+            content.style.display = open ? 'none' : 'block';
+            icon.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
         };
 
         init();
