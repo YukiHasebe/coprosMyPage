@@ -7,45 +7,28 @@
     <style>
         :root { --copros-blue: #87ceeb; --copros-orange: #ff7e11; --copros-navy: #004098; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
-        
-        /* 🌟 カレンダーグリッドのデザイン修正 */
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); background: #e2e8f0; gap: 1px; border: 1px solid #cbd5e1; border-radius: 1rem; overflow: hidden; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
         .calendar-day { background: white; min-height: 140px; padding: 0.5rem; position: relative; border: 0.5px solid #f1f5f9; }
-        
-        /* 日付ヘッダー */
         .day-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
         .day-num { font-weight: 900; font-size: 0.85rem; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
         .is-today .day-num { background: var(--copros-orange); color: white; border-radius: 50%; }
-        
-        /* ＋ボタン：はっきりと見えるように修正 */
         .add-btn { width: 22px; height: 22px; border-radius: 6px; background: #f1f5f9; color: #94a3b8; display: flex; align-items: center; justify-content: center; font-size: 10px; cursor: pointer; border: 1px solid #e2e8f0; transition: all 0.2s; }
         .add-btn:hover { background: var(--copros-orange); color: white; border-color: var(--copros-orange); transform: scale(1.1); }
-
-        /* 実績ラベル */
         .event-item { display: flex; align-items: center; gap: 4px; margin-bottom: 3px; }
         .event-label { flex: 1; font-size: 9px; font-weight: 800; padding: 3px 6px; border-radius: 4px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 3px solid; transition: all 0.2s; }
-        
         .label-result { border-left-color: var(--copros-orange); background: #fff7ed; color: #ea580c; }
         .label-next { border-left-color: #10b981; background: #f0fdf4; color: #16a34a; }
         .label-appoint { border-left-color: #3b82f6; background: #eff6ff; color: #1d4ed8; }
         .is-read { color: #000 !important; font-weight: 900; opacity: 0.6; }
-
-        /* 🌟 ×ボタン付き社員タグ（これが今回の目玉） */
         .staff-tag { background: #eff6ff; color: #1d4ed8; padding: 0.5rem 1rem; border-radius: 9999px; border: 1px solid #dbeafe; font-weight: 900; font-size: 0.8rem; display: flex; align-items: center; gap: 0.6rem; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
-        .staff-tag:hover { background: #dbeafe; border-color: #bfdbfe; }
         .remove-staff-x { cursor: pointer; color: #94a3b8; font-size: 1.1rem; line-height: 1; transition: color 0.2s; }
         .remove-staff-x:hover { color: #ef4444; }
-
-        /* モーダル */
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; backdrop-filter: blur(4px); align-items: center; justify-content: center; }
         .modal-content { background: white; width: 95%; max-width: 500px; border-radius: 1.5rem; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
-        
         .staff-item { padding: 0.8rem 1.5rem; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
         .staff-item.selected { background: #eff6ff; color: var(--copros-navy); border-left: 4px solid var(--copros-navy); }
-        
         .month-btn { padding: 0.6rem 0.2rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; flex: 1; text-align: center; cursor: pointer; }
         .month-btn.active { background: var(--copros-navy); color: white; }
-
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
@@ -56,13 +39,11 @@
         <div id="header-placeholder"></div>
         <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1500px] mx-auto">
-                
                 <div class="flex justify-between items-end mb-6">
-                    <div><h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-1">カレンダー回覧</h1><nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic tracking-widest">Activity & Management Dashboard</nav></div>
+                    <div><h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-1">カレンダー回覧</h1><nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Activity & Management Dashboard</nav></div>
                     <button onclick="window.markSelectedAsRead()" class="px-6 py-2.5 bg-[#004098] text-white rounded-xl font-black text-xs hover:shadow-lg active:scale-95 transition-all">選択済を既読にする</button>
                 </div>
 
-                <!-- 社員選択エリア -->
                 <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-8">
                     <div class="flex justify-between items-center mb-4 border-b border-slate-50 pb-3">
                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">表示対象メンバー</p>
@@ -71,14 +52,12 @@
                     <div id="selectedNamesDisplay" class="flex flex-wrap gap-3 min-h-[40px] items-center"></div>
                 </div>
 
-                <!-- 🌟 日付セレクター（画像でズレていた部分を修正。w-fullとjustify-centerを徹底） -->
                 <div class="flex flex-col md:flex-row items-center justify-center w-full relative mb-8 gap-6">
                     <div class="flex items-center gap-10 bg-white py-2.5 px-10 rounded-2xl shadow-sm border border-slate-200">
                         <button onclick="window.changeMonth(-1)" class="text-slate-300 hover:text-slate-600 transition-colors"><i class="fa-solid fa-chevron-left fa-xl"></i></button>
                         <span id="displayMonthCenter" class="text-2xl font-black text-slate-800 min-w-[200px] text-center tracking-tighter">----年 --月</span>
                         <button onclick="window.changeMonth(1)" class="text-slate-300 hover:text-slate-600 transition-colors"><i class="fa-solid fa-chevron-right fa-xl"></i></button>
                     </div>
-                    
                     <div class="md:absolute md:right-0 flex gap-4 items-center bg-white px-5 py-3 rounded-xl shadow-sm border border-slate-200 text-[10px] font-black">
                         <label class="flex items-center gap-2 cursor-pointer text-slate-400 border-r pr-4"><input type="checkbox" id="showUnreadOnly" onchange="renderCalendar()" class="accent-rose-500"> 未読のみ</label>
                         <label class="flex items-center gap-2 cursor-pointer text-orange-600"><input type="checkbox" id="showRes" checked onchange="renderCalendar()" class="accent-orange-500"> 実績</label>
@@ -87,18 +66,15 @@
                     </div>
                 </div>
 
-                <!-- 12ヶ月ジャンプ -->
                 <div class="flex overflow-x-auto p-1 bg-white rounded-2xl border border-slate-200 shadow-sm whitespace-nowrap custom-scrollbar mb-8">
                     <script>for(let i=1; i<=12; i++) document.write(`<button onclick="window.jumpMonth(${i})" id="month-btn-${i}" class="month-btn">${i}月</button>`);</script>
                 </div>
-
                 <div id="calendarGrid" class="calendar-grid"></div>
             </div>
         </div>
     </main>
 
-    <!-- モーダル各種 -->
-    <div id="staffModal" class="modal-overlay"><div class="modal-content"><div class="bg-slate-900 p-4 text-white flex justify-between items-center"><span class="font-black text-xs uppercase tracking-widest">Select Staff</span><i class="fa-solid fa-xmark cursor-pointer" onclick="window.closeModal()"></i></div><div class="p-4 bg-slate-50 border-b"><div class="grid grid-cols-2 gap-2"><input type="text" id="modalSearch" oninput="window.renderModalList()" placeholder="氏名検索..." class="p-2.5 rounded-lg border text-xs font-bold outline-none"><select id="modalDept" onchange="window.renderModalList()" class="p-2.5 rounded-lg border text-xs font-bold outline-none"><option value="ALL">全部署</option><option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option></select></div></div><div id="modalStaffList" class="max-h-[350px] overflow-y-auto custom-scrollbar"></div><div class="p-4 bg-slate-50 grid grid-cols-2 gap-3"><button onclick="window.applyModal()" class="py-3 bg-[#004098] text-white rounded-xl font-black">決定</button><button onclick="window.clearModal()" class="py-3 bg-white border border-slate-200 rounded-xl font-bold">クリア</button></div></div></div>
+    <div id="staffModal" class="modal-overlay"><div class="modal-content"><div class="bg-slate-900 p-4 text-white flex justify-between items-center"><span class="font-black text-xs uppercase">Select Staff</span><i class="fa-solid fa-xmark cursor-pointer" onclick="window.closeModal()"></i></div><div class="p-4 bg-slate-50 border-b"><div class="grid grid-cols-2 gap-2"><input type="text" id="modalSearch" oninput="window.renderModalList()" placeholder="氏名検索..." class="p-2.5 rounded-lg border text-xs font-bold outline-none"><select id="modalDept" onchange="window.renderModalList()" class="p-2.5 rounded-lg border text-xs font-bold outline-none"><option value="ALL">全部署</option><option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option></select></div></div><div id="modalStaffList" class="max-h-[350px] overflow-y-auto custom-scrollbar"></div><div class="p-4 bg-slate-50 grid grid-cols-2 gap-3"><button onclick="window.applyModal()" class="py-3 bg-[#004098] text-white rounded-xl font-black">決定</button><button onclick="window.clearModal()" class="py-3 bg-white border rounded-xl font-bold">クリア</button></div></div></div>
     <div id="detailModal" class="modal-overlay" onclick="if(event.target==this)this.style.display='none'"><div class="modal-content" style="max-width: 600px;"><div class="bg-[#ff7e11] p-4 text-white flex justify-between items-center"><span id="detailDateLabel" class="font-black text-sm tracking-widest uppercase italic"></span><i class="fa-solid fa-xmark cursor-pointer" onclick="document.getElementById('detailModal').style.display='none'"></i></div><div id="detailContainer" class="p-4 max-h-[70vh] overflow-y-auto bg-slate-50 custom-scrollbar"></div></div></div>
 
     <script type="module" src="common.js"></script>
@@ -126,63 +102,67 @@
             } catch (e) { console.error(e); }
         }
 
-        // 🌟 確実に×ボタン付きタグを表示するロジック
         window.updateSelectedDisplay = () => {
             const container = document.getElementById('selectedNamesDisplay');
             if (selectedStaffs.length === 0) {
                 container.innerHTML = '<span class="text-slate-300 italic text-xs tracking-widest uppercase font-black">表示対象メンバーを選択してください</span>';
                 return;
             }
-            container.innerHTML = selectedStaffs.map(name => `
-                <div class="staff-tag animate-in fade-in duration-300">
-                    <span>${name}</span>
-                    <i class="fa-solid fa-circle-xmark remove-staff-x" onclick="window.removeStaff('${name}')" title="削除"></i>
-                </div>
-            `).join('');
+            container.innerHTML = selectedStaffs.map(name => `<div class="staff-tag"><span>${name}</span><i class="fa-solid fa-circle-xmark remove-staff-x" onclick="window.removeStaff('${name}')"></i></div>`).join('');
         };
 
         window.removeStaff = (name) => {
             selectedStaffs = selectedStaffs.filter(n => n !== name);
             localStorage.setItem('cp_cal_selected_staffs', JSON.stringify(selectedStaffs));
+            // 🌟 社員が変わったのでキャッシュを消して再取得
+            sessionStorage.removeItem('cp_cache_data');
             window.updateSelectedDisplay();
             window.fetchMonthData();
         };
 
         window.openStaffModal = () => { document.getElementById('staffModal').style.display = 'flex'; window.renderModalList(); };
         window.closeModal = () => { document.getElementById('staffModal').style.display = 'none'; };
-        
         window.renderModalList = () => {
             const kw = document.getElementById('modalSearch').value.toLowerCase();
             const dept = document.getElementById('modalDept').value;
             const container = document.getElementById('modalStaffList');
             container.innerHTML = allStaffs.filter(s => (!kw || s.name.includes(kw)) && (dept === 'ALL' || s.dept === dept)).map(s => `
-                <div class="staff-item ${selectedStaffs.includes(s.name) ? 'selected' : ''}" onclick="window.toggleModalStaff('${s.name}')">
-                    <span>${s.name}</span>
-                    <span class="text-[10px] font-black opacity-30">${s.dept || ''}</span>
-                </div>`).join('');
+                <div class="staff-item ${selectedStaffs.includes(s.name) ? 'selected' : ''}" onclick="window.toggleModalStaff('${s.name}')"><span>${s.name}</span><span class="text-[10px] font-black opacity-30">${s.dept || ''}</span></div>`).join('');
         };
-
         window.toggleModalStaff = (name) => {
             if (selectedStaffs.includes(name)) selectedStaffs = selectedStaffs.filter(n => n !== name);
             else selectedStaffs.push(name);
             window.renderModalList();
         };
-
-        window.applyModal = () => { localStorage.setItem('cp_cal_selected_staffs', JSON.stringify(selectedStaffs)); window.updateSelectedDisplay(); window.fetchMonthData(); window.closeModal(); };
-        window.clearModal = () => { selectedStaffs = []; window.renderModalList(); };
+        window.applyModal = () => {
+            localStorage.setItem('cp_cal_selected_staffs', JSON.stringify(selectedStaffs));
+            sessionStorage.removeItem('cp_cache_data'); // 社員変更時はキャッシュクリア
+            window.updateSelectedDisplay();
+            window.fetchMonthData();
+            window.closeModal();
+        };
 
         window.fetchMonthData = async () => {
-            const y = currentDate.getFullYear(); 
-            const m = currentDate.getMonth() + 1;
+            const y = currentDate.getFullYear(); const m = currentDate.getMonth() + 1;
             const mStr = m.toString().padStart(2, '0');
+            const cacheKey = `cp_cache_${y}_${mStr}_${selectedStaffs.join('_')}`;
             document.getElementById('displayMonthCenter').innerText = `${y}年 ${m}月`;
             document.querySelectorAll('.month-btn').forEach(b => b.classList.toggle('active', b.id === `month-btn-${m}`));
 
+            // 🌟 【省エネ】キャッシュチェック
+            const cached = sessionStorage.getItem('cp_cache_data');
+            if (cached) {
+                const parsed = JSON.parse(cached);
+                if (parsed.key === cacheKey) {
+                    loadedData = parsed.data;
+                    window.renderCalendar();
+                    return; // Firebaseに獲りに行かずに終了
+                }
+            }
+
             try {
-                if (selectedStaffs.length === 0) { 
-                    loadedData.records = []; loadedData.appoints = []; 
-                } else {
-                    // 全データ取得してJS側でフィルタ（インポートデータのスラッシュ対応）
+                if (selectedStaffs.length === 0) { loadedData.records = []; loadedData.appoints = []; }
+                else {
                     const qr = query(collection(db, "activity_records"), where("visitDate", ">=", `${y}-01-01`), where("visitDate", "<=", `${y}-12-31`));
                     const snapR = await getDocs(qr);
                     const qr2 = query(collection(db, "activity_records"), where("visitDate", ">=", `${y}/01/01`), where("visitDate", "<=", `${y}/12/31`));
@@ -196,6 +176,9 @@
                     
                     loadedData.records = allR.filter(r => selCleans.includes(clean(r.visitorName)) && window.standardizeDate(r.visitDate).startsWith(`${y}-${mStr}`));
                     loadedData.appoints = snapA.docs.map(d => ({id: d.id, ...d.data()})).filter(a => selCleans.includes(clean(a.visitorName)) && window.standardizeDate(a.appointDate).startsWith(`${y}-${mStr}`));
+                    
+                    // 🌟 獲ったデータをキャッシュに保存
+                    sessionStorage.setItem('cp_cache_data', JSON.stringify({ key: cacheKey, data: loadedData }));
                 }
                 const myName = sessionStorage.getItem('userName');
                 const qn = query(collection(db, "notifications"), where("recipient", "==", myName), where("isRead", "==", false));
@@ -211,14 +194,11 @@
             const daysInMonth = new Date(year, month + 1, 0).getDate();
             const startOffset = (new Date(year, month, 1).getDay() + 6) % 7;
             for(let i=0; i<startOffset; i++) grid.insertAdjacentHTML('beforeend', '<div class="calendar-day other-month bg-slate-50/50"></div>');
-
             const clean = (s) => (s||"").replace(/\s+/g, '');
             const showUnread = document.getElementById('showUnreadOnly').checked;
-
             for(let d=1; d<=daysInMonth; d++) {
                 const targetKey = `${year}-${(month + 1).toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
                 let evHtml = "";
-
                 if (document.getElementById('showRes').checked) {
                     loadedData.records.filter(r => window.standardizeDate(r.visitDate) === targetKey).forEach(r => {
                         const noti = loadedData.notifications.find(n => clean(n.visitorName) === clean(r.visitorName) && n.customerName === r.customerName && window.standardizeDate(n.visitDate) === targetKey);
@@ -238,12 +218,7 @@
                         evHtml += `<div class="event-item"><div class="event-label label-appoint" onclick="window.handleAppoint('${a.id}','${a.customerName}','${a.appointDate}','${a.subject}')">${a.visitorName}: ${a.customerName}</div></div>`;
                     });
                 }
-                
-                grid.insertAdjacentHTML('beforeend', `
-                    <div class="calendar-day">
-                        <div class="day-header"><span class="day-num">${d}</span><div class="add-btn" onclick="window.goAddHistory('${targetKey}')"><i class="fa-solid fa-plus"></i></div></div>
-                        <div class="max-h-[110px] overflow-y-auto custom-scrollbar">${evHtml}</div>
-                    </div>`);
+                grid.insertAdjacentHTML('beforeend', `<div class="calendar-day"><div class="day-header"><span class="day-num">${d}</span><div class="add-btn" onclick="window.goAddHistory('${targetKey}')"><i class="fa-solid fa-plus"></i></div></div><div class="max-h-[110px] overflow-y-auto custom-scrollbar">${evHtml}</div></div>`);
             }
         };
 
@@ -253,7 +228,7 @@
             const dayRecs = loadedData.records.filter(r => window.standardizeDate(r.visitDate) === date);
             container.innerHTML = dayRecs.length ? dayRecs.map(r => `
                 <div class="p-4 bg-white border-l-4 border-[#ff7e11] mb-3 rounded shadow-sm">
-                    <div class="flex justify-between items-center mb-2"><span class="font-black text-[#004098] uppercase tracking-tighter text-sm">${r.visitorName}</span><span class="text-[10px] font-bold bg-slate-100 px-2 py-0.5 rounded">${r.visitTime||'--:--'}</span></div>
+                    <div class="flex justify-between items-center mb-2"><span class="font-black text-[#004098] uppercase text-sm">${r.visitorName}</span><span class="text-[10px] font-bold bg-slate-100 px-2 py-0.5 rounded">${r.visitTime||'--:--'}</span></div>
                     <div class="text-xs font-black mb-2">${r.customerName}</div>
                     <div class="p-3 bg-slate-50 rounded text-[10px] leading-relaxed text-slate-600 border border-slate-100"><strong>報告内容:</strong><br>${r.content||'未入力'}</div>
                 </div>`).join('') : '<p class="text-center py-12 text-slate-300 font-black italic tracking-widest">NO DATA AVAILABLE</p>';
@@ -262,19 +237,35 @@
 
         window.handleAppoint = (id, cust, date, subject) => {
             const action = confirm(`【アポ詳細】\n顧客: ${cust}\n内容: ${subject || 'なし'}\n\n[OK] 実績に登録する\n[キャンセル] 削除または戻る`);
-            if (action) { sessionStorage.setItem('cp_promote_appoint', JSON.stringify({id, cust, date, subject})); location.href = 'history.html'; }
-            else if(confirm("このアポを削除しますか？")) { deleteDoc(doc(db, "appointments", id)).then(() => window.fetchMonthData()); }
+            if (action) { 
+                sessionStorage.setItem('cp_promote_appoint', JSON.stringify({id, cust, date, subject})); 
+                sessionStorage.removeItem('cp_cache_data'); // データが変わるのでキャッシュクリア
+                location.href = 'history.html'; 
+            }
+            else if(confirm("このアポを削除しますか？")) { 
+                deleteDoc(doc(db, "appointments", id)).then(() => {
+                    sessionStorage.removeItem('cp_cache_data');
+                    window.fetchMonthData();
+                }); 
+            }
         };
 
-        window.goAddHistory = (date) => { sessionStorage.setItem('cp_add_date', date); location.href = 'history.html'; };
+        window.goAddHistory = (date) => { 
+            sessionStorage.setItem('cp_add_date', date); 
+            sessionStorage.removeItem('cp_cache_data'); // 新規追加後はリロード時に最新を獲るため
+            location.href = 'history.html'; 
+        };
+
         window.markSelectedAsRead = async () => {
             const checks = document.querySelectorAll('.event-check:checked');
             if (!checks.length) return alert("項目を選択してください");
             const batch = writeBatch(db);
             checks.forEach(cb => { if(cb.dataset.notiId) batch.update(doc(db, "notifications", cb.dataset.notiId), { isRead: true }); });
             await batch.commit();
+            sessionStorage.removeItem('cp_cache_data'); // 既読状態もキャッシュに影響するためクリア
             window.fetchMonthData();
         };
+
         window.changeMonth = (v) => { currentDate.setMonth(currentDate.getMonth() + v); window.fetchMonthData(); };
         window.jumpMonth = (m) => { currentDate.setMonth(m - 1); window.fetchMonthData(); };
         init();
