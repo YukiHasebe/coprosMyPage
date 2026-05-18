@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8"><title>デイリーレポート | CP My Page</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --copros-blue: #87ceeb; --copros-orange: #ff7e11; --copros-navy: #004098; }
+        body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
+        .accordion-item { background: white; border-radius: 1rem; border: 1px solid #e2e8f0; overflow: hidden; margin-bottom: 1rem; }
+        .accordion-header { padding: 1.2rem 2rem; cursor: pointer; display: flex; align-items: center; justify-content: space-between; background: #3c4b5a; color: white; }
+        .accordion-content { display: none; padding: 2rem; background: white; }
+        .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 1.5rem; margin-bottom: 1.5rem; }
+        .info-label { font-size: 10px; font-weight: 800; color: #94a3b8; }
+        .info-value { font-size: 13px; font-weight: 800; color: #475569; }
+        .report-box { background: #f8fafc; border-radius: 1rem; padding: 1.5rem; border: 1px solid #f1f5f9; font-size: 13px; line-height: 1.7; margin-bottom: 1rem; }
+        .summary-card { background: linear-gradient(135deg, #004098 0%, #2d3748 100%); color: white; border-radius: 1.5rem; padding: 1.5rem; margin-bottom: 2rem; display: flex; align-items: center; justify-content: center; gap: 4rem; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden text-slate-700 font-sans">
+    <div id="sidebar-placeholder"></div>
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <div id="header-placeholder"></div>
+        <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
+            <div class="max-w-[1200px] mx-auto">
+                <div class="flex justify-between items-end mb-8">
+                    <div>
+                        <h1 class="text-4xl font-black text-slate-800 tracking-tighter">デイリーレポート</h1>
+                        <p id="displayDate" class="text-xl font-black text-orange-500 mt-2">----/--/--</p>
+                    </div>
+                    <button onclick="location.href='calendar.html'" class="px-6 py-2 bg-white border border-slate-200 rounded-xl font-black text-xs shadow-sm hover:bg-slate-50 transition-all">カレンダーへ戻る</button>
+                </div>
+
+                <div class="summary-card shadow-lg">
+                    <div class="text-center"><p class="text-[10px] opacity-60 font-black uppercase mb-1">本日の営業件数</p><p class="text-3xl font-black"><span id="sumVisits">0</span>件</p></div>
+                    <div class="text-center"><p class="text-[10px] opacity-60 font-black uppercase mb-1">活動メンバー</p><p class="text-3xl font-black"><span id="sumStaff">0</span>名</p></div>
+                </div>
+
+                <div id="activityAccordion" class="space-y-4 mb-20"></div>
+            </div>
+        </div>
+    </main>
+
+    <script type="module" src="common.js"></script>
+    <script type="module">
+        import { db } from "./common.js";
+        import { collection, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        async function init() {
+            const targetDate = sessionStorage.getItem('cp_daily_date');
+            if (!targetDate) { location.href = 'calendar.html'; return; }
+            document.getElementById('displayDate').innerText = targetDate.replace(/-/g, '/');
+
+            try {
+                // その日のデータを全取得（スラッシュ・ハイフン両対応）
+                const q1 = query(collection(db, "activity_records"), where("visitDate", "==", targetDate));
+                const snap1 = await getDocs(q1);
+                const q2 = query(collection(db, "activity_records"), where("visitDate", "==", targetDate.replace(/-/g, '/')));
+                const snap2 = await getDocs(q2);
+
+                const allData = [...snap1.docs, ...snap2.docs].map(d => d.data())
+                    .sort((a,b) => (a.startTime || "00:00").localeCompare(b.startTime || "00:00"));
+
+                document.getElementById('sumVisits').innerText = allData.length;
+                document.getElementById('sumStaff').innerText = [...new Set(allData.map(d => d.visitorName))].length;
+
+                const container = document.getElementById('activityAccordion');
+                container.innerHTML = allData.length ? allData.map((r, i) => `
+                    <div class="accordion-item" id="acc-${i}">
+                        <div class="accordion-header" onclick="window.toggleAcc('acc-${i}')">
+                            <div class="flex items-center gap-4">
+                                <span class="bg-white/20 px-3 py-1 rounded text-xs font-black">${r.startTime || '--:--'}</span>
+                                <span class="text-base font-black">${r.visitorName} ➔ ${r.customerName}</span>
+                            </div>
+                            <i class="fa-solid fa-chevron-down opacity-30 text-xs transition-transform"></i>
+                        </div>
+                        <div class="accordion-content">
+                            <div class="info-grid">
+                                <div><p class="info-label">お客様担当者</p><p class="info-value">${r.customerStaff || '-'}</p></div>
+                                <div><p class="info-label">訪問時間</p><p class="info-value">${r.startTime}〜${r.endTime}</p></div>
+                                <div><p class="info-label">所属部署</p><p class="info-value text-blue-600">${r.visitorDept || '-'}</p></div>
+                                <div><p class="info-label">定性データ</p><p class="info-value text-[10px] opacity-60">${r.qualData1||'-'} / ${r.qualData2||'-'} / ${r.qualData3||'-'}</p></div>
+                            </div>
+                            <p class="info-label mb-2">報告内容</p><div class="report-box">${r.content || r.customerReport || 'なし'}</div>
+                            <p class="info-label mb-2">スタッフの考え</p><div class="report-box border-l-4 border-orange-100">${r.staffThoughts || '未入力'}</div>
+                        </div>
+                    </div>`).join('') : '<p class="text-center py-20 text-slate-300 font-bold tracking-widest uppercase italic">NO RECORDS ON THIS DAY</p>';
+
+            } catch (e) { console.error(e); }
+        }
+
+        window.toggleAcc = (id) => {
+            const item = document.getElementById(id);
+            const content = item.querySelector('.accordion-content');
+            const open = content.style.display === 'block';
+            content.style.display = open ? 'none' : 'block';
+            item.querySelector('i').style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
+        };
+
+        init();
+    </script>
+</body>
+</html>
