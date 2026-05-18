@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// 🌟 オーナーのV2プロジェクト設定（ApiKeyを反映）
+// 🌟 V2プロジェクト設定（ApiKeyはご自身のものに書き換えてください）
 export const firebaseConfig = {
-    apiKey: "AIzaSyC5L1V6jn3Q8i1bWFWO3Gd25w_If6dklmY",
+    apiKey: "AIzaSyBw-6-9-Y-O-U-R-A-P-I-K-E-Y", 
     authDomain: "copros-my-page-v2.firebaseapp.com",
     projectId: "copros-my-page-v2",
     storageBucket: "copros-my-page-v2.firebasestorage.app",
@@ -14,10 +14,10 @@ export const firebaseConfig = {
 export const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
-// 🌟 ケコム関連部署の定義（これ以外の部署は表示・集計から除外する方針）
+// 🌟 ケコム関連部署の定義（プロジェクトの心臓部）
 export const TARGET_DEPTS = ["ケコム部", "関西支店", "関東支店", "中部営業所"];
 
-// 🌟 ローディング演出の統一
+// 🌟 ローディング演出の統一（オレンジのぐるぐる）
 function unifyLoaders() {
     const oldLoader = document.getElementById('loading');
     if (oldLoader) {
@@ -40,7 +40,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let userDept = sessionStorage.getItem('userDept') || "ALL";
     const displayName = rawName.replace(/[様殿]$/, "");
 
-    // ログインチェック（未ログインならindexへ：セキュリティ強化）
     if (!rawName && currentFile !== 'index.html') {
         location.href = 'index.html';
         return;
@@ -68,7 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </header>
     `;
 
-    // サイドバー注入
+    // サイドバー注入（地図を復活させました！）
     sp.innerHTML = `
         <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 z-40 hidden lg:hidden"></div>
         <aside id="main-sidebar" class="sidebar flex flex-col shrink-0 fixed lg:static inset-y-0 left-0 z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-300" style="width: 220px; background-color: #1a1a1a; color: white; height: 100vh; overflow-y: auto;">
@@ -100,6 +99,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="px-6 py-3 flex items-center justify-between hover:bg-white/5 cursor-pointer item-link transition-colors border-l-4 border-transparent" data-page="kairan.html" onclick="location.href='kairan.html'">
                     <div class="flex items-center gap-3"><i class="fa-solid fa-envelope-open-text w-5 icon-to-color"></i><span>回覧一覧</span></div>
                     <span id="unreadBadge" class="bg-rose-500 text-white text-[10px] px-2 py-0.5 rounded-full font-black animate-bounce" style="display:none;">0</span>
+                </div>
+                <!-- 🌟 地図をここに復活させました！ -->
+                <div class="px-6 py-3 flex items-center gap-3 hover:bg-white/5 cursor-pointer item-link transition-colors border-l-4 border-transparent" data-page="map.html" onclick="location.href='map.html'">
+                    <i class="fa-solid fa-map-location-dot w-5 icon-to-color"></i><span>地図</span>
                 </div>
                 <div class="px-6 py-3 flex items-center gap-3 hover:bg-white/5 cursor-pointer item-link mb-4 transition-colors border-l-4 border-transparent" data-page="appoint.html" onclick="location.href='appoint.html'">
                     <i class="fa-solid fa-clock w-5 icon-to-color"></i><span>アポイント</span>
@@ -137,23 +140,20 @@ document.addEventListener('DOMContentLoaded', () => {
         </aside>
     `;
 
-    // 🌟 部署フィルターの制御（ケコム関連4部署以外を非表示にし、自動選択する）
+    // 部署フィルターの制御（ケコム関連に特化）
     const deptSelect = document.getElementById('deptFilter');
     if (deptSelect) {
-        // 全オプションを一度チェックし、TARGET_DEPTSに含まれないものを削除
         Array.from(deptSelect.options).forEach(opt => {
             if (opt.value !== "ALL" && !TARGET_DEPTS.includes(opt.value)) {
                 opt.remove();
             }
         });
-        
-        // 自分の部署がターゲット内にあれば初期選択
         if (TARGET_DEPTS.includes(userDept)) {
             deptSelect.value = userDept;
         }
     }
 
-    // サイドバーの開閉ロジック
+    // UIロジック
     const ms = document.getElementById('main-sidebar'), so = document.getElementById('sidebar-overlay'), mt = document.getElementById('mobile-toggle');
     const ts = (o) => { ms.classList.toggle('-translate-x-full', !o); so.classList.toggle('hidden', !o); };
     if (mt) mt.onclick = () => ts(true); if (so) so.onclick = () => ts(false);
@@ -167,7 +167,6 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     });
 
-    // アクティブ項目のハイライト
     document.querySelectorAll('.sub-item, .item-link').forEach(el => {
         if (currentFile === el.getAttribute('data-page')) {
             el.classList.add('text-[#87ceeb]', 'opacity-100', 'font-black', 'border-l-[#87ceeb]');
