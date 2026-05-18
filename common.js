@@ -3,7 +3,7 @@ import { getFirestore, collection, getDocs, query, where } from "https://www.gst
 
 // 🌟 V2プロジェクト設定（ApiKeyはご自身のものに書き換えてください）
 export const firebaseConfig = {
-    apiKey: "AIzaSyBw-6-9-Y-O-U-R-A-P-I-K-E-Y", 
+    apiKey: "AIzaSyC5L1V6jn3Q8i1bWFWO3Gd25w_If6dklmY", 
     authDomain: "copros-my-page-v2.firebaseapp.com",
     projectId: "copros-my-page-v2",
     storageBucket: "copros-my-page-v2.firebasestorage.app",
