@@ -13,13 +13,10 @@
         .tab-staffs.active { color: #0ea5e9; border-bottom-color: #0ea5e9; }
         .tab-customers.active { color: var(--copros-orange); border-bottom-color: var(--copros-orange); }
         .tab-records.active { color: #10b981; border-bottom-color: #10b981; }
-        
-        /* 🌟 ログ画面の質感を向上 */
         .console-log { background: #0f172a; color: #34d399; font-family: 'Consolas', 'Monaco', monospace; font-size: 0.7rem; border-radius: 1rem; padding: 1.2rem; height: 350px; overflow-y: auto; border: 4px solid #1e293b; line-height: 1.6; }
         .log-success { color: #34d399; }
         .log-error { color: #f87171; font-weight: bold; }
         .log-info { color: #60a5fa; }
-        
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
     </style>
@@ -49,7 +46,7 @@
 
                 <div id="importGuide" class="p-6 rounded-2xl mb-8 border border-slate-100 bg-slate-50/50">
                     <p class="text-[10px] font-black text-slate-400 mb-3 uppercase tracking-tighter">Excelの列順序（項目名なしで貼り付け）</p>
-                    <div id="columnMapping" class="text-[11px] font-mono font-black tracking-tight leading-relaxed text-slate-500"></div>
+                    <div id="columnMapping" class="text-[11px] font-mono font-black tracking-tight leading-relaxed text-slate-600"></div>
                 </div>
 
                 <textarea id="csvData" class="w-full h-64 p-6 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none font-mono text-xs mb-8 shadow-inner" placeholder="Excelのデータをコピーしてここに貼り付けてください"></textarea>
@@ -82,7 +79,13 @@
     const mapping = {
         customers: "A:お客様名 | B:カナ | C:ランク | D:属性 | E:住所 | F:電話 | G:訪問回数 | H:最終訪問日",
         staffs: "A:社員番号 | B:氏名 | C:パスワード | D:メール | E:権限 | F:状態 | G:部署",
-        activity_records: "A:お客様名 | B:ランク | C:属性 | D:客先担当 | E:開始日時 | F:終了日時 | G:内容 | H:訪問者 | I:同行者 | J:定性1 | K:定性2 | L:定性3 | M:金額 | N:報告 | O:考え | P:部門"
+        activity_records: "A:お客様名 | B:ランク | C:属性 | D:日付(YYYY-MM-DD) | E:開始(HH:MM) | F:終了(HH:MM) | G:訪問者名 | H:同行者 | I:定性1 | J:定性2 | K:定性3 | L:客先担当 | M:報告内容 | N:自分の考え | O:部署名"
+    };
+
+    // 🌟 日付標準化（インポート時にお掃除！）
+    const stdDate = (s) => {
+        if(!s) return "";
+        return s.trim().replace(/\//g, '-');
     };
 
     window.switchTab = (mode) => {
@@ -104,37 +107,32 @@
         const colorClass = type === "error" ? "log-error" : (type === "info" ? "log-info" : "log-success");
         const time = new Date().toLocaleTimeString();
         div.innerHTML += `<div class="${colorClass}">[${time}] ${msg}</div>`;
-        div.scrollTop = div.scrollHeight; // 🌟 常に最下部へスクロール
+        div.scrollTop = div.scrollHeight;
     }
 
     document.getElementById('importBtn').onclick = async () => {
         const rawData = document.getElementById('csvData').value.trim();
-        if (!rawData) return alert("データがありません。");
+        if (!rawData) return alert("貼り付けられたデータがありません。");
         
         const rows = rawData.split('\n');
         const total = rows.length;
         const btn = document.getElementById('importBtn');
         
-        if(!confirm(`${total}件のデータをインポートします。よろしいですか？`)) return;
+        if(!confirm(`${total}件のデータをインポートします。現在のDBに追加/更新されますがよろしいですか？`)) return;
 
         btn.disabled = true;
         clearLog();
-        log(`${total}件のインポート処理を開始しました...`, "info");
+        log(`${total}件の処理を開始しました。ブラウザを閉じずに待機してください...`, "info");
 
         for (let i = 0; i < rows.length; i++) {
             const col = rows[i].split('\t');
-            if (col.length < 2) {
-                log(`${i+1}行目：データ不足のためスキップしました`, "error");
-                continue;
-            }
-
             try {
                 if (currentMode === 'customers') {
                     await addDoc(collection(db, "customers"), {
                         name: col[0]?.trim() || "",
                         kana: col[1]?.trim() || "",
-                        rank: col[2]?.trim() || "",
-                        type: col[3]?.trim() || "",
+                        rank: col[2]?.trim() || "-",
+                        type: col[3]?.trim() || "カテゴリ未設定",
                         address: col[4]?.trim() || "",
                         tel: col[5]?.trim() || "",
                         visitCount: parseInt(col[6]?.trim()) || 0,
@@ -143,70 +141,74 @@
                     });
                 } 
                 else if (currentMode === 'activity_records') {
+                    // 🌟 実績データのインポート（最新の1人1データ仕様）
                     await addDoc(collection(db, "activity_records"), {
                         customerName: col[0]?.trim() || "",
                         customerRank: col[1]?.trim() || "-",
                         customerType: col[2]?.trim() || "-",
-                        customerStaff: col[3]?.trim() || "-",
-                        visitDate: (col[4]||"").split(' ')[0]?.replace(/\//g, '-') || "",
-                        startTime: (col[4]||"").split(' ')[1] || "00:00",
-                        endTime: (col[5]||"").split(' ')[1] || "00:00",
-                        visitContent: col[6]?.trim() || "-",
-                        visitorName: col[7]?.trim() || "不明",
-                        companion: col[8]?.trim() || "-",
-                        qualData1: col[9]?.trim() || "-",
-                        qualData2: col[10]?.trim() || "-",
-                        qualData3: col[11]?.trim() || "-",
-                        estimatedAmount: col[12]?.trim() || "0",
-                        customerReport: col[13]?.trim() || "-",
-                        staffThoughts: col[14]?.trim() || "-",
-                        visitorDept: col[15]?.trim() || "不明",
+                        visitDate: stdDate(col[3]),
+                        startTime: col[4]?.trim() || "00:00",
+                        endTime: col[5]?.trim() || "00:00",
+                        visitorName: col[6]?.trim() || "不明",
+                        companion: col[7]?.trim() || "-",
+                        qualData1: col[8]?.trim() || "-",
+                        qualData2: col[9]?.trim() || "-",
+                        qualData3: col[10]?.trim() || "-",
+                        customerStaff: col[11]?.trim() || "-",
+                        content: col[12]?.trim() || "-", // 🌟 ここがUsage等の「報告内容」になります
+                        staffThoughts: col[13]?.trim() || "-",
+                        visitorDept: col[14]?.trim() || "不明",
                         createdAt: serverTimestamp()
                     });
                 }
                 else if (currentMode === 'staffs') {
                     const docId = col[0]?.trim();
+                    if(!docId) throw new Error("社員番号がありません");
                     await setDoc(doc(db, "staffs", docId), {
-                        id: docId, name: col[1]?.trim() || "", password: col[2]?.trim() || "1234",
-                        email: col[3]?.trim() || "", role: col[4]?.trim() || "一般",
-                        status: col[5]?.trim() || "有効", dept: col[6]?.trim() || "営業部",
+                        id: docId,
+                        name: col[1]?.trim() || "",
+                        password: col[2]?.trim() || "1234",
+                        email: col[3]?.trim() || "",
+                        role: col[4]?.trim() || "一般",
+                        status: col[5]?.trim() || "有効",
+                        dept: col[6]?.trim() || "不明",
                         updatedAt: serverTimestamp()
                     });
                 }
                 
-                // 🌟 全件ログを流すと重くなるため、5件おきに進捗を出す
-                if ((i + 1) % 5 === 0 || (i + 1) === total) {
+                if ((i + 1) % 10 === 0 || (i + 1) === total) {
                     log(`${i+1} / ${total} 件完了...`);
                 }
             } catch (e) { 
-                log(`エラー（${i+1}行目）: ${e.message}`, "error"); 
+                log(`${i+1}行目でエラー: ${e.message}`, "error"); 
             }
             
             document.getElementById('counter').innerText = `${i+1} / ${total}`;
             document.getElementById('progressPercent').innerText = `${Math.round(((i + 1) / total) * 100)}%`;
         }
 
-        log("すべての処理が完了しました！", "info");
+        log("すべてのインポート処理が終了しました。", "info");
         btn.disabled = false;
-        alert("インポート完了！");
+        alert("インポートが完了しました。");
     };
 
+    // 🌟 実績データの全消去（本番前のデモデータ掃除用）
     document.getElementById('clearRecordsBtn').onclick = async () => {
-        if (!confirm("実績データを全消去しますか？\nこの操作は取り消せません。")) return;
+        if (!confirm("【警告】実績データを「全て」削除しますか？\n（デモデータをお掃除して本番データを入れる直前にのみ使用してください）")) return;
         const btn = document.getElementById('clearRecordsBtn');
         btn.disabled = true;
         clearLog();
-        log("全消去リクエストを送信中...", "error");
+        log("全消去の準備中...", "error");
         
         try {
             const snap = await getDocs(collection(db, "activity_records"));
             const batch = writeBatch(db);
             snap.docs.forEach(d => batch.delete(d.ref));
             await batch.commit();
-            log("消去が完了しました。画面をリロードします。", "info");
+            log("全てのデータを削除しました。ページを更新します。", "info");
             setTimeout(() => location.reload(), 1500);
         } catch (e) {
-            log("消去に失敗しました: " + e.message, "error");
+            log("削除エラー: " + e.message, "error");
             btn.disabled = false;
         }
     };
