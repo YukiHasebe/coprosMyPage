@@ -7,14 +7,15 @@
     <style>
         :root { --copros-blue: #87ceeb; --copros-orange: #ff7e11; --copros-navy: #004098; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
-        .accordion-item { background: white; border-radius: 1rem; border: 1px solid #e2e8f0; overflow: hidden; margin-bottom: 1rem; }
-        .accordion-header { padding: 1.2rem 2rem; cursor: pointer; display: flex; align-items: center; justify-content: space-between; background: #3c4b5a; color: white; }
-        .accordion-content { display: none; padding: 2rem; background: white; }
+        .accordion-item { background: white; border-radius: 1rem; border: 1px solid #e2e8f0; overflow: hidden; margin-bottom: 1rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); }
+        .accordion-header { padding: 1.2rem 2rem; cursor: pointer; display: flex; align-items: center; justify-content: space-between; background: #3c4b5a; color: white; transition: background 0.2s; }
+        .accordion-header:hover { background: #4a5d6e; }
+        .accordion-content { display: none; padding: 2rem; background: white; border-top: 1px solid #f1f5f9; }
         .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 1.5rem; margin-bottom: 1.5rem; }
-        .info-label { font-size: 10px; font-weight: 800; color: #94a3b8; }
+        .info-label { font-size: 10px; font-weight: 800; color: #94a3b8; margin-bottom: 4px; }
         .info-value { font-size: 13px; font-weight: 800; color: #475569; }
         .report-box { background: #f8fafc; border-radius: 1rem; padding: 1.5rem; border: 1px solid #f1f5f9; font-size: 13px; line-height: 1.7; margin-bottom: 1rem; }
-        .summary-card { background: linear-gradient(135deg, #004098 0%, #2d3748 100%); color: white; border-radius: 1.5rem; padding: 1.5rem; margin-bottom: 2rem; display: flex; align-items: center; justify-content: center; gap: 4rem; }
+        .summary-card { background: linear-gradient(135deg, #004098 0%, #2d3748 100%); color: white; border-radius: 1.5rem; padding: 1.5rem; margin-bottom: 2rem; display: flex; align-items: center; justify-content: center; gap: 2rem; lg:gap: 6rem; box-shadow: 0 10px 25px -5px rgba(0,64,152,0.3); }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
@@ -27,40 +28,63 @@
             <div class="max-w-[1200px] mx-auto">
                 <div class="flex justify-between items-end mb-8">
                     <div>
-                        <h1 class="text-4xl font-black text-slate-800 tracking-tighter">デイリーレポート</h1>
-                        <p id="displayDate" class="text-xl font-black text-orange-500 mt-2">----/--/--</p>
+                        <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter">デイリーレポート</h1>
+                        <!-- 🌟 英語のサブタイトルを追加 -->
+                        <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic mb-2">Daily Team Activity Overview</nav>
+                        <p id="displayDate" class="text-xl font-black text-orange-500 border-l-4 border-orange-500 pl-4 mt-4">----/--/--</p>
                     </div>
-                    <button onclick="location.href='calendar.html'" class="px-6 py-2 bg-white border border-slate-200 rounded-xl font-black text-xs shadow-sm hover:bg-slate-50 transition-all">カレンダーへ戻る</button>
+                    <button onclick="location.href='calendar.html'" class="px-6 py-2 bg-white border border-slate-200 rounded-xl font-black text-xs shadow-sm hover:bg-slate-50 transition-all active:scale-95">カレンダーへ戻る</button>
                 </div>
 
-                <div class="summary-card shadow-lg">
-                    <div class="text-center"><p class="text-[10px] opacity-60 font-black uppercase mb-1">本日の営業件数</p><p class="text-3xl font-black"><span id="sumVisits">0</span>件</p></div>
-                    <div class="text-center"><p class="text-[10px] opacity-60 font-black uppercase mb-1">活動メンバー</p><p class="text-3xl font-black"><span id="sumStaff">0</span>名</p></div>
+                <div class="summary-card">
+                    <div class="text-center"><p class="text-[10px] opacity-60 font-black uppercase mb-1 tracking-widest">本日の営業件数</p><p class="text-3xl lg:text-4xl font-black"><span id="sumVisits">0</span><span class="text-sm ml-1">件</span></p></div>
+                    <div class="w-px h-12 bg-white/10 hidden md:block"></div>
+                    <div class="text-center"><p class="text-[10px] opacity-60 font-black uppercase mb-1 tracking-widest">活動メンバー</p><p class="text-3xl lg:text-4xl font-black"><span id="sumStaff">0</span><span class="text-sm ml-1">名</span></p></div>
                 </div>
 
-                <div id="activityAccordion" class="space-y-4 mb-20"></div>
+                <div id="activityAccordion" class="space-y-4 mb-20">
+                    <!-- ここにデータが入ります -->
+                </div>
             </div>
         </div>
     </main>
+
+    <div id="local-loading" class="fixed inset-0 bg-white/80 z-[9999] hidden flex-col items-center justify-center">
+        <div class="animate-spin text-[#ff7e11] text-6xl mb-4"><i class="fa-solid fa-circle-notch"></i></div>
+        <p class="text-slate-800 font-black uppercase italic tracking-tighter">Syncing Daily Data...</p>
+    </div>
 
     <script type="module" src="common.js"></script>
     <script type="module">
         import { db } from "./common.js";
         import { collection, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+        // 🌟 日付形式を「YYYY-MM-DD」に統一する関数
+        const standardizeDate = (s) => {
+            if(!s) return "";
+            const d = s.replace(/\//g, '-').split('-');
+            if(d.length < 3) return s;
+            return `${d[0]}-${d[1].padStart(2, '0')}-${d[2].padStart(2, '0')}`;
+        };
+
         async function init() {
-            const targetDate = sessionStorage.getItem('cp_daily_date');
-            if (!targetDate) { location.href = 'calendar.html'; return; }
+            const rawDate = sessionStorage.getItem('cp_daily_date');
+            if (!rawDate) { location.href = 'calendar.html'; return; }
+            
+            const targetDate = standardizeDate(rawDate);
             document.getElementById('displayDate').innerText = targetDate.replace(/-/g, '/');
+            document.getElementById('local-loading').style.display = 'flex';
 
             try {
-                // その日のデータを全取得（スラッシュ・ハイフン両対応）
-                const q1 = query(collection(db, "activity_records"), where("visitDate", "==", targetDate));
-                const snap1 = await getDocs(q1);
-                const q2 = query(collection(db, "activity_records"), where("visitDate", "==", targetDate.replace(/-/g, '/')));
-                const snap2 = await getDocs(q2);
+                const parts = targetDate.split('-');
+                const yMonth = `${parts[0]}-${parts[1]}`;
 
-                const allData = [...snap1.docs, ...snap2.docs].map(d => d.data())
+                // 🌟 省エネかつ確実：その月のデータをまとめて取得し、JS側でその日だけを抽出
+                const q = query(collection(db, "activity_records"), where("visitDate", ">=", parts[0]), where("visitDate", "<=", parts[0] + "\uf8ff"));
+                const snap = await getDocs(q);
+
+                const allData = snap.docs.map(d => d.data())
+                    .filter(r => standardizeDate(r.visitDate) === targetDate)
                     .sort((a,b) => (a.startTime || "00:00").localeCompare(b.startTime || "00:00"));
 
                 document.getElementById('sumVisits').innerText = allData.length;
@@ -71,24 +95,30 @@
                     <div class="accordion-item" id="acc-${i}">
                         <div class="accordion-header" onclick="window.toggleAcc('acc-${i}')">
                             <div class="flex items-center gap-4">
-                                <span class="bg-white/20 px-3 py-1 rounded text-xs font-black">${r.startTime || '--:--'}</span>
-                                <span class="text-base font-black">${r.visitorName} ➔ ${r.customerName}</span>
+                                <span class="bg-white/20 px-3 py-1 rounded text-[10px] font-black">${r.startTime || '--:--'}</span>
+                                <span class="text-base font-black tracking-tight">${r.visitorName} <i class="fa-solid fa-caret-right mx-2 opacity-50"></i> ${r.customerName}</span>
                             </div>
                             <i class="fa-solid fa-chevron-down opacity-30 text-xs transition-transform"></i>
                         </div>
                         <div class="accordion-content">
                             <div class="info-grid">
                                 <div><p class="info-label">お客様担当者</p><p class="info-value">${r.customerStaff || '-'}</p></div>
-                                <div><p class="info-label">訪問時間</p><p class="info-value">${r.startTime}〜${r.endTime}</p></div>
+                                <div><p class="info-label">訪問時間</p><p class="info-value"><i class="fa-regular fa-clock mr-1"></i> ${r.startTime} 〜 ${r.endTime}</p></div>
                                 <div><p class="info-label">所属部署</p><p class="info-value text-blue-600">${r.visitorDept || '-'}</p></div>
                                 <div><p class="info-label">定性データ</p><p class="info-value text-[10px] opacity-60">${r.qualData1||'-'} / ${r.qualData2||'-'} / ${r.qualData3||'-'}</p></div>
                             </div>
-                            <p class="info-label mb-2">報告内容</p><div class="report-box">${r.content || r.customerReport || 'なし'}</div>
-                            <p class="info-label mb-2">スタッフの考え</p><div class="report-box border-l-4 border-orange-100">${r.staffThoughts || '未入力'}</div>
+                            <p class="info-label mb-2 uppercase tracking-widest">■ 報告内容</p>
+                            <div class="report-box">${r.content || r.customerReport || '報告なし'}</div>
+                            <p class="info-label mb-2 uppercase tracking-widest">■ スタッフの考え</p>
+                            <div class="report-box border-l-4 border-orange-200 bg-orange-50/30">${r.staffThoughts || '未入力'}</div>
                         </div>
-                    </div>`).join('') : '<p class="text-center py-20 text-slate-300 font-bold tracking-widest uppercase italic">NO RECORDS ON THIS DAY</p>';
+                    </div>`).join('') : '<div class="py-20 text-center border-2 border-dashed border-slate-200 rounded-2xl"><p class="text-slate-300 font-black italic tracking-widest uppercase">No activity records found on this day</p></div>';
 
-            } catch (e) { console.error(e); }
+                document.getElementById('local-loading').style.display = 'none';
+            } catch (e) { 
+                console.error(e); 
+                document.getElementById('local-loading').style.display = 'none';
+            }
         }
 
         window.toggleAcc = (id) => {
@@ -96,7 +126,7 @@
             const content = item.querySelector('.accordion-content');
             const open = content.style.display === 'block';
             content.style.display = open ? 'none' : 'block';
-            item.querySelector('i').style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
+            item.querySelector('i').style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
         };
 
         init();
