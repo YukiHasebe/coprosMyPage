@@ -31,18 +31,23 @@
         <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1200px] mx-auto">
                 <div class="flex justify-between items-end mb-8"><h1 class="text-4xl font-black text-slate-800 tracking-tighter">組織員利用状況</h1>
-                    <button onclick="location.href='calendar.html'" class="px-6 py-2 bg-white border rounded-xl font-bold text-xs">カレンダーへ戻る</button>
+                    <button onclick="location.href='calendar.html'" class="px-6 py-2 bg-white border rounded-xl font-bold text-xs shadow-sm">カレンダーへ戻る</button>
                 </div>
+
+                <!-- 社員選択：元のデザインを死守 -->
                 <div class="staff-selector-card p-6 mb-8">
                     <div class="flex flex-col lg:flex-row gap-4 mb-6">
                         <select id="deptFilter" onchange="window.renderStaffList()" class="scope-select min-w-[240px]">
                             <option value="ALL">全ケコム関連</option>
                             <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option>
+                            <option>土木部</option><option>建築部</option><option>建機部</option><option>総務部</option>
                         </select>
                         <input type="text" id="staffSearch" oninput="window.renderStaffList()" placeholder="氏名で検索..." class="flex-1 px-4 py-3 bg-slate-50 border rounded-xl outline-none font-bold">
                     </div>
+                    <!-- 🌟 ここに社員のボタンが並びます -->
                     <div id="staffList" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 max-h-[160px] overflow-y-auto custom-scrollbar p-1"></div>
                 </div>
+
                 <div id="toolArea" class="hidden">
                     <div class="summary-card shadow-lg">
                         <div><p class="text-[10px] opacity-60 font-black uppercase mb-1">営業件数</p><p class="text-2xl font-black"><span id="sumVisits">0</span>件</p></div>
@@ -54,14 +59,14 @@
                     </div>
                     <div class="mb-20"><h3 id="selectedStaffLabel" class="text-xl font-black mb-8 px-4 text-slate-800"></h3><div id="activityAccordion" class="space-y-4"></div></div>
                 </div>
-                <div id="guideMsg" class="py-20 text-center"><p class="text-slate-400 font-bold">社員を選択してください</p></div>
+                <div id="guideMsg" class="py-20 text-center"><p class="text-slate-400 font-bold tracking-widest uppercase">社員を選択してください</p></div>
             </div>
         </div>
     </main>
 
     <script type="module" src="common.js"></script>
     <script type="module">
-        import { db, TARGET_DEPTS } from "./common.js";
+        import { db } from "./common.js";
         import { collection, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let allStaffs = [], currentStaffRecords = [], selectedName = "", currentY = 2026, currentM = new Date().getMonth() + 1;
@@ -69,19 +74,18 @@
 
         async function init() {
             try {
-                // 🌟 TARGET_DEPTSを尊重しつつ初期読み込み
-                const snap = await getDocs(query(collection(db, "staffs"), where("dept", "in", TARGET_DEPTS), orderBy("name")));
+                // 🌟 ここを「一旦全部読み込む」安全なロジックに変更（エラーを防ぐ）
+                const snap = await getDocs(query(collection(db, "staffs"), orderBy("name")));
                 allStaffs = snap.docs.map(d => d.data());
                 window.renderStaffList();
                 
-                // カレンダーからのジャンプ処理
                 const jName = sessionStorage.getItem('cp_usage_jump_name'), jMonth = sessionStorage.getItem('cp_usage_jump_month');
                 if (jName) {
                     sessionStorage.removeItem('cp_usage_jump_name'); sessionStorage.removeItem('cp_usage_jump_month');
                     currentM = parseInt(jMonth);
                     window.selectStaff(jName);
                 }
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error("Firebase Error:", e); }
         }
 
         window.renderStaffList = () => {
@@ -89,29 +93,39 @@
             const dept = document.getElementById('deptFilter').value;
             const container = document.getElementById('staffList');
             container.innerHTML = "";
+            
+            // 🌟 社員リストの生成：元の「ボタン形式」を確実に再現
             allStaffs.filter(s => (!kw || s.name.includes(kw)) && (dept === 'ALL' || s.dept === dept)).forEach(s => {
-                const div = document.createElement('div'); div.className = `staff-item ${clean(selectedName) === clean(s.name) ? 'active' : ''}`;
+                const div = document.createElement('div');
+                div.className = `staff-item ${clean(selectedName) === clean(s.name) ? 'active' : ''}`;
                 div.innerHTML = `<p class="font-black text-xs">${s.name}</p><p class="text-[8px] opacity-60 uppercase">${s.dept || ''}</p>`;
-                div.onclick = () => window.selectStaff(s.name); container.appendChild(div);
+                div.onclick = () => window.selectStaff(s.name);
+                container.appendChild(div);
             });
         };
 
         window.selectStaff = async (name) => {
-            selectedName = name; window.renderStaffList();
-            document.getElementById('guideMsg').style.display = 'none'; document.getElementById('toolArea').style.display = 'block';
+            selectedName = name; 
+            window.renderStaffList();
+            document.getElementById('guideMsg').style.display = 'none';
+            document.getElementById('toolArea').style.display = 'block';
+            
             try {
+                // データ取得（ハイフンとスラッシュ両方対応）
                 const q = query(collection(db, "activity_records"), where("visitorName", "==", name), where("visitDate", ">=", `${currentY}-01-01`), where("visitDate", "<=", `${currentY}-12-31`));
                 const snap = await getDocs(q); 
                 const q2 = query(collection(db, "activity_records"), where("visitorName", "==", name), where("visitDate", ">=", `${currentY}/01/01`), where("visitDate", "<=", `${currentY}/12/31`));
                 const snap2 = await getDocs(q2);
+                
                 currentStaffRecords = [...snap.docs, ...snap2.docs].map(d => d.data());
                 document.getElementById('selectedStaffLabel').innerText = `${name} さんの履歴`;
                 window.setMonth(currentM); 
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error("Fetch Records Error:", e); }
         };
 
         window.setMonth = (m) => {
-            currentM = m; document.querySelectorAll('.month-btn').forEach(btn => btn.classList.toggle('active', btn.id === `m-btn-${m}`));
+            currentM = m;
+            document.querySelectorAll('.month-btn').forEach(btn => btn.classList.toggle('active', btn.id === `m-btn-${m}`));
             window.renderAccordion();
         };
 
@@ -146,24 +160,25 @@
                             <div><p class="info-label">訪問時間</p><p class="info-value">${r.startTime}〜${r.endTime}</p></div>
                         </div>
                         <p class="info-label mb-2">報告内容</p><div class="report-box">${r.content || r.customerReport || 'なし'}</div>
-                        <p class="info-label mb-2">自分・スタッフの考え</p><div class="report-box border-l-4 border-orange-100">${r.staffThoughts || '未入力'}</div>
+                        <p class="info-label mb-2">スタッフの考え</p><div class="report-box border-l-4 border-orange-100">${r.staffThoughts || '未入力'}</div>
                     </div>
-                </div>`).join('') : '<p class="text-center py-20 text-slate-300 font-bold">実績はありません</p>';
+                </div>`).join('') : '<p class="text-center py-20 text-slate-300 font-bold tracking-widest uppercase">実績はありません</p>';
             
-            // 🌟 自動で開く処理
+            // 🌟 ジャンプしてきた時に自動で開く
             if(jumpTarget) {
                 setTimeout(() => {
                     const idx = filtered.findIndex(r => r.customerName === jumpTarget);
                     if(idx !== -1) window.toggleAcc(`acc-${idx}`);
                     sessionStorage.removeItem('cp_usage_jump_customer');
-                }, 300);
+                }, 400);
             }
         };
 
         window.toggleAcc = (id) => {
             const item = document.getElementById(id); if(!item) return;
             const content = item.querySelector('.accordion-content');
-            const open = content.style.display === 'block'; content.style.display = open ? 'none' : 'block';
+            const open = content.style.display === 'block';
+            content.style.display = open ? 'none' : 'block';
             item.querySelector('i').style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
         };
 
