@@ -8,7 +8,6 @@
         :root { --copros-orange: #ff7e11; --copros-navy: #004098; --copros-blue: #87ceeb; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
         .filter-btn { border: none; color: #94a3b8; background: transparent; transition: all 0.2s; font-weight: 900; padding: 0.5rem 0.8rem; cursor: pointer; border-radius: 0.75rem; }
-        /* 🌟 お客様一覧から継承したオレンジのアクティブ表示 */
         .filter-btn.active { background: var(--copros-orange) !important; color: white !important; box-shadow: 0 4px 12px rgba(255,126,17,0.3); }
         .table-container { border-radius: 1.5rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
         thead tr { background-color: #3c4b5a; }
@@ -26,7 +25,6 @@
         <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1400px] mx-auto">
                 
-                <!-- 🌟 ヘッドエリア：お客様一覧と完全同期 -->
                 <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-10 gap-4">
                     <div>
                         <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-1">組織員情報一覧</h1>
@@ -40,23 +38,19 @@
                         <button onclick="location.href='staff_add.html'" class="px-8 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-xs hover:shadow-lg transition-all flex items-center gap-2 active:scale-95">
                             <i class="fa-solid fa-user-plus text-[10px]"></i> 新規登録
                         </button>
-                        <div class="w-px h-6 bg-slate-100 mx-1"></div>
-                        <button id="bulkDeleteBtn" class="px-5 py-2.5 text-rose-400 rounded-xl font-bold text-xs hover:bg-rose-50 flex items-center gap-2 transition-all">
-                            <i class="fa-solid fa-trash-can"></i> 一括削除
-                        </button>
                     </div>
                 </div>
 
-                <!-- 🌟 詳細検索エリア：デザイン移植 -->
+                <!-- 🌟 詳細検索（部署を限定） -->
                 <div id="staffSearchSection" class="hidden mb-8 p-8 bg-white rounded-[2rem] shadow-xl border border-blue-50">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs font-bold">
-                        <div class="space-y-2"><label class="text-slate-400">氏名</label><input type="text" id="searchName" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-400 transition-all" placeholder="漢字・カナ検索"></div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs font-bold">
+                        <div class="space-y-2"><label class="text-slate-400">氏名</label><input type="text" id="searchName" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-400 transition-all" placeholder="氏名検索"></div>
                         <div class="space-y-2"><label class="text-slate-400">所属部署</label>
                             <select id="searchDept" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-400 transition-all">
-                                <option value="">全て</option><option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option><option>土木部</option><option>建築部</option><option>建機部</option><option>総務部</option><option>購買課</option><option>宮崎産商</option><option>企画部</option>
+                                <option value="">全ての部署</option>
+                                <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option>
                             </select>
                         </div>
-                        <div class="space-y-2"><label class="text-slate-400">権限</label><select id="searchRole" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-400 transition-all"><option value="">全て</option><option>一般</option><option>管理者</option></select></div>
                     </div>
                     <div class="flex justify-center gap-4 mt-8">
                         <button onclick="window.applySearch()" class="bg-[#334155] text-white px-16 py-3 rounded-xl font-black shadow-lg active:scale-95 transition-all">検索を実行</button>
@@ -64,7 +58,6 @@
                     </div>
                 </div>
 
-                <!-- 🌟 50音フィルターエリア：デザイン移植 -->
                 <div class="flex items-center gap-6 mb-6">
                     <div id="syllabaryFilter" class="flex p-1.5 bg-white rounded-xl border border-slate-200 shadow-sm font-black items-center overflow-x-auto custom-scrollbar">
                         <button class="filter-btn active px-4 py-1.5 text-xs" data-range="all">全件</button>
@@ -79,15 +72,15 @@
                             <tr class="text-white text-[10px] font-black uppercase text-center tracking-widest">
                                 <th class="p-6 w-16 opacity-50">No</th>
                                 <th class="p-6 text-left">氏名 (ID)</th>
-                                <th class="p-6">所属部署</th>
+                                <!-- 🌟 部署列を削除しました -->
                                 <th class="p-6">メールアドレス</th>
                                 <th class="p-6 w-24">権限</th>
                                 <th class="p-6 w-32">状態</th>
-                                <th class="p-6 w-16 opacity-30"><i class="fa-solid fa-check-double"></i></th>
+                                <th class="p-6 w-16 opacity-30"><i class="fa-solid fa-gear"></i></th>
                             </tr>
                         </thead>
                         <tbody id="staffTable" class="divide-y divide-slate-100 text-sm font-bold bg-white text-center">
-                            <tr><td colspan="7" class="p-20 text-center text-slate-400 font-bold italic">組織員情報を同期中...</td></tr>
+                            <tr><td colspan="6" class="p-20 text-center text-slate-400 font-bold italic">組織員情報を同期中...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -97,19 +90,20 @@
 
     <script type="module" src="common.js"></script>
     <script type="module">
-        import { db } from "./common.js";
-        import { collection, getDocs, doc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { db, TARGET_DEPTS } from "./common.js";
+        import { collection, getDocs, doc, deleteDoc, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let allStaffs = [];
 
         async function init() {
             try {
-                const snap = await getDocs(query(collection(db, "staffs"), orderBy("id")));
-                allStaffs = snap.docs.map(doc => ({ id: d.id, ...doc.data() }));
+                // 🌟 省エネ：最初からケコム関連部署のみを取得
+                const snap = await getDocs(query(collection(db, "staffs"), where("dept", "in", TARGET_DEPTS), orderBy("name")));
+                allStaffs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })); // 🌟 d.id を doc.id に修正
                 renderTable(allStaffs);
             } catch (e) { 
                 console.error(e);
-                document.getElementById('staffTable').innerHTML = '<tr><td colspan="7" class="p-20 text-center text-rose-400 font-bold">復活の16時をお待ちください。</td></tr>';
+                document.getElementById('staffTable').innerHTML = '<tr><td colspan="6" class="p-20 text-center text-rose-400 font-bold italic">データの読み込みに失敗しました</td></tr>';
             }
         }
 
@@ -119,18 +113,17 @@
                 <tr class="hover:bg-sky-50/50 border-b border-slate-50 transition-colors">
                     <td class="p-6 text-slate-300 font-mono text-xs border-r border-slate-50 text-center">${i+1}</td>
                     <td class="p-6 text-left">
-                        <div class="font-black text-slate-800 cursor-pointer hover:text-[#004098]" onclick="location.href='staff_add.html?id=${data.id}'">
-                            ${data.name || '不明'} <span class="text-[10px] text-slate-300 ml-1">#${data.id}</span>
+                        <div class="font-black text-slate-800 cursor-pointer hover:text-[#ff7e11]" onclick="location.href='staff_add.html?id=${data.id}'">
+                            ${data.name || '不明'} <span class="text-[10px] text-slate-300 ml-1">#${data.id || ''}</span>
                         </div>
                     </td>
-                    <td class="p-6 text-slate-500 text-center">${data.dept || '-'}</td>
                     <td class="p-6 text-slate-400 font-mono text-xs text-center">${data.email || '--'}</td>
-                    <td class="p-6 text-center text-[10px] font-black uppercase text-slate-300">${data.role || '一般'}</td>
+                    <td class="p-6 text-center text-[10px] font-black uppercase text-slate-400">${data.role || '一般'}</td>
                     <td class="p-6 text-center">
                         <span class="status-badge ${data.status === '有効' ? 'status-on' : 'status-off'}">${data.status || '有効'}</span>
                     </td>
                     <td class="p-6 text-center">
-                        <input type="checkbox" class="staff-check w-5 h-5 accent-rose-500 rounded-md cursor-pointer border-slate-200">
+                        <button onclick="location.href='staff_add.html?id=${data.id}'" class="text-slate-300 hover:text-[#004098]"><i class="fa-solid fa-pen-to-square"></i></button>
                     </td>
                 </tr>`).join('');
             document.getElementById('totalDisplay').innerText = dataList.length;
@@ -139,12 +132,9 @@
         window.applySearch = () => {
             const name = document.getElementById('searchName').value.toLowerCase();
             const dept = document.getElementById('searchDept').value;
-            const role = document.getElementById('searchRole').value;
             
             const filtered = allStaffs.filter(s => {
-                return (!name || (s.name||"").includes(name) || (s.kana||"").includes(name)) &&
-                       (!dept || s.dept === dept) &&
-                       (!role || s.role === role);
+                return (!name || (s.name||"").includes(name)) && (!dept || s.dept === dept);
             });
             renderTable(filtered);
         };
@@ -159,12 +149,12 @@
                 document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active', 'text-white'));
                 btn.classList.add('active', 'text-white');
                 const range = btn.dataset.range;
-                const rangeMap = { 'あ': /^[あ-おア-オ安阿伊藤]/, 'か': /^[か-こカ-コ加河]/, 'さ': /^[さ-そサ-ソ佐佐藤]/, 'た': /^[た-とタ-トだ-ど田高]/, 'な': /^[な-のナ-ノ内中]/, 'は': /^[は-ほハ-ホ波橋]/, 'ま': /^[ま-もマ-モ前松]/, 'や': /^[や-よヤ-ヨ山谷]/, 'ら': /^[ら-ろラ-ロ]/, 'わ': /^[わ-んワ-ン]/ };
+                const rangeMap = { 'あ': /^[あ-おア-オ]/, 'か': /^[か-こカ-コ]/, 'さ': /^[さ-そサ-ソ]/, 'た': /^[た-とタ-ト]/, 'な': /^[な-のナ-ノ]/, 'は': /^[は-ほハ-ホ]/, 'ま': /^[ま-もマ-モ]/, 'や': /^[や-よヤ-ヨ]/, 'ら': /^[ら-ろラ-ロ]/, 'わ': /^[わ-んワ-ン]/ };
                 
                 let filtered = allStaffs;
                 if (range !== 'all') {
                     if (range === '他') filtered = allStaffs.filter(s => !Object.values(rangeMap).some(re => re.test(s.name||"")));
-                    else filtered = allStaffs.filter(s => rangeMap[range].test(s.name||"") || (s.kana && rangeMap[range].test(s.kana)));
+                    else filtered = allStaffs.filter(s => rangeMap[range].test(s.name||""));
                 }
                 renderTable(filtered);
             };
