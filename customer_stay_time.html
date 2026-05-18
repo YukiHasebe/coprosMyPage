@@ -10,7 +10,7 @@
         .table-container { border-radius: 2rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
         thead tr { background-color: #3c4b5a; }
         .scope-select { background: #e2e8f0; border: none; padding: 0.4rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; cursor: pointer; }
-        .time-badge { background: #fff7ed; color: var(--copros-orange); padding: 4px 12px; border-radius: 20px; font-weight: 900; border: 1px solid #ffedd5; white-space: nowrap; }
+        .time-badge { background: #fff7ed; color: var(--copros-orange); padding: 4px 14px; border-radius: 20px; font-weight: 900; border: 1px solid #ffedd5; white-space: nowrap; }
         .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
@@ -64,7 +64,7 @@
 
     <div id="loading" class="fixed inset-0 bg-white/80 backdrop-blur-sm z-[100] hidden flex-col items-center justify-center">
         <div class="animate-spin mb-4 text-[#ff7e11] text-6xl"><i class="fa-solid fa-circle-notch"></i></div>
-        <p class="text-slate-800 font-black tracking-tighter italic uppercase text-xs">Analyzing Engagement Data...</p>
+        <p class="text-slate-800 font-black tracking-tighter italic text-xs uppercase">Analyzing Data...</p>
     </div>
 
     <script type="module" src="common.js"></script>
@@ -74,7 +74,6 @@
 
         let targetDate = new Date();
 
-        // 🌟 日付標準化関数（スラッシュ・ハイフン両対応）
         const standardizeDate = (s) => {
             if(!s) return "";
             const d = s.replace(/\//g, '-').split('-');
@@ -95,7 +94,6 @@
             const selectedDept = document.getElementById('deptFilter').value;
 
             try {
-                // 🌟 【省エネ】ケコム関連部署 ＆ 対象年度で絞り込み
                 let q;
                 const ref = collection(db, "activity_records");
                 
@@ -111,12 +109,10 @@
                 const stayMap = new Map();
                 records.forEach(r => {
                     const sDate = standardizeDate(r.visitDate);
-                    // 指定された年月のみを抽出
                     if (sDate.startsWith(`${targetY}-${mStr}`)) {
                         if(!stayMap.has(r.customerName)) stayMap.set(r.customerName, { count: 0, totalMins: 0 });
                         const data = stayMap.get(r.customerName);
                         
-                        // 🌟 新ルール：1つのデータを1件の営業としてカウント
                         data.count++;
 
                         if(r.startTime && r.endTime && r.startTime !== "00:00") {
@@ -133,22 +129,22 @@
 
                 loader.style.display = 'none';
                 if (stats.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4" class="p-24 text-center text-slate-300 font-black italic tracking-widest uppercase">No activity records found for this month</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="4" class="p-24 text-center text-slate-300 font-bold italic tracking-widest uppercase">当月の実績データはありません</td></tr>';
                 } else {
                     stats.forEach(s => {
                         tbody.insertAdjacentHTML('beforeend', `
-                            <tr class="hover:bg-blue-50/30 border-b border-slate-50 transition-colors text-center">
+                            <tr class="hover:bg-blue-50/30 transition-colors border-b border-slate-50 text-center">
                                 <td class="p-6 text-left font-black text-slate-800 cursor-pointer hover:text-orange-500" onclick="location.href='customer_history.html?name=${encodeURIComponent(s.name)}'">${s.name}</td>
-                                <td class="p-6 text-slate-500 font-mono">${s.count}<span class="text-[10px] ml-1 uppercase">Sales</span></td>
-                                <td class="p-6 text-emerald-600 font-black"><span class="time-badge">${Math.floor(s.total/60)}h ${s.total%60}m</span></td>
-                                <td class="p-6 text-slate-400 font-mono text-xs">${s.avg} min / sale</td>
+                                <td class="p-6 text-slate-500 font-bold">${s.count}回</td>
+                                <td class="p-6 text-emerald-600 font-black"><span class="time-badge">${Math.floor(s.total/60)}時間 ${s.total%60}分</span></td>
+                                <td class="p-6 text-slate-400 font-bold">${s.avg}分 / 回</td>
                             </tr>`);
                     });
                 }
             } catch (e) { 
                 console.error(e); 
                 loader.style.display = 'none';
-                tbody.innerHTML = '<tr><td colspan="4" class="p-20 text-center text-rose-400 font-bold italic">SYNC ERROR: PLEASE CHECK DATABASE INDEX</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="4" class="p-20 text-center text-rose-400 font-bold italic">データ同期エラー</td></tr>';
             }
         };
 
