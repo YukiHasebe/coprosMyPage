@@ -31,14 +31,13 @@
         <div id="header-placeholder"></div>
         <div class="flex-1 overflow-y-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1000px] mx-auto">
-                
                 <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-10 gap-4">
                     <div>
                         <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-1">アポイント登録</h1>
                         <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Kekom Sales - Forward Planning</nav>
                     </div>
                     <div class="flex gap-2 w-full lg:w-auto">
-                        <button type="button" onclick="location.href='calendar.html'" class="flex-1 lg:flex-none px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-xs hover:bg-slate-50 transition-all shadow-sm">戻る</button>
+                        <button type="button" onclick="location.href='calendar.html'" class="flex-1 lg:flex-none px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-xs hover:bg-slate-50 transition-all">戻る</button>
                         <button type="button" id="submitBtnTop" class="flex-1 lg:flex-none px-10 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-sm hover:shadow-lg transition-all flex items-center justify-center gap-2 active:scale-95 shadow-md">
                             <i class="fa-solid fa-paper-plane"></i> 登録を実行
                         </button>
@@ -74,24 +73,17 @@
                                         <button type="button" onclick="window.openStaffModal('visitor')" class="px-5 bg-white border border-slate-200 rounded-xl text-xs font-black shadow-sm shrink-0 hover:bg-slate-50 transition-all">選択</button>
                                     </div>
                                 </div>
-                                <div><label class="label-text">内容（仮）</label><input type="text" id="appointSubject" placeholder="例：定期訪問、見積提出など" class="form-input"></div>
+                                <div><label class="label-text">訪問内容（簡潔に）</label><input type="text" id="appointSubject" placeholder="例：定期訪問、見積提出など" class="form-input"></div>
                             </div>
                         </div>
                     </div>
 
                     <div class="section-card">
-                        <p class="section-title">通知設定（回覧）</p>
+                        <p class="section-title">回覧・通知設定</p>
                         <div class="space-y-6">
-                            <button type="button" onclick="window.openStaffModal('circular')" class="px-8 py-2.5 bg-slate-800 text-white rounded-xl text-xs font-black shadow-md hover:bg-black transition-all">回覧者を選択</button>
+                            <button type="button" onclick="window.openStaffModal('circular')" class="px-8 py-2.5 bg-slate-800 text-white rounded-xl text-xs font-black shadow-md hover:bg-black transition-all">通知する回覧者を選択</button>
                             <div id="circularDisplay" class="p-6 bg-slate-50 border border-slate-200 rounded-2xl min-h-[80px] text-sm font-bold text-slate-500 leading-relaxed">未選択</div>
                         </div>
-                    </div>
-                    
-                    <div class="flex justify-center gap-4 py-12 border-t border-slate-100 mt-10">
-                        <button type="button" onclick="window.saveDraft()" class="px-10 py-3 bg-white border border-slate-200 text-slate-400 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-50 transition-all">下書きを保存</button>
-                        <button type="button" id="submitBtnBottom" onclick="document.getElementById('submitBtnTop').click()" class="px-20 py-4 bg-[#004098] text-white rounded-xl font-black text-sm hover:shadow-xl flex items-center gap-3 active:scale-95 transition-all">
-                            <i class="fa-solid fa-paper-plane"></i> 登録を確定
-                        </button>
                     </div>
                 </form>
             </div>
@@ -100,11 +92,11 @@
 
     <div id="staffModal" class="modal-overlay">
         <div class="modal-content">
-            <div class="bg-slate-900 p-4 text-white flex justify-between items-center"><span id="modalTitle" class="font-black text-xs uppercase tracking-widest">Select Member</span><i class="fa-solid fa-xmark cursor-pointer hover:text-rose-400" onclick="window.closeModal()"></i></div>
+            <div class="bg-slate-900 p-4 text-white flex justify-between items-center"><span id="modalTitle" class="font-black text-xs uppercase tracking-widest">Select Member</span><i class="fa-solid fa-xmark cursor-pointer" onclick="window.closeModal()"></i></div>
             <div class="p-4 bg-slate-50 border-b border-slate-100">
                 <div class="grid grid-cols-2 gap-2">
-                    <input type="text" id="staffKeyword" oninput="window.renderStaffList()" placeholder="氏名検索..." class="p-3 rounded-lg border border-slate-200 text-xs font-bold outline-none focus:border-blue-400 shadow-sm">
-                    <select id="staffDeptFilter" onchange="window.renderStaffList()" class="p-3 rounded-lg border border-slate-200 text-xs font-bold outline-none focus:border-blue-400 shadow-sm">
+                    <input type="text" id="staffKeyword" oninput="window.renderStaffList()" placeholder="氏名検索..." class="p-3 rounded-lg border border-slate-200 text-xs font-bold outline-none">
+                    <select id="staffDeptFilter" onchange="window.renderStaffList()" class="p-3 rounded-lg border border-slate-200 text-xs font-bold outline-none">
                         <option value="ALL">全ケコム関連</option>
                         <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option>
                     </select>
@@ -112,8 +104,8 @@
             </div>
             <div id="staffList" class="overflow-y-auto custom-scrollbar" style="height: 320px;"></div>
             <div class="p-4 bg-slate-50 grid grid-cols-3 gap-2 border-t border-slate-100">
-                <button onclick="window.applySelection()" class="col-span-2 py-4 bg-[#004098] text-white rounded-xl font-black shadow-lg active:scale-95">決定する</button>
-                <button onclick="window.clearModalSelection()" class="py-4 bg-white border border-slate-200 text-slate-400 rounded-xl font-bold hover:bg-slate-100 transition-all">クリア</button>
+                <button onclick="window.applySelection()" class="col-span-2 py-4 bg-[#004098] text-white rounded-xl font-black shadow-lg">決定する</button>
+                <button onclick="window.clearModalSelection()" class="py-4 bg-white border border-slate-200 text-slate-400 rounded-xl font-bold hover:bg-slate-100">クリア</button>
             </div>
         </div>
     </div>
@@ -121,7 +113,7 @@
     <script type="module" src="common.js"></script>
     <script type="module">
         import { db, TARGET_DEPTS } from "./common.js";
-        import { collection, getDocs, addDoc, serverTimestamp, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, getDocs, addDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let allStaffs = [], modalSelected = [], currentTarget = '';
 
@@ -129,13 +121,15 @@
             document.getElementById('visitorName').value = sessionStorage.getItem('userName') || "";
             document.getElementById('appointDate').valueAsDate = new Date();
             try {
-                // 🌟 【省エネ ＆ ケコム限定】最初から4部署の社員だけを狙い撃ちで取得
-                const q = query(collection(db, "staffs"), where("dept", "in", TARGET_DEPTS), orderBy("name"));
-                const snap = await getDocs(q);
-                allStaffs = snap.docs.map(d => d.data());
-                
+                // 🌟 安全第一：一旦全ての社員を取得（130名程度なら高速・省エネです）
+                const snap = await getDocs(query(collection(db, "staffs"), orderBy("name")));
+                // 取得後、ケコム関連部署の社員だけに絞り込む（ゆらぎを吸収するためJSで処理）
+                allStaffs = snap.docs.map(d => d.data()).filter(s => {
+                    const dept = (s.dept || "").trim();
+                    return TARGET_DEPTS.includes(dept);
+                });
                 setupCustomerSearch();
-            } catch (e) { console.error("Init Error:", e); }
+            } catch (e) { console.error(e); }
         }
 
         function setupCustomerSearch() {
@@ -171,12 +165,16 @@
             const dp = document.getElementById('staffDeptFilter').value;
             const container = document.getElementById('staffList');
             
-            // 🌟 4部署限定フィルタ
-            const filtered = allStaffs.filter(s => (!kw || s.name.includes(kw)) && (dp === 'ALL' || s.dept === dp));
+            // 🌟 フィルタリング（スペース等のゆらぎを吸収）
+            const filtered = allStaffs.filter(s => {
+                const nameMatch = !kw || s.name.toLowerCase().includes(kw);
+                const deptMatch = dp === 'ALL' || (s.dept || "").trim() === dp;
+                return nameMatch && deptMatch;
+            });
             
             container.innerHTML = filtered.map(s => `
                 <div class="staff-item ${modalSelected.includes(s.name) ? 'selected' : ''}" onclick="window.toggleStaffSelection('${s.name}')">
-                    <span>${s.name}</span><span class="text-[9px] opacity-40 uppercase font-black tracking-widest">${s.dept || ''}</span>
+                    <span>${s.name}</span><span class="text-[9px] opacity-40 uppercase font-black">${s.dept || ''}</span>
                 </div>`).join('');
         };
 
@@ -199,8 +197,7 @@
             const form = document.getElementById('appointForm');
             if (!form.checkValidity()) { form.reportValidity(); return; }
             const btn = document.getElementById('submitBtnTop');
-            btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>保存中...';
-            
+            btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>送信中...';
             const vName = document.getElementById('visitorName').value;
             const staff = allStaffs.find(s => s.name === vName);
             const vDept = staff ? staff.dept : "不明";
@@ -211,40 +208,22 @@
                     appointDate: document.getElementById('appointDate').value,
                     startTime: document.getElementById('startTime').value,
                     endTime: document.getElementById('endTime').value,
-                    visitorName: vName,
-                    visitorDept: vDept,
+                    visitorName: vName, visitorDept: vDept,
                     subject: document.getElementById('appointSubject').value,
                     createdAt: serverTimestamp()
                 });
-
                 const cDisp = document.getElementById('circularDisplay').innerText;
                 const cNames = (cDisp !== '未選択' && cDisp !== '') ? cDisp.split(', ') : [];
                 for (const name of cNames) {
                     await addDoc(collection(db, "notifications"), {
                         recipient: name, visitorName: vName, customerName: document.getElementById('customerSearch').value,
-                        isRead: false, content: "【アポ】" + (document.getElementById('appointSubject').value || "予定"),
+                        isRead: false, content: "【アポ】" + (document.getElementById('appointSubject').value || "訪問予定"),
                         appointDate: document.getElementById('appointDate').value,
                         createdAt: serverTimestamp(), type: "アポ回覧"
                     });
                 }
-                localStorage.removeItem('cp_draft_appoint');
-                alert("アポイントを登録しました！");
-                location.href = 'calendar.html';
-            } catch (e) {
-                alert("保存に失敗しました");
-                btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> 登録を実行';
-            }
-        };
-
-        window.saveDraft = () => {
-            const draft = {
-                cust: document.getElementById('customerSearch').value,
-                date: document.getElementById('appointDate').value,
-                sub: document.getElementById('appointSubject').value,
-                visitor: document.getElementById('visitorName').value
-            };
-            localStorage.setItem('cp_draft_appoint', JSON.stringify(draft));
-            alert("下書きを保存しました。");
+                alert("登録完了！"); location.href = 'calendar.html';
+            } catch (e) { alert("保存失敗"); btn.disabled = false; btn.innerHTML = '登録を実行'; }
         };
 
         document.getElementById('submitBtnTop').onclick = handleRegister;
