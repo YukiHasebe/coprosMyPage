@@ -15,7 +15,7 @@
         .section-card { background: white; border-radius: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04); padding: 1.5rem; lg:padding: 2.5rem; margin-bottom: 2rem; }
         .section-title { font-size: 0.75rem; font-weight: 900; color: #94a3b8; letter-spacing: 0.1em; border-bottom: 2px solid #f1f5f9; padding-bottom: 0.5rem; margin-bottom: 2rem; text-transform: uppercase; }
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; backdrop-filter: blur(8px); align-items: center; justify-content: center; padding: 1rem; }
-        .modal-content { background: white; width: 100%; max-width: 450px; border-radius: 1.5rem; overflow: hidden; animation: popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        .modal-content { background: white; width: 95%; max-width: 450px; border-radius: 1.5rem; overflow: hidden; animation: popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
         @keyframes popIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         .staff-item { padding: 1rem 1.5rem; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-weight: 600; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s; }
         .staff-item:hover { background: #f8fafc; color: var(--copros-orange); }
@@ -23,8 +23,6 @@
         .suggestion-box { position: absolute; width: 100%; top: 100%; left: 0; z-index: 50; background: white; border-radius: 0.75rem; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; max-height: 200px; overflow-y: auto; display: none; }
         .suggestion-item { padding: 0.8rem 1rem; cursor: pointer; font-weight: 600; font-size: 0.9rem; border-bottom: 1px solid #f8fafc; }
         .suggestion-item:hover { background-color: #f1f5f9; color: var(--copros-blue); }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700">
@@ -40,7 +38,7 @@
                         <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Forward Planning & Schedule Setup</nav>
                     </div>
                     <div class="flex gap-2 w-full lg:w-auto">
-                        <button type="button" onclick="window.saveDraft()" class="flex-1 lg:flex-none px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-xs hover:bg-slate-50 transition-all">下書き保存</button>
+                        <button type="button" onclick="location.href='calendar.html'" class="flex-1 lg:flex-none px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-xs hover:bg-slate-50 transition-all">戻る</button>
                         <button type="button" id="submitBtnTop" class="flex-1 lg:flex-none px-10 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-sm hover:shadow-lg transition-all flex items-center justify-center gap-2 active:scale-95 shadow-md">
                             <i class="fa-solid fa-paper-plane"></i> 登録を実行
                         </button>
@@ -85,12 +83,12 @@
                         <p class="section-title">回覧・通知設定</p>
                         <div class="space-y-6">
                             <button type="button" onclick="window.openStaffModal('circular')" class="px-8 py-2.5 bg-slate-800 text-white rounded-xl text-xs font-black shadow-md hover:bg-black transition-all">通知する回覧者を選択</button>
-                            <div id="circularDisplay" class="p-6 bg-slate-50 border border-slate-200 rounded-2xl min-h-[80px] text-sm font-bold text-slate-500 leading-relaxed">未選択（通知は行われません）</div>
+                            <div id="circularDisplay" class="p-6 bg-slate-50 border border-slate-200 rounded-2xl min-h-[80px] text-sm font-bold text-slate-500 leading-relaxed">未選択</div>
                         </div>
                     </div>
                     
                     <div class="flex justify-center gap-4 py-12 border-t border-slate-100 mt-10">
-                        <button type="button" onclick="window.saveDraft()" class="px-10 py-3 bg-white border border-slate-200 text-slate-400 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-50 transition-all">下書きとして一時保存</button>
+                        <button type="button" onclick="window.saveDraft()" class="px-10 py-3 bg-white border border-slate-200 text-slate-400 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-50 transition-all">下書き保存</button>
                         <button type="button" id="submitBtnBottom" onclick="document.getElementById('submitBtnTop').click()" class="px-20 py-4 bg-[#004098] text-white rounded-xl font-black text-sm hover:shadow-xl flex items-center gap-3 active:scale-95 transition-all">
                             <i class="fa-solid fa-paper-plane"></i> 登録を確定する
                         </button>
@@ -100,7 +98,6 @@
         </div>
     </main>
 
-    <!-- スタッフ選択モーダル -->
     <div id="staffModal" class="modal-overlay">
         <div class="modal-content">
             <div class="bg-slate-900 p-4 text-white flex justify-between items-center"><span id="modalTitle" class="font-black text-xs uppercase tracking-widest">Select Member</span><i class="fa-solid fa-xmark cursor-pointer hover:text-rose-400" onclick="window.closeModal()"></i></div>
@@ -108,7 +105,7 @@
                 <div class="grid grid-cols-2 gap-2">
                     <input type="text" id="staffKeyword" oninput="window.renderStaffList()" placeholder="氏名検索..." class="p-3 rounded-lg border border-slate-200 text-xs font-bold outline-none focus:border-blue-400 shadow-sm">
                     <select id="staffDeptFilter" onchange="window.renderStaffList()" class="p-3 rounded-lg border border-slate-200 text-xs font-bold outline-none focus:border-blue-400 shadow-sm">
-                        <option value="ALL">全ケコム関連</option>
+                        <option value="ALL">全ての部署</option>
                     </select>
                 </div>
             </div>
@@ -122,8 +119,8 @@
 
     <script type="module" src="common.js"></script>
     <script type="module">
-        import { db, TARGET_DEPTS } from "./common.js";
-        import { collection, getDocs, addDoc, serverTimestamp, query, where, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { db } from "./common.js";
+        import { collection, getDocs, addDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let allStaffs = [], modalSelected = [], currentTarget = '';
 
@@ -131,12 +128,13 @@
             document.getElementById('visitorName').value = sessionStorage.getItem('userName') || "";
             document.getElementById('appointDate').valueAsDate = new Date();
             try {
-                // 🌟 省エネ：ケコム関連部署の社員のみを取得
-                const sSnap = await getDocs(query(collection(db, "staffs"), where("dept", "in", TARGET_DEPTS), orderBy("name")));
-                allStaffs = sSnap.docs.map(d => d.data());
+                // 🌟 現在は全社員を取得するように安定化
+                const snap = await getDocs(query(collection(db, "staffs"), orderBy("name")));
+                allStaffs = snap.docs.map(d => d.data());
                 
+                const depts = [...new Set(allStaffs.map(s => s.dept).filter(Boolean))].sort();
                 const deptSelect = document.getElementById('staffDeptFilter');
-                TARGET_DEPTS.forEach(d => deptSelect.insertAdjacentHTML('beforeend', `<option value="${d}">${d}</option>`));
+                depts.forEach(d => deptSelect.insertAdjacentHTML('beforeend', `<option value="${d}">${d}</option>`));
                 
                 setupCustomerSearch();
             } catch (e) { console.error(e); }
@@ -165,7 +163,7 @@
             document.getElementById('modalTitle').innerText = target === 'visitor' ? '訪問予定者を選択' : '通知先（回覧者）を選択';
             document.getElementById('staffModal').style.display = 'flex';
             const cur = (target === 'visitor') ? document.getElementById('visitorName').value : document.getElementById('circularDisplay').innerText;
-            modalSelected = (cur && cur !== '未選択' && cur !== '未選択（通知は行われません）') ? cur.split(', ') : [];
+            modalSelected = (cur && cur !== '未選択') ? cur.split(', ') : [];
             window.renderStaffList();
         };
 
@@ -178,7 +176,7 @@
             const filtered = allStaffs.filter(s => (!kw || s.name.includes(kw)) && (dp === 'ALL' || s.dept === dp));
             container.innerHTML = filtered.map(s => `
                 <div class="staff-item ${modalSelected.includes(s.name) ? 'selected' : ''}" onclick="window.toggleStaffSelection('${s.name}')">
-                    <span>${s.name}</span><span class="text-[9px] opacity-40 uppercase font-black tracking-widest">${s.dept || ''}</span>
+                    <span>${s.name}</span><span class="text-[9px] opacity-40 font-black tracking-widest">${s.dept || ''}</span>
                 </div>`).join('');
         };
 
@@ -200,15 +198,12 @@
         const handleRegister = async () => {
             const form = document.getElementById('appointForm');
             if (!form.checkValidity()) { form.reportValidity(); return; }
-            
             const btn = document.getElementById('submitBtnTop');
-            const originalHTML = btn.innerHTML;
             btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>送信中...';
             
             const vName = document.getElementById('visitorName').value;
             const staff = allStaffs.find(s => s.name === vName);
             const vDept = staff ? staff.dept : (sessionStorage.getItem('userDept') || "不明");
-            const subject = document.getElementById('appointSubject').value;
 
             try {
                 await addDoc(collection(db, "appointments"), {
@@ -218,27 +213,26 @@
                     endTime: document.getElementById('endTime').value,
                     visitorName: vName,
                     visitorDept: vDept,
-                    subject: subject,
+                    subject: document.getElementById('appointSubject').value,
                     createdAt: serverTimestamp()
                 });
 
                 const cDisp = document.getElementById('circularDisplay').innerText;
-                const cNames = (cDisp !== '未選択' && !cDisp.includes('（')) ? cDisp.split(', ') : [];
+                const cNames = (cDisp !== '未選択' && cDisp !== '') ? cDisp.split(', ') : [];
                 for (const name of cNames) {
                     await addDoc(collection(db, "notifications"), {
                         recipient: name, visitorName: vName, customerName: document.getElementById('customerSearch').value,
-                        isRead: false, content: "【アポ】" + (subject || "訪問予定"),
+                        isRead: false, content: "【アポ】" + (document.getElementById('appointSubject').value || "訪問予定"),
                         appointDate: document.getElementById('appointDate').value,
                         createdAt: serverTimestamp(), type: "アポ回覧"
                     });
                 }
                 localStorage.removeItem('cp_draft_appoint');
-                alert("アポイントを登録しました！カレンダーに反映されます。");
+                alert("アポイントを登録しました！");
                 location.href = 'calendar.html';
             } catch (e) {
-                console.error(e);
-                alert("保存に失敗しました。");
-                btn.disabled = false; btn.innerHTML = originalHTML;
+                alert("保存に失敗しました");
+                btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> 登録を実行';
             }
         };
 
