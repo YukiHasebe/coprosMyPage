@@ -28,7 +28,7 @@
                 <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-10 gap-4">
                     <div>
                         <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-1">組織員情報一覧</h1>
-                        <nav class="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">Organization Staff Management</nav>
+                        <nav class="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">Staff Management</nav>
                     </div>
                     <div class="flex flex-wrap gap-2 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100 items-center shrink-0 ml-auto">
                         <button onclick="document.getElementById('staffSearchSection').classList.toggle('hidden')" class="px-5 py-2.5 text-slate-500 rounded-xl font-bold text-xs hover:bg-slate-50 flex items-center gap-2 transition-all">
@@ -38,10 +38,13 @@
                         <button onclick="location.href='staff_add.html'" class="px-8 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-xs hover:shadow-lg transition-all flex items-center gap-2 active:scale-95">
                             <i class="fa-solid fa-user-plus text-[10px]"></i> 新規登録
                         </button>
+                        <div class="w-px h-6 bg-slate-100 mx-1"></div>
+                        <button id="bulkDeleteBtn" onclick="window.bulkDelete()" class="px-5 py-2.5 text-rose-400 rounded-xl font-bold text-xs hover:bg-rose-50 flex items-center gap-2 transition-all">
+                            <i class="fa-solid fa-trash-can"></i> 一括削除
+                        </button>
                     </div>
                 </div>
 
-                <!-- 🌟 詳細検索（部署を限定） -->
                 <div id="staffSearchSection" class="hidden mb-8 p-8 bg-white rounded-[2rem] shadow-xl border border-blue-50">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs font-bold">
                         <div class="space-y-2"><label class="text-slate-400">氏名</label><input type="text" id="searchName" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-400 transition-all" placeholder="氏名検索"></div>
@@ -49,6 +52,7 @@
                             <select id="searchDept" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-blue-400 transition-all">
                                 <option value="">全ての部署</option>
                                 <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option>
+                                <option>土木部</option><option>建築部</option><option>建機部</option><option>総務部</option><option>購買課</option>
                             </select>
                         </div>
                     </div>
@@ -72,15 +76,15 @@
                             <tr class="text-white text-[10px] font-black uppercase text-center tracking-widest">
                                 <th class="p-6 w-16 opacity-50">No</th>
                                 <th class="p-6 text-left">氏名 (ID)</th>
-                                <!-- 🌟 部署列を削除しました -->
-                                <th class="p-6">メールアドレス</th>
+                                <th class="p-6">所属部署</th>
+                                <th class="p-6">メール</th>
                                 <th class="p-6 w-24">権限</th>
                                 <th class="p-6 w-32">状態</th>
-                                <th class="p-6 w-16 opacity-30"><i class="fa-solid fa-gear"></i></th>
+                                <th class="p-6 w-16 opacity-30"><i class="fa-solid fa-check-double"></i></th>
                             </tr>
                         </thead>
                         <tbody id="staffTable" class="divide-y divide-slate-100 text-sm font-bold bg-white text-center">
-                            <tr><td colspan="6" class="p-20 text-center text-slate-400 font-bold italic">組織員情報を同期中...</td></tr>
+                            <tr><td colspan="7" class="p-20 text-center text-slate-400 font-bold italic">同期中...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -90,20 +94,20 @@
 
     <script type="module" src="common.js"></script>
     <script type="module">
-        import { db, TARGET_DEPTS } from "./common.js";
-        import { collection, getDocs, doc, deleteDoc, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { db } from "./common.js";
+        import { collection, getDocs, doc, deleteDoc, query, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let allStaffs = [];
 
         async function init() {
             try {
-                // 🌟 省エネ：最初からケコム関連部署のみを取得
-                const snap = await getDocs(query(collection(db, "staffs"), where("dept", "in", TARGET_DEPTS), orderBy("name")));
-                allStaffs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })); // 🌟 d.id を doc.id に修正
+                // 一旦、全ての部署を取得するように戻します
+                const snap = await getDocs(query(collection(db, "staffs"), orderBy("name")));
+                allStaffs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 renderTable(allStaffs);
             } catch (e) { 
                 console.error(e);
-                document.getElementById('staffTable').innerHTML = '<tr><td colspan="6" class="p-20 text-center text-rose-400 font-bold italic">データの読み込みに失敗しました</td></tr>';
+                document.getElementById('staffTable').innerHTML = '<tr><td colspan="7" class="p-20 text-center text-rose-400 font-bold italic">データの読み込みに失敗しました</td></tr>';
             }
         }
 
@@ -117,13 +121,14 @@
                             ${data.name || '不明'} <span class="text-[10px] text-slate-300 ml-1">#${data.id || ''}</span>
                         </div>
                     </td>
+                    <td class="p-6 text-slate-500 text-center text-xs font-bold">${data.dept || '-'}</td>
                     <td class="p-6 text-slate-400 font-mono text-xs text-center">${data.email || '--'}</td>
                     <td class="p-6 text-center text-[10px] font-black uppercase text-slate-400">${data.role || '一般'}</td>
                     <td class="p-6 text-center">
                         <span class="status-badge ${data.status === '有効' ? 'status-on' : 'status-off'}">${data.status || '有効'}</span>
                     </td>
                     <td class="p-6 text-center">
-                        <button onclick="location.href='staff_add.html?id=${data.id}'" class="text-slate-300 hover:text-[#004098]"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <input type="checkbox" class="staff-check w-5 h-5 accent-rose-500 rounded-md cursor-pointer border-slate-200" data-id="${data.id}">
                     </td>
                 </tr>`).join('');
             document.getElementById('totalDisplay').innerText = dataList.length;
@@ -132,10 +137,7 @@
         window.applySearch = () => {
             const name = document.getElementById('searchName').value.toLowerCase();
             const dept = document.getElementById('searchDept').value;
-            
-            const filtered = allStaffs.filter(s => {
-                return (!name || (s.name||"").includes(name)) && (!dept || s.dept === dept);
-            });
+            const filtered = allStaffs.filter(s => (!name || (s.name||"").includes(name)) && (!dept || s.dept === dept));
             renderTable(filtered);
         };
 
@@ -144,13 +146,24 @@
             renderTable(allStaffs);
         };
 
+        window.bulkDelete = async () => {
+            const checks = document.querySelectorAll('.staff-check:checked');
+            if (!checks.length) return alert("削除する項目にチェックを入れてください");
+            if (!confirm(`${checks.length}件の社員情報を削除しますか？`)) return;
+
+            const batch = writeBatch(db);
+            checks.forEach(cb => { batch.delete(doc(db, "staffs", cb.dataset.id)); });
+            await batch.commit();
+            alert("削除完了しました");
+            init();
+        };
+
         document.querySelectorAll('.filter-btn').forEach(btn => {
             btn.onclick = () => {
                 document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active', 'text-white'));
                 btn.classList.add('active', 'text-white');
                 const range = btn.dataset.range;
                 const rangeMap = { 'あ': /^[あ-おア-オ]/, 'か': /^[か-こカ-コ]/, 'さ': /^[さ-そサ-ソ]/, 'た': /^[た-とタ-ト]/, 'な': /^[な-のナ-ノ]/, 'は': /^[は-ほハ-ホ]/, 'ま': /^[ま-もマ-モ]/, 'や': /^[や-よヤ-ヨ]/, 'ら': /^[ら-ろラ-ロ]/, 'わ': /^[わ-んワ-ン]/ };
-                
                 let filtered = allStaffs;
                 if (range !== 'all') {
                     if (range === '他') filtered = allStaffs.filter(s => !Object.values(rangeMap).some(re => re.test(s.name||"")));
