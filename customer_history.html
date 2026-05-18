@@ -7,14 +7,16 @@
     <style>
         :root { --copros-blue: #004098; --copros-orange: #ff7e11; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
-        .history-card { background: white; border-radius: 1rem; border: 1px solid #e2e8f0; transition: all 0.3s; overflow: hidden; margin-bottom: 1rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
-        .history-header { padding: 1.2rem 1.5rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: #3c4b5a; color: white; transition: background 0.2s; }
+        .history-card { background: white; border-radius: 1.2rem; border: 1px solid #e2e8f0; transition: all 0.3s; overflow: hidden; margin-bottom: 1rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03); }
+        .history-header { padding: 1.2rem 2rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: #3c4b5a; color: white; transition: background 0.2s; }
         .history-header:hover { background: #2d3748; }
-        .history-body { display: none; padding: 1.5rem; background: white; border-top: 1px solid #f1f5f9; }
-        .detail-label { font-size: 0.75rem; font-weight: 900; color: #94a3b8; width: 150px; shrink: 0; }
-        .detail-content { font-size: 0.9rem; font-weight: 600; color: #334155; line-height: 1.6; }
-        .detail-row { display: flex; align-items: flex-start; padding: 0.8rem 0; border-bottom: 1px solid #f8fafc; }
+        .history-body { display: none; padding: 2rem; background: white; border-top: 1px solid #f1f5f9; }
+        .detail-label { font-size: 0.7rem; font-weight: 900; color: #94a3b8; width: 120px; shrink: 0; text-transform: uppercase; tracking-widest: 0.05em; }
+        .detail-content { font-size: 0.9rem; font-weight: 700; color: #334155; line-height: 1.6; }
+        .detail-row { display: flex; align-items: center; padding: 0.7rem 0; border-bottom: 1px solid #f8fafc; }
         .detail-row:last-child { border-bottom: none; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700">
@@ -22,19 +24,23 @@
     <main class="flex-1 flex flex-col overflow-hidden">
         <div id="header-placeholder"></div>
         <div class="flex-1 overflow-y-auto p-4 lg:p-8 custom-scrollbar">
-            <div class="max-w-5xl mx-auto">
-                <div class="flex justify-between items-end mb-10">
+            <div class="max-w-[1100px] mx-auto">
+                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-10 gap-4">
                     <div>
-                        <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">訪問実績履歴</h1>
-                        <p id="targetCustomerName" class="text-xl font-bold text-[#004098]">読み込み中...</p>
+                        <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-1">訪問実績履歴</h1>
+                        <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic mb-4">Customer Interaction Archive</nav>
+                        <p id="targetCustomerName" class="text-2xl font-black text-[#004098] border-l-4 border-orange-500 pl-4">読み込み中...</p>
                     </div>
-                    <div class="flex gap-3">
-                        <!-- 🌟 魔法の戻るボタン：直前のページ（一覧or実績）に自動で戻る -->
-                        <button onclick="history.back()" class="px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-xs hover:bg-slate-50 shadow-sm transition-all">前の画面に戻る</button>
-                        <button id="newRegBtn" class="px-8 py-2.5 bg-[#ff7e11] text-white rounded-xl font-bold text-xs hover:shadow-lg transition-all flex items-center gap-2"><i class="fa-solid fa-plus"></i> 実績登録</button>
+                    <div class="flex gap-3 w-full lg:w-auto">
+                        <button onclick="history.back()" class="flex-1 lg:flex-none px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-xs hover:bg-slate-50 shadow-sm transition-all">戻る</button>
+                        <button id="newRegBtn" class="flex-1 lg:flex-none px-8 py-2.5 bg-[#ff7e11] text-white rounded-xl font-black text-xs hover:shadow-lg transition-all flex items-center justify-center gap-2 active:scale-95"><i class="fa-solid fa-plus"></i> このお客様の実績を書く</button>
                     </div>
                 </div>
-                <div id="historyListContainer" class="space-y-4 pb-20"></div>
+
+                <div id="historyListContainer" class="space-y-4 pb-24">
+                    <!-- 読み込み中表示 -->
+                    <div class="py-20 text-center text-slate-300 font-bold italic animate-pulse uppercase">Syncing Activity History...</div>
+                </div>
             </div>
         </div>
     </main>
@@ -42,35 +48,52 @@
     <script type="module" src="common.js"></script>
     <script type="module">
         import { db } from "./common.js";
-        import { collection, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const params = new URLSearchParams(window.location.search);
         const customerName = params.get('name');
 
+        // 日付を「YYYY/MM/DD」に統一する
+        const fmtDate = (s) => s ? String(s).replace(/-/g, '/') : '--/--/--';
+
         async function init() {
-            if (!customerName) return;
+            if (!customerName) {
+                document.getElementById('historyListContainer').innerHTML = '<p class="p-20 text-center text-slate-400">お客様名が正しく取得できませんでした。</p>';
+                return;
+            }
             document.getElementById('targetCustomerName').innerText = customerName;
             document.getElementById('newRegBtn').onclick = () => location.href = `history.html?name=${encodeURIComponent(customerName)}`;
 
             try {
-                const q = query(collection(db, "activity_records"), where("customerName", "==", customerName), limit(50));
+                // 🌟 【省エネ】特定の顧客名でピンポイント取得
+                const q = query(
+                    collection(db, "activity_records"), 
+                    where("customerName", "==", customerName), 
+                    orderBy("visitDate", "desc"),
+                    limit(50)
+                );
                 const snap = await getDocs(q);
+                
                 if (snap.empty) {
-                    document.getElementById('historyListContainer').innerHTML = '<p class="p-20 text-center text-slate-400">実績がありません。</p>';
+                    document.getElementById('historyListContainer').innerHTML = '<div class="py-20 text-center border-2 border-dashed border-slate-200 rounded-3xl"><p class="text-slate-300 font-black italic tracking-widest uppercase">No Activity Found for this Customer</p></div>';
                     return;
                 }
-                let records = snap.docs.map(doc => doc.data());
-                records.sort((a, b) => (b.visitDate || "").localeCompare(a.visitDate || ""));
+
+                const records = snap.docs.map(doc => doc.data());
                 renderHistory(records);
 
-                // 🌟 最初の一件を自動でパカッと開く
-                const firstCard = document.querySelector('.history-body');
-                if(firstCard) {
-                    firstCard.style.display = 'block';
-                    document.querySelector('.arrow-icon').style.transform = 'rotate(180deg)';
+                // 🌟 1件目を自動展開
+                const firstBody = document.querySelector('.history-body');
+                const firstArrow = document.querySelector('.arrow-icon');
+                if(firstBody && firstArrow) {
+                    firstBody.style.display = 'block';
+                    firstArrow.style.transform = 'rotate(180deg)';
                 }
 
-            } catch (e) { console.error(e); }
+            } catch (e) { 
+                console.error(e);
+                document.getElementById('historyListContainer').innerHTML = '<p class="p-20 text-center text-rose-400 font-bold uppercase italic">Sync Error: Database index may be required</p>';
+            }
         }
 
         function renderHistory(dataList) {
@@ -79,30 +102,45 @@
                 <div class="history-card">
                     <div class="history-header" onclick="window.toggleDetail(this)">
                         <div class="flex items-center gap-6">
-                            <span class="text-sm font-black tracking-widest bg-white/20 px-3 py-1 rounded-full">${(data.visitDate || '').replace(/-/g, '/')}</span>
-                            <span class="text-sm font-bold opacity-90 underline underline-offset-4 decoration-orange-400">${data.visitorName || '担当者不明'}</span>
+                            <span class="text-sm font-black tracking-widest bg-white/10 px-4 py-1 rounded-full">${fmtDate(data.visitDate)}</span>
+                            <span class="text-sm font-black opacity-90">${data.visitorName || '担当者不明'}</span>
                         </div>
-                        <i class="fa-solid fa-chevron-down transition-transform duration-300 arrow-icon opacity-50"></i>
+                        <i class="fa-solid fa-chevron-down transition-transform duration-300 arrow-icon opacity-40 text-xs"></i>
                     </div>
                     <div class="history-body">
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-12">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-16 border-b border-slate-50 mb-6">
                             <div class="detail-row"><div class="detail-label">お客様担当者</div><div class="detail-content">${data.customerStaff || '--'}</div></div>
-                            <div class="detail-row"><div class="detail-label">訪問時間</div><div class="detail-content">${data.startTime || '--:--'} 〜 ${data.endTime || '--:--'}</div></div>
+                            <div class="detail-row"><div class="detail-label">訪問時間</div><div class="detail-content text-blue-600"><i class="fa-regular fa-clock mr-1"></i> ${data.startTime || '00:00'} 〜 ${data.endTime || '00:00'}</div></div>
                             <div class="detail-row"><div class="detail-label">同行者</div><div class="detail-content">${data.companion || 'なし'}</div></div>
-                            <div class="detail-row"><div class="detail-label">定性データ</div><div class="flex gap-2">
-                                ${data.qualData1 ? `<span class="bg-blue-50 text-blue-600 px-2 py-0.5 rounded text-[10px] font-black">${data.qualData1}</span>` : ''}
-                                ${data.qualData3 ? `<span class="bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded text-[10px] font-black">${data.qualData3}</span>` : ''}
-                            </div></div>
+                            <div class="detail-row"><div class="detail-label">所属部署</div><div class="detail-content text-slate-400 text-xs uppercase">${data.visitorDept || '不明'}</div></div>
                         </div>
-                        <div class="mt-6 p-5 bg-slate-50 rounded-2xl">
-                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">お客様からの情報</p>
-                            <div class="detail-content whitespace-pre-wrap">${data.customerReport || '-'}</div>
+
+                        <div class="mb-6">
+                            <p class="detail-label mb-3">定性データ分析</p>
+                            <div class="flex flex-wrap gap-2">
+                                ${data.qualData1 ? `<span class="bg-blue-50 text-[#004098] px-3 py-1 rounded-lg text-[10px] font-black border border-blue-100">${data.qualData1}</span>` : ''}
+                                ${data.qualData2 ? `<span class="bg-orange-50 text-orange-600 px-3 py-1 rounded-lg text-[10px] font-black border border-orange-100">${data.qualData2}</span>` : ''}
+                                ${data.qualData3 ? `<span class="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-lg text-[10px] font-black border border-emerald-100">${data.qualData3}</span>` : ''}
+                                ${!data.qualData1 && !data.qualData2 && !data.qualData3 ? '<span class="text-slate-300 text-xs font-bold italic">（未分類）</span>' : ''}
+                            </div>
                         </div>
-                        <div class="mt-4 p-5 bg-blue-50/50 rounded-2xl border border-blue-100/50">
-                            <p class="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-3">自分・スタッフの考え</p>
-                            <div class="detail-content whitespace-pre-wrap">${data.staffThoughts || '-'}</div>
+
+                        <div class="space-y-6">
+                            <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">■ お客様からの情報（要望・状況）</p>
+                                <div class="detail-content whitespace-pre-wrap text-slate-700">${data.content || data.customerReport || '-'}</div>
+                            </div>
+                            <div class="p-6 bg-orange-50/30 rounded-2xl border border-orange-100/50">
+                                <p class="text-[9px] font-black text-orange-400 uppercase tracking-widest mb-3">■ 自分・スタッフの考え（次回提案・課題）</p>
+                                <div class="detail-content whitespace-pre-wrap text-slate-600">${data.staffThoughts || '-'}</div>
+                            </div>
                         </div>
-                        <div class="mt-6 text-right"><span class="text-[#ff7e11] bg-orange-50 px-4 py-1 rounded-full border border-orange-100 text-xs font-black">次回訪問：${(data.nextVisitDate || '--').replace(/-/g, '/')}</span></div>
+
+                        <div class="mt-8 flex justify-end">
+                            <div class="bg-[#004098] text-white px-5 py-2 rounded-xl text-xs font-black shadow-md">
+                                <i class="fa-regular fa-calendar-check mr-2"></i>次回訪問予定日：${fmtDate(data.nextVisitDate)}
+                            </div>
+                        </div>
                     </div>
                 </div>`).join('');
         }
