@@ -5,19 +5,19 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; }
+        :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; --copros-navy: #004098; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
         .table-container { border-radius: 2rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
         thead tr { background-color: #3c4b5a; }
         .month-col { min-width: 65px; text-align: center; border-left: 1px solid #f1f5f9; font-size: 10px; }
         .val-active { background: #fff7ed; color: var(--copros-orange); font-weight: 900; padding: 4px 0; border-radius: 4px; }
+        
         @media (min-width: 1024px) {
             .sticky-name { position: sticky; left: 0; background: white; z-index: 10; border-right: 2px solid #f1f5f9; min-width: 250px; }
             thead .sticky-name { background: #3c4b5a; z-index: 20; color: white; }
         }
-        .year-btn { padding: 0.5rem 1rem; border-radius: 0.75rem; font-weight: 900; font-size: 0.75rem; transition: all 0.2s; border: 1px solid #e2e8f0; background: white; color: #64748b; }
-        .year-btn:hover { background: #f8fafc; border-color: var(--copros-orange); color: var(--copros-orange); }
-        .scope-select { background: #e2e8f0; border: none; padding: 0.4rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; appearance: none; cursor: pointer; }
+        
+        .scope-select { background: #e2e8f0; border: none; padding: 0.4rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; cursor: pointer; }
         .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
@@ -36,12 +36,11 @@
                             <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Monthly Engagement Matrix</nav>
                         </div>
                         <select id="deptFilter" onchange="window.init()" class="scope-select shadow-inner mb-2">
-                            <option value="ALL">全社表示</option>
-                            <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option><option>土木部</option><option>建築部</option><option>建機部</option><option>総務部</option><option>購買課</option><option>宮崎産商</option><option>企画部</option>
+                            <option value="ALL">全ケコム関連 表示</option>
+                            <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option>
                         </select>
                     </div>
 
-                    <!-- 🌟 年度ツールを中央配置 -->
                     <div class="lg:absolute lg:left-1/2 lg:transform lg:-translate-x-1/2 flex items-center gap-3 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100 mx-auto lg:mx-0">
                         <button onclick="window.changeYear(-1)" class="p-2 text-slate-300 hover:text-slate-600 transition-colors"><i class="fa-solid fa-chevron-left fa-lg"></i></button>
                         <span id="displayYear" class="text-base font-black text-slate-700 px-6 min-w-[120px] text-center">----年度</span>
@@ -49,17 +48,23 @@
                     </div>
                 </div>
 
-                <div class="table-container overflow-x-auto bg-white mb-20">
+                <div class="table-container overflow-x-auto bg-white mb-24">
                     <table class="w-full text-left border-collapse min-w-[1200px]">
                         <thead>
                             <tr class="text-white text-[10px] font-black uppercase text-center tracking-widest">
                                 <th class="p-4 sticky-name text-left">お客様名</th>
-                                <th class="month-col">7月</th><th class="month-col">8月</th><th class="month-col">9月</th><th class="month-col">10月</th><th class="month-col">11月</th><th class="month-col">12月</th>
-                                <th class="month-col">1月</th><th class="month-col">2月</th><th class="month-col">3月</th><th class="month-col">4月</th><th class="month-col">5月</th><th class="month-col">6月</th>
+                                <th class="month-col bg-slate-700/30">7月</th><th class="month-col bg-slate-700/30">8月</th>
+                                <th class="month-col bg-slate-700/30">9月</th><th class="month-col bg-slate-700/30">10月</th>
+                                <th class="month-col bg-slate-700/30">11月</th><th class="month-col bg-slate-700/30">12月</th>
+                                <th class="month-col bg-blue-900/20">1月</th><th class="month-col bg-blue-900/20">2月</th>
+                                <th class="month-col bg-blue-900/20">3月</th><th class="month-col bg-blue-900/20">4月</th>
+                                <th class="month-col bg-blue-900/20">5月</th><th class="month-col bg-blue-900/20">6月</th>
                                 <th class="p-4 bg-slate-900 text-white w-32">合計時間</th>
                             </tr>
                         </thead>
-                        <tbody id="monthlyTableBody" class="text-[11px] lg:text-xs font-bold divide-y divide-slate-50 bg-white"></tbody>
+                        <tbody id="monthlyTableBody" class="text-[11px] lg:text-xs font-bold divide-y divide-slate-50 bg-white">
+                            <!-- JSで注入 -->
+                        </tbody>
                     </table>
                 </div>
 
@@ -73,10 +78,20 @@
 
     <script type="module" src="common.js"></script>
     <script type="module">
-        import { db } from "./common.js";
-        import { collection, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { db, TARGET_DEPTS } from "./common.js";
+        import { collection, getDocs, query, where, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        let currentYear = 2025; 
+        // 本日の日付から年度を算出（7月基準）
+        const now = new Date();
+        let currentYear = now.getMonth() + 1 >= 7 ? now.getFullYear() : now.getFullYear() - 1;
+
+        // 日付標準化関数（スラッシュ・ハイフン両対応）
+        const standardizeDate = (s) => {
+            if(!s) return "";
+            const d = s.replace(/\//g, '-').split('-');
+            if(d.length < 3) return s;
+            return `${d[0]}-${d[1].padStart(2, '0')}-${d[2].padStart(2, '0')}`;
+        };
 
         window.init = async () => {
             const loading = document.getElementById('loading'); loading.style.display = 'flex';
@@ -85,47 +100,53 @@
             const selectedDept = document.getElementById('deptFilter').value;
 
             try {
-                // 🌟 【成功ロジック】年度で広く取得
+                // 🌟 【省エネ】年度の範囲を指定して取得
                 let q;
+                const ref = collection(db, "activity_records");
                 if (selectedDept === 'ALL') {
-                    q = query(collection(db, "activity_records"), where("visitDate", ">=", `${currentYear}`), where("visitDate", "<=", `${currentYear + 1}\uf8ff`), limit(2000));
+                    q = query(ref, where("visitorDept", "in", TARGET_DEPTS), where("visitDate", ">=", `${currentYear}`), limit(3000));
                 } else {
-                    q = query(collection(db, "activity_records"), where("visitorDept", "==", selectedDept), where("visitDate", ">=", `${currentYear}`), where("visitDate", "<=", `${currentYear + 1}\uf8ff`));
+                    q = query(ref, where("visitorDept", "==", selectedDept), where("visitDate", ">=", `${currentYear}`), limit(2000));
                 }
 
-                const [cSnap, rSnap] = await Promise.all([
-                    getDocs(query(collection(db, "customers"), limit(500))),
-                    getDocs(q)
-                ]);
-
-                const records = rSnap.docs.map(d => d.data());
+                const snap = await getDocs(q);
+                const records = snap.docs.map(d => d.data());
+                
                 const months = [7,8,9,10,11,12,1,2,3,4,5,6];
                 let statsMap = new Map();
 
                 records.forEach(r => {
-                    const dateStr = String(r.visitDate || '').replace(/\//g, '-');
-                    const parts = dateStr.split('-');
+                    const sDate = standardizeDate(r.visitDate);
+                    const parts = sDate.split('-');
+                    if (parts.length < 3) return;
+                    
                     const y = parseInt(parts[0]), m = parseInt(parts[1]);
-                    const isTargetYear = (y === currentYear && m >= 7) || (y === currentYear + 1 && m <= 6);
+                    // 7月期首の年度内か判定
+                    const isTarget = (y === currentYear && m >= 7) || (y === currentYear + 1 && m <= 6);
 
-                    if (isTargetYear) {
+                    if (isTarget) {
                         if (!statsMap.has(r.customerName)) {
                             statsMap.set(r.customerName, { counts: Array(12).fill(0), totalMins: 0 });
                         }
                         const data = statsMap.get(r.customerName);
                         const monthIdx = months.indexOf(m);
+                        
                         if(monthIdx !== -1 && r.startTime && r.endTime && r.startTime !== "00:00") {
                             const s = r.startTime.split(':'), e = r.endTime.split(':');
                             const diff = (parseInt(e[0])*60 + parseInt(e[1]||0)) - (parseInt(s[0])*60 + parseInt(s[1]||0));
-                            if (diff > 0) { data.counts[monthIdx] += diff; data.totalMins += diff; }
+                            if (diff > 0) { 
+                                data.counts[monthIdx] += diff; 
+                                data.totalMins += diff; 
+                            }
                         }
                     }
                 });
 
                 const sortedNames = Array.from(statsMap.keys()).sort((a,b) => a.localeCompare(b, 'ja'));
                 loading.style.display = 'none';
+
                 if (sortedNames.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="14" class="p-20 text-center text-slate-400 font-bold">実績データはありません</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="14" class="p-24 text-center text-slate-300 font-black italic tracking-widest uppercase">No Activity Data Found for this Period</td></tr>';
                 } else {
                     sortedNames.forEach(name => {
                         const d = statsMap.get(name);
@@ -134,16 +155,20 @@
                             monthCells += `<td class="month-col">${mins > 0 ? `<div class="val-active">${mins}分</div>` : '<div class="text-slate-200">0</div>'}</td>`;
                         });
                         tbody.insertAdjacentHTML('beforeend', `
-                            <tr class="hover:bg-slate-50 transition-colors border-b border-slate-50 text-center">
-                                <td class="p-4 sticky-name text-left text-slate-800 font-black truncate max-w-[250px] cursor-pointer hover:text-blue-600 bg-white" onclick="location.href='customer_history.html?name=${encodeURIComponent(name)}'">${name}</td>
+                            <tr class="hover:bg-blue-50/30 transition-colors border-b border-slate-50 text-center">
+                                <td class="p-4 sticky-name text-left text-slate-800 font-black truncate max-w-[250px] cursor-pointer hover:text-orange-500 bg-white" onclick="location.href='customer_history.html?name=${encodeURIComponent(name)}'">${name}</td>
                                 ${monthCells}
                                 <td class="p-4 bg-slate-50 font-black text-slate-700">
-                                    ${Math.floor(d.totalMins/60)}時間 ${d.totalMins%60}分
+                                    ${Math.floor(d.totalMins/60)}<span class="text-[10px] ml-0.5">h</span> ${d.totalMins%60}<span class="text-[10px] ml-0.5">m</span>
                                 </td>
                             </tr>`);
                     });
                 }
-            } catch (e) { console.error(e); loading.style.display = 'none'; }
+            } catch (e) { 
+                console.error(e); 
+                loading.style.display = 'none';
+                tbody.innerHTML = '<tr><td colspan="14" class="p-20 text-center text-rose-400 font-black italic">Sync Error: Database index may be required</td></tr>';
+            }
         };
 
         window.changeYear = (val) => { currentYear += val; window.init(); };
