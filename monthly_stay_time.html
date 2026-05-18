@@ -9,7 +9,7 @@
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
         .table-container { border-radius: 2rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
         thead tr { background-color: #3c4b5a; }
-        .month-col { min-width: 65px; text-align: center; border-left: 1px solid #f1f5f9; font-size: 10px; }
+        .month-col { min-width: 70px; text-align: center; border-left: 1px solid #f1f5f9; font-size: 10px; }
         .val-active { background: #fff7ed; color: var(--copros-orange); font-weight: 900; padding: 4px 0; border-radius: 4px; }
         
         @media (min-width: 1024px) {
@@ -49,7 +49,7 @@
                 </div>
 
                 <div class="table-container overflow-x-auto bg-white mb-24">
-                    <table class="w-full text-left border-collapse min-w-[1200px]">
+                    <table class="w-full text-left border-collapse min-w-[1300px]">
                         <thead>
                             <tr class="text-white text-[10px] font-black uppercase text-center tracking-widest">
                                 <th class="p-4 sticky-name text-left">お客様名</th>
@@ -59,7 +59,7 @@
                                 <th class="month-col bg-blue-900/20">1月</th><th class="month-col bg-blue-900/20">2月</th>
                                 <th class="month-col bg-blue-900/20">3月</th><th class="month-col bg-blue-900/20">4月</th>
                                 <th class="month-col bg-blue-900/20">5月</th><th class="month-col bg-blue-900/20">6月</th>
-                                <th class="p-4 bg-slate-900 text-white w-32">合計時間</th>
+                                <th class="p-4 bg-slate-900 text-white w-36">合計時間</th>
                             </tr>
                         </thead>
                         <tbody id="monthlyTableBody" class="text-[11px] lg:text-xs font-bold divide-y divide-slate-50 bg-white">
@@ -70,7 +70,7 @@
 
                 <div id="loading" class="fixed inset-0 bg-white/80 backdrop-blur-sm z-[100] flex flex-col items-center justify-center">
                     <div class="animate-spin mb-4 text-[#ff7e11] text-6xl"><i class="fa-solid fa-circle-notch"></i></div>
-                    <p class="text-slate-800 font-black tracking-tighter uppercase italic text-xs">Analyzing Monthly Times...</p>
+                    <p class="text-slate-800 font-black tracking-tighter uppercase italic text-xs">データを分析中...</p>
                 </div>
             </div>
         </div>
@@ -81,11 +81,10 @@
         import { db, TARGET_DEPTS } from "./common.js";
         import { collection, getDocs, query, where, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // 本日の日付から年度を算出（7月基準）
+        // 7月基準の年度算出
         const now = new Date();
         let currentYear = now.getMonth() + 1 >= 7 ? now.getFullYear() : now.getFullYear() - 1;
 
-        // 日付標準化関数（スラッシュ・ハイフン両対応）
         const standardizeDate = (s) => {
             if(!s) return "";
             const d = s.replace(/\//g, '-').split('-');
@@ -100,7 +99,7 @@
             const selectedDept = document.getElementById('deptFilter').value;
 
             try {
-                // 🌟 【省エネ】年度の範囲を指定して取得
+                // 🌟 【省エネ】ケコム関連 & 年度範囲で取得
                 let q;
                 const ref = collection(db, "activity_records");
                 if (selectedDept === 'ALL') {
@@ -121,7 +120,6 @@
                     if (parts.length < 3) return;
                     
                     const y = parseInt(parts[0]), m = parseInt(parts[1]);
-                    // 7月期首の年度内か判定
                     const isTarget = (y === currentYear && m >= 7) || (y === currentYear + 1 && m <= 6);
 
                     if (isTarget) {
@@ -146,7 +144,7 @@
                 loading.style.display = 'none';
 
                 if (sortedNames.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="14" class="p-24 text-center text-slate-300 font-black italic tracking-widest uppercase">No Activity Data Found for this Period</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="14" class="p-24 text-center text-slate-300 font-black italic tracking-widest uppercase">実績データが見つかりません</td></tr>';
                 } else {
                     sortedNames.forEach(name => {
                         const d = statsMap.get(name);
@@ -159,7 +157,7 @@
                                 <td class="p-4 sticky-name text-left text-slate-800 font-black truncate max-w-[250px] cursor-pointer hover:text-orange-500 bg-white" onclick="location.href='customer_history.html?name=${encodeURIComponent(name)}'">${name}</td>
                                 ${monthCells}
                                 <td class="p-4 bg-slate-50 font-black text-slate-700">
-                                    ${Math.floor(d.totalMins/60)}<span class="text-[10px] ml-0.5">h</span> ${d.totalMins%60}<span class="text-[10px] ml-0.5">m</span>
+                                    ${Math.floor(d.totalMins/60)}時間 ${d.totalMins%60}分
                                 </td>
                             </tr>`);
                     });
@@ -167,7 +165,7 @@
             } catch (e) { 
                 console.error(e); 
                 loading.style.display = 'none';
-                tbody.innerHTML = '<tr><td colspan="14" class="p-20 text-center text-rose-400 font-black italic">Sync Error: Database index may be required</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="14" class="p-20 text-center text-rose-400 font-bold italic">データ取得エラー</td></tr>';
             }
         };
 
