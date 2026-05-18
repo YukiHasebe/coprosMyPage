@@ -9,17 +9,18 @@
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
         .table-container { border-radius: 2rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
         thead tr { background-color: #3c4b5a; }
-        .month-col { min-width: 55px; text-align: center; border-left: 1px solid #f1f5f9; }
+        .month-col { min-width: 55px; text-align: center; border-left: 1px solid #f1f5f9; font-size: 10px; }
         .val-zero { color: #e2e8f0; font-weight: 400; }
-        .val-active { color: var(--copros-orange); background: #fff7ed; border-radius: 4px; padding: 4px 0; font-weight: 800; }
-        .year-btn { padding: 0.5rem 1rem; border-radius: 0.75rem; font-weight: 900; font-size: 0.75rem; transition: all 0.2s; border: 1px solid #e2e8f0; background: white; color: #64748b; }
-        .year-btn:hover { background: #f8fafc; color: var(--copros-orange); }
+        .val-active { color: var(--copros-orange); background: #fff7ed; border-radius: 4px; padding: 4px 0; font-weight: 900; }
+        
+        /* スティッキー列（固定） */
         @media (min-width: 1024px) {
             .sticky-rank { position: sticky; left: 0; background: white; z-index: 10; border-right: 1px solid #f1f5f9; min-width: 50px; }
-            .sticky-name { position: sticky; left: 50px; background: white; z-index: 10; border-right: 2px solid #f1f5f9; min-width: 200px; }
+            .sticky-name { position: sticky; left: 50px; background: white; z-index: 10; border-right: 2px solid #f1f5f9; min-width: 220px; }
             thead .sticky-rank, thead .sticky-name { background: #3c4b5a; z-index: 20; color: white; }
         }
-        .scope-select { background: #e2e8f0; border: none; padding: 0.4rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; appearance: none; cursor: pointer; }
+        
+        .scope-select { background: #e2e8f0; border: none; padding: 0.5rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; cursor: pointer; }
         .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
@@ -34,13 +35,14 @@
                 <div class="flex flex-col lg:flex-row items-center lg:items-end mb-10 relative">
                     <div class="flex items-end gap-6 w-full lg:w-auto">
                         <div>
-                            <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-2">月別実績一覧</h1>
-                            <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Monthly Performance Matrix</nav>
+                            <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-1">月別実績一覧</h1>
+                            <!-- 🌟 英語サブタイトルを追加 -->
+                            <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Monthly Customer Activity Matrix</nav>
                         </div>
-                        <!-- 🌟 onchangeで自部門抽出をキック -->
-                        <select id="deptFilter" onchange="window.init()" class="scope-select shadow-inner mb-2">
-                            <option value="ALL">全社表示</option>
-                            <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option><option>土木部</option><option>建築部</option><option>建機部</option><option>総務部</option><option>購買課</option><option>宮崎産商</option><option>企画部</option>
+                        <!-- 🌟 部署フィルターをケコム限定に -->
+                        <select id="deptFilter" onchange="window.init()" class="scope-select shadow-inner mb-1">
+                            <option value="ALL">全ケコム関連 表示</option>
+                            <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option>
                         </select>
                     </div>
 
@@ -54,29 +56,50 @@
                 </div>
 
                 <div class="table-container overflow-x-auto mb-20">
-                    <table class="w-full text-left border-collapse min-w-[1200px]">
+                    <table class="w-full text-left border-collapse min-w-[1300px]">
                         <thead>
                             <tr class="text-white text-[10px] font-black uppercase tracking-widest text-center">
-                                <th class="p-4 sticky-rank">Rank</th><th class="p-4 sticky-name text-left">お客様名</th><th class="p-4 w-24">属性</th>
-                                <th class="month-col">7月</th><th class="month-col">8月</th><th class="month-col">9月</th><th class="month-col">10月</th><th class="month-col">11月</th><th class="month-col">12月</th>
-                                <th class="month-col">1月</th><th class="month-col">2月</th><th class="month-col">3月</th><th class="month-col">4月</th><th class="month-col">5月</th><th class="month-col">6月</th>
+                                <th class="p-4 sticky-rank">Rank</th>
+                                <th class="p-4 sticky-name text-left">お客様名</th>
+                                <th class="p-4 w-24">属性</th>
+                                <th class="month-col bg-slate-700/30">7月</th><th class="month-col bg-slate-700/30">8月</th>
+                                <th class="month-col bg-slate-700/30">9月</th><th class="month-col bg-slate-700/30">10月</th>
+                                <th class="month-col bg-slate-700/30">11月</th><th class="month-col bg-slate-700/30">12月</th>
+                                <th class="month-col bg-blue-900/20">1月</th><th class="month-col bg-blue-900/20">2月</th>
+                                <th class="month-col bg-blue-900/20">3月</th><th class="month-col bg-blue-900/20">4月</th>
+                                <th class="month-col bg-blue-900/20">5月</th><th class="month-col bg-blue-900/20">6月</th>
                                 <th class="p-4 bg-slate-900 w-20">合計</th>
                             </tr>
                         </thead>
-                        <tbody id="monthlyTableBody" class="text-[11px] lg:text-xs font-bold divide-y divide-slate-50 bg-white"></tbody>
+                        <tbody id="monthlyTableBody" class="text-[11px] lg:text-xs font-bold divide-y divide-slate-50 bg-white">
+                            <!-- JSで挿入 -->
+                        </tbody>
                     </table>
                 </div>
-                <div id="loading" class="py-20 text-center"><div class="animate-spin text-blue-500 text-4xl mb-4"><i class="fa-solid fa-circle-notch"></i></div><p class="text-slate-400 font-bold">データを同期中...</p></div>
+                <div id="loading" class="py-20 text-center">
+                    <div class="animate-spin text-orange-500 text-5xl mb-4"><i class="fa-solid fa-circle-notch"></i></div>
+                    <p class="text-slate-400 font-black uppercase tracking-tighter italic">Data Synchronizing...</p>
+                </div>
             </div>
         </div>
     </main>
 
     <script type="module" src="common.js"></script>
     <script type="module">
-        import { db } from "./common.js";
-        import { collection, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { db, TARGET_DEPTS } from "./common.js";
+        import { collection, getDocs, query, where, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        let currentYear = 2025; 
+        // 本日の日付から年度を算出（7月基準）
+        const now = new Date();
+        let currentYear = now.getMonth() + 1 >= 7 ? now.getFullYear() : now.getFullYear() - 1;
+
+        // 日付標準化関数
+        const standardizeDate = (s) => {
+            if(!s) return "";
+            const d = s.replace(/\//g, '-').split('-');
+            if(d.length < 3) return s;
+            return `${d[0]}-${d[1].padStart(2, '0')}-${d[2].padStart(2, '0')}`;
+        };
 
         window.init = async () => {
             const loading = document.getElementById('loading');
@@ -88,18 +111,18 @@
             const selectedDept = document.getElementById('deptFilter').value;
 
             try {
-                // 🌟 最強の省エネ：部署指定があればFirebase側でガッチリ絞り込む
+                // 🌟 【鉄壁の省エネ】年度の範囲を指定して取得
                 let q;
+                const ref = collection(db, "activity_records");
+                const startDate = `${currentYear}-07-01`;
+                const endDate = `${currentYear + 1}-06-30`;
+
                 if (selectedDept === 'ALL') {
-                    q = query(collection(db, "activity_records"), 
-                              where("visitDate", ">=", `${currentYear}`), 
-                              where("visitDate", "<=", `${currentYear + 1}\uf8ff`), 
-                              limit(2000));
+                    // 全ケコム関連を取得
+                    q = query(ref, where("visitorDept", "in", TARGET_DEPTS), where("visitDate", ">=", `${currentYear}`), limit(3000));
                 } else {
-                    q = query(collection(db, "activity_records"), 
-                              where("visitorDept", "==", selectedDept),
-                              where("visitDate", ">=", `${currentYear}`), 
-                              where("visitDate", "<=", `${currentYear + 1}\uf8ff`));
+                    // 特定の部署のみ取得
+                    q = query(ref, where("visitorDept", "==", selectedDept), where("visitDate", ">=", `${currentYear}`), limit(2000));
                 }
 
                 const snap = await getDocs(q);
@@ -109,12 +132,15 @@
                 let activeMap = new Map();
 
                 records.forEach(r => {
-                    const dateStr = String(r.visitDate || '').replace(/\//g, '-');
-                    const d = dateStr.split('-');
-                    const y = parseInt(d[0]), m = parseInt(d[1]);
-                    const isTargetYear = (y === currentYear && m >= 7) || (y === currentYear + 1 && m <= 6);
+                    const sDate = standardizeDate(r.visitDate);
+                    const parts = sDate.split('-');
+                    if (parts.length < 3) return;
+                    
+                    const y = parseInt(parts[0]), m = parseInt(parts[1]);
+                    // 7月期首の年度内か判定
+                    const isTarget = (y === currentYear && m >= 7) || (y === currentYear + 1 && m <= 6);
 
-                    if (isTargetYear) {
+                    if (isTarget) {
                         if (!activeMap.has(r.customerName)) {
                             activeMap.set(r.customerName, { rank: r.customerRank, type: r.customerType, counts: Array(12).fill(0), total: 0 });
                         }
@@ -125,8 +151,9 @@
                 });
 
                 const sortedNames = Array.from(activeMap.keys()).sort((a,b) => a.localeCompare(b, 'ja'));
+                
                 if (sortedNames.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="16" class="p-20 text-center text-slate-400">今年度の実績はありません。</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="16" class="p-24 text-center text-slate-300 font-black italic tracking-widest uppercase">No Records Available for this Year</td></tr>';
                 } else {
                     sortedNames.forEach(name => {
                         const d = activeMap.get(name);
@@ -135,12 +162,12 @@
                             monthCells += `<td class="month-col">${c > 0 ? `<div class="val-active">${c}</div>` : '<div class="val-zero">0</div>'}</td>`;
                         });
                         tbody.insertAdjacentHTML('beforeend', `
-                            <tr class="hover:bg-slate-50 transition-colors border-b border-slate-50 text-center">
+                            <tr class="hover:bg-blue-50/30 transition-colors border-b border-slate-50 text-center">
                                 <td class="p-4 sticky-rank text-[10px] text-slate-400 font-black bg-white">${d.rank || '-'}</td>
-                                <td class="p-4 sticky-name text-left text-slate-800 font-black truncate max-w-[200px] cursor-pointer hover:text-blue-600 bg-white" onclick="location.href='customer_history.html?name=${encodeURIComponent(name)}'">${name}</td>
-                                <td class="p-4 text-slate-400 text-[10px]">${d.type || '-'}</td>
+                                <td class="p-4 sticky-name text-left text-slate-800 font-black truncate max-w-[200px] cursor-pointer hover:text-orange-500 bg-white" onclick="location.href='customer_history.html?name=${encodeURIComponent(name)}'">${name}</td>
+                                <td class="p-4 text-slate-400 text-[10px] uppercase font-bold">${d.type || '-'}</td>
                                 ${monthCells}
-                                <td class="p-4 bg-slate-50 font-black text-slate-700">${d.total}</td>
+                                <td class="p-4 bg-slate-50 font-black text-[#004098]">${d.total}</td>
                             </tr>
                         `);
                     });
@@ -149,13 +176,12 @@
             } catch (e) { 
                 console.error(e); 
                 loading.style.display = 'none';
-                tbody.innerHTML = '<tr><td colspan="16" class="p-20 text-center text-rose-400">データ取得に失敗しました。</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="16" class="p-20 text-center text-rose-400 font-bold italic uppercase">Sync Error: Please check index settings</td></tr>';
             }
         };
 
         window.changeYear = (val) => { currentYear += val; window.init(); };
         
-        // 🌟 起動時：common.jsの部署選択を待ってから実行
         window.addEventListener('load', () => { setTimeout(() => window.init(), 300); });
     </script>
 </body>
