@@ -35,10 +35,10 @@
                 <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-10 gap-4">
                     <div>
                         <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-1">アポイント登録</h1>
-                        <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Forward Planning & Schedule Setup</nav>
+                        <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Kekom Sales - Forward Planning</nav>
                     </div>
                     <div class="flex gap-2 w-full lg:w-auto">
-                        <button type="button" onclick="location.href='calendar.html'" class="flex-1 lg:flex-none px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-xs hover:bg-slate-50 transition-all">戻る</button>
+                        <button type="button" onclick="location.href='calendar.html'" class="flex-1 lg:flex-none px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-xs hover:bg-slate-50 transition-all shadow-sm">戻る</button>
                         <button type="button" id="submitBtnTop" class="flex-1 lg:flex-none px-10 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-sm hover:shadow-lg transition-all flex items-center justify-center gap-2 active:scale-95 shadow-md">
                             <i class="fa-solid fa-paper-plane"></i> 登録を実行
                         </button>
@@ -74,23 +74,23 @@
                                         <button type="button" onclick="window.openStaffModal('visitor')" class="px-5 bg-white border border-slate-200 rounded-xl text-xs font-black shadow-sm shrink-0 hover:bg-slate-50 transition-all">選択</button>
                                     </div>
                                 </div>
-                                <div><label class="label-text">訪問内容（簡潔に）</label><input type="text" id="appointSubject" placeholder="例：新製品のPR、見積提出" class="form-input"></div>
+                                <div><label class="label-text">内容（仮）</label><input type="text" id="appointSubject" placeholder="例：定期訪問、見積提出など" class="form-input"></div>
                             </div>
                         </div>
                     </div>
 
                     <div class="section-card">
-                        <p class="section-title">回覧・通知設定</p>
+                        <p class="section-title">通知設定（回覧）</p>
                         <div class="space-y-6">
-                            <button type="button" onclick="window.openStaffModal('circular')" class="px-8 py-2.5 bg-slate-800 text-white rounded-xl text-xs font-black shadow-md hover:bg-black transition-all">通知する回覧者を選択</button>
+                            <button type="button" onclick="window.openStaffModal('circular')" class="px-8 py-2.5 bg-slate-800 text-white rounded-xl text-xs font-black shadow-md hover:bg-black transition-all">回覧者を選択</button>
                             <div id="circularDisplay" class="p-6 bg-slate-50 border border-slate-200 rounded-2xl min-h-[80px] text-sm font-bold text-slate-500 leading-relaxed">未選択</div>
                         </div>
                     </div>
                     
                     <div class="flex justify-center gap-4 py-12 border-t border-slate-100 mt-10">
-                        <button type="button" onclick="window.saveDraft()" class="px-10 py-3 bg-white border border-slate-200 text-slate-400 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-50 transition-all">下書き保存</button>
+                        <button type="button" onclick="window.saveDraft()" class="px-10 py-3 bg-white border border-slate-200 text-slate-400 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-50 transition-all">下書きを保存</button>
                         <button type="button" id="submitBtnBottom" onclick="document.getElementById('submitBtnTop').click()" class="px-20 py-4 bg-[#004098] text-white rounded-xl font-black text-sm hover:shadow-xl flex items-center gap-3 active:scale-95 transition-all">
-                            <i class="fa-solid fa-paper-plane"></i> 登録を確定する
+                            <i class="fa-solid fa-paper-plane"></i> 登録を確定
                         </button>
                     </div>
                 </form>
@@ -105,7 +105,8 @@
                 <div class="grid grid-cols-2 gap-2">
                     <input type="text" id="staffKeyword" oninput="window.renderStaffList()" placeholder="氏名検索..." class="p-3 rounded-lg border border-slate-200 text-xs font-bold outline-none focus:border-blue-400 shadow-sm">
                     <select id="staffDeptFilter" onchange="window.renderStaffList()" class="p-3 rounded-lg border border-slate-200 text-xs font-bold outline-none focus:border-blue-400 shadow-sm">
-                        <option value="ALL">全ての部署</option>
+                        <option value="ALL">全ケコム関連</option>
+                        <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option>
                     </select>
                 </div>
             </div>
@@ -119,8 +120,8 @@
 
     <script type="module" src="common.js"></script>
     <script type="module">
-        import { db } from "./common.js";
-        import { collection, getDocs, addDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { db, TARGET_DEPTS } from "./common.js";
+        import { collection, getDocs, addDoc, serverTimestamp, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let allStaffs = [], modalSelected = [], currentTarget = '';
 
@@ -128,16 +129,13 @@
             document.getElementById('visitorName').value = sessionStorage.getItem('userName') || "";
             document.getElementById('appointDate').valueAsDate = new Date();
             try {
-                // 🌟 現在は全社員を取得するように安定化
-                const snap = await getDocs(query(collection(db, "staffs"), orderBy("name")));
+                // 🌟 【省エネ ＆ ケコム限定】最初から4部署の社員だけを狙い撃ちで取得
+                const q = query(collection(db, "staffs"), where("dept", "in", TARGET_DEPTS), orderBy("name"));
+                const snap = await getDocs(q);
                 allStaffs = snap.docs.map(d => d.data());
                 
-                const depts = [...new Set(allStaffs.map(s => s.dept).filter(Boolean))].sort();
-                const deptSelect = document.getElementById('staffDeptFilter');
-                depts.forEach(d => deptSelect.insertAdjacentHTML('beforeend', `<option value="${d}">${d}</option>`));
-                
                 setupCustomerSearch();
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error("Init Error:", e); }
         }
 
         function setupCustomerSearch() {
@@ -155,12 +153,11 @@
                 }, 400);
             };
             box.onclick = (e) => { if (e.target.classList.contains('suggestion-item')) { input.value = e.target.innerText; box.style.display = 'none'; } };
-            document.addEventListener('click', (e) => { if (!input.contains(e.target) && !box.contains(e.target)) box.style.display = 'none'; });
         }
 
         window.openStaffModal = (target) => {
             currentTarget = target;
-            document.getElementById('modalTitle').innerText = target === 'visitor' ? '訪問予定者を選択' : '通知先（回覧者）を選択';
+            document.getElementById('modalTitle').innerText = target === 'visitor' ? '訪問予定者を選択' : '通知先を選択';
             document.getElementById('staffModal').style.display = 'flex';
             const cur = (target === 'visitor') ? document.getElementById('visitorName').value : document.getElementById('circularDisplay').innerText;
             modalSelected = (cur && cur !== '未選択') ? cur.split(', ') : [];
@@ -173,10 +170,13 @@
             const kw = document.getElementById('staffKeyword').value.toLowerCase();
             const dp = document.getElementById('staffDeptFilter').value;
             const container = document.getElementById('staffList');
+            
+            // 🌟 4部署限定フィルタ
             const filtered = allStaffs.filter(s => (!kw || s.name.includes(kw)) && (dp === 'ALL' || s.dept === dp));
+            
             container.innerHTML = filtered.map(s => `
                 <div class="staff-item ${modalSelected.includes(s.name) ? 'selected' : ''}" onclick="window.toggleStaffSelection('${s.name}')">
-                    <span>${s.name}</span><span class="text-[9px] opacity-40 font-black tracking-widest">${s.dept || ''}</span>
+                    <span>${s.name}</span><span class="text-[9px] opacity-40 uppercase font-black tracking-widest">${s.dept || ''}</span>
                 </div>`).join('');
         };
 
@@ -199,11 +199,11 @@
             const form = document.getElementById('appointForm');
             if (!form.checkValidity()) { form.reportValidity(); return; }
             const btn = document.getElementById('submitBtnTop');
-            btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>送信中...';
+            btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>保存中...';
             
             const vName = document.getElementById('visitorName').value;
             const staff = allStaffs.find(s => s.name === vName);
-            const vDept = staff ? staff.dept : (sessionStorage.getItem('userDept') || "不明");
+            const vDept = staff ? staff.dept : "不明";
 
             try {
                 await addDoc(collection(db, "appointments"), {
@@ -222,7 +222,7 @@
                 for (const name of cNames) {
                     await addDoc(collection(db, "notifications"), {
                         recipient: name, visitorName: vName, customerName: document.getElementById('customerSearch').value,
-                        isRead: false, content: "【アポ】" + (document.getElementById('appointSubject').value || "訪問予定"),
+                        isRead: false, content: "【アポ】" + (document.getElementById('appointSubject').value || "予定"),
                         appointDate: document.getElementById('appointDate').value,
                         createdAt: serverTimestamp(), type: "アポ回覧"
                     });
@@ -240,7 +240,8 @@
             const draft = {
                 cust: document.getElementById('customerSearch').value,
                 date: document.getElementById('appointDate').value,
-                sub: document.getElementById('appointSubject').value
+                sub: document.getElementById('appointSubject').value,
+                visitor: document.getElementById('visitorName').value
             };
             localStorage.setItem('cp_draft_appoint', JSON.stringify(draft));
             alert("下書きを保存しました。");
