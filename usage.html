@@ -34,7 +34,7 @@
                     <button onclick="location.href='calendar.html'" class="px-6 py-2 bg-white border rounded-xl font-bold text-xs shadow-sm">カレンダーへ戻る</button>
                 </div>
 
-                <!-- 社員選択：元のデザインを死守 -->
+                <!-- 社員選択 -->
                 <div class="staff-selector-card p-6 mb-8">
                     <div class="flex flex-col lg:flex-row gap-4 mb-6">
                         <select id="deptFilter" onchange="window.renderStaffList()" class="scope-select min-w-[240px]">
@@ -44,7 +44,6 @@
                         </select>
                         <input type="text" id="staffSearch" oninput="window.renderStaffList()" placeholder="氏名で検索..." class="flex-1 px-4 py-3 bg-slate-50 border rounded-xl outline-none font-bold">
                     </div>
-                    <!-- 🌟 ここに社員のボタンが並びます -->
                     <div id="staffList" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 max-h-[160px] overflow-y-auto custom-scrollbar p-1"></div>
                 </div>
 
@@ -66,133 +65,130 @@
 
     <script type="module" src="common.js"></script>
     <script type="module">
-    import { db, TARGET_DEPTS } from "./common.js";
-    import { collection, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { db } from "./common.js";
+        import { collection, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    let allStaffs = [], currentStaffRecords = [], selectedName = "", currentY = 2026, currentM = new Date().getMonth() + 1;
-    const clean = (s) => (s||"").replace(/\s+/g, '');
-
-    // 🌟 日付を柔軟に判定する魔法の関数
-    const getMonthFromDate = (dateStr) => {
-        if(!dateStr) return null;
-        const parts = String(dateStr).replace(/\//g, '-').split('-');
-        return { year: parseInt(parts[0]), month: parseInt(parts[1]) };
-    };
-
-    async function init() {
-        try {
-            const snap = await getDocs(query(collection(db, "staffs"), orderBy("name")));
-            allStaffs = snap.docs.map(d => d.data());
-            window.renderStaffList();
-            
-            const jName = sessionStorage.getItem('cp_usage_jump_name'), jMonth = sessionStorage.getItem('cp_usage_jump_month');
-            if (jName) {
-                sessionStorage.removeItem('cp_usage_jump_name'); sessionStorage.removeItem('cp_usage_jump_month');
-                currentM = parseInt(jMonth);
-                window.selectStaff(jName);
-            }
-        } catch (e) { console.error(e); }
-    }
-
-    window.renderStaffList = () => {
-        const kw = document.getElementById('staffSearch').value.toLowerCase();
-        const dept = document.getElementById('deptFilter').value;
-        const container = document.getElementById('staffList');
-        container.innerHTML = "";
+        let allStaffs = [], currentStaffRecords = [], selectedName = "", currentY = 2026, currentM = new Date().getMonth() + 1;
         
-        allStaffs.filter(s => (!kw || s.name.includes(kw)) && (dept === 'ALL' || s.dept === dept)).forEach(s => {
-            const div = document.createElement('div');
-            div.className = `staff-item ${clean(selectedName) === clean(s.name) ? 'active' : ''}`;
-            div.innerHTML = `<p class="font-black text-xs">${s.name}</p><p class="text-[8px] opacity-60 uppercase">${s.dept || ''}</p>`;
-            div.onclick = () => window.selectStaff(s.name);
-            container.appendChild(div);
-        });
-    };
+        // 🌟 重要：スペースを消した名前と、消さない名前の両方で比較できるようにする
+        const clean = (s) => (s||"").replace(/\s+/g, '');
 
-    window.selectStaff = async (name) => {
-        selectedName = name; 
-        window.renderStaffList();
-        document.getElementById('guideMsg').style.display = 'none';
-        document.getElementById('toolArea').style.display = 'block';
-        
-        try {
-            // 🌟 修正：2026年のデータを広めに取得して、JS側で仕分け（これで0件を回避）
-            const q = query(collection(db, "activity_records"), where("visitorName", "==", name), where("visitDate", ">=", `${currentY}`), where("visitDate", "<=", `${currentY}\uf8ff`));
-            const snap = await getDocs(q); 
-            
-            currentStaffRecords = snap.docs.map(d => d.data());
-            document.getElementById('selectedStaffLabel').innerText = `${name} さんの履歴`;
-            window.setMonth(currentM); 
-        } catch (e) { console.error(e); }
-    };
+        const getMonthFromDate = (dateStr) => {
+            if(!dateStr) return null;
+            const parts = String(dateStr).replace(/\//g, '-').split('-');
+            return { year: parseInt(parts[0]), month: parseInt(parts[1]) };
+        };
 
-    window.setMonth = (m) => {
-        currentM = m;
-        document.querySelectorAll('.month-btn').forEach(btn => btn.classList.toggle('active', btn.id === `m-btn-${m}`));
-        window.renderAccordion();
-    };
-
-    window.renderAccordion = () => {
-        const container = document.getElementById('activityAccordion');
-        
-        // 🌟 ここで日付形式を吸収しながら月を判定
-        const filtered = currentStaffRecords.filter(r => {
-            const d = getMonthFromDate(r.visitDate);
-            return d.year === currentY && d.month === currentM;
-        }).sort((a,b) => String(b.visitDate).localeCompare(String(a.visitDate)));
-
-        let totalMins = 0;
-        filtered.forEach(r => {
-            if(r.startTime && r.endTime){
-                const s = r.startTime.split(':'), e = r.endTime.split(':');
-                totalMins += (parseInt(e[0])*60+parseInt(e[1])) - (parseInt(s[0])*60+parseInt(s[1]));
-            }
-        });
-
-        document.getElementById('sumVisits').innerText = filtered.length;
-        document.getElementById('sumTime').innerText = Math.floor(totalMins/60);
-        document.getElementById('sumAvg').innerText = filtered.length ? Math.round(totalMins / filtered.length) : 0;
-
-        const jumpTarget = sessionStorage.getItem('cp_usage_jump_customer');
-        container.innerHTML = filtered.length ? filtered.map((r, i) => `
-            <div class="accordion-item" id="acc-${i}">
-                <div class="accordion-header" onclick="window.toggleAcc('acc-${i}')">
-                    <div class="flex items-center gap-4">
-                        <span class="text-xs font-black opacity-60">${String(r.visitDate).replace(/-/g,'/')}</span>
-                        <span class="text-base font-black">${r.customerName}</span>
-                    </div>
-                    <i class="fa-solid fa-chevron-down opacity-30 text-xs transition-transform"></i>
-                </div>
-                <div class="accordion-content">
-                    <div class="info-grid">
-                        <div><p class="info-label">お客様担当者</p><p class="info-value">${r.customerStaff || '-'}</p></div>
-                        <div><p class="info-label">訪問時間</p><p class="info-value">${r.startTime}〜${r.endTime}</p></div>
-                        <div><p class="info-label">同行者</p><p class="info-value text-blue-600">${r.companion || 'なし'}</p></div>
-                        <div><p class="info-label">定性データ</p><p class="info-value text-[10px] opacity-60">${r.qualData1||'-'} / ${r.qualData2||'-'} / ${r.qualData3||'-'}</p></div>
-                    </div>
-                    <p class="info-label mb-2">報告内容</p><div class="report-box">${r.content || r.customerReport || 'なし'}</div>
-                    <p class="info-label mb-2">スタッフの考え</p><div class="report-box border-l-4 border-orange-100">${r.staffThoughts || '未入力'}</div>
-                </div>
-            </div>`).join('') : '<p class="text-center py-20 text-slate-300 font-bold tracking-widest uppercase italic">NO RECORDS FOUND</p>';
-        
-        if(jumpTarget) {
-            setTimeout(() => {
-                const idx = filtered.findIndex(r => r.customerName === jumpTarget);
-                if(idx !== -1) window.toggleAcc(`acc-${idx}`);
-                sessionStorage.removeItem('cp_usage_jump_customer');
-            }, 400);
+        async function init() {
+            try {
+                const snap = await getDocs(query(collection(db, "staffs"), orderBy("name")));
+                allStaffs = snap.docs.map(d => d.data());
+                window.renderStaffList();
+                
+                const jName = sessionStorage.getItem('cp_usage_jump_name'), jMonth = sessionStorage.getItem('cp_usage_jump_month');
+                if (jName) {
+                    sessionStorage.removeItem('cp_usage_jump_name'); sessionStorage.removeItem('cp_usage_jump_month');
+                    currentM = parseInt(jMonth);
+                    window.selectStaff(jName);
+                }
+            } catch (e) { console.error(e); }
         }
-    };
 
-    window.toggleAcc = (id) => {
-        const item = document.getElementById(id); if(!item) return;
-        const content = item.querySelector('.accordion-content');
-        const open = content.style.display === 'block';
-        content.style.display = open ? 'none' : 'block';
-        item.querySelector('i').style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
-    };
+        window.renderStaffList = () => {
+            const kw = document.getElementById('staffSearch').value.toLowerCase();
+            const dept = document.getElementById('deptFilter').value;
+            const container = document.getElementById('staffList');
+            container.innerHTML = "";
+            allStaffs.filter(s => (!kw || s.name.includes(kw)) && (dept === 'ALL' || s.dept === dept)).forEach(s => {
+                const div = document.createElement('div');
+                div.className = `staff-item ${selectedName === s.name ? 'active' : ''}`;
+                div.innerHTML = `<p class="font-black text-xs">${s.name}</p><p class="text-[8px] opacity-60 uppercase">${s.dept || ''}</p>`;
+                div.onclick = () => window.selectStaff(s.name);
+                container.appendChild(div);
+            });
+        };
 
-    init();
-</script>
+        window.selectStaff = async (name) => {
+            selectedName = name; 
+            window.renderStaffList();
+            document.getElementById('guideMsg').style.display = 'none';
+            document.getElementById('toolArea').style.display = 'block';
+            
+            try {
+                // 🌟 最強の検索：スペースあり・なし両方を考慮して全取得
+                const q = query(collection(db, "activity_records"), where("visitDate", ">=", `${currentY}`), where("visitDate", "<=", `${currentY}\uf8ff`));
+                const snap = await getDocs(q); 
+                
+                // 取得した全データの中から、JS側で「名前（スペース無視）」でフィルタリング
+                const targetCleanName = clean(name);
+                currentStaffRecords = snap.docs
+                    .map(d => d.data())
+                    .filter(r => clean(r.visitorName) === targetCleanName);
+
+                document.getElementById('selectedStaffLabel').innerText = `${name} さんの履歴`;
+                window.setMonth(currentM); 
+            } catch (e) { console.error(e); }
+        };
+
+        window.setMonth = (m) => {
+            currentM = m;
+            document.querySelectorAll('.month-btn').forEach(btn => btn.classList.toggle('active', btn.id === `m-btn-${m}`));
+            window.renderAccordion();
+        };
+
+        window.renderAccordion = () => {
+            const container = document.getElementById('activityAccordion');
+            const filtered = currentStaffRecords.filter(r => {
+                const d = getMonthFromDate(r.visitDate);
+                return d.year === currentY && d.month === currentM;
+            }).sort((a,b) => String(b.visitDate).localeCompare(String(a.visitDate)));
+
+            let totalMins = 0;
+            filtered.forEach(r => {
+                if(r.startTime && r.endTime){
+                    const s = r.startTime.split(':'), e = r.endTime.split(':');
+                    totalMins += (parseInt(e[0])*60+parseInt(e[1])) - (parseInt(s[0])*60+parseInt(s[1]));
+                }
+            });
+            document.getElementById('sumVisits').innerText = filtered.length;
+            document.getElementById('sumTime').innerText = Math.floor(totalMins/60);
+            document.getElementById('sumAvg').innerText = filtered.length ? Math.round(totalMins / filtered.length) : 0;
+
+            const jumpTarget = sessionStorage.getItem('cp_usage_jump_customer');
+            container.innerHTML = filtered.length ? filtered.map((r, i) => `
+                <div class="accordion-item" id="acc-${i}">
+                    <div class="accordion-header" onclick="window.toggleAcc('acc-${i}')">
+                        <div class="flex items-center gap-4"><span class="text-xs font-black opacity-60">${String(r.visitDate).replace(/-/g,'/')}</span><span class="text-base font-black">${r.customerName}</span></div>
+                        <i class="fa-solid fa-chevron-down opacity-30 text-xs transition-transform"></i>
+                    </div>
+                    <div class="accordion-content">
+                        <div class="info-grid">
+                            <div><p class="info-label">お客様担当者</p><p class="info-value">${r.customerStaff || '-'}</p></div>
+                            <div><p class="info-label">訪問時間</p><p class="info-value">${r.startTime}〜${r.endTime}</p></div>
+                        </div>
+                        <p class="info-label mb-2">報告内容</p><div class="report-box">${r.content || r.customerReport || 'なし'}</div>
+                        <p class="info-label mb-2">スタッフの考え</p><div class="report-box border-l-4 border-orange-100">${r.staffThoughts || '未入力'}</div>
+                    </div>
+                </div>`).join('') : '<p class="text-center py-20 text-slate-300 font-bold tracking-widest uppercase">実績はありません</p>';
+            
+            if(jumpTarget) {
+                setTimeout(() => {
+                    const idx = filtered.findIndex(r => clean(r.customerName) === clean(jumpTarget));
+                    if(idx !== -1) window.toggleAcc(`acc-${idx}`);
+                    sessionStorage.removeItem('cp_usage_jump_customer');
+                }, 400);
+            }
+        };
+
+        window.toggleAcc = (id) => {
+            const item = document.getElementById(id); if(!item) return;
+            const content = item.querySelector('.accordion-content');
+            const open = content.style.display === 'block';
+            content.style.display = open ? 'none' : 'block';
+            item.querySelector('i').style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
+        };
+
+        init();
+    </script>
 </body>
 </html>
