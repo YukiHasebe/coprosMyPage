@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; }
+        :root { --copros-blue: #87ceeb; --sidebar-bg: #1a1a1a; --copros-orange: #ff7e11; --copros-navy: #004098; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
         .form-input {
             width: 100%; padding: 0.8rem 1rem; background-color: #f8fafc;
@@ -36,17 +36,17 @@
         <div class="flex-1 overflow-y-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-4xl mx-auto">
                 
-                <!-- ヘッドエリア -->
+                <!-- ヘッドエリア：他画面とデザイン統合 -->
                 <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-4">
                     <div>
-                        <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-2">お客様情報登録</h1>
-                        <nav class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Create New Customer Identity</nav>
+                        <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-1">お客様情報登録</h1>
+                        <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Create New Customer Identity</nav>
                     </div>
                     <div class="flex gap-2 w-full lg:w-auto">
                         <button onclick="location.href='list.html'" class="flex-1 lg:flex-none px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-xs hover:bg-slate-50 transition-all">
                             <i class="fa-solid fa-arrow-left mr-2"></i>戻る
                         </button>
-                        <button id="saveBtnTop" class="flex-1 lg:flex-none px-10 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-sm hover:shadow-lg transition-all shadow-md active:scale-95">
+                        <button id="saveBtnTop" class="flex-1 lg:flex-none px-10 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-sm hover:shadow-lg transition-all active:scale-95">
                             <i class="fa-solid fa-cloud-arrow-up mr-2"></i>登録を実行
                         </button>
                     </div>
@@ -76,11 +76,11 @@
                                 <div>
                                     <label class="label-text">お客様名カナ <span class="text-rose-500">*</span></label>
                                     <input type="text" id="kana" placeholder="例：コプロス" class="form-input" required>
-                                    <p class="text-[10px] text-slate-400 mt-2 font-bold leading-relaxed">※50音検索用。株式会社等は除いて入力してください。</p>
+                                    <p class="text-[10px] text-orange-500 mt-2 font-black leading-relaxed">※50音検索用。カタカナで「株式会社」等は除いて入力。</p>
                                 </div>
                                 <div>
                                     <label class="label-text">顧客ランク</label>
-                                    <select id="rank" class="form-input">
+                                    <select id="rank" class="form-input font-bold">
                                         <option value="">選択無し</option>
                                         <option>Aa</option><option>Ab</option><option>Ac</option><option>Ad</option>
                                         <option>Ba</option><option>Bb</option><option>Bc</option><option>Bd</option>
@@ -90,10 +90,12 @@
                                 </div>
                                 <div>
                                     <label class="label-text">属性・区分</label>
-                                    <select id="type" class="form-input">
+                                    <select id="type" class="form-input font-bold">
                                         <option value="">カテゴリ未設定</option>
-                                        <option>宮崎産商</option><option>ケコム</option><option>技術開発部</option>
-                                        <option>建築部</option><option>コンサル</option><option>官庁</option><option>取引先</option>
+                                        <option>ケコム</option>
+                                        <option>コンサル</option>
+                                        <option>官庁</option>
+                                        <option>取引先</option>
                                     </select>
                                 </div>
                             </div>
@@ -105,7 +107,7 @@
                             <div class="w-full">
                                 <label class="label-text">住所 <span class="text-rose-500">*</span></label>
                                 <input type="text" id="address" placeholder="例：山口県下関市長府安養寺1-15-13" class="form-input" required>
-                                <p class="text-[10px] text-slate-400 mt-2 font-bold">※ビル名や部屋番号まで続けて入力してください。</p>
+                                <p class="text-[10px] text-slate-400 mt-2 font-bold">※ビル名や部屋番号まで正確に入力してください。</p>
                             </div>
                         </div>
 
@@ -118,7 +120,7 @@
                             </div>
                         </div>
 
-                        <!-- 🌟 画面下部のボタン（実績登録画面とサイズを統一） -->
+                        <!-- ボタン -->
                         <div class="pt-12 border-t border-slate-100 flex justify-center">
                             <button type="button" id="saveBtnBottom" class="w-full max-w-xs py-4 bg-[#004098] text-white rounded-xl font-black text-sm hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-3">
                                 <i class="fa-solid fa-cloud-arrow-up"></i> 登録を実行
@@ -131,6 +133,7 @@
         </div>
     </main>
 
+    <script type="module" src="common.js"></script>
     <script type="module">
         import { db } from "./common.js";
         import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -168,7 +171,7 @@
                 location.href = 'list.html';
             } catch (e) {
                 console.error(e);
-                alert("保存に失敗しました。");
+                alert("保存に失敗しました。再度お試しください。");
                 btns.forEach(b => {
                     b.disabled = false;
                     b.innerHTML = '<i class="fa-solid fa-cloud-arrow-up mr-2"></i>登録を実行';
