@@ -30,7 +30,7 @@
             <div class="flex justify-between items-end mb-8 gap-4">
                 <div>
                     <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-1">データ一括登録</h1>
-                    <nav class="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">Professional Data Maintenance</nav>
+                    <nav class="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">Stable Data Synchronization</nav>
                 </div>
             </div>
 
@@ -42,11 +42,11 @@
                 </div>
 
                 <div id="importGuide" class="p-6 rounded-2xl mb-8 border border-slate-100 bg-slate-50/50">
-                    <p class="text-[10px] font-black text-slate-400 mb-3 uppercase tracking-tighter">Excelの列順序（項目名なしでデータをコピー＆ペースト）</p>
+                    <p class="text-[10px] font-black text-slate-400 mb-3 uppercase tracking-tighter">Excelの列順序（項目名なしでデータを貼り付け）</p>
                     <div id="columnMapping" class="text-[11px] font-mono font-black tracking-tight leading-relaxed text-[#004098]"></div>
                 </div>
 
-                <textarea id="csvData" class="w-full h-64 p-6 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none font-mono text-xs mb-8 shadow-inner" placeholder="Excelのデータをコピーしてここに貼り付けてください"></textarea>
+                <textarea id="csvData" class="w-full h-64 p-6 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none font-mono text-xs mb-8 shadow-inner" placeholder="Excelからコピーしてここに貼り付け"></textarea>
 
                 <button id="importBtn" class="w-full py-5 text-white rounded-2xl font-black shadow-lg transition-all flex items-center justify-center gap-3 hover:shadow-xl active:scale-[0.98]">
                     <i class="fa-solid fa-cloud-arrow-up text-xl"></i><span id="btnText" class="text-lg">インポートを開始する</span>
@@ -56,7 +56,7 @@
             <div class="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm mb-20">
                 <div class="flex justify-between items-center mb-4 px-2">
                     <div class="flex items-center gap-2">
-                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Import Progress Log</span>
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Process Log</span>
                         <span id="counter" class="text-[10px] font-mono font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded">0 / 0</span>
                     </div>
                     <span id="progressPercent" class="text-sm font-mono font-bold text-emerald-500">READY</span>
@@ -73,24 +73,31 @@
     import { collection, doc, setDoc, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     let currentMode = 'customers';
-    // 🌟 Excel画像に合わせた最新のマッピング
     const mapping = {
         customers: "A:お客様名 | B:カナ | C:ランク | D:属性 | E:住所 | F:電話 | G:訪問回数 | H:最終訪問日",
         staffs: "A:社員番号 | B:氏名 | C:パスワード | D:メール | E:権限 | F:状態 | G:部署",
         activity_records: "A:お客様名 | B:ランク | C:属性 | D:日付 | E:開始 | F:終了 | G:訪問者名 | H:同行者 | I:定性1 | J:定性2 | K:定性3 | L:担当者 | M:報告 | N:考え | O:部署"
     };
 
+    // 🌟 日付をお掃除して「YYYY/MM/DD」に統一する関数
+    const cleanDate = (dateStr) => {
+        if (!dateStr || dateStr.includes("未訪問") || dateStr === "0") return "未訪問";
+        const normalized = dateStr.trim().replace(/\//g, '-').replace(/\s+/g, '-');
+        const parts = normalized.split('-');
+        if (parts.length < 3) return dateStr;
+        return `${parts[0]}/${parts[1].padStart(2, '0')}/${parts[2].padStart(2, '0')}`;
+    };
+
     window.switchTab = (mode) => {
         currentMode = mode;
         const btn = document.getElementById('importBtn');
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        const activeTabId = mode === 'activity_records' ? 'tab-records' : `tab-${mode}`;
-        document.getElementById(activeTabId).classList.add('active');
+        const tabId = mode === 'activity_records' ? 'tab-records' : `tab-${mode}`;
+        document.getElementById(tabId).classList.add('active');
         document.getElementById('columnMapping').innerText = mapping[mode];
-        
-        if (mode === 'staffs') btn.className = "w-full py-5 bg-sky-500 text-white rounded-2xl font-black shadow-lg";
-        else if (mode === 'customers') btn.className = "w-full py-5 bg-[#ff7e11] text-white rounded-2xl font-black shadow-lg";
-        else btn.className = "w-full py-5 bg-emerald-500 text-white rounded-2xl font-black shadow-lg";
+        if (mode === 'staffs') btn.className = "w-full py-5 bg-sky-500 text-white rounded-2xl font-black";
+        else if (mode === 'customers') btn.className = "w-full py-5 bg-[#ff7e11] text-white rounded-2xl font-black";
+        else btn.className = "w-full py-5 bg-emerald-500 text-white rounded-2xl font-black";
     };
 
     function log(msg, type = "success") {
@@ -102,23 +109,20 @@
 
     document.getElementById('importBtn').onclick = async () => {
         const rawData = document.getElementById('csvData').value.trim();
-        if (!rawData) return alert("データが入力されていません。");
-        
+        if (!rawData) return alert("データがありません。");
         const rows = rawData.split('\n');
         const total = rows.length;
         const btn = document.getElementById('importBtn');
-        
-        if(!confirm(`${total}件のデータをインポートします。よろしいですか？`)) return;
+        if(!confirm(`${total}件をインポートします。よろしいですか？`)) return;
 
         btn.disabled = true;
         document.getElementById('statusLog').innerHTML = "";
-        log(`${total}件のインポートを開始しました...`, "info");
+        log(`${total}件の処理を開始...`, "info");
 
         for (let i = 0; i < rows.length; i++) {
             const col = rows[i].split('\t');
             try {
                 if (currentMode === 'customers') {
-                    // 🌟 Excel画像の並び順 (A〜H) で保存
                     await addDoc(collection(db, "customers"), {
                         name: col[0]?.trim() || "",
                         kana: col[1]?.trim() || "",
@@ -127,7 +131,7 @@
                         address: col[4]?.trim() || "",
                         tel: col[5]?.trim() || "",
                         visitCount: parseInt(col[6]?.trim()) || 0,
-                        lastVisit: col[7]?.trim() || "未訪問",
+                        lastVisit: cleanDate(col[7]), 
                         updatedAt: serverTimestamp()
                     });
                 } 
@@ -136,7 +140,7 @@
                         customerName: col[0]?.trim() || "",
                         customerRank: col[1]?.trim() || "-",
                         customerType: col[2]?.trim() || "-",
-                        visitDate: (col[3]||"").trim().replace(/\//g, '-'),
+                        visitDate: cleanDate(col[3]), 
                         startTime: col[4]?.trim() || "00:00",
                         endTime: col[5]?.trim() || "00:00",
                         visitorName: col[6]?.trim() || "不明",
@@ -153,36 +157,23 @@
                 }
                 else if (currentMode === 'staffs') {
                     const docId = col[0]?.trim();
-                    if(!docId) throw new Error("社員番号がありません");
+                    if(!docId) throw new Error("社員番号なし");
                     await setDoc(doc(db, "staffs", docId), {
-                        id: docId,
-                        name: col[1]?.trim() || "",
-                        password: col[2]?.trim() || "1234",
-                        email: col[3]?.trim() || "",
-                        role: col[4]?.trim() || "一般",
-                        status: col[5]?.trim() || "有効",
-                        dept: col[6]?.trim() || "不明",
+                        id: docId, name: col[1]?.trim() || "", password: col[2]?.trim() || "1234",
+                        email: col[3]?.trim() || "", role: col[4]?.trim() || "一般",
+                        status: col[5]?.trim() || "有効", dept: col[6]?.trim() || "不明",
                         updatedAt: serverTimestamp()
                     });
                 }
-                
-                if ((i + 1) % 10 === 0 || (i + 1) === total) {
-                    log(`${i+1} / ${total} 件完了...`);
-                }
-            } catch (e) { 
-                log(`${i+1}行目でエラー: ${e.message}`, "error"); 
-            }
-            
+                if ((i + 1) % 10 === 0 || (i + 1) === total) log(`${i+1} / ${total} 件完了...`);
+            } catch (e) { log(`${i+1}行目エラー: ${e.message}`, "error"); }
             document.getElementById('counter').innerText = `${i+1} / ${total}`;
             document.getElementById('progressPercent').innerText = `${Math.round(((i + 1) / total) * 100)}%`;
         }
-
-        log("すべての処理が完了しました。", "info");
+        log("全処理が完了しました。", "info");
         btn.disabled = false;
-        alert("インポートが完了しました！");
+        alert("インポートが完了しました。");
     };
-
-    // 初期タブをお客様名簿に設定
     window.switchTab('customers');
 </script>
 </body>
