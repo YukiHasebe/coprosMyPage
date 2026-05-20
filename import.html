@@ -26,7 +26,7 @@
     <div id="header-placeholder"></div>
     <div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
         <div class="max-w-5xl mx-auto">
-            <div class="flex justify-between items-end mb-8 gap-4">
+            <div class="flex justify-between items-end mb-8">
                 <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-1">データ一括登録</h1>
             </div>
 
@@ -38,13 +38,13 @@
                 </div>
 
                 <div id="importGuide" class="p-6 rounded-2xl mb-8 border border-slate-100 bg-slate-50/50">
-                    <p class="text-[10px] font-black text-slate-400 mb-3 uppercase">Excelの列順序（見出し行は含めずコピー）</p>
+                    <p class="text-[10px] font-black text-slate-400 mb-3 uppercase tracking-tighter">Excelの列順序（見出し行は含めずコピー）</p>
                     <div id="columnMapping" class="text-[11px] font-mono font-black text-[#004098]"></div>
                 </div>
 
                 <textarea id="csvData" class="w-full h-64 p-6 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none font-mono text-xs mb-8" placeholder="データをここに貼り付けてください"></textarea>
 
-                <button id="importBtn" class="w-full py-5 text-white rounded-2xl font-black shadow-lg">
+                <button id="importBtn" class="w-full py-5 text-white rounded-2xl font-black shadow-lg transition-all active:scale-[0.98]">
                     インポートを開始する
                 </button>
             </div>
@@ -62,23 +62,58 @@
     import { collection, doc, setDoc, addDoc, serverTimestamp, getDocs, query } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     let currentMode = 'activity_records';
-    let staffMap = new Map(); // 社員名 -> 部署名 を保持する用
+    let staffMap = new Map();
 
     const mapping = {
         customers: "A:名 | B:カナ | C:ランク | D:属性 | E:住所 | F:電話 | G:回数 | H:最終訪問",
         staffs: "A:ID | B:氏名 | C:パス | D:メール | E:権限 | F:状態 | G:部署",
-        // 🌟 画像の列順 (A〜M) に合わせました
-        activity_records: "A:客名 | B:ランク | C:属性 | D:客先担当 | E:開始日時 | F:終了日時 | G:訪問者 | H:同行者 | I:定性1 | J:定性2 | K:定性3 | L:報告 | M:スタッフの考え"
+        activity_records: "A:客名 | B:ランク | C:属性 | D:客先担当 | E:開始日時 | F:終了日時 | G:訪問者 | H:同行者 | I:定性1 | J:定性2 | K:定性3 | L:報告 | M:考え"
     };
 
+    // 🌟 高度な行分割（セル内の改行を保護する）
+    function parseCSV(text) {
+        const rows = [];
+        let currentRow = [];
+        let currentCell = '';
+        let inQuotes = false;
+        const delimiter = text.includes('\t') ? '\t' : ','; // タブかカンマを自動判別
+
+        for (let i = 0; i < text.length; i++) {
+            const char = text[i];
+            const nextChar = text[i + 1];
+
+            if (char === '"' && inQuotes && nextChar === '"') {
+                currentCell += '"'; i++;
+            } else if (char === '"') {
+                inQuotes = !inQuotes;
+            } else if (char === delimiter && !inQuotes) {
+                currentRow.push(currentCell);
+                currentCell = '';
+            } else if ((char === '\r' || char === '\n') && !inQuotes) {
+                if (currentCell !== '' || currentRow.length > 0) {
+                    currentRow.push(currentCell);
+                    rows.push(currentRow);
+                    currentCell = '';
+                    currentRow = [];
+                }
+                if (char === '\r' && nextChar === '\n') i++;
+            } else {
+                currentCell += char;
+            }
+        }
+        if (currentCell !== '' || currentRow.length > 0) {
+            currentRow.push(currentCell);
+            rows.push(currentRow);
+        }
+        return rows;
+    }
+
     const cleanDate = (s) => {
-        if (!s || s === "0") return "未訪問";
+        if (!s || s === "0" || s.includes("未訪問")) return "未訪問";
         const parts = s.trim().replace(/\//g, '-').replace(/\s+/g, '-').split('-');
         if (parts.length < 3) return s;
         return `${parts[0]}/${parts[1].padStart(2, '0')}/${parts[2].padStart(2, '0')}`;
     };
-
-    const splitRow = (row) => row.includes('\t') ? row.split('\t') : row.split(',');
 
     window.switchTab = (mode) => {
         currentMode = mode;
@@ -98,23 +133,24 @@
     document.getElementById('importBtn').onclick = async () => {
         const rawData = document.getElementById('csvData').value.trim();
         if (!rawData) return alert("データがありません。");
-        const rows = rawData.split('\n');
+        
+        // 🌟 改良したパーサーで行を正確に切り出す
+        const rows = parseCSV(rawData);
+        const total = rows.length;
         const btn = document.getElementById('importBtn');
-        if(!confirm(`${rows.length}件のインポートを開始しますか？`)) return;
+        
+        if(!confirm(`${total}件のインポートを開始しますか？`)) return;
 
         btn.disabled = true;
         document.getElementById('statusLog').innerHTML = "";
-        log("社員情報を照合中...", "info");
+        log(`${total}件のデータを解析しました。照合を開始します...`, "info");
 
-        // 🌟 事前に社員名簿を読み込んで、名前から部署を引けるようにする
+        // 社員部署マップ作成
         const sSnap = await getDocs(collection(db, "staffs"));
-        sSnap.forEach(d => {
-            const data = d.data();
-            staffMap.set(data.name.replace(/\s+/g, ''), data.dept || "不明");
-        });
+        sSnap.forEach(d => staffMap.set(d.data().name.replace(/\s+/g, ''), d.data().dept || "不明"));
 
         for (let i = 0; i < rows.length; i++) {
-            const col = splitRow(rows[i]);
+            const col = rows[i];
             try {
                 if (currentMode === 'customers') {
                     await addDoc(collection(db, "customers"), {
@@ -126,10 +162,8 @@
                     });
                 } 
                 else if (currentMode === 'activity_records') {
-                    // 🌟 E列とF列から「日付」「開始」「終了」を分割
                     const startFull = (col[4]||"").trim().split(' ');
                     const endFull = (col[5]||"").trim().split(' ');
-                    
                     const visitorNameClean = (col[6]||"").replace(/\s+/g, '');
                     const dept = staffMap.get(visitorNameClean) || "不明";
 
@@ -138,17 +172,17 @@
                         customerRank: col[1]?.trim() || "-",
                         customerType: col[2]?.trim() || "-",
                         customerStaff: col[3]?.trim() || "-",
-                        visitDate: cleanDate(startFull[0]), // E列の日付
-                        startTime: startFull[1] || "00:00", // E列の時刻
-                        endTime: endFull[1] || "00:00", // F列の時刻
+                        visitDate: cleanDate(startFull[0]),
+                        startTime: startFull[1] || "00:00",
+                        endTime: endFull[1] || "00:00",
                         visitorName: col[6]?.trim() || "不明",
                         companion: col[7]?.trim() || "-",
                         qualData1: col[8]?.trim() || "-",
                         qualData2: col[9]?.trim() || "-",
                         qualData3: col[10]?.trim() || "-",
-                        content: col[11]?.trim() || "-", // L列（報告）
-                        staffThoughts: col[12]?.trim() || "-", // M列（考え）
-                        visitorDept: dept, // 🌟 社員名簿から自動セット
+                        content: col[11]?.trim() || "-",
+                        staffThoughts: col[12]?.trim() || "-",
+                        visitorDept: dept,
                         createdAt: serverTimestamp()
                     });
                 }
@@ -160,12 +194,12 @@
                         status: col[5]?.trim(), dept: col[6]?.trim(), updatedAt: serverTimestamp()
                     });
                 }
-                if ((i + 1) % 10 === 0) log(`${i+1}件完了...`);
+                if ((i + 1) % 10 === 0) log(`${i+1} / ${total} 件完了...`);
             } catch (e) { log(`${i+1}行目エラー: ${e.message}`, "error"); }
         }
-        log("完了！", "info");
+        log("全ての処理が完了しました！", "info");
         btn.disabled = false;
-        alert("インポート完了しました。");
+        alert("インポートが完了しました。");
     };
     window.switchTab('activity_records');
 </script>
