@@ -8,9 +8,10 @@
         :root { --copros-blue: #87ceeb; --copros-orange: #ff7e11; --copros-navy: #004098; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
         .staff-selector-card { background: white; border-radius: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px rgba(0,0,0,0.04); }
-        .staff-item { padding: 0.8rem 1.2rem; cursor: pointer; border-radius: 0.75rem; transition: all 0.2s; border: 1px solid transparent; text-align: center; }
+        .staff-item { padding: 0.8rem 1.2rem; cursor: pointer; border-radius: 0.75rem; transition: all 0.2s; border: 1px solid transparent; text-align: center; overflow: hidden; }
         .staff-item:hover { background: #f8fafc; }
-        .staff-item.active { background: var(--copros-navy); color: white; }
+        .staff-item.active { background: var(--copros-navy); color: white; box-shadow: 0 4px 12px rgba(0,64,152,0.3); }
+        .summary-card { background: linear-gradient(135deg, #004098 0%, #2d3748 100%); color: white; border-radius: 1.5rem; padding: 1.5rem; margin-bottom: 2rem; display: grid; grid-template-columns: repeat(4, 1fr); text-align: center; gap: 10px; }
         .month-btn { padding: 0.6rem 0.2rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; flex: 1; text-align: center; cursor: pointer; }
         .month-btn.active { background: var(--copros-navy); color: white; }
         .accordion-item { background: white; border-radius: 1rem; border: 1px solid #e2e8f0; overflow: hidden; margin-bottom: 1rem; }
@@ -20,8 +21,6 @@
         .info-label { font-size: 10px; font-weight: 800; color: #94a3b8; }
         .info-value { font-size: 13px; font-weight: 800; color: #475569; }
         .report-box { background: #f8fafc; border-radius: 1rem; padding: 1.5rem; border: 1px solid #f1f5f9; font-size: 13px; line-height: 1.7; margin-bottom: 1rem; }
-        /* 🌟 サマリーカードを4分割に調整 */
-        .summary-card { background: linear-gradient(135deg, #004098 0%, #2d3748 100%); color: white; border-radius: 1.5rem; padding: 1.5rem; margin-bottom: 2rem; display: grid; grid-template-columns: repeat(4, 1fr); text-align: center; gap: 10px; }
         .scope-select { background: #f8fafc; border: 1px solid #e2e8f0; padding: 0.6rem 1rem; border-radius: 0.75rem; font-size: 0.8rem; font-weight: 800; color: #475569; outline: none; }
     </style>
 </head>
@@ -34,19 +33,21 @@
                 <div class="flex justify-between items-end mb-8"><h1 class="text-4xl font-black text-slate-800 tracking-tighter">組織員利用状況</h1>
                     <button onclick="location.href='calendar.html'" class="px-6 py-2 bg-white border rounded-xl font-bold text-xs shadow-sm">カレンダーへ戻る</button>
                 </div>
+
                 <div class="staff-selector-card p-6 mb-8">
                     <div class="flex flex-col lg:flex-row gap-4 mb-6">
                         <select id="deptFilter" onchange="window.renderStaffList()" class="scope-select min-w-[240px]">
                             <option value="ALL">全ケコム関連</option>
                             <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option>
                         </select>
-                        <input type="text" id="staffSearch" oninput="window.renderStaffList()" placeholder="氏名で検索..." class="flex-1 px-4 py-3 bg-slate-50 border rounded-xl outline-none font-bold">
+                        <input type="text" id="staffSearch" oninput="window.renderStaffList()" placeholder="氏名で検索..." class="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold">
                     </div>
-                    <div id="staffList" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 max-h-[160px] overflow-y-auto custom-scrollbar p-1"></div>
+                    <div id="staffList" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 max-h-[160px] overflow-y-auto custom-scrollbar p-1 text-center">
+                        <!-- ここに社員リストが表示されます -->
+                    </div>
                 </div>
 
                 <div id="toolArea" class="hidden">
-                    <!-- 🌟 4項目サマリー -->
                     <div class="summary-card shadow-lg">
                         <div><p class="text-[9px] opacity-60 font-black uppercase mb-1">訪問件数</p><p class="text-xl font-black"><span id="sumActualVisits">0</span>件</p></div>
                         <div><p class="text-[9px] opacity-60 font-black uppercase mb-1">営業件数</p><p class="text-xl font-black"><span id="sumSales">0</span>件</p></div>
@@ -58,7 +59,7 @@
                     </div>
                     <div class="mb-20"><h3 id="selectedStaffLabel" class="text-xl font-black mb-8 px-4 text-slate-800 border-l-4 border-orange-500 pl-4"></h3><div id="activityAccordion" class="space-y-4"></div></div>
                 </div>
-                <div id="guideMsg" class="py-20 text-center"><p class="text-slate-400 font-bold tracking-widest uppercase">社員を選択してください</p></div>
+                <div id="guideMsg" class="py-20 text-center"><p class="text-slate-400 font-bold tracking-widest uppercase italic">左上のリストから社員を選択してください</p></div>
             </div>
         </div>
     </main>
@@ -69,49 +70,77 @@
         import { collection, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let allStaffs = [], currentStaffRecords = [], selectedName = "", currentY = 2026, currentM = new Date().getMonth() + 1;
-        const clean = (s) => (s||"").replace(/\s+/g, '');
+        
+        // 🌟 判定を最強にするための「空白・スペース全削除」関数
+        const cleanAll = (s) => (s||"").toString().replace(/\s+/g, '').trim();
 
         async function init() {
             try {
-                const snap = await getDocs(query(collection(db, "staffs"), where("dept", "in", TARGET_DEPTS), orderBy("name")));
+                // 🌟 安全第一：全社員を一旦読み込んでから、JS側で優しくフィルタリングする
+                const snap = await getDocs(query(collection(db, "staffs"), orderBy("name")));
                 allStaffs = snap.docs.map(d => d.data());
                 window.renderStaffList();
                 
-                const jName = sessionStorage.getItem('cp_usage_jump_name'), jMonth = sessionStorage.getItem('cp_usage_jump_month');
+                const jName = sessionStorage.getItem('cp_usage_jump_name');
+                const jMonth = sessionStorage.getItem('cp_usage_jump_month');
                 if (jName) {
-                    sessionStorage.removeItem('cp_usage_jump_name'); sessionStorage.removeItem('cp_usage_jump_month');
+                    sessionStorage.removeItem('cp_usage_jump_name');
+                    sessionStorage.removeItem('cp_usage_jump_month');
                     currentM = parseInt(jMonth);
                     window.selectStaff(jName);
                 }
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error("Staff Load Error:", e); }
         }
 
         window.renderStaffList = () => {
-            const kw = document.getElementById('staffSearch').value.toLowerCase();
+            const kw = cleanAll(document.getElementById('staffSearch').value.toLowerCase());
             const dept = document.getElementById('deptFilter').value;
             const container = document.getElementById('staffList');
             container.innerHTML = "";
-            allStaffs.filter(s => (!kw || s.name.includes(kw)) && (dept === 'ALL' || s.dept === dept)).forEach(s => {
-                const div = document.createElement('div'); div.className = `staff-item ${clean(selectedName) === clean(s.name) ? 'active' : ''}`;
-                div.innerHTML = `<p class="font-black text-xs">${s.name}</p><p class="text-[8px] opacity-60 uppercase">${s.dept || ''}</p>`;
-                div.onclick = () => window.selectStaff(s.name); container.appendChild(div);
+            
+            // 🌟 フィルタリング（ここでの不一致を解消しました）
+            const filtered = allStaffs.filter(s => {
+                const nameMatch = !kw || cleanAll(s.name).toLowerCase().includes(kw);
+                const sDeptClean = cleanAll(s.dept || "");
+                const deptMatch = (dept === 'ALL') ? TARGET_DEPTS.some(t => cleanAll(t) === sDeptClean) : sDeptClean === cleanAll(dept);
+                return nameMatch && deptMatch;
             });
+
+            filtered.forEach(s => {
+                const div = document.createElement('div');
+                div.className = `staff-item ${cleanAll(selectedName) === cleanAll(s.name) ? 'active' : ''}`;
+                div.innerHTML = `<p class="font-black text-xs">${s.name}</p><p class="text-[8px] opacity-60 uppercase">${s.dept || ''}</p>`;
+                div.onclick = () => window.selectStaff(s.name);
+                container.appendChild(div);
+            });
+
+            if(filtered.length === 0) {
+                container.innerHTML = '<p class="col-span-full py-4 text-slate-300 font-bold text-xs">該当する社員がいません</p>';
+            }
         };
 
         window.selectStaff = async (name) => {
-            selectedName = name; window.renderStaffList();
-            document.getElementById('guideMsg').style.display = 'none'; document.getElementById('toolArea').style.display = 'block';
+            selectedName = name; 
+            window.renderStaffList();
+            document.getElementById('guideMsg').style.display = 'none';
+            document.getElementById('toolArea').style.display = 'block';
+            
             try {
-                const q = query(collection(db, "activity_records"), where("visitorName", "==", name), where("visitDate", ">=", `${currentY}`));
+                // 名前で実績を取得（ここもスペースを考慮した名寄せが必要な場合はJSでフィルタします）
+                const q = query(collection(db, "activity_records"), where("visitDate", ">=", `${currentY}`));
                 const snap = await getDocs(q); 
-                currentStaffRecords = snap.docs.map(d => d.data());
-                document.getElementById('selectedStaffLabel').innerText = `${name} さんの履歴`;
+                
+                const targetCleanName = cleanAll(name);
+                currentStaffRecords = snap.docs.map(d => d.data()).filter(r => cleanAll(r.visitorName) === targetCleanName);
+                
+                document.getElementById('selectedStaffLabel').innerText = `${name} さんの活動履歴`;
                 window.setMonth(currentM); 
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error("Record Load Error:", e); }
         };
 
         window.setMonth = (m) => {
-            currentM = m; document.querySelectorAll('.month-btn').forEach(btn => btn.classList.toggle('active', btn.id === `m-btn-${m}`));
+            currentM = m;
+            document.querySelectorAll('.month-btn').forEach(btn => btn.classList.toggle('active', btn.id === `m-btn-${m}`));
             window.renderAccordion();
         };
 
@@ -123,13 +152,10 @@
             }).sort((a,b) => String(b.visitDate).localeCompare(String(a.visitDate)));
 
             let totalMins = 0;
-            // 🌟 訪問件数（同日・同社は1件と数える）のロジック
             const uniqueVisits = new Set();
 
             filtered.forEach(r => {
-                // 訪問件数用キー作成 (日付 + 会社名)
-                uniqueVisits.add(`${r.visitDate}_${r.customerName}`);
-
+                uniqueVisits.add(`${r.visitDate}_${cleanAll(r.customerName)}`);
                 if(r.startTime && r.endTime){
                     const s = r.startTime.split(':'), e = r.endTime.split(':');
                     totalMins += (parseInt(e[0])*60+parseInt(e[1])) - (parseInt(s[0])*60+parseInt(s[1]));
@@ -145,7 +171,10 @@
             container.innerHTML = filtered.length ? filtered.map((r, i) => `
                 <div class="accordion-item" id="acc-${i}">
                     <div class="accordion-header" onclick="window.toggleAcc('acc-${i}')">
-                        <div class="flex items-center gap-4"><span class="text-xs font-black opacity-60">${String(r.visitDate).replace(/-/g,'/')}</span><span class="text-base font-black">${r.customerName}</span></div>
+                        <div class="flex items-center gap-4">
+                            <span class="text-xs font-black opacity-60">${String(r.visitDate).replace(/-/g,'/')}</span>
+                            <span class="text-base font-black">${r.customerName}</span>
+                        </div>
                         <i class="fa-solid fa-chevron-down opacity-30 text-xs transition-transform"></i>
                     </div>
                     <div class="accordion-content">
@@ -155,14 +184,16 @@
                             <div><p class="info-label">同行者</p><p class="info-value text-blue-600">${r.companion || 'なし'}</p></div>
                             <div><p class="info-label">定性データ</p><p class="info-value text-[10px] opacity-60">${r.qualData1||'-'} / ${r.qualData2||'-'} / ${r.qualData3||'-'}</p></div>
                         </div>
-                        <p class="info-label mb-2">報告内容</p><div class="report-box">${r.content || r.customerReport || 'なし'}</div>
-                        <p class="info-label mb-2">スタッフの考え</p><div class="report-box border-l-4 border-orange-100">${r.staffThoughts || '未入力'}</div>
+                        <p class="info-label mb-2 uppercase tracking-widest">報告内容</p>
+                        <div class="report-box">${r.content || r.customerReport || '報告なし'}</div>
+                        <p class="info-label mb-2 uppercase tracking-widest">自分・スタッフの考え</p>
+                        <div class="report-box border-l-4 border-orange-100">${r.staffThoughts || '未入力'}</div>
                     </div>
-                </div>`).join('') : '<p class="text-center py-20 text-slate-300 font-bold tracking-widest uppercase">実績はありません</p>';
+                </div>`).join('') : '<p class="text-center py-20 text-slate-300 font-bold uppercase tracking-widest">当月の実績はありません</p>';
             
             if(jumpTarget) {
                 setTimeout(() => {
-                    const idx = filtered.findIndex(r => clean(r.customerName) === clean(jumpTarget));
+                    const idx = filtered.findIndex(r => cleanAll(r.customerName) === cleanAll(jumpTarget));
                     if(idx !== -1) window.toggleAcc(`acc-${idx}`);
                     sessionStorage.removeItem('cp_usage_jump_customer');
                 }, 400);
@@ -172,8 +203,9 @@
         window.toggleAcc = (id) => {
             const item = document.getElementById(id); if(!item) return;
             const content = item.querySelector('.accordion-content');
-            const open = content.style.display === 'block'; content.style.display = open ? 'none' : 'block';
-            item.querySelector('i').style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
+            const open = content.style.display === 'block';
+            content.style.display = open ? 'none' : 'block';
+            item.querySelector('i').style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
         };
 
         init();
