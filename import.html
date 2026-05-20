@@ -14,8 +14,7 @@
         .tab-customers.active { color: var(--copros-orange); border-bottom-color: var(--copros-orange); }
         .tab-records.active { color: #10b981; border-bottom-color: #10b981; }
         .console-log { background: #0f172a; color: #34d399; font-family: 'Consolas', 'Monaco', monospace; font-size: 0.7rem; border-radius: 1rem; padding: 1.2rem; height: 350px; overflow-y: auto; border: 4px solid #1e293b; line-height: 1.6; }
-        .log-success { color: #34d399; }
-        .log-error { color: #f87171; font-weight: bold; }
+        .log-error { color: #f87171; }
         .log-info { color: #60a5fa; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
@@ -28,39 +27,29 @@
     <div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
         <div class="max-w-5xl mx-auto">
             <div class="flex justify-between items-end mb-8 gap-4">
-                <div>
-                    <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-1">データ一括登録</h1>
-                    <nav class="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">Stable Data Synchronization</nav>
-                </div>
+                <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-1">データ一括登録</h1>
             </div>
 
             <div class="form-card p-8 lg:p-10 mb-8">
                 <div class="flex gap-10 border-b border-slate-100 mb-8">
-                    <button onclick="window.switchTab('customers')" id="tab-customers" class="tab-btn tab-customers active">お客様名簿</button>
+                    <button onclick="window.switchTab('customers')" id="tab-customers" class="tab-btn tab-customers">お客様名簿</button>
                     <button onclick="window.switchTab('staffs')" id="tab-staffs" class="tab-btn tab-staffs">組織員名簿</button>
-                    <button onclick="window.switchTab('activity_records')" id="tab-records" class="tab-btn tab-records">実績データ</button>
+                    <button onclick="window.switchTab('activity_records')" id="tab-records" class="tab-btn tab-records active">実績データ</button>
                 </div>
 
                 <div id="importGuide" class="p-6 rounded-2xl mb-8 border border-slate-100 bg-slate-50/50">
-                    <p class="text-[10px] font-black text-slate-400 mb-3 uppercase tracking-tighter">Excelの列順序（項目名なしでデータを貼り付け）</p>
-                    <div id="columnMapping" class="text-[11px] font-mono font-black tracking-tight leading-relaxed text-[#004098]"></div>
+                    <p class="text-[10px] font-black text-slate-400 mb-3 uppercase">Excelの列順序（見出し行は含めずコピー）</p>
+                    <div id="columnMapping" class="text-[11px] font-mono font-black text-[#004098]"></div>
                 </div>
 
-                <textarea id="csvData" class="w-full h-64 p-6 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none font-mono text-xs mb-8 shadow-inner" placeholder="Excelからコピーしてここに貼り付け"></textarea>
+                <textarea id="csvData" class="w-full h-64 p-6 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none font-mono text-xs mb-8" placeholder="データをここに貼り付けてください"></textarea>
 
-                <button id="importBtn" class="w-full py-5 text-white rounded-2xl font-black shadow-lg transition-all flex items-center justify-center gap-3 hover:shadow-xl active:scale-[0.98]">
-                    <i class="fa-solid fa-cloud-arrow-up text-xl"></i><span id="btnText" class="text-lg">インポートを開始する</span>
+                <button id="importBtn" class="w-full py-5 text-white rounded-2xl font-black shadow-lg">
+                    インポートを開始する
                 </button>
             </div>
 
             <div class="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm mb-20">
-                <div class="flex justify-between items-center mb-4 px-2">
-                    <div class="flex items-center gap-2">
-                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Process Log</span>
-                        <span id="counter" class="text-[10px] font-mono font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded">0 / 0</span>
-                    </div>
-                    <span id="progressPercent" class="text-sm font-mono font-bold text-emerald-500">READY</span>
-                </div>
                 <div id="statusLog" class="console-log custom-scrollbar">待機中...</div>
             </div>
         </div>
@@ -70,40 +59,39 @@
 <script type="module" src="common.js"></script>
 <script type="module">
     import { db } from "./common.js";
-    import { collection, doc, setDoc, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { collection, doc, setDoc, addDoc, serverTimestamp, getDocs, query } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    let currentMode = 'customers';
+    let currentMode = 'activity_records';
+    let staffMap = new Map(); // 社員名 -> 部署名 を保持する用
+
     const mapping = {
-        customers: "A:お客様名 | B:カナ | C:ランク | D:属性 | E:住所 | F:電話 | G:訪問回数 | H:最終訪問日",
-        staffs: "A:社員番号 | B:氏名 | C:パスワード | D:メール | E:権限 | F:状態 | G:部署",
-        activity_records: "A:お客様名 | B:ランク | C:属性 | D:日付 | E:開始 | F:終了 | G:訪問者名 | H:同行者 | I:定性1 | J:定性2 | K:定性3 | L:担当者 | M:報告 | N:考え | O:部署"
+        customers: "A:名 | B:カナ | C:ランク | D:属性 | E:住所 | F:電話 | G:回数 | H:最終訪問",
+        staffs: "A:ID | B:氏名 | C:パス | D:メール | E:権限 | F:状態 | G:部署",
+        // 🌟 画像の列順 (A〜M) に合わせました
+        activity_records: "A:客名 | B:ランク | C:属性 | D:客先担当 | E:開始日時 | F:終了日時 | G:訪問者 | H:同行者 | I:定性1 | J:定性2 | K:定性3 | L:報告 | M:スタッフの考え"
     };
 
-    // 🌟 日付をお掃除して「YYYY/MM/DD」に統一する関数
-    const cleanDate = (dateStr) => {
-        if (!dateStr || dateStr.includes("未訪問") || dateStr === "0") return "未訪問";
-        const normalized = dateStr.trim().replace(/\//g, '-').replace(/\s+/g, '-');
-        const parts = normalized.split('-');
-        if (parts.length < 3) return dateStr;
+    const cleanDate = (s) => {
+        if (!s || s === "0") return "未訪問";
+        const parts = s.trim().replace(/\//g, '-').replace(/\s+/g, '-').split('-');
+        if (parts.length < 3) return s;
         return `${parts[0]}/${parts[1].padStart(2, '0')}/${parts[2].padStart(2, '0')}`;
     };
+
+    const splitRow = (row) => row.includes('\t') ? row.split('\t') : row.split(',');
 
     window.switchTab = (mode) => {
         currentMode = mode;
         const btn = document.getElementById('importBtn');
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        const tabId = mode === 'activity_records' ? 'tab-records' : `tab-${mode}`;
-        document.getElementById(tabId).classList.add('active');
+        document.getElementById(mode === 'activity_records' ? 'tab-records' : `tab-${mode}`).classList.add('active');
         document.getElementById('columnMapping').innerText = mapping[mode];
-        if (mode === 'staffs') btn.className = "w-full py-5 bg-sky-500 text-white rounded-2xl font-black";
-        else if (mode === 'customers') btn.className = "w-full py-5 bg-[#ff7e11] text-white rounded-2xl font-black";
-        else btn.className = "w-full py-5 bg-emerald-500 text-white rounded-2xl font-black";
+        btn.className = "w-full py-5 text-white rounded-2xl font-black " + (mode==='staffs'?'bg-sky-500':mode==='customers'?'bg-[#ff7e11]':'bg-emerald-500');
     };
 
     function log(msg, type = "success") {
         const div = document.getElementById('statusLog');
-        const colorClass = type === "error" ? "log-error" : (type === "info" ? "log-info" : "log-success");
-        div.innerHTML += `<div class="${colorClass}">[${new Date().toLocaleTimeString()}] ${msg}</div>`;
+        div.innerHTML += `<div class="log-${type}">[${new Date().toLocaleTimeString()}] ${msg}</div>`;
         div.scrollTop = div.scrollHeight;
     }
 
@@ -111,70 +99,75 @@
         const rawData = document.getElementById('csvData').value.trim();
         if (!rawData) return alert("データがありません。");
         const rows = rawData.split('\n');
-        const total = rows.length;
         const btn = document.getElementById('importBtn');
-        if(!confirm(`${total}件をインポートします。よろしいですか？`)) return;
+        if(!confirm(`${rows.length}件のインポートを開始しますか？`)) return;
 
         btn.disabled = true;
         document.getElementById('statusLog').innerHTML = "";
-        log(`${total}件の処理を開始...`, "info");
+        log("社員情報を照合中...", "info");
+
+        // 🌟 事前に社員名簿を読み込んで、名前から部署を引けるようにする
+        const sSnap = await getDocs(collection(db, "staffs"));
+        sSnap.forEach(d => {
+            const data = d.data();
+            staffMap.set(data.name.replace(/\s+/g, ''), data.dept || "不明");
+        });
 
         for (let i = 0; i < rows.length; i++) {
-            const col = rows[i].split('\t');
+            const col = splitRow(rows[i]);
             try {
                 if (currentMode === 'customers') {
                     await addDoc(collection(db, "customers"), {
-                        name: col[0]?.trim() || "",
-                        kana: col[1]?.trim() || "",
-                        rank: col[2]?.trim() || "-",
-                        type: col[3]?.trim() || "カテゴリ未設定",
-                        address: col[4]?.trim() || "",
-                        tel: col[5]?.trim() || "",
-                        visitCount: parseInt(col[6]?.trim()) || 0,
-                        lastVisit: cleanDate(col[7]), 
+                        name: col[0]?.trim() || "", kana: col[1]?.trim() || "",
+                        rank: col[2]?.trim() || "-", type: col[3]?.trim() || "-",
+                        address: col[4]?.trim() || "", tel: col[5]?.trim() || "",
+                        visitCount: parseInt(col[6]) || 0, lastVisit: cleanDate(col[7]),
                         updatedAt: serverTimestamp()
                     });
                 } 
                 else if (currentMode === 'activity_records') {
+                    // 🌟 E列とF列から「日付」「開始」「終了」を分割
+                    const startFull = (col[4]||"").trim().split(' ');
+                    const endFull = (col[5]||"").trim().split(' ');
+                    
+                    const visitorNameClean = (col[6]||"").replace(/\s+/g, '');
+                    const dept = staffMap.get(visitorNameClean) || "不明";
+
                     await addDoc(collection(db, "activity_records"), {
                         customerName: col[0]?.trim() || "",
                         customerRank: col[1]?.trim() || "-",
                         customerType: col[2]?.trim() || "-",
-                        visitDate: cleanDate(col[3]), 
-                        startTime: col[4]?.trim() || "00:00",
-                        endTime: col[5]?.trim() || "00:00",
+                        customerStaff: col[3]?.trim() || "-",
+                        visitDate: cleanDate(startFull[0]), // E列の日付
+                        startTime: startFull[1] || "00:00", // E列の時刻
+                        endTime: endFull[1] || "00:00", // F列の時刻
                         visitorName: col[6]?.trim() || "不明",
                         companion: col[7]?.trim() || "-",
                         qualData1: col[8]?.trim() || "-",
                         qualData2: col[9]?.trim() || "-",
                         qualData3: col[10]?.trim() || "-",
-                        customerStaff: col[11]?.trim() || "-",
-                        content: col[12]?.trim() || "-",
-                        staffThoughts: col[13]?.trim() || "-",
-                        visitorDept: col[14]?.trim() || "不明",
+                        content: col[11]?.trim() || "-", // L列（報告）
+                        staffThoughts: col[12]?.trim() || "-", // M列（考え）
+                        visitorDept: dept, // 🌟 社員名簿から自動セット
                         createdAt: serverTimestamp()
                     });
                 }
                 else if (currentMode === 'staffs') {
                     const docId = col[0]?.trim();
-                    if(!docId) throw new Error("社員番号なし");
                     await setDoc(doc(db, "staffs", docId), {
-                        id: docId, name: col[1]?.trim() || "", password: col[2]?.trim() || "1234",
-                        email: col[3]?.trim() || "", role: col[4]?.trim() || "一般",
-                        status: col[5]?.trim() || "有効", dept: col[6]?.trim() || "不明",
-                        updatedAt: serverTimestamp()
+                        id: docId, name: col[1]?.trim(), password: col[2]?.trim(),
+                        email: col[3]?.trim(), role: col[4]?.trim(),
+                        status: col[5]?.trim(), dept: col[6]?.trim(), updatedAt: serverTimestamp()
                     });
                 }
-                if ((i + 1) % 10 === 0 || (i + 1) === total) log(`${i+1} / ${total} 件完了...`);
+                if ((i + 1) % 10 === 0) log(`${i+1}件完了...`);
             } catch (e) { log(`${i+1}行目エラー: ${e.message}`, "error"); }
-            document.getElementById('counter').innerText = `${i+1} / ${total}`;
-            document.getElementById('progressPercent').innerText = `${Math.round(((i + 1) / total) * 100)}%`;
         }
-        log("全処理が完了しました。", "info");
+        log("完了！", "info");
         btn.disabled = false;
-        alert("インポートが完了しました。");
+        alert("インポート完了しました。");
     };
-    window.switchTab('customers');
+    window.switchTab('activity_records');
 </script>
 </body>
 </html>
