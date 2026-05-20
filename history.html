@@ -38,15 +38,14 @@
                         <nav id="modeBadge" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">Consolidated Activity Reporting</nav>
                     </div>
                     <div class="flex gap-2 w-full lg:w-auto">
-                        <button type="button" onclick="window.saveDraft()" class="px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 shadow-sm transition-all">下書き保存</button>
-                        <button type="button" id="submitBtnTop" class="px-10 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-sm hover:shadow-lg transition-all flex items-center justify-center gap-2 active:scale-95">
+                        <button type="button" onclick="window.saveDraft()" class="flex-1 lg:flex-none px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 shadow-sm transition-all">下書き保存</button>
+                        <button type="button" id="submitBtnTop" class="flex-1 lg:flex-none px-10 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-sm hover:shadow-lg transition-all flex items-center justify-center gap-2 active:scale-95">
                             <i class="fa-solid fa-paper-plane"></i> 登録を実行
                         </button>
                     </div>
                 </div>
 
                 <form id="historyForm">
-                    <!-- 基本情報 -->
                     <div class="section-card">
                         <p class="section-title">基本報告情報</p>
                         <div class="space-y-6">
@@ -90,18 +89,14 @@
                         </div>
                     </div>
 
-                    <!-- 報告内容セクション -->
                     <div class="section-card">
                         <div class="flex justify-between items-center border-b pb-3 mb-6">
                             <p class="section-title border-0 mb-0">詳細報告（追加可能）</p>
                             <button type="button" onclick="window.addReportBlock()" class="bg-[#ff7e11] text-white px-5 py-2 rounded-xl text-xs font-black hover:shadow-md transition-all active:scale-95">＋ 項目を追加</button>
                         </div>
-                        <div id="reportContainer" class="space-y-8">
-                            <!-- JSで挿入 -->
-                        </div>
+                        <div id="reportContainer" class="space-y-8"></div>
                     </div>
 
-                    <!-- 回覧設定 -->
                     <div class="section-card">
                         <p class="section-title">回覧設定</p>
                         <div class="flex flex-col gap-4">
@@ -111,7 +106,7 @@
                     </div>
 
                     <div class="flex justify-center gap-4 py-12 border-t border-slate-100 mt-10">
-                        <button type="button" onclick="window.saveDraft()" class="px-8 py-3 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 shadow-sm transition-all">下書き保存</button>
+                        <button type="button" onclick="window.saveDraft()" class="px-8 py-3 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all shadow-sm">下書き保存</button>
                         <button type="button" id="submitBtnBottom" onclick="document.getElementById('submitBtnTop').click()" class="px-16 py-3 bg-[#004098] text-white rounded-xl font-black text-sm hover:shadow-lg flex items-center gap-2 active:scale-95 transition-all">
                             <i class="fa-solid fa-paper-plane"></i> 登録を実行
                         </button>
@@ -121,7 +116,6 @@
         </div>
     </main>
 
-    <!-- モーダル省略（共通） -->
     <div id="staffModal" class="modal-overlay"><div class="modal-content"><div class="bg-slate-900 p-4 text-white flex justify-between items-center"><span id="modalTitle" class="font-black text-xs uppercase tracking-widest">社員選択</span><i class="fa-solid fa-xmark cursor-pointer" onclick="window.closeModal()"></i></div><div class="p-4 bg-slate-50 border-b border-slate-100"><div class="grid grid-cols-2 gap-2 mb-2"><input type="text" id="staffKeyword" oninput="window.renderStaffList()" placeholder="氏名検索..." class="p-2.5 rounded-lg border border-slate-200 text-xs font-bold outline-none focus:border-orange-400"><select id="staffDeptFilter" onchange="window.renderStaffList()" class="p-2.5 rounded-lg border border-slate-200 text-xs font-bold outline-none"><option value="ALL">全部署</option></select></div></div><div id="staffList" class="overflow-y-auto custom-scrollbar" style="height: 350px;"></div><div class="p-4 bg-slate-50 grid grid-cols-3 gap-2 border-t border-slate-100"><button onclick="window.applySelection()" class="col-span-2 py-3 bg-[#004098] text-white rounded-xl font-black text-sm shadow-lg active:scale-95">決定</button><button onclick="window.clearModalSelection()" class="py-3 bg-white border border-slate-200 text-slate-400 rounded-xl font-bold text-sm hover:bg-slate-100 transition-all">クリア</button></div></div></div>
 
     <script type="module" src="common.js"></script>
@@ -134,20 +128,16 @@
         async function init() {
             const loginUser = sessionStorage.getItem('userName') || "";
             document.getElementById('visitorName').value = loginUser;
-            
             const jumpDate = sessionStorage.getItem('cp_add_date');
             if (jumpDate) { document.getElementById('visitDate').value = jumpDate; sessionStorage.removeItem('cp_add_date'); }
             else { document.getElementById('visitDate').valueAsDate = new Date(); }
-
             try {
                 const sSnap = await getDocs(query(collection(db, "staffs"), orderBy("name")));
                 allStaffs = sSnap.docs.map(doc => ({ ...doc.data() }));
                 const deptSelect = document.getElementById('staffDeptFilter');
                 TARGET_DEPTS.forEach(d => deptSelect.insertAdjacentHTML('beforeend', `<option value="${d}">${d}</option>`));
                 deptSelect.value = sessionStorage.getItem('userDept') || "ALL";
-
                 setupCustomerSearch();
-                
                 const promoteData = sessionStorage.getItem('cp_promote_appoint');
                 if (promoteData) {
                     const data = JSON.parse(promoteData);
@@ -155,47 +145,29 @@
                     document.getElementById('visitDate').value = data.date;
                     window.addReportBlock(data.subject);
                     sessionStorage.removeItem('cp_promote_appoint');
-                } else {
-                    window.addReportBlock();
-                }
+                } else { window.addReportBlock(); }
             } catch (e) { console.error(e); }
         }
 
-        // 🌟 報告ブロック追加（レイアウト修正版）
         window.addReportBlock = (initialContent = "") => {
             const container = document.getElementById('reportContainer');
             const blockId = Date.now();
-            const html = `
+            container.insertAdjacentHTML('beforeend', `
                 <div class="report-block" id="block-${blockId}">
                     ${container.children.length > 0 ? `<div class="remove-block-btn" onclick="document.getElementById('block-${blockId}').remove()"><i class="fa-solid fa-xmark"></i></div>` : ''}
-                    
-                    <div class="mb-4">
-                        <label class="label-text">お客様先 担当者名</label>
-                        <input type="text" class="customer-staff form-input" placeholder="担当者名を入力">
-                    </div>
-
+                    <div class="mb-4"><label class="label-text">お客様先 担当者名</label><input type="text" class="customer-staff form-input" placeholder="担当者名を入力"></div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
-                        <div><label class="label-text">定性データ1</label><select class="qual-data-1 form-input text-xs font-bold"><option value="">選択してください</option><option>01.リサーチ情報</option><option>02.ニーズ</option><option>03.問合せ</option><option>04.調査検討要請</option><option>05.見積要請</option><option>06.個別説明・協議</option><option>07.受注</option><option>08.失注</option><option>お喜びの声</option><option>お叱りの声</option><option>改善要望</option></select></div>
-                        <div><label class="label-text">定性データ2</label><select class="qual-data-2 form-input text-xs font-bold"><option value="">選択してください</option><option>ケコム大口径</option><option>ケコム中口径</option><option>ケコム小口径</option><option>ケコム特殊</option><option>ケコム工法</option><option>生コン・セメント</option><option>イン①業況</option><option>イン②今後の受注/設計計画</option></select></div>
-                        <div><label class="label-text">定性データ3</label><select class="qual-data-3 form-input text-xs font-bold"><option value="">選択してください</option><option>東北</option><option>北陸</option><option>関東</option><option>甲信越</option><option>東海(中部)</option><option>近畿</option><option>中国</option><option>四国</option><option>九州(沖縄)</option></select></div>
+                        <div><label class="label-text">定性データ1</label><select class="qual-data-1 form-input text-xs font-bold"><option value="">選択</option><option>01.リサーチ情報</option><option>02.ニーズ</option><option>03.問合せ</option><option>04.調査検討要請</option><option>05.見積要請</option><option>06.個別説明・協議</option><option>07.受注</option><option>08.失注</option></select></div>
+                        <div><label class="label-text">定性データ2</label><select class="qual-data-2 form-input text-xs font-bold"><option value="">選択</option><option>ケコム大口径</option><option>ケコム中口径</option><option>ケコム小口径</option><option>ケコム特殊</option><option>ケコム工法</option><option>生コン・セメント</option><option>イン①業況</option></select></div>
+                        <div><label class="label-text">定性データ3</label><select class="qual-data-3 form-input text-xs font-bold"><option value="">選択</option><option>東北</option><option>北陸</option><option>関東</option><option>甲信越</option><option>東海(中部)</option><option>近畿</option><option>中国</option><option>四国</option><option>九州(沖縄)</option></select></div>
                     </div>
-
                     <div class="space-y-4">
-                        <div>
-                            <label class="label-text">お客様からの情報（要望・状況など）</label>
-                            <textarea class="customer-report form-input h-32 resize-none" placeholder="詳しく入力してください">${initialContent}</textarea>
-                        </div>
-                        <div>
-                            <label class="label-text">自分・スタッフの考え（次回の提案・課題）</label>
-                            <textarea class="staff-thoughts form-input h-32 resize-none" placeholder="考えや計画を入力してください"></textarea>
-                        </div>
+                        <div><label class="label-text">お客様からの情報</label><textarea class="customer-report form-input h-32 resize-none" placeholder="要望、状況など">${initialContent}</textarea></div>
+                        <div><label class="label-text">自分・スタッフの考え</label><textarea class="staff-thoughts form-input h-32 resize-none" placeholder="次回の提案予定や課題"></textarea></div>
                     </div>
-                </div>
-            `;
-            container.insertAdjacentHTML('beforeend', html);
+                </div>`);
         };
 
-        // 顧客検索ロジック
         function setupCustomerSearch() {
             const input = document.getElementById('customerSearch'), box = document.getElementById('customerSuggestions');
             let timeout = null;
@@ -223,7 +195,6 @@
             };
         }
 
-        // モーダル制御
         window.openStaffModal = (target) => {
             currentTarget = target;
             document.getElementById('staffModal').style.display = 'flex';
@@ -233,9 +204,7 @@
         };
         window.closeModal = () => document.getElementById('staffModal').style.display = 'none';
         window.renderStaffList = () => {
-            const kw = document.getElementById('staffKeyword').value.toLowerCase();
-            const dp = document.getElementById('staffDeptFilter').value;
-            const container = document.getElementById('staffList');
+            const kw = document.getElementById('staffKeyword').value.toLowerCase(), dp = document.getElementById('staffDeptFilter').value, container = document.getElementById('staffList');
             const filtered = allStaffs.filter(s => (!kw || s.name.includes(kw)) && (dp === 'ALL' || s.dept === dp));
             container.innerHTML = filtered.map(s => `<div class="staff-item ${modalSelected.includes(s.name) ? 'selected' : ''}" onclick="window.toggleStaffSelection('${s.name}')"><span>${s.name}</span><span class="text-[9px] opacity-40 font-black">${s.dept || ''}</span></div>`).join('');
         };
@@ -256,70 +225,43 @@
         };
         window.clearModalSelection = () => { modalSelected = []; window.renderStaffList(); };
 
-        // 登録処理
         const handleRegister = async () => {
             const form = document.getElementById('historyForm');
             if (!form.checkValidity()) { form.reportValidity(); return; }
-            
-            const blocks = document.querySelectorAll('.report-block');
-            const visitor = document.getElementById('visitorName').value;
-            const customer = document.getElementById('customerSearch').value;
-            const visitDate = document.getElementById('visitDate').value;
-            const staffObj = allStaffs.find(s => s.name === visitor);
-            const visitorDept = staffObj ? staffObj.dept : "不明";
-
+            const blocks = document.querySelectorAll('.report-block'), visitor = document.getElementById('visitorName').value, customer = document.getElementById('customerSearch').value, visitDate = document.getElementById('visitDate').value;
+            const staffObj = allStaffs.find(s => s.name === visitor), visitorDept = staffObj ? staffObj.dept : "不明";
             const btns = [document.getElementById('submitBtnTop'), document.getElementById('submitBtnBottom')];
             btns.forEach(b => { b.disabled = true; b.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>保存中...'; });
 
             try {
                 for (const block of blocks) {
-                    const recordData = {
-                        customerName: customer,
-                        customerRank: document.getElementById('autoRank').value,
-                        customerType: document.getElementById('autoType').value,
-                        visitDate: visitDate,
-                        nextVisitDate: document.getElementById('nextVisitDate').value || "",
-                        startTime: document.getElementById('startTime').value,
-                        endTime: document.getElementById('endTime').value,
-                        visitorName: visitor,
-                        visitorDept: visitorDept,
-                        companion: document.getElementById('companionDisplay').value,
-                        qualData1: block.querySelector('.qual-data-1').value,
-                        qualData2: block.querySelector('.qual-data-2').value,
-                        qualData3: block.querySelector('.qual-data-3').value, // 🌟 復活
-                        customerStaff: block.querySelector('.customer-staff').value,
-                        content: block.querySelector('.customer-report').value,
-                        staffThoughts: block.querySelector('.staff-thoughts').value,
-                        createdAt: serverTimestamp()
-                    };
-                    await addDoc(collection(db, "activity_records"), recordData);
+                    await addDoc(collection(db, "activity_records"), {
+                        customerName: customer, customerRank: document.getElementById('autoRank').value, customerType: document.getElementById('autoType').value,
+                        visitDate: visitDate, nextVisitDate: document.getElementById('nextVisitDate').value || "", startTime: document.getElementById('startTime').value, endTime: document.getElementById('endTime').value,
+                        visitorName: visitor, visitorDept: visitorDept, companion: document.getElementById('companionDisplay').value,
+                        qualData1: block.querySelector('.qual-data-1').value, qualData2: block.querySelector('.qual-data-2').value, qualData3: block.querySelector('.qual-data-3').value,
+                        customerStaff: block.querySelector('.customer-staff').value, content: block.querySelector('.customer-report').value, staffThoughts: block.querySelector('.staff-thoughts').value, createdAt: serverTimestamp()
+                    });
                 }
-
+                // 🌟 【スマート修正】名簿のカウントアップは「1回だけ」行う
                 const qCust = query(collection(db, "customers"), where("name", "==", customer), limit(1));
                 const snapCust = await getDocs(qCust);
                 if (!snapCust.empty) {
-                    await updateDoc(doc(db, "customers", snapCust.docs[0].id), { lastVisit: visitDate.replace(/-/g, '/'), updatedAt: serverTimestamp() });
+                    const custDoc = snapCust.docs[0];
+                    const newCount = (parseInt(custDoc.data().visitCount) || 0) + 1; // 1回だけ増やす
+                    await updateDoc(doc(db, "customers", custDoc.id), { 
+                        lastVisit: visitDate.replace(/-/g, '/'), 
+                        visitCount: newCount,
+                        updatedAt: serverTimestamp() 
+                    });
                 }
-
                 const circularNames = document.getElementById('circularDisplay').innerText.split(', ').filter(n => n !== '未選択' && n !== '');
                 for (const name of circularNames) {
                     await addDoc(collection(db, "notifications"), { recipient: name, visitorName: visitor, customerName: customer, visitDate: visitDate, isRead: false, createdAt: serverTimestamp(), type: "実績回覧" });
                 }
-
                 localStorage.removeItem('cp_draft_history');
-                alert("登録完了！");
                 location.href = 'list_records.html';
-            } catch (e) {
-                console.error(e);
-                alert("保存に失敗しました。");
-                btns.forEach(b => { b.disabled = false; b.innerHTML = '登録を実行'; });
-            }
-        };
-
-        window.saveDraft = () => {
-            const draft = { cust: document.getElementById('customerSearch').value, date: document.getElementById('visitDate').value };
-            localStorage.setItem('cp_draft_history', JSON.stringify(draft));
-            alert("基本情報を下書き保存しました。");
+            } catch (e) { alert("失敗"); btns.forEach(b => { b.disabled = false; b.innerHTML = '登録を実行'; }); }
         };
 
         document.getElementById('submitBtnTop').onclick = handleRegister;
