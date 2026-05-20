@@ -20,7 +20,8 @@
         .info-label { font-size: 10px; font-weight: 800; color: #94a3b8; }
         .info-value { font-size: 13px; font-weight: 800; color: #475569; }
         .report-box { background: #f8fafc; border-radius: 1rem; padding: 1.5rem; border: 1px solid #f1f5f9; font-size: 13px; line-height: 1.7; margin-bottom: 1rem; }
-        .summary-card { background: linear-gradient(135deg, #004098 0%, #2d3748 100%); color: white; border-radius: 1.5rem; padding: 1.5rem; margin-bottom: 2rem; display: grid; grid-template-columns: repeat(3, 1fr); text-align: center; }
+        /* 🌟 サマリーカードを4分割に調整 */
+        .summary-card { background: linear-gradient(135deg, #004098 0%, #2d3748 100%); color: white; border-radius: 1.5rem; padding: 1.5rem; margin-bottom: 2rem; display: grid; grid-template-columns: repeat(4, 1fr); text-align: center; gap: 10px; }
         .scope-select { background: #f8fafc; border: 1px solid #e2e8f0; padding: 0.6rem 1rem; border-radius: 0.75rem; font-size: 0.8rem; font-weight: 800; color: #475569; outline: none; }
     </style>
 </head>
@@ -33,14 +34,11 @@
                 <div class="flex justify-between items-end mb-8"><h1 class="text-4xl font-black text-slate-800 tracking-tighter">組織員利用状況</h1>
                     <button onclick="location.href='calendar.html'" class="px-6 py-2 bg-white border rounded-xl font-bold text-xs shadow-sm">カレンダーへ戻る</button>
                 </div>
-
-                <!-- 社員選択 -->
                 <div class="staff-selector-card p-6 mb-8">
                     <div class="flex flex-col lg:flex-row gap-4 mb-6">
                         <select id="deptFilter" onchange="window.renderStaffList()" class="scope-select min-w-[240px]">
                             <option value="ALL">全ケコム関連</option>
                             <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option>
-                            <option>土木部</option><option>建築部</option><option>建機部</option><option>総務部</option>
                         </select>
                         <input type="text" id="staffSearch" oninput="window.renderStaffList()" placeholder="氏名で検索..." class="flex-1 px-4 py-3 bg-slate-50 border rounded-xl outline-none font-bold">
                     </div>
@@ -48,15 +46,17 @@
                 </div>
 
                 <div id="toolArea" class="hidden">
+                    <!-- 🌟 4項目サマリー -->
                     <div class="summary-card shadow-lg">
-                        <div><p class="text-[10px] opacity-60 font-black uppercase mb-1">営業件数</p><p class="text-2xl font-black"><span id="sumVisits">0</span>件</p></div>
-                        <div><p class="text-[10px] opacity-60 font-black uppercase mb-1">合計滞在</p><p class="text-2xl font-black"><span id="sumTime">0</span>時間</p></div>
-                        <div><p class="text-[10px] opacity-60 font-black uppercase mb-1">平均滞在</p><p class="text-2xl font-black"><span id="sumAvg">0</span>分</p></div>
+                        <div><p class="text-[9px] opacity-60 font-black uppercase mb-1">訪問件数</p><p class="text-xl font-black"><span id="sumActualVisits">0</span>件</p></div>
+                        <div><p class="text-[9px] opacity-60 font-black uppercase mb-1">営業件数</p><p class="text-xl font-black"><span id="sumSales">0</span>件</p></div>
+                        <div><p class="text-[9px] opacity-60 font-black uppercase mb-1">合計滞在</p><p class="text-xl font-black"><span id="sumTime">0</span>時間</p></div>
+                        <div><p class="text-[9px] opacity-60 font-black uppercase mb-1">平均滞在</p><p class="text-xl font-black"><span id="sumAvg">0</span>分</p></div>
                     </div>
                     <div class="bg-white p-1 rounded-2xl border mb-8 flex overflow-x-auto whitespace-nowrap custom-scrollbar">
                         <script>for(let i=1; i<=12; i++) document.write(`<button onclick="window.setMonth(${i})" id="m-btn-${i}" class="month-btn">${i}月</button>`);</script>
                     </div>
-                    <div class="mb-20"><h3 id="selectedStaffLabel" class="text-xl font-black mb-8 px-4 text-slate-800"></h3><div id="activityAccordion" class="space-y-4"></div></div>
+                    <div class="mb-20"><h3 id="selectedStaffLabel" class="text-xl font-black mb-8 px-4 text-slate-800 border-l-4 border-orange-500 pl-4"></h3><div id="activityAccordion" class="space-y-4"></div></div>
                 </div>
                 <div id="guideMsg" class="py-20 text-center"><p class="text-slate-400 font-bold tracking-widest uppercase">社員を選択してください</p></div>
             </div>
@@ -65,23 +65,15 @@
 
     <script type="module" src="common.js"></script>
     <script type="module">
-        import { db } from "./common.js";
+        import { db, TARGET_DEPTS } from "./common.js";
         import { collection, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let allStaffs = [], currentStaffRecords = [], selectedName = "", currentY = 2026, currentM = new Date().getMonth() + 1;
-        
-        // 🌟 重要：スペースを消した名前と、消さない名前の両方で比較できるようにする
         const clean = (s) => (s||"").replace(/\s+/g, '');
-
-        const getMonthFromDate = (dateStr) => {
-            if(!dateStr) return null;
-            const parts = String(dateStr).replace(/\//g, '-').split('-');
-            return { year: parseInt(parts[0]), month: parseInt(parts[1]) };
-        };
 
         async function init() {
             try {
-                const snap = await getDocs(query(collection(db, "staffs"), orderBy("name")));
+                const snap = await getDocs(query(collection(db, "staffs"), where("dept", "in", TARGET_DEPTS), orderBy("name")));
                 allStaffs = snap.docs.map(d => d.data());
                 window.renderStaffList();
                 
@@ -100,57 +92,52 @@
             const container = document.getElementById('staffList');
             container.innerHTML = "";
             allStaffs.filter(s => (!kw || s.name.includes(kw)) && (dept === 'ALL' || s.dept === dept)).forEach(s => {
-                const div = document.createElement('div');
-                div.className = `staff-item ${selectedName === s.name ? 'active' : ''}`;
+                const div = document.createElement('div'); div.className = `staff-item ${clean(selectedName) === clean(s.name) ? 'active' : ''}`;
                 div.innerHTML = `<p class="font-black text-xs">${s.name}</p><p class="text-[8px] opacity-60 uppercase">${s.dept || ''}</p>`;
-                div.onclick = () => window.selectStaff(s.name);
-                container.appendChild(div);
+                div.onclick = () => window.selectStaff(s.name); container.appendChild(div);
             });
         };
 
         window.selectStaff = async (name) => {
-            selectedName = name; 
-            window.renderStaffList();
-            document.getElementById('guideMsg').style.display = 'none';
-            document.getElementById('toolArea').style.display = 'block';
-            
+            selectedName = name; window.renderStaffList();
+            document.getElementById('guideMsg').style.display = 'none'; document.getElementById('toolArea').style.display = 'block';
             try {
-                // 🌟 最強の検索：スペースあり・なし両方を考慮して全取得
-                const q = query(collection(db, "activity_records"), where("visitDate", ">=", `${currentY}`), where("visitDate", "<=", `${currentY}\uf8ff`));
+                const q = query(collection(db, "activity_records"), where("visitorName", "==", name), where("visitDate", ">=", `${currentY}`));
                 const snap = await getDocs(q); 
-                
-                // 取得した全データの中から、JS側で「名前（スペース無視）」でフィルタリング
-                const targetCleanName = clean(name);
-                currentStaffRecords = snap.docs
-                    .map(d => d.data())
-                    .filter(r => clean(r.visitorName) === targetCleanName);
-
+                currentStaffRecords = snap.docs.map(d => d.data());
                 document.getElementById('selectedStaffLabel').innerText = `${name} さんの履歴`;
                 window.setMonth(currentM); 
             } catch (e) { console.error(e); }
         };
 
         window.setMonth = (m) => {
-            currentM = m;
-            document.querySelectorAll('.month-btn').forEach(btn => btn.classList.toggle('active', btn.id === `m-btn-${m}`));
+            currentM = m; document.querySelectorAll('.month-btn').forEach(btn => btn.classList.toggle('active', btn.id === `m-btn-${m}`));
             window.renderAccordion();
         };
 
         window.renderAccordion = () => {
             const container = document.getElementById('activityAccordion');
             const filtered = currentStaffRecords.filter(r => {
-                const d = getMonthFromDate(r.visitDate);
-                return d.year === currentY && d.month === currentM;
+                const d = String(r.visitDate).replace(/\//g, '-').split('-');
+                return parseInt(d[1]) === currentM;
             }).sort((a,b) => String(b.visitDate).localeCompare(String(a.visitDate)));
 
             let totalMins = 0;
+            // 🌟 訪問件数（同日・同社は1件と数える）のロジック
+            const uniqueVisits = new Set();
+
             filtered.forEach(r => {
+                // 訪問件数用キー作成 (日付 + 会社名)
+                uniqueVisits.add(`${r.visitDate}_${r.customerName}`);
+
                 if(r.startTime && r.endTime){
                     const s = r.startTime.split(':'), e = r.endTime.split(':');
                     totalMins += (parseInt(e[0])*60+parseInt(e[1])) - (parseInt(s[0])*60+parseInt(s[1]));
                 }
             });
-            document.getElementById('sumVisits').innerText = filtered.length;
+
+            document.getElementById('sumActualVisits').innerText = uniqueVisits.size;
+            document.getElementById('sumSales').innerText = filtered.length;
             document.getElementById('sumTime').innerText = Math.floor(totalMins/60);
             document.getElementById('sumAvg').innerText = filtered.length ? Math.round(totalMins / filtered.length) : 0;
 
@@ -165,6 +152,8 @@
                         <div class="info-grid">
                             <div><p class="info-label">お客様担当者</p><p class="info-value">${r.customerStaff || '-'}</p></div>
                             <div><p class="info-label">訪問時間</p><p class="info-value">${r.startTime}〜${r.endTime}</p></div>
+                            <div><p class="info-label">同行者</p><p class="info-value text-blue-600">${r.companion || 'なし'}</p></div>
+                            <div><p class="info-label">定性データ</p><p class="info-value text-[10px] opacity-60">${r.qualData1||'-'} / ${r.qualData2||'-'} / ${r.qualData3||'-'}</p></div>
                         </div>
                         <p class="info-label mb-2">報告内容</p><div class="report-box">${r.content || r.customerReport || 'なし'}</div>
                         <p class="info-label mb-2">スタッフの考え</p><div class="report-box border-l-4 border-orange-100">${r.staffThoughts || '未入力'}</div>
@@ -183,8 +172,7 @@
         window.toggleAcc = (id) => {
             const item = document.getElementById(id); if(!item) return;
             const content = item.querySelector('.accordion-content');
-            const open = content.style.display === 'block';
-            content.style.display = open ? 'none' : 'block';
+            const open = content.style.display === 'block'; content.style.display = open ? 'none' : 'block';
             item.querySelector('i').style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
         };
 
