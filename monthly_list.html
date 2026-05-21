@@ -12,14 +12,11 @@
         .month-col { min-width: 55px; text-align: center; border-left: 1px solid #f1f5f9; font-size: 10px; }
         .val-zero { color: #e2e8f0; font-weight: 400; }
         .val-active { color: var(--copros-orange); background: #fff7ed; border-radius: 4px; padding: 4px 0; font-weight: 900; }
-        
-        /* スティッキー列（固定） */
         @media (min-width: 1024px) {
             .sticky-rank { position: sticky; left: 0; background: white; z-index: 10; border-right: 1px solid #f1f5f9; min-width: 50px; }
             .sticky-name { position: sticky; left: 50px; background: white; z-index: 10; border-right: 2px solid #f1f5f9; min-width: 220px; }
             thead .sticky-rank, thead .sticky-name { background: #3c4b5a; z-index: 20; color: white; }
         }
-        
         .scope-select { background: #e2e8f0; border: none; padding: 0.5rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; cursor: pointer; }
         .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
@@ -36,11 +33,9 @@
                     <div class="flex items-end gap-6 w-full lg:w-auto">
                         <div>
                             <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-1">月別実績一覧</h1>
-                            <!-- 🌟 英語サブタイトルを追加 -->
                             <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Monthly Customer Activity Matrix</nav>
                         </div>
-                        <!-- 🌟 部署フィルターをケコム限定に -->
-                        <select id="deptFilter" onchange="window.init()" class="scope-select shadow-inner mb-1">
+                        <select id="deptFilter" onchange="window.init(true)" class="scope-select shadow-inner mb-1">
                             <option value="ALL">全ケコム関連 表示</option>
                             <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option>
                         </select>
@@ -59,21 +54,13 @@
                     <table class="w-full text-left border-collapse min-w-[1300px]">
                         <thead>
                             <tr class="text-white text-[10px] font-black uppercase tracking-widest text-center">
-                                <th class="p-4 sticky-rank">Rank</th>
-                                <th class="p-4 sticky-name text-left">お客様名</th>
-                                <th class="p-4 w-24">属性</th>
-                                <th class="month-col bg-slate-700/30">7月</th><th class="month-col bg-slate-700/30">8月</th>
-                                <th class="month-col bg-slate-700/30">9月</th><th class="month-col bg-slate-700/30">10月</th>
-                                <th class="month-col bg-slate-700/30">11月</th><th class="month-col bg-slate-700/30">12月</th>
-                                <th class="month-col bg-blue-900/20">1月</th><th class="month-col bg-blue-900/20">2月</th>
-                                <th class="month-col bg-blue-900/20">3月</th><th class="month-col bg-blue-900/20">4月</th>
-                                <th class="month-col bg-blue-900/20">5月</th><th class="month-col bg-blue-900/20">6月</th>
+                                <th class="p-4 sticky-rank">Rank</th><th class="p-4 sticky-name text-left">お客様名</th><th class="p-4 w-24">属性</th>
+                                <th class="month-col bg-slate-700/30">7月</th><th class="month-col bg-slate-700/30">8月</th><th class="month-col bg-slate-700/30">9月</th><th class="month-col bg-slate-700/30">10月</th><th class="month-col bg-slate-700/30">11月</th><th class="month-col bg-slate-700/30">12月</th>
+                                <th class="month-col bg-blue-900/20">1月</th><th class="month-col bg-blue-900/20">2月</th><th class="month-col bg-blue-900/20">3月</th><th class="month-col bg-blue-900/20">4月</th><th class="month-col bg-blue-900/20">5月</th><th class="month-col bg-blue-900/20">6月</th>
                                 <th class="p-4 bg-slate-900 w-20">合計</th>
                             </tr>
                         </thead>
-                        <tbody id="monthlyTableBody" class="text-[11px] lg:text-xs font-bold divide-y divide-slate-50 bg-white">
-                            <!-- JSで挿入 -->
-                        </tbody>
+                        <tbody id="monthlyTableBody" class="text-[11px] lg:text-xs font-bold divide-y divide-slate-50 bg-white"></tbody>
                     </table>
                 </div>
                 <div id="loading" class="py-20 text-center">
@@ -87,42 +74,42 @@
     <script type="module" src="common.js"></script>
     <script type="module">
         import { db, TARGET_DEPTS } from "./common.js";
-        import { collection, getDocs, query, where, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // 本日の日付から年度を算出（7月基準）
         const now = new Date();
         let currentYear = now.getMonth() + 1 >= 7 ? now.getFullYear() : now.getFullYear() - 1;
 
-        // 日付標準化関数
         const standardizeDate = (s) => {
             if(!s) return "";
             const d = s.replace(/\//g, '-').split('-');
-            if(d.length < 3) return s;
-            return `${d[0]}-${d[1].padStart(2, '0')}-${d[2].padStart(2, '0')}`;
+            return d.length < 3 ? s : `${d[0]}-${d[1].padStart(2, '0')}-${d[2].padStart(2, '0')}`;
         };
 
-        window.init = async () => {
+        // 🌟 キャッシュ機能付き初期化
+        window.init = async (forceRefresh = false) => {
             const loading = document.getElementById('loading');
             loading.style.display = 'block';
             const tbody = document.getElementById('monthlyTableBody');
             tbody.innerHTML = "";
             document.getElementById('displayYear').innerText = `${currentYear}年度`;
-            
             const selectedDept = document.getElementById('deptFilter').value;
 
+            // 🌟 【省エネ】キャッシュチェック
+            const cacheKey = `cp_matrix_cache_${currentYear}_${selectedDept}`;
+            const cachedData = sessionStorage.getItem(cacheKey);
+            if (cachedData && !forceRefresh) {
+                renderTable(JSON.parse(cachedData));
+                loading.style.display = 'none';
+                return;
+            }
+
             try {
-                // 🌟 【鉄壁の省エネ】年度の範囲を指定して取得
                 let q;
                 const ref = collection(db, "activity_records");
-                const startDate = `${currentYear}-07-01`;
-                const endDate = `${currentYear + 1}-06-30`;
-
                 if (selectedDept === 'ALL') {
-                    // 全ケコム関連を取得
-                    q = query(ref, where("visitorDept", "in", TARGET_DEPTS), where("visitDate", ">=", `${currentYear}`), limit(3000));
+                    q = query(ref, where("visitorDept", "in", TARGET_DEPTS), where("visitDate", ">=", `${currentYear}`), limit(5000));
                 } else {
-                    // 特定の部署のみ取得
-                    q = query(ref, where("visitorDept", "==", selectedDept), where("visitDate", ">=", `${currentYear}`), limit(2000));
+                    q = query(ref, where("visitorDept", "==", selectedDept), where("visitDate", ">=", `${currentYear}`), limit(3000));
                 }
 
                 const snap = await getDocs(q);
@@ -135,9 +122,7 @@
                     const sDate = standardizeDate(r.visitDate);
                     const parts = sDate.split('-');
                     if (parts.length < 3) return;
-                    
                     const y = parseInt(parts[0]), m = parseInt(parts[1]);
-                    // 7月期首の年度内か判定
                     const isTarget = (y === currentYear && m >= 7) || (y === currentYear + 1 && m <= 6);
 
                     if (isTarget) {
@@ -150,38 +135,45 @@
                     }
                 });
 
-                const sortedNames = Array.from(activeMap.keys()).sort((a,b) => a.localeCompare(b, 'ja'));
+                const sortedData = Array.from(activeMap.entries()).sort((a,b) => a[0].localeCompare(b[0], 'ja'));
                 
-                if (sortedNames.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="16" class="p-24 text-center text-slate-300 font-black italic tracking-widest uppercase">No Records Available for this Year</td></tr>';
-                } else {
-                    sortedNames.forEach(name => {
-                        const d = activeMap.get(name);
-                        let monthCells = "";
-                        d.counts.forEach(c => {
-                            monthCells += `<td class="month-col">${c > 0 ? `<div class="val-active">${c}</div>` : '<div class="val-zero">0</div>'}</td>`;
-                        });
-                        tbody.insertAdjacentHTML('beforeend', `
-                            <tr class="hover:bg-blue-50/30 transition-colors border-b border-slate-50 text-center">
-                                <td class="p-4 sticky-rank text-[10px] text-slate-400 font-black bg-white">${d.rank || '-'}</td>
-                                <td class="p-4 sticky-name text-left text-slate-800 font-black truncate max-w-[200px] cursor-pointer hover:text-orange-500 bg-white" onclick="location.href='customer_history.html?name=${encodeURIComponent(name)}'">${name}</td>
-                                <td class="p-4 text-slate-400 text-[10px] uppercase font-bold">${d.type || '-'}</td>
-                                ${monthCells}
-                                <td class="p-4 bg-slate-50 font-black text-[#004098]">${d.total}</td>
-                            </tr>
-                        `);
-                    });
-                }
+                // 🌟 データをキャッシュに保存
+                sessionStorage.setItem(cacheKey, JSON.stringify(sortedData));
+                
+                renderTable(sortedData);
                 loading.style.display = 'none';
             } catch (e) { 
                 console.error(e); 
                 loading.style.display = 'none';
-                tbody.innerHTML = '<tr><td colspan="16" class="p-20 text-center text-rose-400 font-bold italic uppercase">Sync Error: Please check index settings</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="16" class="p-20 text-center text-rose-400 font-bold uppercase italic">Sync Error</td></tr>';
             }
         };
 
-        window.changeYear = (val) => { currentYear += val; window.init(); };
-        
+        function renderTable(dataEntries) {
+            const tbody = document.getElementById('monthlyTableBody');
+            if (dataEntries.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="16" class="p-24 text-center text-slate-300 font-black italic tracking-widest uppercase">No Records</td></tr>';
+                return;
+            }
+            const months = [7,8,9,10,11,12,1,2,3,4,5,6];
+            dataEntries.forEach(([name, d]) => {
+                let monthCells = "";
+                d.counts.forEach(c => {
+                    monthCells += `<td class="month-col">${c > 0 ? `<div class="val-active">${c}</div>` : '<div class="val-zero">0</div>'}</td>`;
+                });
+                tbody.insertAdjacentHTML('beforeend', `
+                    <tr class="hover:bg-blue-50/30 transition-colors border-b border-slate-50 text-center">
+                        <td class="p-4 sticky-rank text-[10px] text-slate-400 font-black bg-white">${d.rank || '-'}</td>
+                        <td class="p-4 sticky-name text-left text-slate-800 font-black truncate max-w-[220px] cursor-pointer hover:text-orange-500 bg-white" onclick="location.href='customer_history.html?name=${encodeURIComponent(name)}'">${name}</td>
+                        <td class="p-4 text-slate-400 text-[10px] uppercase font-bold">${d.type || '-'}</td>
+                        ${monthCells}
+                        <td class="p-4 bg-slate-50 font-black text-[#004098]">${d.total}</td>
+                    </tr>
+                `);
+            });
+        }
+
+        window.changeYear = (val) => { currentYear += val; window.init(true); };
         window.addEventListener('load', () => { setTimeout(() => window.init(), 300); });
     </script>
 </body>
