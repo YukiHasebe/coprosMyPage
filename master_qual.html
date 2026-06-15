@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8"><title>定性データ項目設定 | CP My Page</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { --copros-orange: #ff7e11; --copros-navy: #004098; }
+        body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
+        .config-card { background: white; border-radius: 1.5rem; padding: 2rem; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); }
+        .tag-input { width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 0.75rem; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.5rem; }
+        .label-badge { font-size: 0.7rem; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; display: block; margin-bottom: 0.5rem; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden text-slate-700">
+    <div id="sidebar-placeholder"></div>
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <div id="header-placeholder"></div>
+        <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
+            <div class="max-w-4xl mx-auto">
+                <div class="mb-8">
+                    <h1 class="text-3xl font-black text-slate-800 tracking-tighter mb-1">定性データ項目設定</h1>
+                    <p class="text-xs font-bold text-slate-400 uppercase italic">Master Option Management</p>
+                </div>
+
+                <div class="grid grid-cols-1 gap-6">
+                    <div class="config-card">
+                        <span class="label-badge">定性データ 1 (例: リサーチ情報、ニーズ...)</span>
+                        <textarea id="qual1" class="tag-input h-32" placeholder="1行に1項目ずつ入力してください"></textarea>
+                    </div>
+                    <div class="config-card">
+                        <span class="label-badge">定性データ 2 (例: 担当製品、工法...)</span>
+                        <textarea id="qual2" class="tag-input h-32" placeholder="1行に1項目ずつ入力してください"></textarea>
+                    </div>
+                    <div class="config-card">
+                        <span class="label-badge">定性データ 3 (例: 地域、支店...)</span>
+                        <textarea id="qual3" class="tag-input h-32" placeholder="1行に1項目ずつ入力してください"></textarea>
+                    </div>
+                </div>
+
+                <div class="mt-8 flex justify-center">
+                    <button onclick="window.saveOptions()" id="saveBtn" class="px-20 py-4 bg-[#004098] text-white rounded-2xl font-black shadow-lg hover:shadow-xl transition-all active:scale-95 flex items-center gap-3">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> 設定を保存する
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script type="module" src="common.js"></script>
+    <script type="module">
+        import { db } from "./common.js";
+        import { doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        async function init() {
+            try {
+                const snap = await getDoc(doc(db, "master_settings", "qual_options"));
+                if (snap.exists()) {
+                    const data = snap.data();
+                    document.getElementById('qual1').value = data.qual1.join('\n');
+                    document.getElementById('qual2').value = data.qual2.join('\n');
+                    document.getElementById('qual3').value = data.qual3.join('\n');
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        window.saveOptions = async () => {
+            const btn = document.getElementById('saveBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 保存中...';
+
+            const data = {
+                qual1: document.getElementById('qual1').value.split('\n').filter(s => s.trim() !== ""),
+                qual2: document.getElementById('qual2').value.split('\n').filter(s => s.trim() !== ""),
+                qual3: document.getElementById('qual3').value.split('\n').filter(s => s.trim() !== ""),
+                updatedAt: serverTimestamp()
+            };
+
+            try {
+                await setDoc(doc(db, "master_settings", "qual_options"), data);
+                alert("設定を保存しました。実績登録画面に反映されます。");
+            } catch (e) {
+                alert("保存に失敗しました。制限リセットをお待ちください。");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> 設定を保存する';
+            }
+        };
+
+        init();
+    </script>
+</body>
+</html>
