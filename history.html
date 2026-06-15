@@ -121,9 +121,10 @@
     <script type="module" src="common.js"></script>
     <script type="module">
         import { db, TARGET_DEPTS } from "./common.js";
-        import { collection, getDocs, addDoc, updateDoc, doc, serverTimestamp, query, where, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, getDocs, getDoc, addDoc, updateDoc, doc, serverTimestamp, query, where, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let allStaffs = [], currentTarget = '', modalSelected = [];
+        let masterOptions = { qual1: [], qual2: [], qual3: [] };
 
         async function init() {
             const loginUser = sessionStorage.getItem('userName') || "";
@@ -131,7 +132,14 @@
             const jumpDate = sessionStorage.getItem('cp_add_date');
             if (jumpDate) { document.getElementById('visitDate').value = jumpDate; sessionStorage.removeItem('cp_add_date'); }
             else { document.getElementById('visitDate').valueAsDate = new Date(); }
+            
             try {
+                // 定性データのマスタ取得
+                const masterSnap = await getDoc(doc(db, "master_settings", "qual_options"));
+                if (masterSnap.exists()) {
+                    masterOptions = masterSnap.data();
+                }
+
                 const sSnap = await getDocs(query(collection(db, "staffs"), orderBy("name")));
                 allStaffs = sSnap.docs.map(doc => ({ ...doc.data() }));
                 const deptSelect = document.getElementById('staffDeptFilter');
@@ -152,20 +160,55 @@
         window.addReportBlock = (initialContent = "") => {
             const container = document.getElementById('reportContainer');
             const blockId = Date.now();
+            
+            const q1Html = masterOptions.qual1.map(o => `<option>${o}</option>`).join('');
+            const q2Html = masterOptions.qual2.map(o => `<option>${o}</option>`).join('');
+            const q3Html = masterOptions.qual3.map(o => `<option>${o}</option>`).join('');
+
             container.insertAdjacentHTML('beforeend', `
                 <div class="report-block" id="block-${blockId}">
                     ${container.children.length > 0 ? `<div class="remove-block-btn" onclick="document.getElementById('block-${blockId}').remove()"><i class="fa-solid fa-xmark"></i></div>` : ''}
-                    <div class="mb-4"><label class="label-text">お客様先 担当者名</label><input type="text" class="customer-staff form-input" placeholder="担当者名を入力"></div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="label-text">お客様先 担当者名（入力）</label>
+                            <input type="text" class="customer-staff form-input" placeholder="例: 鈴木, 山田" oninput="window.updateStaffSelect(${blockId}, this.value)">
+                        </div>
+                        <div>
+                            <label class="label-text">お客様先 担当者を選択</label>
+                            <select class="customer-staff-select form-input text-xs font-bold" onchange="window.applyStaffName(${blockId}, this.value)">
+                                <option value="">担当者を選択してください</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="label-text">反映内容</label>
+                        <input type="text" class="customer-staff-final form-input readonly-input" readonly placeholder="選択するとここに「様」付きで入ります">
+                    </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
-                        <div><label class="label-text">定性データ1</label><select class="qual-data-1 form-input text-xs font-bold"><option value="">選択</option><option>01.リサーチ情報</option><option>02.ニーズ</option><option>03.問合せ</option><option>04.調査検討要請</option><option>05.見積要請</option><option>06.個別説明・協議</option><option>07.受注</option><option>08.失注</option></select></div>
-                        <div><label class="label-text">定性データ2</label><select class="qual-data-2 form-input text-xs font-bold"><option value="">選択</option><option>ケコム大口径</option><option>ケコム中口径</option><option>ケコム小口径</option><option>ケコム特殊</option><option>ケコム工法</option><option>生コン・セメント</option><option>イン①業況</option></select></div>
-                        <div><label class="label-text">定性データ3</label><select class="qual-data-3 form-input text-xs font-bold"><option value="">選択</option><option>東北</option><option>北陸</option><option>関東</option><option>甲信越</option><option>東海(中部)</option><option>近畿</option><option>中国</option><option>四国</option><option>九州(沖縄)</option></select></div>
+                        <div><label class="label-text">定性データ1</label><select class="qual-data-1 form-input text-xs font-bold"><option value="">選択</option>${q1Html}</select></div>
+                        <div><label class="label-text">定性データ2</label><select class="qual-data-2 form-input text-xs font-bold"><option value="">選択</option>${q2Html}</select></div>
+                        <div><label class="label-text">定性データ3</label><select class="qual-data-3 form-input text-xs font-bold"><option value="">選択</option>${q3Html}</select></div>
                     </div>
                     <div class="space-y-4">
-                        <div><label class="label-text">お客様からの情報</label><textarea class="customer-report form-input h-32 resize-none" placeholder="要望、状況など">${initialContent}</textarea></div>
+                        <div><label class="label-text">お客様からの情報（自由入力）</label><textarea class="customer-report form-input h-32 resize-none" placeholder="要望、状況など">${initialContent}</textarea></div>
                         <div><label class="label-text">自分・スタッフの考え</label><textarea class="staff-thoughts form-input h-32 resize-none" placeholder="次回の提案予定や課題"></textarea></div>
                     </div>
                 </div>`);
+        };
+
+        // 🌟 担当者入力からドロップダウンを生成するロジック
+        window.updateStaffSelect = (blockId, val) => {
+            const block = document.getElementById(`block-${blockId}`);
+            const select = block.querySelector('.customer-staff-select');
+            const names = val.split(/[,、\s]+/).filter(n => n.trim() !== "");
+            select.innerHTML = '<option value="">担当者を選択してください</option>' + names.map(n => `<option value="${n}">${n}</option>`).join('');
+        };
+
+        // 🌟 ドロップダウン選択で「様」を付与して反映
+        window.applyStaffName = (blockId, val) => {
+            if (!val) return;
+            const block = document.getElementById(`block-${blockId}`);
+            block.querySelector('.customer-staff-final').value = `${val} 様`;
         };
 
         function setupCustomerSearch() {
@@ -240,20 +283,16 @@
                         visitDate: visitDate, nextVisitDate: document.getElementById('nextVisitDate').value || "", startTime: document.getElementById('startTime').value, endTime: document.getElementById('endTime').value,
                         visitorName: visitor, visitorDept: visitorDept, companion: document.getElementById('companionDisplay').value,
                         qualData1: block.querySelector('.qual-data-1').value, qualData2: block.querySelector('.qual-data-2').value, qualData3: block.querySelector('.qual-data-3').value,
-                        customerStaff: block.querySelector('.customer-staff').value, content: block.querySelector('.customer-report').value, staffThoughts: block.querySelector('.staff-thoughts').value, createdAt: serverTimestamp()
+                        customerStaff: block.querySelector('.customer-staff-final').value || block.querySelector('.customer-staff').value,
+                        content: block.querySelector('.customer-report').value, staffThoughts: block.querySelector('.staff-thoughts').value, createdAt: serverTimestamp()
                     });
                 }
-                // 🌟 【スマート修正】名簿のカウントアップは「1回だけ」行う
                 const qCust = query(collection(db, "customers"), where("name", "==", customer), limit(1));
                 const snapCust = await getDocs(qCust);
                 if (!snapCust.empty) {
                     const custDoc = snapCust.docs[0];
-                    const newCount = (parseInt(custDoc.data().visitCount) || 0) + 1; // 1回だけ増やす
-                    await updateDoc(doc(db, "customers", custDoc.id), { 
-                        lastVisit: visitDate.replace(/-/g, '/'), 
-                        visitCount: newCount,
-                        updatedAt: serverTimestamp() 
-                    });
+                    const newCount = (parseInt(custDoc.data().visitCount) || 0) + 1;
+                    await updateDoc(doc(db, "customers", custDoc.id), { lastVisit: visitDate.replace(/-/g, '/'), visitCount: newCount, updatedAt: serverTimestamp() });
                 }
                 const circularNames = document.getElementById('circularDisplay').innerText.split(', ').filter(n => n !== '未選択' && n !== '');
                 for (const name of circularNames) {
@@ -261,7 +300,7 @@
                 }
                 localStorage.removeItem('cp_draft_history');
                 location.href = 'list_records.html';
-            } catch (e) { alert("失敗"); btns.forEach(b => { b.disabled = false; b.innerHTML = '登録を実行'; }); }
+            } catch (e) { console.error(e); alert("保存に失敗しました"); btns.forEach(b => { b.disabled = false; b.innerHTML = '登録を実行'; }); }
         };
 
         document.getElementById('submitBtnTop').onclick = handleRegister;
