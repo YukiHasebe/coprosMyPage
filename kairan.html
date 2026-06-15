@@ -52,64 +52,85 @@
     </main>
 
     <script type="module" src="common.js"></script>
-    <script type="module">
+       <script type="module">
         import { db } from "./common.js";
         import { collection, getDocs, updateDoc, doc, writeBatch, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let myName = sessionStorage.getItem('userName');
-        const clean = (s) => (s||"").replace(/\s+/g, '');
+        const clean = (s) => (s||"").toString().replace(/\s+/g, '');
 
         async function init() {
             const container = document.getElementById('kairanList');
             if(!myName) { container.innerHTML = '<p class="text-center py-20 text-rose-400 font-bold">ログイン情報がありません</p>'; return; }
 
+            // 🌟 1回読み込んだらキャッシュして通信を節約
+            const cacheKey = `cp_kairan_cache_${clean(myName)}`;
+            const cached = sessionStorage.getItem(cacheKey);
+            if (cached) {
+                renderList(JSON.parse(cached));
+                return;
+            }
+
             try {
-                // 🌟 省エネ：自分宛の通知だけを狙い撃ち（最新100件）
+                // 🌟 インデックスエラーを回避するため、クエリを極限までシンプルに。
+                // 100件あれば運用上十分なはずです
                 const q = query(
                     collection(db, "notifications"), 
                     where("recipient", "==", myName),
-                    orderBy("createdAt", "desc"),
                     limit(100)
                 );
                 
                 const snap = await getDocs(q);
-                const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                let data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-                container.innerHTML = data.length ? data.map(n => {
-                    let displayDate = n.visitDate || n.appointDate;
-                    const dateFmt = displayDate ? String(displayDate).replace(/-/g,'/') : '日付不明';
+                // 🌟 並び替え（降順）をアプリ側で行うことでインデックス不要にします
+                data.sort((a, b) => {
+                    const timeA = a.createdAt?.seconds || 0;
+                    const timeB = b.createdAt?.seconds || 0;
+                    return timeB - timeA;
+                });
 
-                    return `
-                    <div class="accordion-item ${n.isRead ? '' : 'unread'}" id="item-${n.id}">
-                        <div class="accordion-header" onclick="window.toggleKairan('${n.id}', ${n.isRead})">
-                            <div class="flex items-center gap-4">
-                                <input type="checkbox" class="bulk-check w-5 h-5 accent-[#004098] rounded-md" onclick="event.stopPropagation()" value="${n.id}">
-                                <span class="status-txt ${n.isRead ? 'status-read' : 'status-unread'}">${n.isRead ? '既読' : '未読'}</span>
-                                <span class="badge ${n.type === 'アポ回覧' ? 'badge-apo' : 'badge-rec'}">${n.type === 'アポ回覧' ? 'アポ' : '実績'}</span>
-                                <span class="text-sm font-mono font-black ${n.isRead ? 'text-slate-400' : 'text-orange-600'}">${dateFmt}</span>
-                                <span class="text-sm font-black text-slate-700 tracking-tight">${n.visitorName} <i class="fa-solid fa-caret-right mx-1 opacity-30"></i> ${n.customerName}</span>
-                            </div>
-                            <i class="fa-solid fa-chevron-down opacity-20 text-xs transition-transform"></i>
-                        </div>
-                        <div class="accordion-content">
-                            <div class="info-grid">
-                                <div><p class="info-label">お客様名</p><p class="info-value text-blue-600">${n.customerName}</p></div>
-                                <div><p class="info-label">報告者</p><p class="info-value">${n.visitorName}</p></div>
-                            </div>
-                            <p class="info-label mb-2 tracking-widest">■ 報告の抜粋</p>
-                            <div class="report-box">${n.content || '詳細内容は個人カルテ画面で確認してください'}</div>
-                            <div class="mt-8 flex justify-end">
-                                <button onclick="window.goUsage('${n.visitorName}', '${displayDate}', '${n.customerName}')" class="px-6 py-2.5 bg-slate-100 text-[#004098] rounded-xl text-xs font-black hover:bg-[#004098] hover:text-white transition-all shadow-sm">
-                                    個人履歴を確認する <i class="fa-solid fa-arrow-right ml-2"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>`;
-                }).join('') : '<div class="py-20 text-center border-2 border-dashed border-slate-200 rounded-3xl"><p class="text-slate-300 font-black italic tracking-widest uppercase">No review items found</p></div>';
+                sessionStorage.setItem(cacheKey, JSON.stringify(data));
+                renderList(data);
             } catch (e) { 
-                console.error(e); 
-                container.innerHTML = '<p class="text-center py-20 text-rose-400 font-bold">データの取得に失敗しました</p>';
+                console.error("回覧取得エラー:", e); 
+                container.innerHTML = '<p class="text-center py-20 text-rose-400 font-bold uppercase text-xs font-black">データの取得に失敗しました<br><span class="opacity-50 font-normal">（制限リセット待ち、または通信環境を確認してください）</span></p>';
             }
+        }
+
+        function renderList(data) {
+            const container = document.getElementById('kairanList');
+            container.innerHTML = data.length ? data.map(n => {
+                let displayDate = n.visitDate || n.appointDate;
+                const dateFmt = displayDate ? String(displayDate).replace(/-/g,'/') : '日付不明';
+
+                return `
+                <div class="accordion-item ${n.isRead ? '' : 'unread'}" id="item-${n.id}">
+                    <div class="accordion-header" onclick="window.toggleKairan('${n.id}', ${n.isRead})">
+                        <div class="flex items-center gap-4">
+                            <input type="checkbox" class="bulk-check w-5 h-5 accent-[#004098] rounded-md" onclick="event.stopPropagation()" value="${n.id}">
+                            <span class="status-txt ${n.isRead ? 'status-read' : 'status-unread'}">${n.isRead ? '既読' : '未読'}</span>
+                            <span class="badge ${n.type === 'アポ回覧' ? 'badge-apo' : 'badge-rec'}">${n.type === 'アポ回覧' ? 'アポ' : '実績'}</span>
+                            <span class="text-sm font-mono font-black ${n.isRead ? 'text-slate-400' : 'text-orange-600'}">${dateFmt}</span>
+                            <span class="text-sm font-black text-slate-700 tracking-tight">${n.visitorName} <i class="fa-solid fa-caret-right mx-1 opacity-30"></i> ${n.customerName}</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-down opacity-20 text-xs transition-transform"></i>
+                    </div>
+                    <div class="accordion-content">
+                        <div class="info-grid">
+                            <div><p class="info-label">お客様名</p><p class="info-value text-blue-600">${n.customerName}</p></div>
+                            <div><p class="info-label">報告者</p><p class="info-value">${n.visitorName}</p></div>
+                        </div>
+                        <p class="info-label mb-2 tracking-widest">■ 報告の抜粋</p>
+                        <div class="report-box">${n.content || '詳細内容は個人履歴画面で確認してください'}</div>
+                        <div class="mt-8 flex justify-end">
+                            <button onclick="window.goUsage('${n.visitorName}', '${displayDate}', '${n.customerName}')" class="px-6 py-2.5 bg-slate-100 text-[#004098] rounded-xl text-xs font-black hover:bg-[#004098] hover:text-white transition-all shadow-sm">
+                                個人履歴を確認する <i class="fa-solid fa-arrow-right ml-2"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('') : '<div class="py-20 text-center border-2 border-dashed border-slate-200 rounded-3xl"><p class="text-slate-300 font-black italic tracking-widest uppercase">No review items found</p></div>';
         }
 
         window.toggleKairan = async (id, isRead) => {
@@ -119,21 +140,25 @@
             const statusLabel = item.querySelector('.status-txt');
             const isOpen = content.style.display === 'block';
             content.style.display = isOpen ? 'none' : 'block';
-            arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+            if(arrow) arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
             
             if (!isOpen && !isRead) {
                 try {
                     await updateDoc(doc(db, "notifications", id), { isRead: true });
                     item.classList.remove('unread');
-                    statusLabel.innerText = "既読";
-                    statusLabel.className = "status-txt status-read";
+                    if(statusLabel) {
+                        statusLabel.innerText = "既読";
+                        statusLabel.className = "status-txt status-read";
+                    }
+                    // キャッシュも更新
+                    sessionStorage.removeItem(`cp_kairan_cache_${clean(myName)}`);
                 } catch (e) { console.error(e); }
             }
         };
 
         window.bulkAction = async (action) => {
             const checks = document.querySelectorAll('.bulk-check:checked');
-            if (!checks.length) return alert("操作したい項目にチェックを入れてください");
+            if (!checks.length) return alert("項目にチェックを入れてください");
             if (!confirm(`${checks.length}件を${action === 'read' ? '既読' : '削除'}にしますか？`)) return;
             
             const batch = writeBatch(db);
@@ -143,11 +168,16 @@
                 else batch.delete(ref);
             });
             await batch.commit();
+            sessionStorage.removeItem(`cp_kairan_cache_${clean(myName)}`);
             location.reload();
         };
 
         window.goUsage = (name, date, customer) => {
-            const m = date ? parseInt(date.split(/[-/]/)[1]) : (new Date().getMonth() + 1);
+            let m = new Date().getMonth() + 1;
+            if (date) {
+                const parts = date.split(/[-/]/);
+                if (parts.length >= 2) m = parseInt(parts[1]);
+            }
             sessionStorage.setItem('cp_usage_jump_name', name);
             sessionStorage.setItem('cp_usage_jump_month', m);
             sessionStorage.setItem('cp_usage_jump_customer', customer);
