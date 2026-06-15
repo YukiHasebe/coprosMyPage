@@ -66,72 +66,51 @@
 
     <script type="module" src="common.js"></script>
 
-        <script type="module">
+         <script type="module">
         import { db, TARGET_DEPTS } from "./common.js";
-        import { collection, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let allStaffs = [], currentStaffRecords = [], selectedName = "", currentY = 2026, currentM = new Date().getMonth() + 1;
-        
-        // 🌟 判定を最強にするための「空白・スペース全削除」関数
         const cleanAll = (s) => (s||"").toString().replace(/\s+/g, '').trim();
-
-        // 🌟 日付の正規化（カレンダーと統一）
         const standardizeDate = (s) => {
             if(!s) return "";
             const d = s.toString().replace(/\//g, '-').split('-');
-            if (d.length < 3) return s;
-            return `${d[0]}-${d[1].padStart(2, '0')}-${d[2].padStart(2, '0')}`;
+            return d.length < 3 ? s : `${d[0]}-${d[1].padStart(2, '0')}-${d[2].padStart(2, '0')}`;
         };
 
         async function init() {
             try {
-                // 安全第一：全社員を読み込み（これはマスターデータなのでOK）
-                const snap = await getDocs(query(collection(db, "staffs"), orderBy("name")));
-                allStaffs = snap.docs.map(d => d.data());
+                // スタッフ一覧のキャッシュ利用
+                const cachedStaff = sessionStorage.getItem('cp_cache_staffs');
+                if (cachedStaff) {
+                    allStaffs = JSON.parse(cachedStaff);
+                } else {
+                    const snap = await getDocs(query(collection(db, "staffs"), orderBy("name")));
+                    allStaffs = snap.docs.map(d => d.data());
+                    sessionStorage.setItem('cp_cache_staffs', JSON.stringify(allStaffs));
+                }
                 window.renderStaffList();
                 
-                // カレンダーからのジャンプ対応
                 const jName = sessionStorage.getItem('cp_usage_jump_name');
                 const jMonth = sessionStorage.getItem('cp_usage_jump_month');
-                const jYear = sessionStorage.getItem('cp_usage_jump_year');
-
                 if (jName) {
                     sessionStorage.removeItem('cp_usage_jump_name');
                     sessionStorage.removeItem('cp_usage_jump_month');
-                    sessionStorage.removeItem('cp_usage_jump_year');
-                    
-                    if (jYear) currentY = parseInt(jYear);
-                    if (jMonth) currentM = parseInt(jMonth);
-                    
+                    if(jMonth) currentM = parseInt(jMonth);
                     window.selectStaff(jName);
                 }
-            } catch (e) { console.error("Staff Load Error:", e); }
+            } catch (e) { console.error(e); }
         }
 
         window.renderStaffList = () => {
             const kw = cleanAll(document.getElementById('staffSearch').value.toLowerCase());
             const dept = document.getElementById('deptFilter').value;
             const container = document.getElementById('staffList');
-            container.innerHTML = "";
-            
-            const filtered = allStaffs.filter(s => {
-                const nameMatch = !kw || cleanAll(s.name).toLowerCase().includes(kw);
-                const sDeptClean = cleanAll(s.dept || "");
-                const deptMatch = (dept === 'ALL') ? TARGET_DEPTS.some(t => cleanAll(t) === sDeptClean) : sDeptClean === cleanAll(dept);
-                return nameMatch && deptMatch;
-            });
-
-            filtered.forEach(s => {
-                const div = document.createElement('div');
-                div.className = `staff-item ${cleanAll(selectedName) === cleanAll(s.name) ? 'active' : ''}`;
-                div.innerHTML = `<p class="font-black text-xs">${s.name}</p><p class="text-[8px] opacity-60 uppercase">${s.dept || ''}</p>`;
-                div.onclick = () => window.selectStaff(s.name);
-                container.appendChild(div);
-            });
-
-            if(filtered.length === 0) {
-                container.innerHTML = '<p class="col-span-full py-4 text-slate-300 font-bold text-xs">該当する社員がいません</p>';
-            }
+            container.innerHTML = allStaffs.filter(s => {
+                const nameM = !kw || cleanAll(s.name).toLowerCase().includes(kw);
+                const sDept = cleanAll(s.dept || "");
+                return nameM && (dept === 'ALL' ? TARGET_DEPTS.some(t => cleanAll(t) === sDept) : sDept === cleanAll(dept));
+            }).map(s => `<div class="staff-item ${cleanAll(selectedName) === cleanAll(s.name) ? 'active' : ''}" onclick="window.selectStaff('${s.name}')"><p class="font-black text-xs">${s.name}</p><p class="text-[8px] opacity-60 uppercase">${s.dept || ''}</p></div>`).join('');
         };
 
         window.selectStaff = async (name) => {
@@ -140,24 +119,30 @@
             document.getElementById('guideMsg').style.display = 'none';
             document.getElementById('toolArea').style.display = 'block';
             
+            // 🌟 修正：特定社員のデータもsessionStorageにキャッシュし、1日何度も読み込まないようにします
+            const cacheKey = `cp_usage_cache_${cleanAll(name)}_${currentY}`;
+            const cached = sessionStorage.getItem(cacheKey);
+            
+            if (cached) {
+                currentStaffRecords = JSON.parse(cached);
+                window.finishSelectStaff(name);
+                return;
+            }
+
             try {
-                // 🌟 【省エネ・高速化】選んだ社員の、今の年のデータだけを取得
-                const targetCleanName = cleanAll(name);
-                const q = query(
-                    collection(db, "activity_records"), 
-                    where("visitorName", "==", name) // まずは完全一致で取得
-                );
+                // インデックス不足を避けるため、最もシンプルな「名前一致」だけで取得
+                const q = query(collection(db, "activity_records"), where("visitorName", "==", name), limit(1000));
                 const snap = await getDocs(q); 
+                currentStaffRecords = snap.docs.map(d => d.data());
                 
-                // 取得後に、スペースゆらぎがある場合も考慮してJSで最終フィルタリング
-                currentStaffRecords = snap.docs.map(d => d.data()).filter(r => {
-                    const rDate = standardizeDate(r.visitDate);
-                    return cleanAll(r.visitorName) === targetCleanName && rDate.startsWith(currentY.toString());
-                });
-                
-                document.getElementById('selectedStaffLabel').innerText = `${name} さんの活動履歴`;
-                window.setMonth(currentM); 
-            } catch (e) { console.error("Record Load Error:", e); }
+                sessionStorage.setItem(cacheKey, JSON.stringify(currentStaffRecords));
+                window.finishSelectStaff(name);
+            } catch (e) { console.error(e); }
+        };
+
+        window.finishSelectStaff = (name) => {
+            document.getElementById('selectedStaffLabel').innerText = `${name} さんの活動履歴`;
+            window.setMonth(currentM); 
         };
 
         window.setMonth = (m) => {
@@ -168,11 +153,9 @@
 
         window.renderAccordion = () => {
             const container = document.getElementById('activityAccordion');
-            
-            // 🌟 月の判定を強化
             const filtered = currentStaffRecords.filter(r => {
                 const d = standardizeDate(r.visitDate).split('-');
-                return parseInt(d[1]) === currentM;
+                return parseInt(d[0]) === currentY && parseInt(d[1]) === currentM;
             }).sort((a,b) => standardizeDate(b.visitDate).localeCompare(standardizeDate(a.visitDate)));
 
             let totalMins = 0;
@@ -182,9 +165,7 @@
                 uniqueVisits.add(`${standardizeDate(r.visitDate)}_${cleanAll(r.customerName)}`);
                 if(r.startTime && r.endTime){
                     const s = r.startTime.split(':'), e = r.endTime.split(':');
-                    if(s.length === 2 && e.length === 2) {
-                        totalMins += (parseInt(e[0])*60+parseInt(e[1])) - (parseInt(s[0])*60+parseInt(s[1]));
-                    }
+                    if(s.length===2 && e.length===2) totalMins += (parseInt(e[0])*60+parseInt(e[1])) - (parseInt(s[0])*60+parseInt(s[1]));
                 }
             });
 
@@ -212,10 +193,10 @@
                         </div>
                         <p class="info-label mb-2 uppercase tracking-widest">報告内容</p>
                         <div class="report-box">${r.content || r.customerReport || '報告なし'}</div>
-                        <p class="info-label mb-2 uppercase tracking-widest">自分・スタッフの考え</p>
+                        <p class="info-label mb-2 uppercase tracking-widest">スタッフの考え</p>
                         <div class="report-box border-l-4 border-orange-100">${r.staffThoughts || '未入力'}</div>
                     </div>
-                </div>`).join('') : '<p class="text-center py-20 text-slate-300 font-bold uppercase tracking-widest">当月の実績はありません</p>';
+                </div>`).join('') : '<p class="text-center py-20 text-slate-300 font-bold uppercase tracking-widest">実績はありません</p>';
             
             if(jumpTarget) {
                 setTimeout(() => {
@@ -232,13 +213,13 @@
         window.toggleAcc = (id) => {
             const item = document.getElementById(id); if(!item) return;
             const content = item.querySelector('.accordion-content');
-            const icon = item.querySelector('i');
             const isOpen = content.style.display === 'block';
             content.style.display = isOpen ? 'none' : 'block';
+            const icon = item.querySelector('i');
             if(icon) icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
         };
 
         init();
-    </script>
+    </script>  
 </body>
 </html>
