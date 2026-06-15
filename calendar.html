@@ -81,143 +81,211 @@
     <div id="staffModal" class="modal-overlay"><div class="modal-content"><div class="bg-slate-900 p-4 text-white flex justify-between items-center"><span class="font-black text-xs uppercase">Select Member</span><i class="fa-solid fa-xmark cursor-pointer" onclick="window.closeModal()"></i></div><div class="p-4 bg-slate-50 border-b border-slate-100"><div class="grid grid-cols-2 gap-2"><input type="text" id="modalSearch" oninput="window.renderModalList()" placeholder="氏名検索..." class="p-2.5 rounded-lg border border-slate-200 text-xs font-bold outline-none"><select id="modalDept" onchange="window.renderModalList()" class="p-2.5 rounded-lg border border-slate-200 text-xs font-bold outline-none"><option value="ALL">全ケコム関連</option><option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option></select></div></div><div id="modalStaffList" class="max-h-[350px] overflow-y-auto custom-scrollbar"></div><div class="p-4 bg-slate-50 grid grid-cols-2 gap-3"><button onclick="window.applyModal()" class="py-3 bg-[#004098] text-white rounded-xl font-black">決定</button><button onclick="window.clearModal()" class="py-3 bg-white border border-slate-200 rounded-xl font-bold">クリア</button></div></div></div>
 
     <script type="module" src="common.js"></script>
+
     <script type="module">
-        import { db, TARGET_DEPTS } from "./common.js";
-        import { collection, getDocs, query, where, doc, updateDoc, writeBatch, deleteDoc, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { db, TARGET_DEPTS } from "./common.js";
+    import { collection, getDocs, query, where, doc, updateDoc, writeBatch, deleteDoc, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        let allStaffs = [], selectedStaffs = JSON.parse(localStorage.getItem('cp_cal_selected_staffs') || "[]");
-        let loadedData = { records: [], appoints: [], notifications: [] };
-        let currentDate = new Date();
-        const clean = (s) => (s||"").toString().replace(/\s+/g, '').trim();
+    let allStaffs = [], selectedStaffs = JSON.parse(localStorage.getItem('cp_cal_selected_staffs') || "[]");
+    let loadedData = { records: [], appoints: [], notifications: [] };
+    let currentDate = new Date();
 
-        window.standardizeDate = (s) => {
-            if(!s) return "";
-            const d = s.replace(/\//g, '-').split('-');
-            return d.length < 3 ? s : `${d[0]}-${d[1].padStart(2, '0')}-${d[2].padStart(2, '0')}`;
-        };
+    // 🌟 名寄せ用：スペースを完全に除去
+    const clean = (s) => (s||"").toString().replace(/\s+/g, '').trim();
 
-        async function init() {
-            try {
-                const snap = await getDocs(query(collection(db, "staffs"), orderBy("name")));
-                allStaffs = snap.docs.map(d => d.data());
-                window.updateSelectedDisplay();
-                await window.fetchMonthData();
-            } catch (e) { console.error(e); }
+    // 🌟 日付統一：2026/01/01 も 2026-1-1 も 2026-01-01 に変換
+    window.standardizeDate = (s) => {
+        if(!s) return "";
+        const d = s.toString().replace(/\//g, '-').split('-');
+        if (d.length < 3) return s;
+        return `${d[0]}-${d[1].padStart(2, '0')}-${d[2].padStart(2, '0')}`;
+    };
+
+    async function init() {
+        try {
+            const snap = await getDocs(query(collection(db, "staffs"), orderBy("name")));
+            allStaffs = snap.docs.map(d => d.data());
+            window.updateSelectedDisplay();
+            await window.fetchMonthData();
+        } catch (e) { console.error("初期化エラー:", e); }
+    }
+
+    window.updateSelectedDisplay = () => {
+        const container = document.getElementById('selectedNamesDisplay');
+        if (!selectedStaffs.length) { 
+            container.innerHTML = '<span class="text-slate-300 italic text-xs font-black uppercase">表示する社員を選択してください</span>'; 
+            return; 
+        }
+        container.innerHTML = selectedStaffs.map(name => `<div class="staff-tag"><span>${name}</span><i class="fa-solid fa-circle-xmark remove-staff-x" onclick="window.removeStaff('${name}')"></i></div>`).join('');
+    };
+
+    window.removeStaff = (name) => {
+        selectedStaffs = selectedStaffs.filter(n => n !== name);
+        localStorage.setItem('cp_cal_selected_staffs', JSON.stringify(selectedStaffs));
+        window.updateSelectedDisplay();
+        window.renderCalendar();
+    };
+
+    window.openStaffModal = () => { document.getElementById('staffModal').style.display = 'flex'; window.renderModalList(); };
+    window.closeModal = () => { document.getElementById('staffModal').style.display = 'none'; };
+    
+    window.renderModalList = () => {
+        const kw = clean(document.getElementById('modalSearch').value.toLowerCase());
+        const dept = document.getElementById('modalDept').value;
+        const container = document.getElementById('modalStaffList');
+        container.innerHTML = allStaffs.filter(s => {
+            const nameM = !kw || clean(s.name).toLowerCase().includes(kw);
+            const deptM = (dept === 'ALL') ? TARGET_DEPTS.includes(clean(s.dept)) : clean(s.dept) === clean(dept);
+            return nameM && deptM;
+        }).map(s => `<div class="staff-item ${selectedStaffs.includes(s.name) ? 'selected' : ''}" onclick="window.toggleModalStaff('${s.name}')"><span>${s.name}</span><span class="text-[10px] font-black opacity-30">${s.dept || ''}</span></div>`).join('');
+    };
+
+    window.toggleModalStaff = (name) => {
+        if (selectedStaffs.includes(name)) selectedStaffs = selectedStaffs.filter(n => n !== name);
+        else selectedStaffs.push(name);
+        window.renderModalList();
+    };
+
+    window.applyModal = () => { 
+        localStorage.setItem('cp_cal_selected_staffs', JSON.stringify(selectedStaffs)); 
+        window.updateSelectedDisplay(); 
+        window.fetchMonthData(true); // 🌟 社員が変わったら再取得
+        window.closeModal(); 
+    };
+
+    window.fetchMonthData = async (force = false) => {
+        const y = currentDate.getFullYear(), m = currentDate.getMonth() + 1, mStr = m.toString().padStart(2, '0');
+        // キャッシュキーに選択社員を含める（省エネ対策）
+        const cacheKey = `cp_cal_cache_${y}_${mStr}_${clean(selectedStaffs.join(''))}`;
+        
+        document.getElementById('displayMonthCenter').innerText = `${y}年 ${m}月`;
+        document.querySelectorAll('.month-btn').forEach(b => b.classList.toggle('active', b.id === `m-btn-${m}`));
+
+        if (!selectedStaffs.length) {
+            loadedData = { records: [], appoints: [], notifications: [] };
+            window.renderCalendar();
+            return;
         }
 
-        window.updateSelectedDisplay = () => {
-            const container = document.getElementById('selectedNamesDisplay');
-            if (!selectedStaffs.length) { container.innerHTML = '<span class="text-slate-300 italic text-xs font-black uppercase">表示する社員を選択してください</span>'; return; }
-            container.innerHTML = selectedStaffs.map(name => `<div class="staff-tag"><span>${name}</span><i class="fa-solid fa-circle-xmark remove-staff-x" onclick="window.removeStaff('${name}')"></i></div>`).join('');
-        };
-
-        window.removeStaff = (name) => {
-            selectedStaffs = selectedStaffs.filter(n => n !== name);
-            localStorage.setItem('cp_cal_selected_staffs', JSON.stringify(selectedStaffs));
-            window.updateSelectedDisplay();
+        const cached = sessionStorage.getItem(cacheKey);
+        if (cached && !force) {
+            loadedData = JSON.parse(cached);
             window.renderCalendar();
-        };
+            return;
+        }
 
-        window.openStaffModal = () => { document.getElementById('staffModal').style.display = 'flex'; window.renderModalList(); };
-        window.closeModal = () => { document.getElementById('staffModal').style.display = 'none'; };
-        window.renderModalList = () => {
-            const kw = clean(document.getElementById('modalSearch').value.toLowerCase());
-            const dept = document.getElementById('modalDept').value;
-            const container = document.getElementById('modalStaffList');
-            container.innerHTML = allStaffs.filter(s => {
-                const nameM = !kw || clean(s.name).toLowerCase().includes(kw);
-                const deptM = (dept === 'ALL') ? TARGET_DEPTS.includes(clean(s.dept)) : clean(s.dept) === clean(dept);
-                return nameM && deptM;
-            }).map(s => `<div class="staff-item ${selectedStaffs.includes(s.name) ? 'selected' : ''}" onclick="window.toggleModalStaff('${s.name}')"><span>${s.name}</span><span class="text-[10px] font-black opacity-30">${s.dept || ''}</span></div>`).join('');
-        };
-        window.toggleModalStaff = (name) => {
-            if (selectedStaffs.includes(name)) selectedStaffs = selectedStaffs.filter(n => n !== name);
-            else selectedStaffs.push(name);
-            window.renderModalList();
-        };
-        window.applyModal = () => { localStorage.setItem('cp_cal_selected_staffs', JSON.stringify(selectedStaffs)); window.updateSelectedDisplay(); window.renderCalendar(); window.closeModal(); };
-
-        window.fetchMonthData = async (force = false) => {
-            const y = currentDate.getFullYear(), m = currentDate.getMonth() + 1, mStr = m.toString().padStart(2, '0');
-            const cacheKey = `cp_cal_cache_${y}_${mStr}`;
-            document.getElementById('displayMonthCenter').innerText = `${y}年 ${m}月`;
-            document.querySelectorAll('.month-btn').forEach(b => b.classList.toggle('active', b.id === `m-btn-${m}`));
-
-            const cached = sessionStorage.getItem(cacheKey);
-            if (cached && !force) {
-                loadedData = JSON.parse(cached);
-                window.renderCalendar();
-                return;
-            }
-
-            document.getElementById('local-loader').style.display = 'flex';
-            try {
-                // 🌟 【究極の省エネ】月間データをまるごと1回だけ取得
-                const refR = collection(db, "activity_records");
-                const qR = query(refR, where("visitDate", ">=", `${y}/${mStr}/01`), where("visitDate", "<=", `${y}/${mStr}/31`));
-                const snapR = await getDocs(qR);
-                
-                const refA = collection(db, "appointments");
-                const qA = query(refA, where("appointDate", ">=", `${y}-${mStr}-01`), where("appointDate", "<=", `${y}-${mStr}-31`));
-                const snapA = await getDocs(qA);
-
-                const myName = sessionStorage.getItem('userName');
-                const qN = query(collection(db, "notifications"), where("recipient", "==", myName), where("isRead", "==", false));
-                const snapN = await getDocs(qN);
-
-                loadedData = {
-                    records: snapR.docs.map(d => d.data()),
-                    appoints: snapA.docs.map(d => ({id: d.id, ...d.data()})),
-                    notifications: snapN.docs.map(d => d.data())
-                };
-
-                sessionStorage.setItem(cacheKey, JSON.stringify(loadedData));
-                document.getElementById('local-loader').style.display = 'none';
-                window.renderCalendar();
-            } catch (e) { console.error(e); document.getElementById('local-loader').style.display = 'none'; }
-        };
-
-        window.renderCalendar = () => {
-            const grid = document.getElementById('calendarGrid'); grid.innerHTML = "";
-            const year = currentDate.getFullYear(), month = currentDate.getMonth();
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            const startOffset = (new Date(year, month, 1).getDay() + 6) % 7;
-            for(let i=0; i<startOffset; i++) grid.insertAdjacentHTML('beforeend', '<div class="calendar-day other-month bg-slate-50/50"></div>');
+        document.getElementById('local-loader').style.display = 'flex';
+        try {
+            // 🌟 【省エネ設計】選択されている社員のデータのみをIN句で取得（最大30人まで一括取得可能）
+            // これにより、数千件あっても一瞬で終わります
+            const visitorFilter = selectedStaffs; 
             
-            const selCleans = selectedStaffs.map(n => clean(n));
-            const showUnread = document.getElementById('showUnreadOnly').checked;
+            // 実績データ取得
+            const qR = query(collection(db, "activity_records"), where("visitorName", "in", visitorFilter));
+            const snapR = await getDocs(qR);
+            
+            // アポデータ取得
+            const qA = query(collection(db, "appointments"), where("visitorName", "in", visitorFilter));
+            const snapA = await getDocs(qA);
 
-            for(let d=1; d<=daysInMonth; d++) {
-                const targetKey = `${year}-${(month + 1).toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
-                let evHtml = "";
+            // 未読通知（自分宛て）
+            const myName = sessionStorage.getItem('userName');
+            const qN = query(collection(db, "notifications"), where("recipient", "==", myName), where("isRead", "==", false));
+            const snapN = await getDocs(qN);
 
-                if (document.getElementById('showRes').checked) {
-                    loadedData.records.filter(r => window.standardizeDate(r.visitDate) === targetKey && selCleans.includes(clean(r.visitorName))).forEach(r => {
+            // クエリ後に「月」でフィルタリング（Firebaseの複合インデックスエラーを回避し、かつ柔軟に日付形式を吸収）
+            const targetMonthPrefix1 = `${y}/${mStr}`;
+            const targetMonthPrefix2 = `${y}-${mStr}`;
+
+            loadedData = {
+                records: snapR.docs.map(d => d.data()).filter(r => r.visitDate.startsWith(targetMonthPrefix1) || r.visitDate.startsWith(targetMonthPrefix2)),
+                appoints: snapA.docs.map(d => ({id: d.id, ...d.data()})).filter(a => a.appointDate.startsWith(targetMonthPrefix1) || a.appointDate.startsWith(targetMonthPrefix2)),
+                notifications: snapN.docs.map(d => d.data())
+            };
+
+            sessionStorage.setItem(cacheKey, JSON.stringify(loadedData));
+            document.getElementById('local-loader').style.display = 'none';
+            window.renderCalendar();
+        } catch (e) { 
+            console.error("データ取得エラー:", e); 
+            document.getElementById('local-loader').style.display = 'none';
+            // もし「Index requires...」エラーが出たら、コンソールのURLをクリックして作成してください
+        }
+    };
+
+    window.renderCalendar = () => {
+        const grid = document.getElementById('calendarGrid'); 
+        grid.innerHTML = "";
+        const year = currentDate.getFullYear(), month = currentDate.getMonth();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const startOffset = (new Date(year, month, 1).getDay() + 6) % 7;
+        
+        for(let i=0; i<startOffset; i++) grid.insertAdjacentHTML('beforeend', '<div class="calendar-day other-month bg-slate-50/50"></div>');
+        
+        const selCleans = selectedStaffs.map(n => clean(n));
+        const showUnread = document.getElementById('showUnreadOnly').checked;
+
+        for(let d=1; d<=daysInMonth; d++) {
+            const targetKey = `${year}-${(month + 1).toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
+            let evHtml = "";
+
+            // 実績の表示
+            if (document.getElementById('showRes').checked) {
+                loadedData.records
+                    .filter(r => window.standardizeDate(r.visitDate) === targetKey && selCleans.includes(clean(r.visitorName)))
+                    .forEach(r => {
                         const noti = loadedData.notifications.find(n => clean(n.visitorName) === clean(r.visitorName) && clean(n.customerName) === clean(r.customerName) && window.standardizeDate(n.visitDate) === targetKey);
                         if (showUnread && !noti) return;
                         evHtml += `<div class="event-item"><div class="event-label label-result ${!noti?'is-read':''}" onclick="window.goUsage('${r.visitorName}', ${month+1}, '${r.customerName}')">${r.visitorName}: ${r.customerName}</div></div>`;
                     });
-                }
-                if (document.getElementById('showApp').checked && !showUnread) {
-                    loadedData.appoints.filter(a => window.standardizeDate(a.appointDate) === targetKey && selCleans.includes(clean(a.visitorName))).forEach(a => {
+            }
+            
+            // アポの表示
+            if (document.getElementById('showApp').checked && !showUnread) {
+                loadedData.appoints
+                    .filter(a => window.standardizeDate(a.appointDate) === targetKey && selCleans.includes(clean(a.visitorName)))
+                    .forEach(a => {
                         evHtml += `<div class="event-item"><div class="event-label label-appoint" onclick="window.handleAppoint('${a.id}','${a.customerName}','${a.appointDate}','${a.subject}')">${a.visitorName}: ${a.customerName}</div></div>`;
                     });
-                }
-                grid.insertAdjacentHTML('beforeend', `<div class="calendar-day"><div class="day-header"><span class="day-num" onclick="window.goDailyReport('${targetKey}')">${d}</span><div class="add-btn" onclick="window.goAddHistory('${targetKey}')"><i class="fa-solid fa-plus"></i></div></div><div class="max-h-[110px] overflow-y-auto custom-scrollbar">${evHtml}</div></div>`);
             }
-        };
+            
+            grid.insertAdjacentHTML('beforeend', `
+                <div class="calendar-day">
+                    <div class="day-header">
+                        <span class="day-num" onclick="window.goDailyReport('${targetKey}')">${d}</span>
+                        <div class="add-btn" onclick="window.goAddHistory('${targetKey}')"><i class="fa-solid fa-plus"></i></div>
+                    </div>
+                    <div class="max-h-[110px] overflow-y-auto custom-scrollbar">${evHtml}</div>
+                </div>`);
+        }
+    };
 
-        window.goUsage = (name, month, customer) => { sessionStorage.setItem('cp_usage_jump_name', name); sessionStorage.setItem('cp_usage_jump_month', month); sessionStorage.setItem('cp_usage_jump_customer', customer); location.href = 'usage.html'; };
-        window.goDailyReport = (date) => { sessionStorage.setItem('cp_daily_date', date); location.href = 'daily_report.html'; };
-        window.goAddHistory = (date) => { sessionStorage.setItem('cp_add_date', date); location.href = 'history.html'; };
-        window.handleAppoint = (id, cust, date, subject) => {
-            const act = confirm(`【アポ詳細】\n顧客: ${cust}\n内容: ${subject || 'なし'}\n\n[OK] 実績に登録\n[キャンセル] 削除または戻る`);
-            if (act) { sessionStorage.setItem('cp_promote_appoint', JSON.stringify({id, cust, date, subject})); location.href = 'history.html'; }
-            else if(confirm("削除しますか？")) { deleteDoc(doc(db, "appointments", id)).then(() => window.fetchMonthData(true)); }
-        };
-        window.changeMonth = (v) => { currentDate.setMonth(currentDate.getMonth() + v); window.fetchMonthData(); };
-        window.jumpMonth = (m) => { currentDate.setMonth(m - 1); window.fetchMonthData(); };
-        init();
-    </script>
+    // 🌟 Usageへの遷移（月形式を統一して渡す）
+    window.goUsage = (name, month, customer) => { 
+        sessionStorage.setItem('cp_usage_jump_name', name); 
+        sessionStorage.setItem('cp_usage_jump_month', month.toString().padStart(2, '0')); 
+        sessionStorage.setItem('cp_usage_jump_year', currentDate.getFullYear());
+        sessionStorage.setItem('cp_usage_jump_customer', customer); 
+        location.href = 'usage.html'; 
+    };
+
+    window.goDailyReport = (date) => { sessionStorage.setItem('cp_daily_date', date); location.href = 'daily_report.html'; };
+    window.goAddHistory = (date) => { sessionStorage.setItem('cp_add_date', date); location.href = 'history.html'; };
+    
+    window.handleAppoint = (id, cust, date, subject) => {
+        const act = confirm(`【アポ詳細】\n顧客: ${cust}\n内容: ${subject || 'なし'}\n\n[OK] 実績に登録\n[キャンセル] 削除または戻る`);
+        if (act) { 
+            sessionStorage.setItem('cp_promote_appoint', JSON.stringify({id, cust, date, subject})); 
+            location.href = 'history.html'; 
+        } else if(confirm("このアポを削除しますか？")) { 
+            deleteDoc(doc(db, "appointments", id)).then(() => window.fetchMonthData(true)); 
+        }
+    };
+
+    window.changeMonth = (v) => { currentDate.setMonth(currentDate.getMonth() + v); window.fetchMonthData(); };
+    window.jumpMonth = (m) => { currentDate.setMonth(m - 1); window.fetchMonthData(); };
+
+    init();
+</script>
 </body>
 </html>
