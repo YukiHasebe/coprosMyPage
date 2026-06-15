@@ -65,7 +65,8 @@
     </main>
 
     <script type="module" src="common.js"></script>
-    <script type="module">
+
+        <script type="module">
         import { db, TARGET_DEPTS } from "./common.js";
         import { collection, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
@@ -74,19 +75,34 @@
         // 🌟 判定を最強にするための「空白・スペース全削除」関数
         const cleanAll = (s) => (s||"").toString().replace(/\s+/g, '').trim();
 
+        // 🌟 日付の正規化（カレンダーと統一）
+        const standardizeDate = (s) => {
+            if(!s) return "";
+            const d = s.toString().replace(/\//g, '-').split('-');
+            if (d.length < 3) return s;
+            return `${d[0]}-${d[1].padStart(2, '0')}-${d[2].padStart(2, '0')}`;
+        };
+
         async function init() {
             try {
-                // 🌟 安全第一：全社員を一旦読み込んでから、JS側で優しくフィルタリングする
+                // 安全第一：全社員を読み込み（これはマスターデータなのでOK）
                 const snap = await getDocs(query(collection(db, "staffs"), orderBy("name")));
                 allStaffs = snap.docs.map(d => d.data());
                 window.renderStaffList();
                 
+                // カレンダーからのジャンプ対応
                 const jName = sessionStorage.getItem('cp_usage_jump_name');
                 const jMonth = sessionStorage.getItem('cp_usage_jump_month');
+                const jYear = sessionStorage.getItem('cp_usage_jump_year');
+
                 if (jName) {
                     sessionStorage.removeItem('cp_usage_jump_name');
                     sessionStorage.removeItem('cp_usage_jump_month');
-                    currentM = parseInt(jMonth);
+                    sessionStorage.removeItem('cp_usage_jump_year');
+                    
+                    if (jYear) currentY = parseInt(jYear);
+                    if (jMonth) currentM = parseInt(jMonth);
+                    
                     window.selectStaff(jName);
                 }
             } catch (e) { console.error("Staff Load Error:", e); }
@@ -98,7 +114,6 @@
             const container = document.getElementById('staffList');
             container.innerHTML = "";
             
-            // 🌟 フィルタリング（ここでの不一致を解消しました）
             const filtered = allStaffs.filter(s => {
                 const nameMatch = !kw || cleanAll(s.name).toLowerCase().includes(kw);
                 const sDeptClean = cleanAll(s.dept || "");
@@ -126,12 +141,19 @@
             document.getElementById('toolArea').style.display = 'block';
             
             try {
-                // 名前で実績を取得（ここもスペースを考慮した名寄せが必要な場合はJSでフィルタします）
-                const q = query(collection(db, "activity_records"), where("visitDate", ">=", `${currentY}`));
+                // 🌟 【省エネ・高速化】選んだ社員の、今の年のデータだけを取得
+                const targetCleanName = cleanAll(name);
+                const q = query(
+                    collection(db, "activity_records"), 
+                    where("visitorName", "==", name) // まずは完全一致で取得
+                );
                 const snap = await getDocs(q); 
                 
-                const targetCleanName = cleanAll(name);
-                currentStaffRecords = snap.docs.map(d => d.data()).filter(r => cleanAll(r.visitorName) === targetCleanName);
+                // 取得後に、スペースゆらぎがある場合も考慮してJSで最終フィルタリング
+                currentStaffRecords = snap.docs.map(d => d.data()).filter(r => {
+                    const rDate = standardizeDate(r.visitDate);
+                    return cleanAll(r.visitorName) === targetCleanName && rDate.startsWith(currentY.toString());
+                });
                 
                 document.getElementById('selectedStaffLabel').innerText = `${name} さんの活動履歴`;
                 window.setMonth(currentM); 
@@ -146,19 +168,23 @@
 
         window.renderAccordion = () => {
             const container = document.getElementById('activityAccordion');
+            
+            // 🌟 月の判定を強化
             const filtered = currentStaffRecords.filter(r => {
-                const d = String(r.visitDate).replace(/\//g, '-').split('-');
+                const d = standardizeDate(r.visitDate).split('-');
                 return parseInt(d[1]) === currentM;
-            }).sort((a,b) => String(b.visitDate).localeCompare(String(a.visitDate)));
+            }).sort((a,b) => standardizeDate(b.visitDate).localeCompare(standardizeDate(a.visitDate)));
 
             let totalMins = 0;
             const uniqueVisits = new Set();
 
             filtered.forEach(r => {
-                uniqueVisits.add(`${r.visitDate}_${cleanAll(r.customerName)}`);
+                uniqueVisits.add(`${standardizeDate(r.visitDate)}_${cleanAll(r.customerName)}`);
                 if(r.startTime && r.endTime){
                     const s = r.startTime.split(':'), e = r.endTime.split(':');
-                    totalMins += (parseInt(e[0])*60+parseInt(e[1])) - (parseInt(s[0])*60+parseInt(s[1]));
+                    if(s.length === 2 && e.length === 2) {
+                        totalMins += (parseInt(e[0])*60+parseInt(e[1])) - (parseInt(s[0])*60+parseInt(s[1]));
+                    }
                 }
             });
 
@@ -172,7 +198,7 @@
                 <div class="accordion-item" id="acc-${i}">
                     <div class="accordion-header" onclick="window.toggleAcc('acc-${i}')">
                         <div class="flex items-center gap-4">
-                            <span class="text-xs font-black opacity-60">${String(r.visitDate).replace(/-/g,'/')}</span>
+                            <span class="text-xs font-black opacity-60">${standardizeDate(r.visitDate).replace(/-/g,'/')}</span>
                             <span class="text-base font-black">${r.customerName}</span>
                         </div>
                         <i class="fa-solid fa-chevron-down opacity-30 text-xs transition-transform"></i>
@@ -194,7 +220,10 @@
             if(jumpTarget) {
                 setTimeout(() => {
                     const idx = filtered.findIndex(r => cleanAll(r.customerName) === cleanAll(jumpTarget));
-                    if(idx !== -1) window.toggleAcc(`acc-${idx}`);
+                    if(idx !== -1) {
+                        window.toggleAcc(`acc-${idx}`);
+                        document.getElementById(`acc-${idx}`).scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
                     sessionStorage.removeItem('cp_usage_jump_customer');
                 }, 400);
             }
@@ -203,9 +232,10 @@
         window.toggleAcc = (id) => {
             const item = document.getElementById(id); if(!item) return;
             const content = item.querySelector('.accordion-content');
-            const open = content.style.display === 'block';
-            content.style.display = open ? 'none' : 'block';
-            item.querySelector('i').style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
+            const icon = item.querySelector('i');
+            const isOpen = content.style.display === 'block';
+            content.style.display = isOpen ? 'none' : 'block';
+            if(icon) icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
         };
 
         init();
