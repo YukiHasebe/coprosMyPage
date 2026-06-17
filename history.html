@@ -11,7 +11,6 @@
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
         .form-input { width: 100%; padding: 0.75rem 1rem; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.75rem; font-weight: 600; transition: all 0.2s; font-size: 0.9rem; }
         .form-input:focus { outline: none; border-color: var(--copros-orange); background-color: white; box-shadow: 0 0 0 4px rgba(255, 126, 17, 0.1); }
-        .readonly-input { background-color: #f1f5f9; color: #64748b; cursor: not-allowed; border-style: dashed; }
         .label-text { font-size: 0.8rem; font-weight: 800; color: #475569; margin-bottom: 0.4rem; display: block; }
         .section-card { background: white; border-radius: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04); padding: 1.5rem; margin-bottom: 1.5rem; }
         .section-title { font-size: 0.75rem; font-weight: 900; color: #94a3b8; letter-spacing: 0.1em; border-bottom: 2px solid #f1f5f9; padding-bottom: 0.5rem; margin-bottom: 1.5rem; text-transform: uppercase; }
@@ -35,11 +34,11 @@
                 <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-4">
                     <div>
                         <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-2">実績登録</h1>
-                        <nav id="modeBadge" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">Consolidated Activity Reporting</nav>
+                        <nav class="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic tracking-widest">Consolidated Activity Reporting</nav>
                     </div>
                     <div class="flex gap-2 w-full lg:w-auto">
                         <button type="button" onclick="window.saveDraft()" class="flex-1 lg:flex-none px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 shadow-sm transition-all">下書き保存</button>
-                        <button type="button" id="submitBtnTop" class="flex-1 lg:flex-none px-10 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-sm hover:shadow-lg transition-all flex items-center justify-center gap-2 active:scale-95">
+                        <button type="button" id="submitBtnTop" class="flex-1 lg:flex-none px-10 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-sm hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2">
                             <i class="fa-solid fa-paper-plane"></i> 登録を実行
                         </button>
                     </div>
@@ -55,8 +54,8 @@
                                     <input type="text" id="customerSearch" placeholder="お客様名を検索..." class="form-input" autocomplete="off" required>
                                     <div id="customerSuggestions" class="suggestion-box custom-scrollbar"></div>
                                 </div>
-                                <div><label class="label-text text-slate-400">顧客ランク</label><input type="text" id="autoRank" class="form-input readonly-input" placeholder="--" readonly></div>
-                                <div><label class="label-text text-slate-400">属性・区分</label><input type="text" id="autoType" class="form-input readonly-input" placeholder="--" readonly></div>
+                                <div><label class="label-text text-slate-400">顧客ランク</label><input type="text" id="autoRank" class="form-input bg-slate-50 text-slate-500 italic" readonly placeholder="--"></div>
+                                <div><label class="label-text text-slate-400">属性・区分</label><input type="text" id="autoType" class="form-input bg-slate-50 text-slate-500 italic" readonly placeholder="--"></div>
                             </div>
                             <div>
                                 <label class="label-text">訪問日時 <span class="text-rose-500">*</span></label>
@@ -74,14 +73,14 @@
                                     <label class="label-text">訪問者 <span class="text-rose-500">*</span></label>
                                     <div class="flex gap-2">
                                         <input type="text" id="visitorName" class="form-input bg-blue-50 text-blue-700 font-bold" readonly>
-                                        <button type="button" onclick="window.openStaffModal('visitor')" class="px-4 bg-white border border-slate-200 rounded-xl text-xs font-black hover:bg-slate-50 shadow-sm transition-all">選択</button>
+                                        <button type="button" onclick="window.openStaffModal('visitor')" class="px-4 bg-white border border-slate-200 rounded-xl text-xs font-black hover:bg-slate-50 transition-all">選択</button>
                                     </div>
                                 </div>
                                 <div class="relative">
                                     <label class="label-text">同行者</label>
                                     <div class="flex gap-2">
                                         <input type="text" id="companionDisplay" class="form-input" placeholder="未選択" readonly>
-                                        <button type="button" onclick="window.openStaffModal('companion')" class="px-4 bg-white border border-slate-200 rounded-xl text-xs font-black hover:bg-slate-50 shadow-sm transition-all">選択</button>
+                                        <button type="button" onclick="window.openStaffModal('companion')" class="px-4 bg-white border border-slate-200 rounded-xl text-xs font-black hover:bg-slate-50 transition-all">選択</button>
                                     </div>
                                 </div>
                             </div>
@@ -100,23 +99,26 @@
                     <div class="section-card">
                         <p class="section-title">回覧設定</p>
                         <div class="flex flex-col gap-4">
-                            <button type="button" onclick="window.openStaffModal('circular')" class="w-full lg:w-48 py-2.5 bg-[#004098] text-white rounded-xl text-xs font-black shadow-md hover:opacity-90 transition-all">回覧者を選択</button>
+                            <div class="flex flex-wrap items-center gap-4">
+                                <button type="button" onclick="window.openStaffModal('circular')" class="px-6 py-2.5 bg-[#004098] text-white rounded-xl text-xs font-black shadow-md hover:opacity-90 transition-all">回覧者を選択</button>
+                                <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-500">
+                                    <input type="checkbox" id="keepCircular" class="w-4 h-4 accent-[#004098]"> 回覧者を保持する
+                                </label>
+                            </div>
                             <div id="circularDisplay" class="p-4 bg-slate-50 border border-slate-200 rounded-2xl min-h-[60px] text-sm font-bold text-slate-600">未選択</div>
                         </div>
                     </div>
 
                     <div class="flex justify-center gap-4 py-12 border-t border-slate-100 mt-10">
                         <button type="button" onclick="window.saveDraft()" class="px-8 py-3 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all shadow-sm">下書き保存</button>
-                        <button type="button" id="submitBtnBottom" onclick="document.getElementById('submitBtnTop').click()" class="px-16 py-3 bg-[#004098] text-white rounded-xl font-black text-sm hover:shadow-lg flex items-center gap-2 active:scale-95 transition-all">
-                            <i class="fa-solid fa-paper-plane"></i> 登録を実行
-                        </button>
+                        <button type="button" id="submitBtnBottom" onclick="document.getElementById('submitBtnTop').click()" class="px-16 py-3 bg-[#004098] text-white rounded-xl font-black text-sm hover:shadow-lg active:scale-95 transition-all">登録を実行</button>
                     </div>
                 </form>
             </div>
         </div>
     </main>
 
-    <div id="staffModal" class="modal-overlay"><div class="modal-content"><div class="bg-slate-900 p-4 text-white flex justify-between items-center"><span id="modalTitle" class="font-black text-xs uppercase tracking-widest">社員選択</span><i class="fa-solid fa-xmark cursor-pointer" onclick="window.closeModal()"></i></div><div class="p-4 bg-slate-50 border-b border-slate-100"><div class="grid grid-cols-2 gap-2 mb-2"><input type="text" id="staffKeyword" oninput="window.renderStaffList()" placeholder="氏名検索..." class="p-2.5 rounded-lg border border-slate-200 text-xs font-bold outline-none focus:border-orange-400"><select id="staffDeptFilter" onchange="window.renderStaffList()" class="p-2.5 rounded-lg border border-slate-200 text-xs font-bold outline-none"><option value="ALL">全部署</option></select></div></div><div id="staffList" class="overflow-y-auto custom-scrollbar" style="height: 350px;"></div><div class="p-4 bg-slate-50 grid grid-cols-3 gap-2 border-t border-slate-100"><button onclick="window.applySelection()" class="col-span-2 py-3 bg-[#004098] text-white rounded-xl font-black text-sm shadow-lg active:scale-95">決定</button><button onclick="window.clearModalSelection()" class="py-3 bg-white border border-slate-200 text-slate-400 rounded-xl font-bold text-sm hover:bg-slate-100 transition-all">クリア</button></div></div></div>
+    <div id="staffModal" class="modal-overlay"><div class="modal-content"><div class="bg-slate-900 p-4 text-white flex justify-between items-center"><span id="modalTitle" class="font-black text-xs uppercase tracking-widest">社員選択</span><i class="fa-solid fa-xmark cursor-pointer" onclick="window.closeModal()"></i></div><div class="p-4 bg-slate-50 border-b border-slate-100"><div class="grid grid-cols-2 gap-2 mb-2"><input type="text" id="staffKeyword" oninput="window.renderStaffList()" placeholder="氏名検索..." class="p-2.5 rounded-lg border border-slate-200 text-xs font-bold outline-none"><select id="staffDeptFilter" onchange="window.renderStaffList()" class="p-2.5 rounded-lg border border-slate-200 text-xs font-bold outline-none"><option value="ALL">全部署</option></select></div></div><div id="staffList" class="overflow-y-auto custom-scrollbar" style="height: 350px;"></div><div class="p-4 bg-slate-50 grid grid-cols-3 gap-2 border-t border-slate-100"><button onclick="window.applySelection()" class="col-span-2 py-3 bg-[#004098] text-white rounded-xl font-black text-sm shadow-lg active:scale-95">決定</button><button onclick="window.clearModalSelection()" class="py-3 bg-white border border-slate-200 text-slate-400 rounded-xl font-bold text-sm hover:bg-slate-100 transition-all">クリア</button></div></div></div>
 
     <script type="module" src="common.js"></script>
     <script type="module">
@@ -127,114 +129,106 @@
         let masterOptions = { qual1: [], qual2: [], qual3: [] };
 
         async function init() {
-            const loginUser = sessionStorage.getItem('userName') || "";
-            document.getElementById('visitorName').value = loginUser;
+            document.getElementById('visitorName').value = sessionStorage.getItem('userName') || "";
             const jumpDate = sessionStorage.getItem('cp_add_date');
             if (jumpDate) { document.getElementById('visitDate').value = jumpDate; sessionStorage.removeItem('cp_add_date'); }
             else { document.getElementById('visitDate').valueAsDate = new Date(); }
             
+            // 回覧者保持の復元
+            if (localStorage.getItem('cp_keep_circular') === 'true') {
+                document.getElementById('keepCircular').checked = true;
+                document.getElementById('circularDisplay').innerText = localStorage.getItem('cp_last_circular') || '未選択';
+            }
+
             try {
-                // 定性データのマスタ取得
                 const masterSnap = await getDoc(doc(db, "master_settings", "qual_options"));
-                if (masterSnap.exists()) {
-                    masterOptions = masterSnap.data();
-                }
+                if (masterSnap.exists()) masterOptions = masterSnap.data();
 
                 const sSnap = await getDocs(query(collection(db, "staffs"), orderBy("name")));
                 allStaffs = sSnap.docs.map(doc => ({ ...doc.data() }));
                 const deptSelect = document.getElementById('staffDeptFilter');
                 TARGET_DEPTS.forEach(d => deptSelect.insertAdjacentHTML('beforeend', `<option value="${d}">${d}</option>`));
-                deptSelect.value = sessionStorage.getItem('userDept') || "ALL";
+                
                 setupCustomerSearch();
-                const promoteData = sessionStorage.getItem('cp_promote_appoint');
-                if (promoteData) {
-                    const data = JSON.parse(promoteData);
-                    document.getElementById('customerSearch').value = data.cust;
-                    document.getElementById('visitDate').value = data.date;
-                    window.addReportBlock(data.subject);
-                    sessionStorage.removeItem('cp_promote_appoint');
-                } else { window.addReportBlock(); }
+                window.addReportBlock();
             } catch (e) { console.error(e); }
         }
 
-        window.addReportBlock = (initialContent = "") => {
+        window.addReportBlock = () => {
             const container = document.getElementById('reportContainer');
             const blockId = Date.now();
-            
-            const q1Html = masterOptions.qual1.map(o => `<option>${o}</option>`).join('');
-            const q2Html = masterOptions.qual2.map(o => `<option>${o}</option>`).join('');
-            const q3Html = masterOptions.qual3.map(o => `<option>${o}</option>`).join('');
+            const q1 = masterOptions.qual1.map(o => `<option>${o}</option>`).join('');
+            const q2 = masterOptions.qual2.map(o => `<option>${o}</option>`).join('');
+            const q3 = masterOptions.qual3.map(o => `<option>${o}</option>`).join('');
 
             container.insertAdjacentHTML('beforeend', `
                 <div class="report-block" id="block-${blockId}">
                     ${container.children.length > 0 ? `<div class="remove-block-btn" onclick="document.getElementById('block-${blockId}').remove()"><i class="fa-solid fa-xmark"></i></div>` : ''}
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <label class="label-text">お客様先 担当者名（入力）</label>
-                            <input type="text" class="customer-staff form-input" placeholder="例: 鈴木, 山田" oninput="window.updateStaffSelect(${blockId}, this.value)">
-                        </div>
-                        <div>
-                            <label class="label-text">お客様先 担当者を選択</label>
-                            <select class="customer-staff-select form-input text-xs font-bold" onchange="window.applyStaffName(${blockId}, this.value)">
+                    <div class="mb-4">
+                        <label class="label-text">お客様先担当者を入力（カンマ区切り可）</label>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <input type="text" class="customer-staff-input form-input" placeholder="例: 鈴木, 山田" oninput="window.syncStaffSelect(${blockId}, this.value)">
+                            <select class="customer-staff-dropdown form-input text-xs font-bold" onchange="window.insertStaffLabel(${blockId}, this.value)">
                                 <option value="">担当者を選択してください</option>
                             </select>
                         </div>
                     </div>
                     <div class="mb-4">
-                        <label class="label-text">反映内容</label>
-                        <input type="text" class="customer-staff-final form-input readonly-input" readonly placeholder="選択するとここに「様」付きで入ります">
+                        <label class="label-text uppercase tracking-widest text-[10px] opacity-60">お客様からの情報</label>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2">
+                            <select class="qual-data-1 form-input text-[10px] font-bold py-1 px-2"><option value="">(定性データ1)</option>${q1}</select>
+                            <select class="qual-data-2 form-input text-[10px] font-bold py-1 px-2"><option value="">(定性データ2)</option>${q2}</select>
+                            <select class="qual-data-3 form-input text-[10px] font-bold py-1 px-2"><option value="">(定性データ3)</option>${q3}</select>
+                            <input type="text" class="qual-free form-input text-[10px] font-bold py-1 px-2" placeholder="(自由入力)">
+                        </div>
+                        <textarea class="customer-report form-input h-32 resize-none" placeholder="要望、状況など"></textarea>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
-                        <div><label class="label-text">定性データ1</label><select class="qual-data-1 form-input text-xs font-bold"><option value="">選択</option>${q1Html}</select></div>
-                        <div><label class="label-text">定性データ2</label><select class="qual-data-2 form-input text-xs font-bold"><option value="">選択</option>${q2Html}</select></div>
-                        <div><label class="label-text">定性データ3</label><select class="qual-data-3 form-input text-xs font-bold"><option value="">選択</option>${q3Html}</select></div>
+                    <div class="mb-4">
+                        <label class="label-text uppercase tracking-widest text-[10px] opacity-60">自分・スタッフの考え</label>
+                        <textarea class="staff-thoughts form-input h-24 resize-none" placeholder="次回の提案予定や課題"></textarea>
                     </div>
-                    <div class="space-y-4">
-                        <div><label class="label-text">お客様からの情報（自由入力）</label><textarea class="customer-report form-input h-32 resize-none" placeholder="要望、状況など">${initialContent}</textarea></div>
-                        <div><label class="label-text">自分・スタッフの考え</label><textarea class="staff-thoughts form-input h-32 resize-none" placeholder="次回の提案予定や課題"></textarea></div>
+                    <div>
+                        <label class="label-text uppercase tracking-widest text-[10px] opacity-60">添付ファイル</label>
+                        <div class="flex items-center gap-3 mb-2">
+                            <input type="file" class="text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-black file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                            <button type="button" class="text-[10px] font-black text-rose-500 bg-rose-50 px-3 py-1 rounded-lg border border-rose-100">削除</button>
+                        </div>
+                        <textarea class="file-desc form-input h-16 resize-none text-xs" placeholder="ファイルの説明があれば入力してください"></textarea>
                     </div>
                 </div>`);
         };
 
-        // 🌟 担当者入力からドロップダウンを生成するロジック
-        window.updateStaffSelect = (blockId, val) => {
-            const block = document.getElementById(`block-${blockId}`);
-            const select = block.querySelector('.customer-staff-select');
+        window.syncStaffSelect = (id, val) => {
+            const select = document.getElementById(`block-${id}`).querySelector('.customer-staff-dropdown');
             const names = val.split(/[,、\s]+/).filter(n => n.trim() !== "");
             select.innerHTML = '<option value="">担当者を選択してください</option>' + names.map(n => `<option value="${n}">${n}</option>`).join('');
         };
 
-        // 🌟 ドロップダウン選択で「様」を付与して反映
-        window.applyStaffName = (blockId, val) => {
+        window.insertStaffLabel = (id, val) => {
             if (!val) return;
-            const block = document.getElementById(`block-${blockId}`);
-            block.querySelector('.customer-staff-final').value = `${val} 様`;
+            const area = document.getElementById(`block-${id}`).querySelector('.customer-report');
+            const label = `${val} 様「 」\n`;
+            if (!area.value.includes(label)) area.value = label + area.value;
+            area.focus();
         };
 
         function setupCustomerSearch() {
             const input = document.getElementById('customerSearch'), box = document.getElementById('customerSuggestions');
-            let timeout = null;
-            input.oninput = () => {
-                clearTimeout(timeout);
+            input.oninput = async () => {
                 const val = input.value.trim();
                 if (val.length < 1) { box.style.display = 'none'; return; }
-                timeout = setTimeout(async () => {
-                    const q = query(collection(db, "customers"), where("name", ">=", val), where("name", "<=", val + "\uf8ff"), limit(10));
-                    const snap = await getDocs(q);
-                    if (!snap.empty) {
-                        box.innerHTML = snap.docs.map(d => `<div class="suggestion-item" data-rank="${d.data().rank||'--'}" data-type="${d.data().type||'--'}">${d.data().name}</div>`).join('');
-                        box.style.display = 'block';
-                    } else { box.style.display = 'none'; }
-                }, 400);
+                const q = query(collection(db, "customers"), where("name", ">=", val), where("name", "<=", val + "\uf8ff"), limit(10));
+                const snap = await getDocs(q);
+                box.innerHTML = snap.docs.map(d => `<div class="suggestion-item" data-rank="${d.data().rank||'--'}" data-type="${d.data().type||'--'}">${d.data().name}</div>`).join('');
+                box.style.display = snap.empty ? 'none' : 'block';
             };
             box.onclick = (e) => {
                 const item = e.target.closest('.suggestion-item');
-                if (item) {
-                    input.value = item.innerText;
-                    document.getElementById('autoRank').value = item.dataset.rank;
-                    document.getElementById('autoType').value = item.dataset.type;
-                    box.style.display = 'none';
-                }
+                if (!item) return;
+                input.value = item.innerText;
+                document.getElementById('autoRank').value = item.dataset.rank;
+                document.getElementById('autoType').value = item.dataset.type;
+                box.style.display = 'none';
             };
         }
 
@@ -253,57 +247,52 @@
         };
         window.toggleStaffSelection = (name) => {
             if (currentTarget === 'visitor') modalSelected = [name];
-            else {
-                if (modalSelected.includes(name)) modalSelected = modalSelected.filter(n => n !== name);
-                else modalSelected.push(name);
-            }
+            else if (modalSelected.includes(name)) modalSelected = modalSelected.filter(n => n !== name);
+            else modalSelected.push(name);
             window.renderStaffList();
         };
         window.applySelection = () => {
             const names = modalSelected.join(', ');
             if (currentTarget === 'visitor') document.getElementById('visitorName').value = names;
             else if (currentTarget === 'companion') document.getElementById('companionDisplay').value = names;
-            else if (currentTarget === 'circular') document.getElementById('circularDisplay').innerText = names || '未選択';
+            else if (currentTarget === 'circular') {
+                document.getElementById('circularDisplay').innerText = names || '未選択';
+                if (document.getElementById('keepCircular').checked) {
+                    localStorage.setItem('cp_keep_circular', 'true');
+                    localStorage.setItem('cp_last_circular', names);
+                }
+            }
             window.closeModal();
         };
         window.clearModalSelection = () => { modalSelected = []; window.renderStaffList(); };
 
-        const handleRegister = async () => {
+        document.getElementById('submitBtnTop').onclick = async () => {
             const form = document.getElementById('historyForm');
             if (!form.checkValidity()) { form.reportValidity(); return; }
-            const blocks = document.querySelectorAll('.report-block'), visitor = document.getElementById('visitorName').value, customer = document.getElementById('customerSearch').value, visitDate = document.getElementById('visitDate').value;
-            const staffObj = allStaffs.find(s => s.name === visitor), visitorDept = staffObj ? staffObj.dept : "不明";
             const btns = [document.getElementById('submitBtnTop'), document.getElementById('submitBtnBottom')];
             btns.forEach(b => { b.disabled = true; b.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>保存中...'; });
 
             try {
-                for (const block of blocks) {
+                const customer = document.getElementById('customerSearch').value;
+                const visitor = document.getElementById('visitorName').value;
+                const visitDate = document.getElementById('visitDate').value;
+                const blocks = document.querySelectorAll('.report-block');
+
+                for (const b of blocks) {
                     await addDoc(collection(db, "activity_records"), {
-                        customerName: customer, customerRank: document.getElementById('autoRank').value, customerType: document.getElementById('autoType').value,
-                        visitDate: visitDate, nextVisitDate: document.getElementById('nextVisitDate').value || "", startTime: document.getElementById('startTime').value, endTime: document.getElementById('endTime').value,
-                        visitorName: visitor, visitorDept: visitorDept, companion: document.getElementById('companionDisplay').value,
-                        qualData1: block.querySelector('.qual-data-1').value, qualData2: block.querySelector('.qual-data-2').value, qualData3: block.querySelector('.qual-data-3').value,
-                        customerStaff: block.querySelector('.customer-staff-final').value || block.querySelector('.customer-staff').value,
-                        content: block.querySelector('.customer-report').value, staffThoughts: block.querySelector('.staff-thoughts').value, createdAt: serverTimestamp()
+                        customerName: customer, visitDate: visitDate, visitorName: visitor,
+                        qualData1: b.querySelector('.qual-data-1').value, qualData2: b.querySelector('.qual-data-2').value, qualData3: b.querySelector('.qual-data-3').value, qualFree: b.querySelector('.qual-free').value,
+                        content: b.querySelector('.customer-report').value, staffThoughts: b.querySelector('.staff-thoughts').value, createdAt: serverTimestamp()
                     });
-                }
-                const qCust = query(collection(db, "customers"), where("name", "==", customer), limit(1));
-                const snapCust = await getDocs(qCust);
-                if (!snapCust.empty) {
-                    const custDoc = snapCust.docs[0];
-                    const newCount = (parseInt(custDoc.data().visitCount) || 0) + 1;
-                    await updateDoc(doc(db, "customers", custDoc.id), { lastVisit: visitDate.replace(/-/g, '/'), visitCount: newCount, updatedAt: serverTimestamp() });
                 }
                 const circularNames = document.getElementById('circularDisplay').innerText.split(', ').filter(n => n !== '未選択' && n !== '');
                 for (const name of circularNames) {
                     await addDoc(collection(db, "notifications"), { recipient: name, visitorName: visitor, customerName: customer, visitDate: visitDate, isRead: false, createdAt: serverTimestamp(), type: "実績回覧" });
                 }
-                localStorage.removeItem('cp_draft_history');
                 location.href = 'list_records.html';
-            } catch (e) { console.error(e); alert("保存に失敗しました"); btns.forEach(b => { b.disabled = false; b.innerHTML = '登録を実行'; }); }
+            } catch (e) { alert("失敗"); btns.forEach(b => { b.disabled = false; b.innerHTML = '登録を実行'; }); }
         };
 
-        document.getElementById('submitBtnTop').onclick = handleRegister;
         init();
     </script>
 </body>
