@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// 🌟 V2プロジェクト設定（ApiKeyはご自身のものに書き換えてください）
+// 🌟 V2プロジェクト設定
 export const firebaseConfig = {
     apiKey: "AIzaSyC5L1V6jn3Q8i1bWFWO3Gd25w_If6dklmY", 
     authDomain: "copros-my-page-v2.firebaseapp.com",
@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </header>
     `;
 
-    // サイドバー注入（地図を復活させました！）
+    // サイドバー注入
     sp.innerHTML = `
         <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 z-40 hidden lg:hidden"></div>
         <aside id="main-sidebar" class="sidebar flex flex-col shrink-0 fixed lg:static inset-y-0 left-0 z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-300" style="width: 220px; background-color: #1a1a1a; color: white; height: 100vh; overflow-y: auto;">
@@ -100,7 +100,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="flex items-center gap-3"><i class="fa-solid fa-envelope-open-text w-5 icon-to-color"></i><span>回覧一覧</span></div>
                     <span id="unreadBadge" class="bg-rose-500 text-white text-[10px] px-2 py-0.5 rounded-full font-black animate-bounce" style="display:none;">0</span>
                 </div>
-                <!-- 🌟 地図をここに復活させました！ -->
                 <div class="px-6 py-3 flex items-center gap-3 hover:bg-white/5 cursor-pointer item-link transition-colors border-l-4 border-transparent" data-page="map.html" onclick="location.href='map.html'">
                     <i class="fa-solid fa-map-location-dot w-5 icon-to-color"></i><span>地図</span>
                 </div>
@@ -128,6 +127,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="submenu hidden bg-black/40">
                         <div class="sub-item py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer transition-all border-l-4 border-transparent" data-page="notice_list.html" onclick="location.href='notice_list.html'">お知らせ管理</div>
                         <div class="sub-item py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer transition-all border-l-4 border-transparent" data-page="staff_list.html" onclick="location.href='staff_list.html'">組織員情報登録</div>
+                        <!-- 🌟 定性データ項目設定をここに追加しました -->
+                        <div class="sub-item py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer transition-all border-l-4 border-transparent" data-page="master_qual.html" onclick="location.href='master_qual.html'">定性データ項目設定</div>
                         <div class="sub-item py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer transition-all border-l-4 border-transparent" data-page="import.html" onclick="location.href='import.html'">インポート</div>
                     </div>
                 </div>
@@ -140,22 +141,18 @@ document.addEventListener('DOMContentLoaded', () => {
         </aside>
     `;
 
-    // 部署フィルターの制御（ケコム関連に特化）
+    // 部署フィルターの制御
     const deptSelect = document.getElementById('deptFilter');
     if (deptSelect) {
         Array.from(deptSelect.options).forEach(opt => {
-            if (opt.value !== "ALL" && !TARGET_DEPTS.includes(opt.value)) {
-                opt.remove();
-            }
+            if (opt.value !== "ALL" && !TARGET_DEPTS.includes(opt.value)) { opt.remove(); }
         });
-        if (TARGET_DEPTS.includes(userDept)) {
-            deptSelect.value = userDept;
-        }
+        if (TARGET_DEPTS.includes(userDept)) { deptSelect.value = userDept; }
     }
 
     // UIロジック
     const ms = document.getElementById('main-sidebar'), so = document.getElementById('sidebar-overlay'), mt = document.getElementById('mobile-toggle');
-    const ts = (o) => { ms.classList.toggle('-translate-x-full', !o); so.classList.toggle('hidden', !o); };
+    const ts = (o) => { if(ms) ms.classList.toggle('-translate-x-full', !o); if(so) so.classList.toggle('hidden', !o); };
     if (mt) mt.onclick = () => ts(true); if (so) so.onclick = () => ts(false);
 
     document.querySelectorAll('.group-header').forEach(header => {
