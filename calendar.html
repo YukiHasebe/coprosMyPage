@@ -89,7 +89,9 @@
     let loadedData = { records: [], appoints: [], notifications: [] };
     let currentDate = new Date();
 
-    const clean = (s) => (s||"").toString().replace(/\s+/g, '').trim();
+    // 🌟 全角・半角スペースをすべて消し去り、比較を100%正確にする関数
+    const clean = (s) => (s||"").toString().replace(/[\s\u3000]+/g, '').trim();
+
     window.standardizeDate = (s) => {
         if(!s) return "";
         const d = s.toString().replace(/\//g, '-').split('-');
@@ -98,7 +100,6 @@
 
     async function init() {
         try {
-            // 名簿のキャッシュ利用
             const cached = sessionStorage.getItem('cp_cache_staffs');
             if(cached) { allStaffs = JSON.parse(cached); }
             else {
@@ -111,7 +112,6 @@
         } catch (e) { console.error(e); }
     }
 
-    // 🌟 読み込みを並列化（Promise.all）して最速化
     window.fetchMonthData = async (force = false) => {
         const y = currentDate.getFullYear(), m = currentDate.getMonth() + 1, mStr = m.toString().padStart(2, '0');
         const cacheKey = `cp_cal_cache_${y}_${mStr}`;
@@ -123,22 +123,13 @@
 
         document.getElementById('local-loader').style.display = 'flex';
         try {
-            const tP1 = `${y}/${mStr}`, tP2 = `${y}-${mStr}`;
-            const myName = sessionStorage.getItem('userName') || "";
-
-            // 🌟 3つの通信を同時に開始（バラバラに待たない）
+            const tP1 = `${y}/${mStr}`, tP2 = `${y}-${mStr}`, myName = sessionStorage.getItem('userName') || "";
             const [snapR, snapA, snapN] = await Promise.all([
-                getDocs(query(collection(db, "activity_records"), where("visitDate", ">=", tP1), where("visitDate", "<=", tP1 + "\uf8ff"), limit(1000))),
-                getDocs(query(collection(db, "appointments"), where("appointDate", ">=", tP2), where("appointDate", "<=", tP2 + "\uf8ff"), limit(300))),
+                getDocs(query(collection(db, "activity_records"), where("visitDate", ">=", tP1), where("visitDate", "<=", tP1 + "\uf8ff"), limit(1500))),
+                getDocs(query(collection(db, "appointments"), where("appointDate", ">=", tP2), where("appointDate", "<=", tP2 + "\uf8ff"), limit(500))),
                 getDocs(query(collection(db, "notifications"), where("recipient", "==", myName)))
             ]);
-
-            loadedData = {
-                records: snapR.docs.map(d => d.data()),
-                appoints: snapA.docs.map(d => ({id: d.id, ...d.data()})),
-                notifications: snapN.docs.map(d => d.data())
-            };
-
+            loadedData = { records: snapR.docs.map(d => d.data()), appoints: snapA.docs.map(d => ({id: d.id, ...d.data()})), notifications: snapN.docs.map(d => d.data()) };
             sessionStorage.setItem(cacheKey, JSON.stringify(loadedData));
             document.getElementById('local-loader').style.display = 'none';
             window.renderCalendar();
@@ -159,26 +150,16 @@
             const targetKey = `${year}-${(month + 1).toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
             let evHtml = "";
 
-            // 🌟 未読バッジを表示するための共通関数
-            const getBadge = (r, type) => {
-                const noti = loadedData.notifications.find(n => 
-                    clean(n.visitorName) === clean(r.visitorName) && 
-                    clean(n.customerName) === clean(r.customerName) && 
-                    window.standardizeDate(n.visitDate || n.appointDate) === targetKey &&
-                    n.isRead === false
-                );
-                return noti ? `<span class="inline-block w-2 h-2 rounded-full bg-rose-500 mr-1 animate-pulse"></span>` : "";
-            };
-
-            // 実績（オレンジ）
+            // 実績
             if (document.getElementById('showRes').checked) {
                 loadedData.records.filter(r => window.standardizeDate(r.visitDate) === targetKey && (selCleans.length === 0 || selCleans.includes(clean(r.visitorName)))).forEach(r => {
-                    const badge = getBadge(r, '実績');
-                    if (showUnread && !badge) return;
+                    const noti = loadedData.notifications.find(n => clean(n.visitorName) === clean(r.visitorName) && clean(n.customerName) === clean(r.customerName) && window.standardizeDate(n.visitDate || n.appointDate) === targetKey && n.isRead === false);
+                    const badge = noti ? `<span class="inline-block w-2 h-2 rounded-full bg-rose-500 mr-1 animate-pulse"></span>` : "";
+                    if (showUnread && !noti) return;
                     evHtml += `<div class="event-item"><div class="event-label label-result" onclick="window.goUsage('${r.visitorName}', ${month+1}, '${r.customerName}')">${badge}${r.visitorName}: ${r.customerName}</div></div>`;
                 });
             }
-            // 次回（緑） - 実績データのnextVisitDateを使用
+            // 次回（緑）
             if (document.getElementById('showNext').checked && !showUnread) {
                 loadedData.records.filter(r => window.standardizeDate(r.nextVisitDate) === targetKey && (selCleans.length === 0 || selCleans.includes(clean(r.visitorName)))).forEach(r => {
                     evHtml += `<div class="event-item"><div class="event-label label-next" onclick="window.goUsage('${r.visitorName}', ${month+1}, '${r.customerName}')">${r.visitorName}: ${r.customerName}</div></div>`;
@@ -187,27 +168,21 @@
             // アポ（青）
             if (document.getElementById('showApp').checked && !showUnread) {
                 loadedData.appoints.filter(a => window.standardizeDate(a.appointDate) === targetKey && (selCleans.length === 0 || selCleans.includes(clean(a.visitorName)))).forEach(a => {
-                    const badge = getBadge(a, 'アポ');
-                    evHtml += `<div class="event-item"><div class="event-label label-appoint" onclick="window.handleAppoint('${a.id}','${a.customerName}','${a.appointDate}','${a.subject}')">${badge}${a.visitorName}: ${a.customerName}</div></div>`;
+                    evHtml += `<div class="event-item"><div class="event-label label-appoint" onclick="window.handleAppoint('${a.id}','${a.customerName}','${a.appointDate}','${a.subject}')">${a.visitorName}: ${a.customerName}</div></div>`;
                 });
             }
             grid.insertAdjacentHTML('beforeend', `<div class="calendar-day"><div class="day-header"><span class="day-num" onclick="window.goDailyReport('${targetKey}')">${d}</span><div class="add-btn" onclick="window.goAddHistory('${targetKey}')"><i class="fa-solid fa-plus"></i></div></div><div class="max-h-[110px] overflow-y-auto custom-scrollbar">${evHtml}</div></div>`);
         }
     };
 
-    window.updateSelectedDisplay = () => {
-        const container = document.getElementById('selectedNamesDisplay');
-        if (!selectedStaffs.length) { container.innerHTML = '<span class="text-slate-300 italic text-xs font-black uppercase">表示する社員を選択してください</span>'; return; }
-        container.innerHTML = selectedStaffs.map(name => `<div class="staff-tag"><span>${name}</span><i class="fa-solid fa-circle-xmark remove-staff-x" onclick="window.removeStaff('${name}')"></i></div>`).join('');
-    };
-    window.removeStaff = (name) => { selectedStaffs = selectedStaffs.filter(n => n !== name); localStorage.setItem('cp_cal_selected_staffs', JSON.stringify(selectedStaffs)); window.updateSelectedDisplay(); window.renderCalendar(); };
+    // 🌟 モーダルのIDを修正し、リストが表示されるように戻しました
     window.openStaffModal = () => { document.getElementById('staffModal').style.display = 'flex'; window.renderModalList(); };
     window.closeModal = () => { document.getElementById('staffModal').style.display = 'none'; };
     window.renderModalList = () => {
-        const kw = clean(document.getElementById('staffKeyword').value.toLowerCase());
-        const dp = document.getElementById('staffDeptFilter').value;
-        const container = document.getElementById('staffList');
-        container.innerHTML = allStaffs.filter(s => (!kw || clean(s.name).toLowerCase().includes(kw)) && (dp === 'ALL' || clean(s.dept) === clean(dp))).map(s => `<div class="staff-item ${selectedStaffs.includes(s.name) ? 'selected' : ''}" onclick="window.toggleModalStaff('${s.name}')"><span>${s.name}</span><span class="text-[9px] opacity-40 font-black">${s.dept || ''}</span></div>`).join('');
+        const kw = clean(document.getElementById('modalSearch').value.toLowerCase());
+        const dept = document.getElementById('modalDept').value;
+        const container = document.getElementById('modalStaffList');
+        container.innerHTML = allStaffs.filter(s => (!kw || clean(s.name).toLowerCase().includes(kw)) && (dept === 'ALL' || clean(s.dept) === clean(dept))).map(s => `<div class="staff-item ${selectedStaffs.includes(s.name) ? 'selected' : ''}" onclick="window.toggleModalStaff('${s.name}')"><span>${s.name}</span><span class="text-[9px] opacity-40 font-black">${s.dept || ''}</span></div>`).join('');
     };
     window.toggleModalStaff = (name) => {
         if (selectedStaffs.includes(name)) selectedStaffs = selectedStaffs.filter(n => n !== name);
@@ -215,6 +190,12 @@
         window.renderModalList();
     };
     window.applyModal = () => { localStorage.setItem('cp_cal_selected_staffs', JSON.stringify(selectedStaffs)); window.updateSelectedDisplay(); window.renderCalendar(); window.closeModal(); };
+    window.updateSelectedDisplay = () => {
+        const container = document.getElementById('selectedNamesDisplay');
+        if (!selectedStaffs.length) { container.innerHTML = '<span class="text-slate-300 italic text-xs font-black uppercase">表示する社員を選択してください</span>'; return; }
+        container.innerHTML = selectedStaffs.map(name => `<div class="staff-tag"><span>${name}</span><i class="fa-solid fa-circle-xmark remove-staff-x" onclick="window.removeStaff('${name}')"></i></div>`).join('');
+    };
+    window.removeStaff = (name) => { selectedStaffs = selectedStaffs.filter(n => n !== name); localStorage.setItem('cp_cal_selected_staffs', JSON.stringify(selectedStaffs)); window.updateSelectedDisplay(); window.renderCalendar(); };
     window.goUsage = (name, month, customer) => { sessionStorage.setItem('cp_usage_jump_name', name); sessionStorage.setItem('cp_usage_jump_month', month); sessionStorage.setItem('cp_usage_jump_customer', customer); location.href = 'usage.html'; };
     window.goDailyReport = (date) => { sessionStorage.setItem('cp_daily_date', date); location.href = 'daily_report.html'; };
     window.goAddHistory = (date) => { sessionStorage.setItem('cp_add_date', date); location.href = 'history.html'; };
@@ -227,6 +208,7 @@
     window.jumpMonth = (m) => { currentDate.setMonth(m - 1); window.fetchMonthData(); };
     init();
 </script>
+
   
 </body>
 </html>
