@@ -63,21 +63,16 @@
     </main>
 
     <script type="module" src="common.js"></script>
-    <script type="module">
+       <script type="module">
         import { db, TARGET_DEPTS } from "./common.js";
         import { collection, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let allStaffs = [], currentStaffRecords = [], selectedName = "", currentY = 2026, currentM = new Date().getMonth() + 1;
         const clean = (s) => (s||"").toString().replace(/[\s\u3000]+/g, '').trim();
 
-        const standardizeDate = (s) => {
-            if(!s) return "";
-            const d = s.toString().replace(/\//g, '-').split('-');
-            return d.length < 3 ? s : `${d[0]}-${d[1].padStart(2, '0')}-${d[2].padStart(2, '0')}`;
-        };
-
         async function init() {
             try {
+                // スタッフ名簿もキャッシュから（通信節約）
                 let sData = sessionStorage.getItem('cp_cache_staffs');
                 if(sData) { allStaffs = JSON.parse(sData); } 
                 else {
@@ -115,41 +110,32 @@
             document.getElementById('guideMsg').style.display = 'none';
             document.getElementById('toolArea').style.display = 'block';
             
-            const cacheKey = `cp_usage_cache_${clean(name)}_${currentY}`;
-            const cached = sessionStorage.getItem(cacheKey);
-            if (cached) { currentStaffRecords = JSON.parse(cached); window.finishSelectStaff(name); return; }
+            // 🌟 【最優先キャッシュ】既に手元にあれば、Firebaseへの命令(getDocs)を1ミリも実行しない
+            const cacheKey = `cp_usage_data_${clean(name)}`;
+            const cached = localStorage.getItem(cacheKey); // ブラウザを閉じても残る強固なキャッシュ
+            if (cached) {
+                currentStaffRecords = JSON.parse(cached);
+                window.finishSelectStaff(name);
+                return;
+            }
 
             try {
-                // 🌟 【究極の省エネ】スペース抜きの名前でピンポイントに取得
-                const targetClean = clean(name);
-                // Firebaseの「in」クエリを使い、スペースあり・なしの両方を同時に探します（読み取りはヒットした分だけ）
-                const nameVariations = [name]; 
-                if (name.includes(' ')) {
-                    nameVariations.push(name.replace(' ', '')); // 半角スペース抜き
-                    nameVariations.push(name.replace(' ', '　')); // 全角スペースに置換
-                } else if (name.includes('　')) {
-                    nameVariations.push(name.replace('　', '')); // 全角スペース抜き
-                } else {
-                    // スペースがない場合、名字と名前の間にスペースを入れたパターンも一応探す
-                    if(name.length > 2) nameVariations.push(name.substring(0,2) + ' ' + name.substring(2));
+                // 🌟 【極限省エネ】名前の完全一致のみ。これなら1件ずつしか読みません。
+                const q = query(collection(db, "activity_records"), where("visitorName", "==", name), limit(1000));
+                const snap = await getDocs(q); 
+                currentStaffRecords = snap.docs.map(d => d.data());
+                
+                // もし0件だった場合、別パターンの名前（スペース違い）を1回だけ探す
+                if (currentStaffRecords.length === 0) {
+                    const altName = name.includes(' ') ? name.replace(' ', '') : name.substring(0,2) + ' ' + name.substring(2);
+                    const q2 = query(collection(db, "activity_records"), where("visitorName", "==", altName), limit(1000));
+                    const snap2 = await getDocs(q2);
+                    currentStaffRecords = snap2.docs.map(d => d.data());
                 }
 
-                // 🌟 この「in」検索はインデックス不要で、かつ指定した名前のデータしか読み込まないので超省エネです
-                const q = query(collection(db, "activity_records"), where("visitorName", "in", nameVariations.slice(0, 10)), limit(500));
-                const snap = await getDocs(q); 
-                
-                currentStaffRecords = snap.docs.map(d => d.data());
-                sessionStorage.setItem(cacheKey, JSON.stringify(currentStaffRecords));
+                localStorage.setItem(cacheKey, JSON.stringify(currentStaffRecords));
                 window.finishSelectStaff(name);
-            } catch (e) { 
-                console.error("データ取得エラー:", e);
-                // 万が一の予備：前方一致検索（これも省エネ）
-                const firstName = name.substring(0, 2);
-                const q2 = query(collection(db, "activity_records"), where("visitorName", ">=", firstName), where("visitorName", "<=", firstName + "\uf8ff"), limit(500));
-                const snap2 = await getDocs(q2);
-                currentStaffRecords = snap2.docs.map(d => d.data()).filter(r => clean(r.visitorName) === clean(name));
-                window.finishSelectStaff(name);
-            }
+            } catch (e) { console.error("Firebase通信エラー:", e); }
         };
 
         window.finishSelectStaff = (name) => {
@@ -166,14 +152,15 @@
         window.renderAccordion = () => {
             const container = document.getElementById('activityAccordion');
             const filtered = currentStaffRecords.filter(r => {
-                const d = standardizeDate(r.visitDate).split('-');
-                return parseInt(d[1]) === currentM;
-            }).sort((a,b) => standardizeDate(b.visitDate).localeCompare(standardizeDate(a.visitDate)));
+                const dateStr = (r.visitDate||"").toString().replace(/\//g, '-');
+                const m = parseInt(dateStr.split('-')[1]);
+                return m === currentM;
+            }).sort((a,b) => (b.visitDate||"").toString().localeCompare((a.visitDate||"").toString()));
 
             let totalMins = 0;
             const uniqueVisits = new Set();
             filtered.forEach(r => {
-                uniqueVisits.add(`${standardizeDate(r.visitDate)}_${clean(r.customerName)}`);
+                uniqueVisits.add(`${r.visitDate}_${r.customerName}`);
                 if(r.startTime && r.endTime){
                     const s = r.startTime.split(':'), e = r.endTime.split(':');
                     if(s.length===2 && e.length===2) totalMins += (parseInt(e[0])*60+parseInt(e[1])) - (parseInt(s[0])*60+parseInt(s[1]));
@@ -185,15 +172,14 @@
             document.getElementById('sumTime').innerText = Math.floor(totalMins/60);
             document.getElementById('sumAvg').innerText = filtered.length ? Math.round(totalMins / filtered.length) : 0;
 
-            const jumpTarget = sessionStorage.getItem('cp_usage_jump_customer');
             container.innerHTML = filtered.length ? filtered.map((r, i) => `
                 <div class="accordion-item" id="acc-${i}">
                     <div class="accordion-header" onclick="window.toggleAcc('acc-${i}')">
                         <div class="flex items-center gap-4">
-                            <span class="text-xs font-black opacity-60">${standardizeDate(r.visitDate).replace(/-/g,'/')}</span>
+                            <span class="text-xs font-black opacity-60">${r.visitDate}</span>
                             <span class="text-base font-black">${r.customerName}</span>
                         </div>
-                        <i class="fa-solid fa-chevron-down opacity-30 text-xs transition-transform"></i>
+                        <i class="fa-solid fa-chevron-down opacity-30 text-xs"></i>
                     </div>
                     <div class="accordion-content">
                         <div class="info-grid">
@@ -202,32 +188,19 @@
                             <div><p class="info-label">同行者</p><p class="info-value text-blue-600">${r.companion || 'なし'}</p></div>
                         </div>
                         <p class="info-label mb-2 uppercase tracking-widest">報告内容</p>
-                        <div class="report-box">${r.content || r.customerReport || '報告なし'}</div>
+                        <div class="report-box">${r.content || '報告なし'}</div>
                         <p class="info-label mb-2 uppercase tracking-widest">スタッフの考え</p>
                         <div class="report-box border-l-4 border-orange-100">${r.staffThoughts || '未入力'}</div>
                     </div>
                 </div>`).join('') : '<p class="text-center py-20 text-slate-300 font-bold uppercase tracking-widest">実績はありません</p>';
-            
-            if(jumpTarget) {
-                setTimeout(() => {
-                    const idx = filtered.findIndex(r => clean(r.customerName) === clean(jumpTarget));
-                    if(idx !== -1) {
-                        window.toggleAcc(`acc-${idx}`);
-                        const el = document.getElementById(`acc-${idx}`);
-                        if(el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }
-                    sessionStorage.removeItem('cp_usage_jump_customer');
-                }, 400);
-            }
         };
 
         window.toggleAcc = (id) => {
-            const item = document.getElementById(id); if(!item) return;
+            const item = document.getElementById(id);
             const content = item.querySelector('.accordion-content');
             const isOpen = content.style.display === 'block';
             content.style.display = isOpen ? 'none' : 'block';
-            const icon = item.querySelector('i');
-            if(icon) icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+            item.querySelector('i').style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
         };
 
         init();
