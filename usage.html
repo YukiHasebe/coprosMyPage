@@ -65,13 +65,13 @@
     </main>
 
     <script type="module" src="common.js"></script>
-
-            <script type="module">
+    <script type="module">
         import { db, TARGET_DEPTS } from "./common.js";
         import { collection, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let allStaffs = [], currentStaffRecords = [], selectedName = "", currentY = 2026, currentM = new Date().getMonth() + 1;
-        const cleanAll = (s) => (s||"").toString().replace(/\s+/g, '').trim();
+        const clean = (s) => (s||"").toString().replace(/[\s\u3000]+/g, '').trim(); // 全角・半角スペース完全除去
+
         const standardizeDate = (s) => {
             if(!s) return "";
             const d = s.toString().replace(/\//g, '-').split('-');
@@ -80,18 +80,15 @@
 
         async function init() {
             try {
-                // 🌟 スタッフ名簿のキャッシュ（なければ取得）
                 let sData = sessionStorage.getItem('cp_cache_staffs');
-                if(sData) {
-                    allStaffs = JSON.parse(sData);
-                } else {
+                if(sData) { allStaffs = JSON.parse(sData); } 
+                else {
                     const snap = await getDocs(query(collection(db, "staffs"), orderBy("name")));
                     allStaffs = snap.docs.map(d => d.data());
                     sessionStorage.setItem('cp_cache_staffs', JSON.stringify(allStaffs));
                 }
                 window.renderStaffList();
                 
-                // カレンダー等からのジャンプ対応
                 const jName = sessionStorage.getItem('cp_usage_jump_name');
                 const jMonth = sessionStorage.getItem('cp_usage_jump_month');
                 if (jName) {
@@ -104,27 +101,14 @@
         }
 
         window.renderStaffList = () => {
-            const kw = cleanAll(document.getElementById('staffSearch').value.toLowerCase());
+            const kw = clean(document.getElementById('staffSearch').value.toLowerCase());
             const dept = document.getElementById('deptFilter').value;
             const container = document.getElementById('staffList');
             container.innerHTML = allStaffs.filter(s => {
-                const nameM = !kw || cleanAll(s.name).toLowerCase().includes(kw);
-                const sDept = cleanAll(s.dept || "");
-                return nameM && (dept === 'ALL' ? TARGET_DEPTS.some(t => cleanAll(t) === sDept) : sDept === cleanAll(dept));
-            }).map(s => `
-                <div class="staff-item ${cleanAll(selectedName) === cleanAll(s.name) ? 'active' : ''}" 
-                     onclick="window.selectStaff('${s.name}')"
-                     onmouseover="window.preFetchStaff('${s.name}')">
-                    <p class="font-black text-xs">${s.name}</p>
-                    <p class="text-[8px] opacity-60 uppercase">${s.dept || ''}</p>
-                </div>`).join('');
-        };
-
-        // 🌟 マウスを置いた瞬間にこっそり準備を開始（爆速化の鍵）
-        window.preFetchStaff = async (name) => {
-            const cacheKey = `cp_usage_cache_${cleanAll(name)}_${currentY}`;
-            if (sessionStorage.getItem(cacheKey)) return; // すでにあれば何もしない
-            // 軽くコネクションを張る準備だけさせておく
+                const nameM = !kw || clean(s.name).toLowerCase().includes(kw);
+                const sDept = clean(s.dept || "");
+                return nameM && (dept === 'ALL' ? TARGET_DEPTS.some(t => clean(t) === sDept) : sDept === clean(dept));
+            }).map(s => `<div class="staff-item ${clean(selectedName) === clean(s.name) ? 'active' : ''}" onclick="window.selectStaff('${s.name}')"><p class="font-black text-xs">${s.name}</p><p class="text-[8px] opacity-60 uppercase">${s.dept || ''}</p></div>`).join('');
         };
 
         window.selectStaff = async (name) => {
@@ -133,7 +117,7 @@
             document.getElementById('guideMsg').style.display = 'none';
             document.getElementById('toolArea').style.display = 'block';
             
-            const cacheKey = `cp_usage_cache_${cleanAll(name)}_${currentY}`;
+            const cacheKey = `cp_usage_cache_${clean(name)}_${currentY}`;
             const cached = sessionStorage.getItem(cacheKey);
             
             if (cached) {
@@ -142,12 +126,12 @@
                 return;
             }
 
-            document.getElementById('sumActualVisits').innerText = "...";
             try {
-                // 🌟 【省エネ最速】その社員のデータだけをピンポイント取得（1000件リミット）
-                const q = query(collection(db, "activity_records"), where("visitorName", "==", name), limit(1000));
-                const snap = await getDocs(q); 
-                currentStaffRecords = snap.docs.map(d => d.data());
+                // 🌟 通信エラーを避けるため、シンプルな「全件取得（limit1500）」に変更
+                // その後、JS側で「最強の名寄せ」を使ってフィルタリングします
+                const snap = await getDocs(query(collection(db, "activity_records"), limit(1500))); 
+                const targetClean = clean(name);
+                currentStaffRecords = snap.docs.map(d => d.data()).filter(r => clean(r.visitorName) === targetClean);
                 
                 sessionStorage.setItem(cacheKey, JSON.stringify(currentStaffRecords));
                 window.finishSelectStaff(name);
@@ -167,7 +151,6 @@
 
         window.renderAccordion = () => {
             const container = document.getElementById('activityAccordion');
-            // 月の判定。高速化のためあらかじめ基準を作っておく
             const filtered = currentStaffRecords.filter(r => {
                 const d = standardizeDate(r.visitDate).split('-');
                 return parseInt(d[0]) === currentY && parseInt(d[1]) === currentM;
@@ -175,9 +158,8 @@
 
             let totalMins = 0;
             const uniqueVisits = new Set();
-
             filtered.forEach(r => {
-                uniqueVisits.add(`${standardizeDate(r.visitDate)}_${cleanAll(r.customerName)}`);
+                uniqueVisits.add(`${standardizeDate(r.visitDate)}_${clean(r.customerName)}`);
                 if(r.startTime && r.endTime){
                     const s = r.startTime.split(':'), e = r.endTime.split(':');
                     if(s.length===2 && e.length===2) totalMins += (parseInt(e[0])*60+parseInt(e[1])) - (parseInt(s[0])*60+parseInt(s[1]));
@@ -214,7 +196,7 @@
             
             if(jumpTarget) {
                 setTimeout(() => {
-                    const idx = filtered.findIndex(r => cleanAll(r.customerName) === cleanAll(jumpTarget));
+                    const idx = filtered.findIndex(r => clean(r.customerName) === clean(jumpTarget));
                     if(idx !== -1) {
                         window.toggleAcc(`acc-${idx}`);
                         document.getElementById(`acc-${idx}`).scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -235,5 +217,6 @@
 
         init();
     </script>
+           
 </body>
 </html>
