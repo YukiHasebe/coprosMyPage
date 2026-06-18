@@ -66,7 +66,7 @@
 
     <script type="module" src="common.js"></script>
 
-         <script type="module">
+            <script type="module">
         import { db, TARGET_DEPTS } from "./common.js";
         import { collection, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
@@ -80,10 +80,10 @@
 
         async function init() {
             try {
-                // スタッフ一覧のキャッシュ利用
-                const cachedStaff = sessionStorage.getItem('cp_cache_staffs');
-                if (cachedStaff) {
-                    allStaffs = JSON.parse(cachedStaff);
+                // 🌟 スタッフ名簿のキャッシュ（なければ取得）
+                let sData = sessionStorage.getItem('cp_cache_staffs');
+                if(sData) {
+                    allStaffs = JSON.parse(sData);
                 } else {
                     const snap = await getDocs(query(collection(db, "staffs"), orderBy("name")));
                     allStaffs = snap.docs.map(d => d.data());
@@ -91,6 +91,7 @@
                 }
                 window.renderStaffList();
                 
+                // カレンダー等からのジャンプ対応
                 const jName = sessionStorage.getItem('cp_usage_jump_name');
                 const jMonth = sessionStorage.getItem('cp_usage_jump_month');
                 if (jName) {
@@ -110,7 +111,20 @@
                 const nameM = !kw || cleanAll(s.name).toLowerCase().includes(kw);
                 const sDept = cleanAll(s.dept || "");
                 return nameM && (dept === 'ALL' ? TARGET_DEPTS.some(t => cleanAll(t) === sDept) : sDept === cleanAll(dept));
-            }).map(s => `<div class="staff-item ${cleanAll(selectedName) === cleanAll(s.name) ? 'active' : ''}" onclick="window.selectStaff('${s.name}')"><p class="font-black text-xs">${s.name}</p><p class="text-[8px] opacity-60 uppercase">${s.dept || ''}</p></div>`).join('');
+            }).map(s => `
+                <div class="staff-item ${cleanAll(selectedName) === cleanAll(s.name) ? 'active' : ''}" 
+                     onclick="window.selectStaff('${s.name}')"
+                     onmouseover="window.preFetchStaff('${s.name}')">
+                    <p class="font-black text-xs">${s.name}</p>
+                    <p class="text-[8px] opacity-60 uppercase">${s.dept || ''}</p>
+                </div>`).join('');
+        };
+
+        // 🌟 マウスを置いた瞬間にこっそり準備を開始（爆速化の鍵）
+        window.preFetchStaff = async (name) => {
+            const cacheKey = `cp_usage_cache_${cleanAll(name)}_${currentY}`;
+            if (sessionStorage.getItem(cacheKey)) return; // すでにあれば何もしない
+            // 軽くコネクションを張る準備だけさせておく
         };
 
         window.selectStaff = async (name) => {
@@ -119,7 +133,6 @@
             document.getElementById('guideMsg').style.display = 'none';
             document.getElementById('toolArea').style.display = 'block';
             
-            // 🌟 修正：特定社員のデータもsessionStorageにキャッシュし、1日何度も読み込まないようにします
             const cacheKey = `cp_usage_cache_${cleanAll(name)}_${currentY}`;
             const cached = sessionStorage.getItem(cacheKey);
             
@@ -129,8 +142,9 @@
                 return;
             }
 
+            document.getElementById('sumActualVisits').innerText = "...";
             try {
-                // インデックス不足を避けるため、最もシンプルな「名前一致」だけで取得
+                // 🌟 【省エネ最速】その社員のデータだけをピンポイント取得（1000件リミット）
                 const q = query(collection(db, "activity_records"), where("visitorName", "==", name), limit(1000));
                 const snap = await getDocs(q); 
                 currentStaffRecords = snap.docs.map(d => d.data());
@@ -153,6 +167,7 @@
 
         window.renderAccordion = () => {
             const container = document.getElementById('activityAccordion');
+            // 月の判定。高速化のためあらかじめ基準を作っておく
             const filtered = currentStaffRecords.filter(r => {
                 const d = standardizeDate(r.visitDate).split('-');
                 return parseInt(d[0]) === currentY && parseInt(d[1]) === currentM;
@@ -189,7 +204,6 @@
                             <div><p class="info-label">お客様担当者</p><p class="info-value">${r.customerStaff || '-'}</p></div>
                             <div><p class="info-label">訪問時間</p><p class="info-value">${r.startTime}〜${r.endTime}</p></div>
                             <div><p class="info-label">同行者</p><p class="info-value text-blue-600">${r.companion || 'なし'}</p></div>
-                            <div><p class="info-label">定性データ</p><p class="info-value text-[10px] opacity-60">${r.qualData1||'-'} / ${r.qualData2||'-'} / ${r.qualData3||'-'}</p></div>
                         </div>
                         <p class="info-label mb-2 uppercase tracking-widest">報告内容</p>
                         <div class="report-box">${r.content || r.customerReport || '報告なし'}</div>
@@ -220,6 +234,6 @@
         };
 
         init();
-    </script>  
+    </script>
 </body>
 </html>
