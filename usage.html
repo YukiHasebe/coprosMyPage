@@ -93,9 +93,7 @@
                     sessionStorage.removeItem('cp_usage_jump_name');
                     sessionStorage.removeItem('cp_usage_jump_month');
                     if(jMonth) currentM = parseInt(jMonth);
-                    // 🌟 ジャンプ時は名寄せを考慮して名簿から正確な名前を探す
-                    const target = allStaffs.find(s => clean(s.name) === clean(jName));
-                    window.selectStaff(target ? target.name : jName);
+                    window.selectStaff(jName);
                 }
             } catch (e) { console.error(e); }
         }
@@ -122,18 +120,36 @@
             if (cached) { currentStaffRecords = JSON.parse(cached); window.finishSelectStaff(name); return; }
 
             try {
-                // 🌟 【省エネ・確実】名前で直接クエリ。これが一番読み取り数が少なく、かつ100%抽出できます。
-                // 姓名の間のスペースが異なるデータがある場合を考慮し、前方一致検索を組み合わせます。
-                const firstName = name.split(/[\s\u3000]+/)[0]; 
-                const q = query(collection(db, "activity_records"), where("visitorName", ">=", firstName), where("visitorName", "<=", firstName + "\uf8ff"), limit(1000));
+                // 🌟 【究極の省エネ】スペース抜きの名前でピンポイントに取得
+                const targetClean = clean(name);
+                // Firebaseの「in」クエリを使い、スペースあり・なしの両方を同時に探します（読み取りはヒットした分だけ）
+                const nameVariations = [name]; 
+                if (name.includes(' ')) {
+                    nameVariations.push(name.replace(' ', '')); // 半角スペース抜き
+                    nameVariations.push(name.replace(' ', '　')); // 全角スペースに置換
+                } else if (name.includes('　')) {
+                    nameVariations.push(name.replace('　', '')); // 全角スペース抜き
+                } else {
+                    // スペースがない場合、名字と名前の間にスペースを入れたパターンも一応探す
+                    if(name.length > 2) nameVariations.push(name.substring(0,2) + ' ' + name.substring(2));
+                }
+
+                // 🌟 この「in」検索はインデックス不要で、かつ指定した名前のデータしか読み込まないので超省エネです
+                const q = query(collection(db, "activity_records"), where("visitorName", "in", nameVariations.slice(0, 10)), limit(500));
                 const snap = await getDocs(q); 
                 
-                const targetClean = clean(name);
-                currentStaffRecords = snap.docs.map(d => d.data()).filter(r => clean(r.visitorName) === targetClean);
-                
+                currentStaffRecords = snap.docs.map(d => d.data());
                 sessionStorage.setItem(cacheKey, JSON.stringify(currentStaffRecords));
                 window.finishSelectStaff(name);
-            } catch (e) { console.error(e); }
+            } catch (e) { 
+                console.error("データ取得エラー:", e);
+                // 万が一の予備：前方一致検索（これも省エネ）
+                const firstName = name.substring(0, 2);
+                const q2 = query(collection(db, "activity_records"), where("visitorName", ">=", firstName), where("visitorName", "<=", firstName + "\uf8ff"), limit(500));
+                const snap2 = await getDocs(q2);
+                currentStaffRecords = snap2.docs.map(d => d.data()).filter(r => clean(r.visitorName) === clean(name));
+                window.finishSelectStaff(name);
+            }
         };
 
         window.finishSelectStaff = (name) => {
@@ -151,7 +167,7 @@
             const container = document.getElementById('activityAccordion');
             const filtered = currentStaffRecords.filter(r => {
                 const d = standardizeDate(r.visitDate).split('-');
-                return parseInt(d[0]) === currentY && parseInt(d[1]) === currentM;
+                return parseInt(d[1]) === currentM;
             }).sort((a,b) => standardizeDate(b.visitDate).localeCompare(standardizeDate(a.visitDate)));
 
             let totalMins = 0;
@@ -197,7 +213,8 @@
                     const idx = filtered.findIndex(r => clean(r.customerName) === clean(jumpTarget));
                     if(idx !== -1) {
                         window.toggleAcc(`acc-${idx}`);
-                        document.getElementById(`acc-${idx}`).scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        const el = document.getElementById(`acc-${idx}`);
+                        if(el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     }
                     sessionStorage.removeItem('cp_usage_jump_customer');
                 }, 400);
