@@ -150,19 +150,21 @@
             const targetKey = `${year}-${(month + 1).toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
             let evHtml = "";
 
-            // 実績
+                        // 実績
             if (document.getElementById('showRes').checked) {
                 loadedData.records.filter(r => window.standardizeDate(r.visitDate) === targetKey && (selCleans.length === 0 || selCleans.includes(clean(r.visitorName)))).forEach(r => {
                     const noti = loadedData.notifications.find(n => clean(n.visitorName) === clean(r.visitorName) && clean(n.customerName) === clean(r.customerName) && window.standardizeDate(n.visitDate || n.appointDate) === targetKey && n.isRead === false);
                     const badge = noti ? `<span class="inline-block w-2 h-2 rounded-full bg-rose-500 mr-1 animate-pulse"></span>` : "";
                     if (showUnread && !noti) return;
-                    evHtml += `<div class="event-item"><div class="event-label label-result" onclick="window.goUsage('${r.visitorName}', ${month+1}, '${r.customerName}')">${badge}${r.visitorName}: ${r.customerName}</div></div>`;
+                    // 引数に targetKey を追加しました
+                    evHtml += `<div class="event-item"><div class="event-label label-result" onclick="window.goUsage('${r.visitorName}', ${month+1}, '${r.customerName}', '${targetKey}')">${badge}${r.visitorName}: ${r.customerName}</div></div>`;
                 });
             }
             // 次回（緑）
             if (document.getElementById('showNext').checked && !showUnread) {
                 loadedData.records.filter(r => window.standardizeDate(r.nextVisitDate) === targetKey && (selCleans.length === 0 || selCleans.includes(clean(r.visitorName)))).forEach(r => {
-                    evHtml += `<div class="event-item"><div class="event-label label-next" onclick="window.goUsage('${r.visitorName}', ${month+1}, '${r.customerName}')">${r.visitorName}: ${r.customerName}</div></div>`;
+                    // 引数に targetKey を追加しました
+                    evHtml += `<div class="event-item"><div class="event-label label-next" onclick="window.goUsage('${r.visitorName}', ${month+1}, '${r.customerName}', '${targetKey}')">${r.visitorName}: ${r.customerName}</div></div>`;
                 });
             }
             // アポ（青）
