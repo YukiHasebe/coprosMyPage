@@ -100,6 +100,10 @@
         let allRecords = [];
         let currentKana = 'all';
 
+        const nowForCache = new Date();
+        const currentCacheKey = `cp_cal_cache_${nowForCache.getFullYear()}_${(nowForCache.getMonth() + 1).toString().padStart(2, '0')}`;
+        sessionStorage.removeItem(currentCacheKey);
+
         const clean = (s) => (s||"").toString().replace(/[\s\u3000]+/g, '').trim();
 
         function normalizeDate(str) {
