@@ -112,7 +112,7 @@
     <script type="module" src="common.js"></script>
     <script type="module">
         import { db, TARGET_DEPTS } from "./common.js";
-        import { collection, getDocs, addDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+       import { collection, getDocs, addDoc, serverTimestamp, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let allStaffs = [], modalSelected = [], currentTarget = '';
         const clean = (s) => (s||"").replace(/\s+/g, ''); // スペース削除用
@@ -185,7 +185,7 @@
 
         window.clearModalSelection = () => { modalSelected = []; window.renderStaffList(); };
 
-        function setupCustomerSearch() {
+               function setupCustomerSearch() {
             const input = document.getElementById('customerSearch'), box = document.getElementById('customerSuggestions');
             let timeout = null;
             input.oninput = () => {
@@ -193,15 +193,34 @@
                 const val = input.value.trim();
                 if (val.length < 1) { box.style.display = 'none'; return; }
                 timeout = setTimeout(async () => {
-                    const q = query(collection(db, "customers"), where("name", ">=", val), where("name", "<=", val + "\uf8ff"), limit(10));
-                    const snap = await getDocs(q);
-                    box.innerHTML = snap.docs.map(d => `<div class="suggestion-item">${d.data().name}</div>`).join('');
-                    box.style.display = snap.empty ? 'none' : 'block';
+                    try {
+                        // 🌟 limit(20)など、少し多めに取ると安心です
+                        const q = query(
+                            collection(db, "customers"), 
+                            where("name", ">=", val), 
+                            where("name", "<=", val + "\uf8ff"), 
+                            limit(20)
+                        );
+                        const snap = await getDocs(q);
+                        if (snap.empty) {
+                            box.style.display = 'none';
+                        } else {
+                            box.innerHTML = snap.docs.map(d => `<div class="suggestion-item">${d.data().name}</div>`).join('');
+                            box.style.display = 'block';
+                        }
+                    } catch (err) {
+                        console.error("検索エラー:", err);
+                    }
                 }, 400);
             };
-            box.onclick = (e) => { if (e.target.classList.contains('suggestion-item')) { input.value = e.target.innerText; box.style.display = 'none'; } };
+            // 🌟 クリック時の処理も確実に
+            box.onclick = (e) => { 
+                if (e.target.classList.contains('suggestion-item')) { 
+                    input.value = e.target.innerText; 
+                    box.style.display = 'none'; 
+                } 
+            };
         }
-
         const handleRegister = async () => {
             const form = document.getElementById('appointForm');
             if (!form.checkValidity()) { form.reportValidity(); return; }
