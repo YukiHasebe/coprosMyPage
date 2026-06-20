@@ -64,7 +64,7 @@
 
     <script type="module" src="common.js"></script>
        <script type="module">
-        import { db, TARGET_DEPTS } from "./common.js";
+                import { db, TARGET_DEPTS } from "./common.js";
         import { collection, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let allStaffs = [], currentStaffRecords = [], selectedName = "", currentY = 2026, currentM = new Date().getMonth() + 1;
@@ -72,7 +72,6 @@
 
         async function init() {
             try {
-                // スタッフ名簿もキャッシュから（通信節約）
                 let sData = sessionStorage.getItem('cp_cache_staffs');
                 if(sData) { allStaffs = JSON.parse(sData); } 
                 else {
@@ -110,9 +109,8 @@
             document.getElementById('guideMsg').style.display = 'none';
             document.getElementById('toolArea').style.display = 'block';
             
-            // 🌟 【最優先キャッシュ】既に手元にあれば、Firebaseへの命令(getDocs)を1ミリも実行しない
             const cacheKey = `cp_usage_data_${clean(name)}`;
-            const cached = localStorage.getItem(cacheKey); // ブラウザを閉じても残る強固なキャッシュ
+            const cached = localStorage.getItem(cacheKey);
             if (cached) {
                 currentStaffRecords = JSON.parse(cached);
                 window.finishSelectStaff(name);
@@ -120,12 +118,11 @@
             }
 
             try {
-                // 🌟 【極限省エネ】名前の完全一致のみ。これなら1件ずつしか読みません。
+                // 省エネ：名前の完全一致のみ
                 const q = query(collection(db, "activity_records"), where("visitorName", "==", name), limit(1000));
                 const snap = await getDocs(q); 
                 currentStaffRecords = snap.docs.map(d => d.data());
                 
-                // もし0件だった場合、別パターンの名前（スペース違い）を1回だけ探す
                 if (currentStaffRecords.length === 0) {
                     const altName = name.includes(' ') ? name.replace(' ', '') : name.substring(0,2) + ' ' + name.substring(2);
                     const q2 = query(collection(db, "activity_records"), where("visitorName", "==", altName), limit(1000));
@@ -149,7 +146,7 @@
             window.renderAccordion();
         };
 
-                window.renderAccordion = () => {
+        window.renderAccordion = () => {
             const container = document.getElementById('activityAccordion');
             const filtered = currentStaffRecords.filter(r => {
                 const dateStr = (r.visitDate||"").toString().replace(/\//g, '-');
@@ -194,22 +191,32 @@
                     </div>
                 </div>`).join('') : '<p class="text-center py-20 text-slate-300 font-bold uppercase tracking-widest">実績はありません</p>';
 
-            // 🌟 自動展開処理（ここが 197行目付近に追加されます）
+            // 🌟 自動展開
             const jDate = sessionStorage.getItem('cp_usage_jump_date');
             if (jDate) {
-                const cleanJDate = jDate.replace(/[-/]/g, '');
-                const targetIndex = filtered.findIndex(r => (r.visitDate||"").toString().replace(/[-/]/g, '') === cleanJDate);
-
-                if (targetIndex !== -1) {
+                const cleanJ = jDate.replace(/[-/]/g, '');
+                const idx = filtered.findIndex(r => (r.visitDate||"").toString().replace(/[-/]/g, '') === cleanJ);
+                if (idx !== -1) {
                     setTimeout(() => {
-                        window.toggleAcc(`acc-${targetIndex}`);
-                        const el = document.getElementById(`acc-${targetIndex}`);
-                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        window.toggleAcc(`acc-${idx}`);
+                        const el = document.getElementById(`acc-${idx}`);
+                        if(el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         sessionStorage.removeItem('cp_usage_jump_date');
                     }, 1000);
                 }
             }
         };
+
+        window.toggleAcc = (id) => {
+            const item = document.getElementById(id);
+            if(!item) return;
+            const content = item.querySelector('.accordion-content');
+            const icon = item.querySelector('i');
+            const isOpen = content.style.display === 'block';
+            content.style.display = isOpen ? 'none' : 'block';
+            if(icon) icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+        };
+
         init();
     </script>
 </body>
