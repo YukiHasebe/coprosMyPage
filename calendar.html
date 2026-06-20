@@ -112,7 +112,7 @@
         } catch (e) { console.error(e); }
     }
 
-    window.fetchMonthData = async (force = false) => {
+      window.fetchMonthData = async (force = false) => {
         const y = currentDate.getFullYear(), m = currentDate.getMonth() + 1, mStr = m.toString().padStart(2, '0');
         const cacheKey = `cp_cal_cache_${y}_${mStr}`;
         document.getElementById('displayMonthCenter').innerText = `${y}年 ${m}月`;
@@ -124,11 +124,22 @@
         document.getElementById('local-loader').style.display = 'flex';
         try {
             const tP1 = `${y}/${mStr}`, tP2 = `${y}-${mStr}`, myName = sessionStorage.getItem('userName') || "";
+            
+            // 🌟【爆速＆省エネ】全件取得をやめ、選択中メンバーがいるならその人たちだけに絞る
+            let qRecords = query(collection(db, "activity_records"), where("visitDate", ">=", tP1), where("visitDate", "<=", tP1 + "\uf8ff"), limit(500));
+            let qAppoints = query(collection(db, "appointments"), where("appointDate", ">=", tP2), where("appointDate", "<=", tP2 + "\uf8ff"), limit(200));
+
+            // もし選択中のメンバーがいるなら、その人たちでフィルタリング（IN句は10人までなので注意）
+            if (selectedStaffs.length > 0 && selectedStaffs.length <= 10) {
+                qRecords = query(collection(db, "activity_records"), where("visitDate", ">=", tP1), where("visitDate", "<=", tP1 + "\uf8ff"), where("visitorName", "in", selectedStaffs));
+            }
+
             const [snapR, snapA, snapN] = await Promise.all([
-                getDocs(query(collection(db, "activity_records"), where("visitDate", ">=", tP1), where("visitDate", "<=", tP1 + "\uf8ff"), limit(1500))),
-                getDocs(query(collection(db, "appointments"), where("appointDate", ">=", tP2), where("appointDate", "<=", tP2 + "\uf8ff"), limit(500))),
+                getDocs(qRecords),
+                getDocs(qAppoints),
                 getDocs(query(collection(db, "notifications"), where("recipient", "==", myName)))
             ]);
+
             loadedData = { records: snapR.docs.map(d => d.data()), appoints: snapA.docs.map(d => ({id: d.id, ...d.data()})), notifications: snapN.docs.map(d => d.data()) };
             sessionStorage.setItem(cacheKey, JSON.stringify(loadedData));
             document.getElementById('local-loader').style.display = 'none';
