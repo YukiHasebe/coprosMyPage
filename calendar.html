@@ -194,9 +194,13 @@
                     evHtml += `<div class="event-item"><div class="event-label label-next" onclick="window.goUsage('${r.visitorName}', ${month+1}, '${r.customerName}', '${targetKey}')">${r.visitorName}: ${r.customerName}</div></div>`;
                 });
             }
-            // アポ
+                        // アポ（青）の表示ロジックを最強の数字比較に
             if (document.getElementById('showApp').checked && !showUnread) {
-                loadedData.appoints.filter(a => window.standardizeDate(a.appointDate) === targetKey && (selCleans.length === 0 || selCleans.includes(clean(a.visitorName)))).forEach(a => {
+                loadedData.appoints.filter(a => {
+                    const targetNum = targetKey.replace(/\D/g, ''); // 20260620
+                    const appointNum = (a.appointDate||"").toString().replace(/\D/g, '');
+                    return appointNum === targetNum && (selCleans.length === 0 || selCleans.includes(clean(a.visitorName)));
+                }).forEach(a => {
                     evHtml += `<div class="event-item"><div class="event-label label-appoint" onclick="window.handleAppoint('${a.id}','${a.customerName}','${a.appointDate}','${a.subject}')">${a.visitorName}: ${a.customerName}</div></div>`;
                 });
             }
