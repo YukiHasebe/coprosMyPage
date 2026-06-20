@@ -271,8 +271,14 @@
                 const customer = document.getElementById('customerSearch').value;
                 const visitor = document.getElementById('visitorName').value;
                 const vDate = document.getElementById('visitDate').value;
-                const vDept = allStaffs.find(s => clean(s.name) === clean(visitor))?.dept || "ケコム部"; // 🌟 部署を特定
-
+                        // 🌟 固定ではなく、ログイン情報やマスタから動的に部署を特定する
+        const vName = document.getElementById('visitorName').value;
+        const staffEntry = allStaffs.find(s => clean(s.name) === clean(vName));
+        
+        // 1. マスタに名前があればその部署を使う
+        // 2. なければ、ログイン時に保持している部署情報を使う
+        // 3. どちらもなければ、一旦「ケコム部」を仮置きするが、基本は1か2で決まるはず
+        const vDept = staffEntry ? staffEntry.dept : (sessionStorage.getItem('userDept') || "ケコム部");
                 const blocks = document.querySelectorAll('.report-block');
                 for (const b of blocks) {
                     await addDoc(collection(db, "activity_records"), {
