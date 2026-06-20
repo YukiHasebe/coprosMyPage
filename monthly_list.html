@@ -7,7 +7,7 @@
     <style>
         :root { --copros-blue: #87ceeb; --copros-orange: #ff7e11; --copros-navy: #004098; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
-        .table-container { border-radius: 2rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
+        .table-container { border-radius: 2rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; position: relative; }
         thead tr { background-color: #3c4b5a; }
         .month-col { min-width: 55px; text-align: center; border-left: 1px solid #f1f5f9; font-size: 10px; }
         .val-zero { color: #e2e8f0; font-weight: 400; }
@@ -24,23 +24,22 @@
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700">
     <div id="sidebar-placeholder"></div>
-    <main class="flex-1 flex flex-col overflow-hidden">
+    <main class="flex-1 flex flex-col overflow-hidden relative">
         <div id="header-placeholder"></div>
         <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
-            <div class="max-w-[1600px] mx-auto">
+            <div class="max-w-[1600px] mx-auto relative">
                 
-                <div class="flex flex-col lg:flex-row items-center lg:items-end mb-10 relative">
+                <div class="flex flex-col lg:flex-row items-center lg:items-end mb-10">
                     <div class="flex items-end gap-6 w-full lg:w-auto">
                         <div>
                             <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-1">月別実績一覧</h1>
-                            <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Monthly Customer Activity Matrix</nav>
+                            <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Monthly Activity Matrix</nav>
                         </div>
                         <select id="deptFilter" onchange="window.init(true)" class="scope-select shadow-inner mb-1">
                             <option value="ALL">全ケコム関連 表示</option>
                             <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option>
                         </select>
                     </div>
-
                     <div class="lg:absolute lg:left-1/2 lg:transform lg:-translate-x-1/2 mt-6 lg:mt-0">
                         <div class="flex items-center gap-3 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100">
                             <button onclick="window.changeYear(-1)" class="p-2 text-slate-300 hover:text-slate-600"><i class="fa-solid fa-chevron-left fa-lg"></i></button>
@@ -50,7 +49,7 @@
                     </div>
                 </div>
 
-                <div class="table-container overflow-x-auto mb-20">
+                <div class="table-container custom-scrollbar">
                     <table class="w-full text-left border-collapse min-w-[1300px]">
                         <thead>
                             <tr class="text-white text-[10px] font-black uppercase tracking-widest text-center">
@@ -62,14 +61,14 @@
                         </thead>
                         <tbody id="monthlyTableBody" class="text-[11px] lg:text-xs font-bold divide-y divide-slate-50 bg-white"></tbody>
                     </table>
+                    <!-- 🌟 ぐるぐるをテーブル内だけに閉じ込める -->
+                    <div id="loading" class="hidden absolute inset-0 bg-white/80 backdrop-blur-[1px] z-[50] flex flex-col items-center justify-center">
+                        <div class="animate-spin text-orange-500 text-6xl mb-4"><i class="fa-solid fa-circle-notch"></i></div>
+                        <p class="text-slate-800 font-black tracking-tighter uppercase italic text-xs">Synchronizing Matrix...</p>
+                    </div>
                 </div>
-               <!-- 🌟 HTML部分の修正（72行目付近の loading を書き換え） -->
-                <div id="loading" class="hidden absolute inset-0 bg-white/60 backdrop-blur-[2px] z-[999] flex-col items-center justify-center min-h-[400px]">
-                    <div class="animate-spin text-orange-500 text-6xl mb-4"><i class="fa-solid fa-circle-notch"></i></div>
-                    <p class="text-slate-800 font-black tracking-tighter uppercase italic text-xs">Matrix Calculating...</p>
-                </div>
-            </div> <!-- max-w-[1600px] の閉じ -->
-        </div> <!-- flex-1 overflow-auto の閉じ -->
+            </div>
+        </div>
     </main>
 
     <script type="module" src="common.js"></script>
@@ -85,91 +84,76 @@
             const loader = document.getElementById('loading');
             const tbody = document.getElementById('monthlyTableBody');
             document.getElementById('displayYear').innerText = `${currentYear}年度`;
-            const selectedDept = document.getElementById('deptFilter').value;
+            const dept = document.getElementById('deptFilter').value;
 
-            // 🌟 超省エネ：localStorageから瞬時に復元
-            const cacheKey = `cp_matrix_v3_${currentYear}_${clean(selectedDept)}`;
+            // 🌟 localStorageから超速復元
+            const cacheKey = `cp_matrix_v4_${currentYear}_${clean(dept)}`;
             const cached = localStorage.getItem(cacheKey);
-            
             if (cached && !forceRefresh) {
                 renderTable(JSON.parse(cached));
-                return; // キャッシュがあればFirebaseに接続せず終了
+                return;
             }
 
-            // 🌟 キャッシュがない時だけ、サイドバーを殺さずにメインエリアでぐるぐる
             loader.classList.remove('hidden');
             loader.classList.add('flex');
-            tbody.innerHTML = "";
-
+            
             try {
-                let q;
-                const ref = collection(db, "activity_records");
+                // クエリの最適化（年度の開始日から取得）
                 const startDate = `${currentYear}/07/01`;
-
-                // 🌟 クエリの最適化（Read回数を劇的に抑える）
-                if (selectedDept === 'ALL') {
-                    q = query(ref, where("visitDate", ">=", startDate), orderBy("visitDate", "desc"), limit(1500));
-                } else {
-                    q = query(ref, where("visitorDept", "==", selectedDept), where("visitDate", ">=", startDate), orderBy("visitDate", "desc"), limit(1000));
-                }
-
+                let q = query(collection(db, "activity_records"), where("visitDate", ">=", startDate), limit(2000));
+                
                 const snap = await getDocs(q);
-                const records = snap.docs.map(d => d.data());
-
                 const months = [7,8,9,10,11,12,1,2,3,4,5,6];
-                let activeMap = new Map();
+                const activeMap = {};
 
-                records.forEach(r => {
-                    const dateStr = (r.visitDate||"").toString().replace(/\//g, '-');
-                    const parts = dateStr.split('-');
-                    if (parts.length < 2) return;
-                    const y = parseInt(parts[0]), m = parseInt(parts[1]);
-                    
-                    const isTarget = (y === currentYear && m >= 7) || (y === currentYear + 1 && m <= 6);
-                    if (!isTarget) return;
+                snap.docs.forEach(doc => {
+                    const r = doc.data();
+                    // 部署フィルタ
+                    if (dept !== 'ALL' && clean(r.visitorDept) !== clean(dept)) return;
 
-                    const cName = r.customerName || "不明な顧客";
-                    if (!activeMap.has(cName)) {
-                        activeMap.set(cName, { rank: r.customerRank||"-", type: r.customerType||"-", counts: Array(12).fill(0), total: 0 });
+                    const dateNum = (r.visitDate||"").toString().replace(/\D/g, ''); // 20260620
+                    const y = parseInt(dateNum.substring(0, 4));
+                    const m = parseInt(dateNum.substring(4, 6));
+
+                    // 年度内判定
+                    if (!((y === currentYear && m >= 7) || (y === currentYear + 1 && m <= 6))) return;
+
+                    const name = r.customerName || "不明";
+                    if (!activeMap[name]) {
+                        activeMap[name] = { rank: r.customerRank||"-", type: r.customerType||"-", counts: Array(12).fill(0), total: 0 };
                     }
-                    const data = activeMap.get(cName);
                     const mIdx = months.indexOf(m);
-                    if(mIdx !== -1) { data.counts[mIdx]++; data.total++; }
+                    if(mIdx !== -1) { activeMap[name].counts[mIdx]++; activeMap[name].total++; }
                 });
 
-                const sortedData = Array.from(activeMap.entries()).sort((a,b) => b[1].total - a[1].total);
-                
-                // 集計結果を保存
+                const sortedData = Object.entries(activeMap).sort((a,b) => b[1].total - a[1].total);
                 localStorage.setItem(cacheKey, JSON.stringify(sortedData));
-                
                 renderTable(sortedData);
+            } catch (e) {
+                console.error(e);
+                tbody.innerHTML = '<tr><td colspan="16" class="p-20 text-center text-rose-400">Sync Error</td></tr>';
+            } finally {
                 loader.classList.add('hidden');
-            } catch (e) { 
-                console.error(e); 
-                loader.classList.add('hidden');
-                tbody.innerHTML = '<tr><td colspan="16" class="p-20 text-center text-rose-400 font-bold">Sync Error</td></tr>';
             }
         };
 
         function renderTable(dataEntries) {
             const tbody = document.getElementById('monthlyTableBody');
-            if (!dataEntries || dataEntries.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="16" class="p-24 text-center text-slate-300 font-black italic tracking-widest uppercase">No Activity Records</td></tr>';
+            if (!dataEntries.length) {
+                tbody.innerHTML = '<tr><td colspan="16" class="p-24 text-center text-slate-300 font-black italic tracking-widest uppercase">No Data</td></tr>';
                 return;
             }
-            let html = "";
-            dataEntries.forEach(([name, d]) => {
-                let mCells = "";
-                d.counts.forEach(c => { mCells += `<td class="month-col">${c > 0 ? `<div class="val-active">${c}</div>` : '<div class="val-zero">0</div>'}</td>`; });
-                html += `
-                    <tr class="hover:bg-blue-50/30 transition-colors border-b border-slate-50 text-center">
-                        <td class="p-4 sticky-rank text-[10px] text-slate-400 font-black bg-white">${d.rank}</td>
-                        <td class="p-4 sticky-name text-left text-slate-800 font-black truncate max-w-[220px] cursor-pointer hover:text-orange-500 bg-white" onclick="location.href='customer_history.html?name=${encodeURIComponent(name)}'">${name}</td>
-                        <td class="p-4 text-slate-400 text-[10px] uppercase font-bold">${d.type}</td>
-                        ${mCells}
-                        <td class="p-4 bg-slate-50 font-black text-[#004098]">${d.total}</td>
-                    </tr>`;
-            });
+            // 🌟 描画パフォーマンスを最大化（一度に流し込む）
+            const html = dataEntries.map(([name, d]) => {
+                const mCells = d.counts.map(c => `<td class="month-col">${c > 0 ? `<div class="val-active">${c}</div>` : '<div class="val-zero">0</div>'}</td>`).join('');
+                return `<tr class="hover:bg-blue-50/30 transition-colors border-b border-slate-50 text-center">
+                    <td class="p-4 sticky-rank text-[10px] text-slate-400 font-black bg-white">${d.rank}</td>
+                    <td class="p-4 sticky-name text-left text-slate-800 font-black truncate max-w-[220px] cursor-pointer hover:text-orange-500 bg-white" onclick="location.href='customer_history.html?name=${encodeURIComponent(name)}'">${name}</td>
+                    <td class="p-4 text-slate-400 text-[10px] uppercase font-bold">${d.type}</td>
+                    ${mCells}
+                    <td class="p-4 bg-slate-50 font-black text-[#004098]">${d.total}</td>
+                </tr>`;
+            }).join('');
             tbody.innerHTML = html;
         }
 
