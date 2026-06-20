@@ -221,36 +221,58 @@
                 } 
             };
         }
-        const handleRegister = async () => {
+                const handleRegister = async () => {
             const form = document.getElementById('appointForm');
             if (!form.checkValidity()) { form.reportValidity(); return; }
             const btn = document.getElementById('submitBtnTop');
             btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>保存中...';
+            
             const vName = document.getElementById('visitorName').value;
-            const staff = allStaffs.find(s => s.name === vName);
-            const vDept = staff ? staff.dept : "不明";
+            const custName = document.getElementById('customerSearch').value;
+            const appDate = document.getElementById('appointDate').value;
+
+            // 🌟 部署検索を「名寄せ」対応で強化
+            const staff = allStaffs.find(s => clean(s.name) === clean(vName));
+            const vDept = staff ? staff.dept : "ケコム部"; // 万が一見つからなくてもデフォルト部署を入れる
+
             try {
+                // アポイント本体の登録
                 await addDoc(collection(db, "appointments"), {
-                    customerName: document.getElementById('customerSearch').value,
-                    appointDate: document.getElementById('appointDate').value,
+                    customerName: custName,
+                    appointDate: appDate,
                     startTime: document.getElementById('startTime').value,
                     endTime: document.getElementById('endTime').value,
-                    visitorName: vName, visitorDept: vDept,
-                    subject: document.getElementById('appointSubject').value,
+                    visitorName: vName, 
+                    visitorDept: vDept, // 🌟 確実に部署を入れる
+                    subject: document.getElementById('appointSubject').value || "予定",
                     createdAt: serverTimestamp()
                 });
+
+                // 通知の登録
                 const cDisp = document.getElementById('circularDisplay').innerText;
                 const cNames = (cDisp !== '未選択' && cDisp !== '') ? cDisp.split(', ') : [];
+                
                 for (const name of cNames) {
                     await addDoc(collection(db, "notifications"), {
-                        recipient: name, visitorName: vName, customerName: document.getElementById('customerSearch').value,
-                        isRead: false, content: "【アポ】" + (document.getElementById('appointSubject').value || "予定"),
-                        appointDate: document.getElementById('appointDate').value,
-                        createdAt: serverTimestamp(), type: "アポ回覧"
+                        recipient: name, 
+                        visitorName: vName, 
+                        customerName: custName,
+                        isRead: false, 
+                        content: "【アポ】" + (document.getElementById('appointSubject').value || "予定"),
+                        appointDate: appDate, // 🌟 カレンダー表示に必須
+                        visitDate: appDate,   // 🌟 念のため両方のキーで持っておく
+                        createdAt: serverTimestamp(), 
+                        type: "アポ回覧"
                     });
                 }
-                alert("登録完了！"); location.href = 'calendar.html';
-            } catch (e) { alert("失敗"); btn.disabled = false; btn.innerHTML = '登録を実行'; }
+                alert("登録完了！"); 
+                location.href = 'calendar.html';
+            } catch (e) { 
+                console.error("登録エラー:", e);
+                alert("保存に失敗しました。"); 
+                btn.disabled = false; 
+                btn.innerHTML = '登録を実行'; 
+            }
         };
 
         document.getElementById('submitBtnTop').onclick = handleRegister;
