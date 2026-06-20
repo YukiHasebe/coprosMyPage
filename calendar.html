@@ -165,7 +165,7 @@
             if(loader) loader.style.display = 'none'; 
         }
     };
-    window.renderCalendar = () => {
+        window.renderCalendar = () => {
         const grid = document.getElementById('calendarGrid'); grid.innerHTML = "";
         const year = currentDate.getFullYear(), month = currentDate.getMonth();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -179,36 +179,54 @@
             const targetKey = `${year}-${(month + 1).toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
             let evHtml = "";
 
-                        // 実績
+            // 実績
             if (document.getElementById('showRes').checked) {
                 loadedData.records.filter(r => window.standardizeDate(r.visitDate) === targetKey && (selCleans.length === 0 || selCleans.includes(clean(r.visitorName)))).forEach(r => {
                     const noti = loadedData.notifications.find(n => clean(n.visitorName) === clean(r.visitorName) && clean(n.customerName) === clean(r.customerName) && window.standardizeDate(n.visitDate || n.appointDate) === targetKey && n.isRead === false);
                     const badge = noti ? `<span class="inline-block w-2 h-2 rounded-full bg-rose-500 mr-1 animate-pulse"></span>` : "";
                     if (showUnread && !noti) return;
-                    // 引数に targetKey を追加しました
                     evHtml += `<div class="event-item"><div class="event-label label-result" onclick="window.goUsage('${r.visitorName}', ${month+1}, '${r.customerName}', '${targetKey}')">${badge}${r.visitorName}: ${r.customerName}</div></div>`;
                 });
             }
-            // 次回（緑）
+            // 次回
             if (document.getElementById('showNext').checked && !showUnread) {
                 loadedData.records.filter(r => window.standardizeDate(r.nextVisitDate) === targetKey && (selCleans.length === 0 || selCleans.includes(clean(r.visitorName)))).forEach(r => {
-                    // 引数に targetKey を追加しました
                     evHtml += `<div class="event-item"><div class="event-label label-next" onclick="window.goUsage('${r.visitorName}', ${month+1}, '${r.customerName}', '${targetKey}')">${r.visitorName}: ${r.customerName}</div></div>`;
                 });
             }
-                        // アポ（青）の表示ロジックを強化
+            // アポ
             if (document.getElementById('showApp').checked && !showUnread) {
-                loadedData.appoints.filter(a => {
-                    // 🌟 日付の形式を統一して比較 (2026/05/20 も 2026-05-20 も一致させる)
-                    return window.standardizeDate(a.appointDate) === targetKey && 
-                           (selCleans.length === 0 || selCleans.includes(clean(a.visitorName)));
-                }).forEach(a => {
+                loadedData.appoints.filter(a => window.standardizeDate(a.appointDate) === targetKey && (selCleans.length === 0 || selCleans.includes(clean(a.visitorName)))).forEach(a => {
                     evHtml += `<div class="event-item"><div class="event-label label-appoint" onclick="window.handleAppoint('${a.id}','${a.customerName}','${a.appointDate}','${a.subject}')">${a.visitorName}: ${a.customerName}</div></div>`;
                 });
             }
+            // 🌟 抜けていた一番大事な一行：カレンダーのマスを描画
+            grid.insertAdjacentHTML('beforeend', `<div class="calendar-day"><div class="day-header"><span class="day-num" onclick="window.goDailyReport('${targetKey}')">${d}</span><div class="add-btn" onclick="window.goAddHistory('${targetKey}')"><i class="fa-solid fa-plus"></i></div></div><div class="max-h-[110px] overflow-y-auto custom-scrollbar">${evHtml}</div></div>`);
+        }
     };
 
-        window.openStaffModal = () => { document.getElementById('staffModal').style.display = 'flex'; window.renderModalList(); };
+    window.markSelectedAsRead = async () => {
+        if (!confirm("表示中のメンバーの未読通知をすべて既読にしますか？")) return;
+        const myName = sessionStorage.getItem('userName') || "";
+        const selCleans = selectedStaffs.map(n => clean(n));
+        try {
+            const q = query(collection(db, "notifications"), where("recipient", "==", myName), where("isRead", "==", false));
+            const snap = await getDocs(q);
+            const batch = writeBatch(db);
+            let count = 0;
+            snap.forEach(d => {
+                const n = d.data();
+                if (selCleans.length === 0 || selCleans.includes(clean(n.visitorName))) {
+                    batch.update(d.ref, { isRead: true });
+                    count++;
+                }
+            });
+            if (count > 0) { await batch.commit(); alert(`${count}件を既読にしました`); window.fetchMonthData(true); }
+            else { alert("未読の通知はありません"); }
+        } catch (e) { console.error(e); alert("失敗"); }
+    };
+
+    window.openStaffModal = () => { document.getElementById('staffModal').style.display = 'flex'; window.renderModalList(); };
     window.closeModal = () => { document.getElementById('staffModal').style.display = 'none'; };
     window.renderModalList = () => {
         const kw = clean(document.getElementById('modalSearch').value.toLowerCase());
@@ -229,7 +247,6 @@
     };
     window.removeStaff = (name) => { selectedStaffs = selectedStaffs.filter(n => n !== name); localStorage.setItem('cp_cal_selected_staffs', JSON.stringify(selectedStaffs)); window.updateSelectedDisplay(); window.renderCalendar(); };
 
-    // 🌟 212行目修正：引数に date を追加
     window.goUsage = (name, month, customer, date) => { 
         sessionStorage.setItem('cp_usage_jump_name', name); 
         sessionStorage.setItem('cp_usage_jump_month', month); 
