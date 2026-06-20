@@ -68,7 +68,11 @@
         import { collection, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let allStaffs = [], currentStaffRecords = [], selectedName = "", currentY = 2026, currentM = new Date().getMonth() + 1;
+        
+        // 🌟 徹底的に不純物を取り除くクリーン関数
         const clean = (s) => (s||"").toString().replace(/[\s\u3000]+/g, '').trim();
+        // 🌟 日付から数字だけを抽出する関数 (2026/06/20 -> 20260620)
+        const dateToNum = (s) => (s||"").toString().replace(/\D/g, '');
 
         async function init() {
             try {
@@ -83,6 +87,7 @@
                 
                 const jName = sessionStorage.getItem('cp_usage_jump_name');
                 const jMonth = sessionStorage.getItem('cp_usage_jump_month');
+                // 🌟 ここで確実に日付を受け取る
                 if (jName) {
                     sessionStorage.removeItem('cp_usage_jump_name');
                     sessionStorage.removeItem('cp_usage_jump_month');
@@ -118,7 +123,6 @@
             }
 
             try {
-                // 省エネ：名前の完全一致のみ
                 const q = query(collection(db, "activity_records"), where("visitorName", "==", name), limit(1000));
                 const snap = await getDocs(q); 
                 currentStaffRecords = snap.docs.map(d => d.data());
@@ -191,18 +195,19 @@
                     </div>
                 </div>`).join('') : '<p class="text-center py-20 text-slate-300 font-bold uppercase tracking-widest">実績はありません</p>';
 
-            // 🌟 自動展開
+            // 🌟 自動展開 (比較ロジックを強化)
             const jDate = sessionStorage.getItem('cp_usage_jump_date');
             if (jDate) {
-                const cleanJ = jDate.replace(/[-/]/g, '');
-                const idx = filtered.findIndex(r => (r.visitDate||"").toString().replace(/[-/]/g, '') === cleanJ);
+                const targetNum = dateToNum(jDate);
+                const idx = filtered.findIndex(r => dateToNum(r.visitDate) === targetNum || dateToNum(r.nextVisitDate) === targetNum);
+
                 if (idx !== -1) {
                     setTimeout(() => {
                         window.toggleAcc(`acc-${idx}`);
                         const el = document.getElementById(`acc-${idx}`);
                         if(el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         sessionStorage.removeItem('cp_usage_jump_date');
-                    }, 1000);
+                    }, 1200); // 1.2秒待つ（確実性のため）
                 }
             }
         };
@@ -217,7 +222,7 @@
             if(icon) icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
         };
 
-        init();
+        init();       
     </script>
 </body>
 </html>
