@@ -188,8 +188,7 @@
         }
     };
 
-    // 🌟 モーダルのIDを修正し、リストが表示されるように戻しました
-    window.openStaffModal = () => { document.getElementById('staffModal').style.display = 'flex'; window.renderModalList(); };
+        window.openStaffModal = () => { document.getElementById('staffModal').style.display = 'flex'; window.renderModalList(); };
     window.closeModal = () => { document.getElementById('staffModal').style.display = 'none'; };
     window.renderModalList = () => {
         const kw = clean(document.getElementById('modalSearch').value.toLowerCase());
@@ -209,7 +208,16 @@
         container.innerHTML = selectedStaffs.map(name => `<div class="staff-tag"><span>${name}</span><i class="fa-solid fa-circle-xmark remove-staff-x" onclick="window.removeStaff('${name}')"></i></div>`).join('');
     };
     window.removeStaff = (name) => { selectedStaffs = selectedStaffs.filter(n => n !== name); localStorage.setItem('cp_cal_selected_staffs', JSON.stringify(selectedStaffs)); window.updateSelectedDisplay(); window.renderCalendar(); };
-    window.goUsage = (name, month, customer) => { sessionStorage.setItem('cp_usage_jump_name', name); sessionStorage.setItem('cp_usage_jump_month', month); sessionStorage.setItem('cp_usage_jump_customer', customer); location.href = 'usage.html'; };
+
+    // 🌟 212行目修正：引数に date を追加
+    window.goUsage = (name, month, customer, date) => { 
+        sessionStorage.setItem('cp_usage_jump_name', name); 
+        sessionStorage.setItem('cp_usage_jump_month', month); 
+        sessionStorage.setItem('cp_usage_jump_customer', customer); 
+        sessionStorage.setItem('cp_usage_jump_date', date); 
+        location.href = 'usage.html'; 
+    };
+
     window.goDailyReport = (date) => { sessionStorage.setItem('cp_daily_date', date); location.href = 'daily_report.html'; };
     window.goAddHistory = (date) => { sessionStorage.setItem('cp_add_date', date); location.href = 'history.html'; };
     window.handleAppoint = (id, cust, date, subject) => {
