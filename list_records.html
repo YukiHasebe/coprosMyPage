@@ -93,17 +93,18 @@
     </main>
 
     <script type="module" src="common.js"></script>
-    <script type="module">
+       <script type="module">
         import { db, TARGET_DEPTS } from "./common.js";
         import { collection, getDocs, query, limit, doc, writeBatch, where, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let allRecords = [];
         let currentKana = 'all';
 
-        // 🌟 日付標準化
+        const clean = (s) => (s||"").toString().replace(/[\s\u3000]+/g, '').trim();
+
         function normalizeDate(str) {
             if (!str) return "0000-00-00";
-            const d = str.replace(/\//g, '-').split('-');
+            const d = str.toString().replace(/\//g, '-').split('-');
             if (d.length < 3) return str;
             return `${d[0]}-${d[1].padStart(2,'0')}-${d[2].padStart(2,'0')}`;
         }
@@ -119,17 +120,15 @@
             const dept = document.getElementById('deptFilter').value;
 
             try {
-                let q = query(collection(db, "activity_records"), orderBy("visitDate", "desc"), limit(300));
+                // 🌟 【省エネと確実性の両立】
+                // 部署フィルタがALLでない場合も、まずは日付順で取得しJS側でフィルタする方が「名寄せミス」を防げます
+                let q = query(collection(db, "activity_records"), orderBy("visitDate", "desc"), limit(500));
                 
-                // 🌟 省エネ検索：部署指定がある場合
-                if (dept !== 'ALL') {
-                    q = query(collection(db, "activity_records"), where("visitorDept", "==", dept), orderBy("visitDate", "desc"), limit(300));
-                }
-
                 const snap = await getDocs(q);
                 let data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-                // JS側での詳細フィルタリング
+                // 🌟 JS側での徹底フィルタリング
+                if (dept !== 'ALL') data = data.filter(r => clean(r.visitorDept) === clean(dept));
                 if (custK) data = data.filter(r => (r.customerName||"").includes(custK));
                 if (visiK) data = data.filter(r => (r.visitorName||"").includes(visiK));
                 if (startD) data = data.filter(r => normalizeDate(r.visitDate) >= startD);
@@ -139,7 +138,7 @@
                 window.updateView();
             } catch (e) {
                 console.error(e);
-                tbody.innerHTML = `<tr><td colspan="6" class="p-20 text-center text-rose-400 font-bold">データの取得に失敗しました。</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="p-20 text-center text-rose-400 font-bold">通信エラー: 権限または接続を確認してください</td></tr>`;
             }
         };
 
@@ -164,7 +163,7 @@
         function renderTable(dataList) {
             const tbody = document.getElementById('recordTable');
             if (dataList.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="p-20 text-center text-slate-300 font-bold uppercase tracking-widest">No Records Found</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="p-20 text-center text-slate-300 font-bold uppercase tracking-widest">該当する実績はありません</td></tr>`;
                 document.getElementById('totalDisplay').innerText = 0;
                 return;
             }
@@ -173,7 +172,7 @@
                 if(data.startTime && data.endTime && data.startTime !== "00:00") {
                     const s = data.startTime.split(':'), e = data.endTime.split(':');
                     const diff = (parseInt(e[0])*60+parseInt(e[1]||0)) - (parseInt(s[0])*60+parseInt(s[1]||0));
-                    if(diff > 0) dur = `<div class="text-[#0ea5e9] text-[10px] mt-1 font-black"><i class="fa-regular fa-clock mr-1"></i>滞在時間: ${diff}分</div>`;
+                    if(diff > 0) dur = `<div class="text-[#0ea5e9] text-[10px] mt-1 font-black"><i class="fa-regular fa-clock mr-1"></i>滞在: ${diff}分</div>`;
                 }
                 return `<tr class="hover:bg-sky-50/50 transition-colors">
                     <td class="p-6 text-slate-300 font-mono text-xs border-r border-slate-50">${i+1}</td>
@@ -196,13 +195,16 @@
         window.bulkDelete = async () => {
             const checks = document.querySelectorAll('.record-check:checked');
             if (!checks.length) return alert("削除したい実績にチェックを入れてください");
-            if (!confirm(`${checks.length}件の実績を削除しますか？`)) return;
+            if (!confirm(`${checks.length}件の実績を削除しますか？\n（カレンダーからも消去されます）`)) return;
 
             const batch = writeBatch(db);
             checks.forEach(cb => { batch.delete(doc(db, "activity_records", cb.value)); });
-            await batch.commit();
-            alert("削除完了しました");
-            window.executeSearch();
+            
+            try {
+                await batch.commit();
+                alert("一括削除が完了しました");
+                window.executeSearch();
+            } catch (e) { alert("削除に失敗しました"); }
         };
 
         window.clearSearch = () => {
@@ -213,10 +215,7 @@
             window.executeSearch();
         };
 
-        // 🌟 起動時実行
-        window.addEventListener('load', () => {
-            setTimeout(() => window.executeSearch(), 300);
-        });
+        window.executeSearch();
     </script>
 </body>
 </html>
