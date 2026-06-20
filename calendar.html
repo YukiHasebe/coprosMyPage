@@ -99,8 +99,11 @@
         return d.length < 3 ? s : `${d[0]}-${d[1].padStart(2, '0')}-${d[2].padStart(2, '0')}`;
     };
 
-    async function init() {
+       async function init() {
         try {
+            // 先にカレンダーの「枠」だけ描画して、ユーザーに安心感を与える
+            window.renderCalendar(); 
+
             const cached = sessionStorage.getItem('cp_cache_staffs');
             if(cached) { allStaffs = JSON.parse(cached); }
             else {
@@ -109,26 +112,36 @@
                 sessionStorage.setItem('cp_cache_staffs', JSON.stringify(allStaffs));
             }
             window.updateSelectedDisplay();
-            await window.fetchMonthData();
+            
+            // 🌟 データの取得を「待たずに」実行（バックグラウンドで開始）
+            window.fetchMonthData(); 
         } catch (e) { console.error(e); }
     }
 
-         window.fetchMonthData = async (force = false) => {
+            window.fetchMonthData = async (force = false) => {
         const y = currentDate.getFullYear(), m = currentDate.getMonth() + 1, mStr = m.toString().padStart(2, '0');
         const cacheKey = `cp_cal_cache_${y}_${mStr}`;
         document.getElementById('displayMonthCenter').innerText = `${y}年 ${m}月`;
         document.querySelectorAll('.month-btn').forEach(b => b.classList.toggle('active', b.id === `m-btn-${m}`));
 
+        // 🌟【キャッシュ活用】一度読み込んだデータがあればFirebaseに聞かずに即表示
         const cached = sessionStorage.getItem(cacheKey);
-        if (cached && !force) { loadedData = JSON.parse(cached); window.renderCalendar(); return; }
+        if (cached && !force) { 
+            loadedData = JSON.parse(cached); 
+            window.renderCalendar(); 
+            return; 
+        }
 
-        document.getElementById('local-loader').style.display = 'flex';
+        // キャッシュがない場合のみ、ローダーを表示して通信開始
+        const loader = document.getElementById('local-loader');
+        if(loader) loader.style.display = 'flex';
+
         try {
             const tP1 = `${y}/${mStr}`, tP2 = `${y}-${mStr}`, myName = sessionStorage.getItem('userName') || "";
             
-            // 🌟 確実性を優先し、月間の全データを取得するロジックに戻しました（上限800件）
-            let qRecords = query(collection(db, "activity_records"), where("visitDate", ">=", tP1), where("visitDate", "<=", tP1 + "\uf8ff"), limit(800));
-            let qAppoints = query(collection(db, "appointments"), where("appointDate", ">=", tP2), where("appointDate", "<=", tP2 + "\uf8ff"), limit(300));
+            // 確実性と省エネのバランスをとった取得（上限設定）
+            let qRecords = query(collection(db, "activity_records"), where("visitDate", ">=", tP1), where("visitDate", "<=", tP1 + "\uf8ff"), limit(500));
+            let qAppoints = query(collection(db, "appointments"), where("appointDate", ">=", tP2), where("appointDate", "<=", tP2 + "\uf8ff"), limit(200));
 
             const [snapR, snapA, snapN] = await Promise.all([
                 getDocs(qRecords),
@@ -141,10 +154,16 @@
                 appoints: snapA.docs.map(d => ({id: d.id, ...d.data()})), 
                 notifications: snapN.docs.map(d => d.data()) 
             };
+            
+            // 🌟 読み取ったデータをキャッシュに保存
             sessionStorage.setItem(cacheKey, JSON.stringify(loadedData));
-            document.getElementById('local-loader').style.display = 'none';
+            
+            if(loader) loader.style.display = 'none';
             window.renderCalendar();
-        } catch (e) { console.error("Fetch Error:", e); document.getElementById('local-loader').style.display = 'none'; }
+        } catch (e) { 
+            console.error("Fetch Error:", e); 
+            if(loader) loader.style.display = 'none'; 
+        }
     };
     window.renderCalendar = () => {
         const grid = document.getElementById('calendarGrid'); grid.innerHTML = "";
