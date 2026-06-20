@@ -72,20 +72,16 @@
     </main>
 
     <script type="module" src="common.js"></script>
-    <script type="module">
+        <script type="module">
         import { db, TARGET_DEPTS } from "./common.js";
-        import { collection, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, getDocs, query, where, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const now = new Date();
+        // 7月期首に合わせた年度計算
         let currentYear = now.getMonth() + 1 >= 7 ? now.getFullYear() : now.getFullYear() - 1;
 
-        const standardizeDate = (s) => {
-            if(!s) return "";
-            const d = s.replace(/\//g, '-').split('-');
-            return d.length < 3 ? s : `${d[0]}-${d[1].padStart(2, '0')}-${d[2].padStart(2, '0')}`;
-        };
+        const clean = (s) => (s||"").toString().replace(/[\s\u3000]+/g, '').trim();
 
-        // 🌟 キャッシュ機能付き初期化
         window.init = async (forceRefresh = false) => {
             const loading = document.getElementById('loading');
             loading.style.display = 'block';
@@ -94,22 +90,29 @@
             document.getElementById('displayYear').innerText = `${currentYear}年度`;
             const selectedDept = document.getElementById('deptFilter').value;
 
-            // 🌟 【省エネ】キャッシュチェック
-            const cacheKey = `cp_matrix_cache_${currentYear}_${selectedDept}`;
-            const cachedData = sessionStorage.getItem(cacheKey);
+            // 🌟 【超省エネ】強固なキャッシュチェック（localStorageを使用）
+            const cacheKey = `cp_matrix_v2_${currentYear}_${clean(selectedDept)}`;
+            const cachedData = localStorage.getItem(cacheKey);
+            
+            // 強制更新でない、かつキャッシュがある場合は即座に表示
             if (cachedData && !forceRefresh) {
-                renderTable(JSON.parse(cachedData));
-                loading.style.display = 'none';
-                return;
+                const parsed = JSON.parse(cachedData);
+                if (parsed.year === currentYear) {
+                    renderTable(parsed.data);
+                    loading.style.display = 'none';
+                    return;
+                }
             }
 
             try {
                 let q;
                 const ref = collection(db, "activity_records");
+                const startDate = `${currentYear}/07/01`;
+
                 if (selectedDept === 'ALL') {
-                    q = query(ref, where("visitorDept", "in", TARGET_DEPTS), where("visitDate", ">=", `${currentYear}`), limit(5000));
+                    q = query(ref, where("visitDate", ">=", startDate), orderBy("visitDate", "desc"), limit(2000));
                 } else {
-                    q = query(ref, where("visitorDept", "==", selectedDept), where("visitDate", ">=", `${currentYear}`), limit(3000));
+                    q = query(ref, where("visitorDept", "==", selectedDept), where("visitDate", ">=", startDate), orderBy("visitDate", "desc"), limit(1500));
                 }
 
                 const snap = await getDocs(q);
@@ -119,62 +122,74 @@
                 let activeMap = new Map();
 
                 records.forEach(r => {
-                    const sDate = standardizeDate(r.visitDate);
-                    const parts = sDate.split('-');
-                    if (parts.length < 3) return;
-                    const y = parseInt(parts[0]), m = parseInt(parts[1]);
+                    const dateStr = (r.visitDate||"").toString().replace(/\//g, '-');
+                    const parts = dateStr.split('-');
+                    if (parts.length < 2) return;
+                    
+                    const y = parseInt(parts[0]);
+                    const m = parseInt(parts[1]);
+                    
+                    // 年度内のデータか判定
                     const isTarget = (y === currentYear && m >= 7) || (y === currentYear + 1 && m <= 6);
+                    if (!isTarget) return;
 
-                    if (isTarget) {
-                        if (!activeMap.has(r.customerName)) {
-                            activeMap.set(r.customerName, { rank: r.customerRank, type: r.customerType, counts: Array(12).fill(0), total: 0 });
-                        }
-                        const data = activeMap.get(r.customerName);
-                        const monthIdx = months.indexOf(m);
-                        if(monthIdx !== -1) { data.counts[monthIdx]++; data.total++; }
+                    const cName = r.customerName || "不明な顧客";
+                    if (!activeMap.has(cName)) {
+                        activeMap.set(cName, { 
+                            rank: r.customerRank || r.qualData1 || "-", 
+                            type: r.customerType || r.qualData2 || "-", 
+                            counts: Array(12).fill(0), 
+                            total: 0 
+                        });
                     }
+                    const data = activeMap.get(cName);
+                    const monthIdx = months.indexOf(m);
+                    if(monthIdx !== -1) { data.counts[monthIdx]++; data.total++; }
                 });
 
-                const sortedData = Array.from(activeMap.entries()).sort((a,b) => a[0].localeCompare(b[0], 'ja'));
+                const sortedData = Array.from(activeMap.entries()).sort((a,b) => b[1].total - a[1].total); // 🌟 合計が多い順にソート
                 
-                // 🌟 データをキャッシュに保存
-                sessionStorage.setItem(cacheKey, JSON.stringify(sortedData));
+                // 🌟 集計結果を保存（1日有効なキャッシュにするイメージ）
+                localStorage.setItem(cacheKey, JSON.stringify({ year: currentYear, data: sortedData, time: Date.now() }));
                 
                 renderTable(sortedData);
                 loading.style.display = 'none';
             } catch (e) { 
-                console.error(e); 
+                console.error("集計エラー:", e); 
                 loading.style.display = 'none';
-                tbody.innerHTML = '<tr><td colspan="16" class="p-20 text-center text-rose-400 font-bold uppercase italic">Sync Error</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="16" class="p-20 text-center text-rose-400 font-bold">集計中にエラーが発生しました。データの形式を確認してください。</td></tr>';
             }
         };
 
         function renderTable(dataEntries) {
             const tbody = document.getElementById('monthlyTableBody');
             if (dataEntries.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="16" class="p-24 text-center text-slate-300 font-black italic tracking-widest uppercase">No Records</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="16" class="p-24 text-center text-slate-300 font-black italic tracking-widest uppercase">No Activity Found</td></tr>';
                 return;
             }
-            const months = [7,8,9,10,11,12,1,2,3,4,5,6];
+            
+            let html = "";
             dataEntries.forEach(([name, d]) => {
                 let monthCells = "";
                 d.counts.forEach(c => {
                     monthCells += `<td class="month-col">${c > 0 ? `<div class="val-active">${c}</div>` : '<div class="val-zero">0</div>'}</td>`;
                 });
-                tbody.insertAdjacentHTML('beforeend', `
+                html += `
                     <tr class="hover:bg-blue-50/30 transition-colors border-b border-slate-50 text-center">
-                        <td class="p-4 sticky-rank text-[10px] text-slate-400 font-black bg-white">${d.rank || '-'}</td>
+                        <td class="p-4 sticky-rank text-[10px] text-slate-400 font-black bg-white">${d.rank}</td>
                         <td class="p-4 sticky-name text-left text-slate-800 font-black truncate max-w-[220px] cursor-pointer hover:text-orange-500 bg-white" onclick="location.href='customer_history.html?name=${encodeURIComponent(name)}'">${name}</td>
-                        <td class="p-4 text-slate-400 text-[10px] uppercase font-bold">${d.type || '-'}</td>
+                        <td class="p-4 text-slate-400 text-[10px] uppercase font-bold">${d.type}</td>
                         ${monthCells}
                         <td class="p-4 bg-slate-50 font-black text-[#004098]">${d.total}</td>
-                    </tr>
-                `);
+                    </tr>`;
             });
+            tbody.innerHTML = html;
         }
 
         window.changeYear = (val) => { currentYear += val; window.init(true); };
-        window.addEventListener('load', () => { setTimeout(() => window.init(), 300); });
+        
+        // 🌟 初回起動
+        window.init();
     </script>
 </body>
 </html>
