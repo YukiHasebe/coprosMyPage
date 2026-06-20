@@ -72,10 +72,11 @@
                 <div id="calendarGrid" class="calendar-grid shadow-sm"></div>
             </div>
         </div>
-        <div id="local-loader" class="fixed inset-0 bg-white/60 backdrop-blur-[2px] z-[999] hidden flex-col items-center justify-center">
-            <div class="animate-spin text-[#ff7e11] text-6xl mb-4"><i class="fa-solid fa-circle-notch"></i></div>
-            <p class="text-slate-800 font-black tracking-tighter uppercase italic text-xs">Fast Syncing...</p>
-        </div>
+       <!-- fixed inset-0 を削除し、mainの中の特定エリアだけを覆うように変更 -->
+<div id="local-loader" class="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-[999] hidden flex flex-col items-center justify-center">
+    <div class="animate-spin text-[#ff7e11] text-6xl mb-4"><i class="fa-solid fa-circle-notch"></i></div>
+    <p class="text-slate-800 font-black tracking-tighter uppercase italic text-xs">Fast Syncing...</p>
+</div>
     </main>
 
     <div id="staffModal" class="modal-overlay"><div class="modal-content"><div class="bg-slate-900 p-4 text-white flex justify-between items-center"><span class="font-black text-xs uppercase">Select Member</span><i class="fa-solid fa-xmark cursor-pointer" onclick="window.closeModal()"></i></div><div class="p-4 bg-slate-50 border-b border-slate-100"><div class="grid grid-cols-2 gap-2"><input type="text" id="modalSearch" oninput="window.renderModalList()" placeholder="氏名検索..." class="p-2.5 rounded-lg border border-slate-200 text-xs font-bold outline-none"><select id="modalDept" onchange="window.renderModalList()" class="p-2.5 rounded-lg border border-slate-200 text-xs font-bold outline-none"><option value="ALL">全ケコム関連</option><option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option></select></div></div><div id="modalStaffList" class="max-h-[350px] overflow-y-auto custom-scrollbar"></div><div class="p-4 bg-slate-50 grid grid-cols-2 gap-3"><button onclick="window.applyModal()" class="py-3 bg-[#004098] text-white rounded-xl font-black">決定</button><button onclick="window.clearModal()" class="py-3 bg-white border border-slate-200 rounded-xl font-bold">クリア</button></div></div></div>
