@@ -149,7 +149,7 @@
             window.renderAccordion();
         };
 
-        window.renderAccordion = () => {
+                window.renderAccordion = () => {
             const container = document.getElementById('activityAccordion');
             const filtered = currentStaffRecords.filter(r => {
                 const dateStr = (r.visitDate||"").toString().replace(/\//g, '-');
@@ -193,16 +193,23 @@
                         <div class="report-box border-l-4 border-orange-100">${r.staffThoughts || '未入力'}</div>
                     </div>
                 </div>`).join('') : '<p class="text-center py-20 text-slate-300 font-bold uppercase tracking-widest">実績はありません</p>';
-        };
 
-        window.toggleAcc = (id) => {
-            const item = document.getElementById(id);
-            const content = item.querySelector('.accordion-content');
-            const isOpen = content.style.display === 'block';
-            content.style.display = isOpen ? 'none' : 'block';
-            item.querySelector('i').style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
-        };
+            // 🌟 自動展開処理（ここが 197行目付近に追加されます）
+            const jDate = sessionStorage.getItem('cp_usage_jump_date');
+            if (jDate) {
+                const cleanJDate = jDate.replace(/[-/]/g, '');
+                const targetIndex = filtered.findIndex(r => (r.visitDate||"").toString().replace(/[-/]/g, '') === cleanJDate);
 
+                if (targetIndex !== -1) {
+                    setTimeout(() => {
+                        window.toggleAcc(`acc-${targetIndex}`);
+                        const el = document.getElementById(`acc-${targetIndex}`);
+                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        sessionStorage.removeItem('cp_usage_jump_date');
+                    }, 1000);
+                }
+            }
+        };
         init();
     </script>
 </body>
