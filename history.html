@@ -261,7 +261,7 @@
             window.closeModal();
         };
 
-        document.getElementById('submitBtnTop').onclick = async () => {
+               document.getElementById('submitBtnTop').onclick = async () => {
             const form = document.getElementById('historyForm');
             if (!form.checkValidity()) { form.reportValidity(); return; }
             const btns = [document.getElementById('submitBtnTop'), document.getElementById('submitBtnBottom')];
@@ -270,42 +270,35 @@
             try {
                 const customer = document.getElementById('customerSearch').value;
                 const visitor = document.getElementById('visitorName').value;
-                const visitDate = document.getElementById('visitDate').value;
-                const startTime = document.getElementById('startTime').value;
-                const endTime = document.getElementById('endTime').value;
-                const blocks = document.querySelectorAll('.report-block');
+                const vDate = document.getElementById('visitDate').value;
+                const vDept = allStaffs.find(s => clean(s.name) === clean(visitor))?.dept || "ケコム部"; // 🌟 部署を特定
 
+                const blocks = document.querySelectorAll('.report-block');
                 for (const b of blocks) {
                     await addDoc(collection(db, "activity_records"), {
                         customerName: customer, 
-                        visitDate: visitDate.replace(/-/g, '/'), // 🌟 スラッシュ形式に統一
+                        visitDate: vDate.replace(/-/g, '/'), 
                         visitorName: visitor,
-                         visitorDept: allStaffs.find(s => clean(s.name) === clean(visitor))?.dept || "ケコム部",
-                        startTime: startTime, 
-                        endTime: endTime,
-                        nextVisitDate: document.getElementById('nextVisitDate').value || "",
-                        qualData1: b.querySelector('.qual-data-1').value, 
-                        qualData2: b.querySelector('.qual-data-2').value, 
-                        qualData3: b.querySelector('.qual-data-3').value, 
-                        qualFree: b.querySelector('.qual-free').value,
+                        visitorDept: vDept, // 🌟 部署を保存！
+                        startTime: document.getElementById('startTime').value || "00:00", 
+                        endTime: document.getElementById('endTime').value || "00:00",
                         content: b.querySelector('.customer-report').value, 
                         staffThoughts: b.querySelector('.staff-thoughts').value, 
                         createdAt: serverTimestamp()
                     });
                 }
-                const circularNames = document.getElementById('circularDisplay').innerText.split(', ').filter(n => n !== '未選択' && n !== '');
-                for (const name of circularNames) {
-                    await addDoc(collection(db, "notifications"), { recipient: name, visitorName: visitor, customerName: customer, visitDate: visitDate.replace(/-/g, '/'), isRead: false, createdAt: serverTimestamp(), type: "実績回覧" });
-                }
-                alert("登録完了しました！");
+                
+                // 🌟 重要：登録成功時にカレンダーのキャッシュを削除する
+                const [y, m] = vDate.split('-');
+                sessionStorage.removeItem(`cp_cal_cache_${y}_${m.padStart(2,'0')}`);
+
+                alert("登録完了！カレンダーを更新しました。");
                 location.href = 'list_records.html';
             } catch (e) { 
-                console.error("保存失敗:", e);
-                alert("保存エラー: " + e.message); 
+                alert("エラー: " + e.message); 
                 btns.forEach(b => { b.disabled = false; b.innerHTML = '登録を実行'; }); 
             }
         };
-
         init();
     </script>
 </body>
