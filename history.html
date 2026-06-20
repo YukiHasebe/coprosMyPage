@@ -251,19 +251,38 @@
             else modalSelected.push(name);
             window.renderStaffList();
         };
-        window.applySelection = () => {
+               window.applySelection = () => {
             const names = modalSelected.join(', ');
             if (currentTarget === 'visitor') document.getElementById('visitorName').value = names;
             else if (currentTarget === 'companion') document.getElementById('companionDisplay').value = names;
             else if (currentTarget === 'circular') {
                 document.getElementById('circularDisplay').innerText = names || '未選択';
+                // 🌟 回覧者保持の即時反映
                 if (document.getElementById('keepCircular').checked) {
                     localStorage.setItem('cp_keep_circular', 'true');
                     localStorage.setItem('cp_last_circular', names);
+                } else {
+                    localStorage.removeItem('cp_keep_circular');
+                    localStorage.removeItem('cp_last_circular');
                 }
             }
             window.closeModal();
         };
+
+        // 🌟 チェックボックスの変更を監視
+        document.getElementById('keepCircular').onchange = (e) => {
+            if (!e.target.checked) {
+                localStorage.removeItem('cp_keep_circular');
+                localStorage.removeItem('cp_last_circular');
+            } else {
+                const names = document.getElementById('circularDisplay').innerText;
+                if (names !== '未選択') {
+                    localStorage.setItem('cp_keep_circular', 'true');
+                    localStorage.setItem('cp_last_circular', names);
+                }
+            }
+        };
+
         window.clearModalSelection = () => { modalSelected = []; window.renderStaffList(); };
 
         document.getElementById('submitBtnTop').onclick = async () => {
@@ -276,21 +295,49 @@
                 const customer = document.getElementById('customerSearch').value;
                 const visitor = document.getElementById('visitorName').value;
                 const visitDate = document.getElementById('visitDate').value;
+                const startTime = document.getElementById('startTime').value;
+                const endTime = document.getElementById('endTime').value;
                 const blocks = document.querySelectorAll('.report-block');
 
+                // 🌟 実績の保存（activity_records）
                 for (const b of blocks) {
                     await addDoc(collection(db, "activity_records"), {
-                        customerName: customer, visitDate: visitDate, visitorName: visitor,
-                        qualData1: b.querySelector('.qual-data-1').value, qualData2: b.querySelector('.qual-data-2').value, qualData3: b.querySelector('.qual-data-3').value, qualFree: b.querySelector('.qual-free').value,
-                        content: b.querySelector('.customer-report').value, staffThoughts: b.querySelector('.staff-thoughts').value, createdAt: serverTimestamp()
+                        customerName: customer, 
+                        visitDate: visitDate, 
+                        visitorName: visitor,
+                        startTime: startTime, 
+                        endTime: endTime,
+                        nextVisitDate: document.getElementById('nextVisitDate').value || "",
+                        qualData1: b.querySelector('.qual-data-1').value, 
+                        qualData2: b.querySelector('.qual-data-2').value, 
+                        qualData3: b.querySelector('.qual-data-3').value, 
+                        qualFree: b.querySelector('.qual-free').value,
+                        content: b.querySelector('.customer-report').value, 
+                        staffThoughts: b.querySelector('.staff-thoughts').value, 
+                        createdAt: serverTimestamp()
                     });
                 }
+                
+                // 🌟 通知の保存（notifications）
                 const circularNames = document.getElementById('circularDisplay').innerText.split(', ').filter(n => n !== '未選択' && n !== '');
                 for (const name of circularNames) {
-                    await addDoc(collection(db, "notifications"), { recipient: name, visitorName: visitor, customerName: customer, visitDate: visitDate, isRead: false, createdAt: serverTimestamp(), type: "実績回覧" });
+                    await addDoc(collection(db, "notifications"), { 
+                        recipient: name, 
+                        visitorName: visitor, 
+                        customerName: customer, 
+                        visitDate: visitDate, 
+                        isRead: false, 
+                        createdAt: serverTimestamp(), 
+                        type: "実績回覧" 
+                    });
                 }
+                alert("登録が完了しました！");
                 location.href = 'list_records.html';
-            } catch (e) { alert("失敗"); btns.forEach(b => { b.disabled = false; b.innerHTML = '登録を実行'; }); }
+            } catch (e) { 
+                console.error("保存失敗:", e);
+                alert("保存に失敗しました。"); 
+                btns.forEach(b => { b.disabled = false; b.innerHTML = '登録を実行'; }); 
+            }
         };
 
         init();
