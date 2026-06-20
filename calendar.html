@@ -196,14 +196,16 @@
                     evHtml += `<div class="event-item"><div class="event-label label-next" onclick="window.goUsage('${r.visitorName}', ${month+1}, '${r.customerName}', '${targetKey}')">${r.visitorName}: ${r.customerName}</div></div>`;
                 });
             }
-            // アポ（青）
+                        // アポ（青）の表示ロジックを強化
             if (document.getElementById('showApp').checked && !showUnread) {
-                loadedData.appoints.filter(a => window.standardizeDate(a.appointDate) === targetKey && (selCleans.length === 0 || selCleans.includes(clean(a.visitorName)))).forEach(a => {
+                loadedData.appoints.filter(a => {
+                    // 🌟 日付の形式を統一して比較 (2026/05/20 も 2026-05-20 も一致させる)
+                    return window.standardizeDate(a.appointDate) === targetKey && 
+                           (selCleans.length === 0 || selCleans.includes(clean(a.visitorName)));
+                }).forEach(a => {
                     evHtml += `<div class="event-item"><div class="event-label label-appoint" onclick="window.handleAppoint('${a.id}','${a.customerName}','${a.appointDate}','${a.subject}')">${a.visitorName}: ${a.customerName}</div></div>`;
                 });
             }
-            grid.insertAdjacentHTML('beforeend', `<div class="calendar-day"><div class="day-header"><span class="day-num" onclick="window.goDailyReport('${targetKey}')">${d}</span><div class="add-btn" onclick="window.goAddHistory('${targetKey}')"><i class="fa-solid fa-plus"></i></div></div><div class="max-h-[110px] overflow-y-auto custom-scrollbar">${evHtml}</div></div>`);
-        }
     };
 
         window.openStaffModal = () => { document.getElementById('staffModal').style.display = 'flex'; window.renderModalList(); };
