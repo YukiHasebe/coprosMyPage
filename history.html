@@ -134,7 +134,6 @@
             if (jumpDate) { document.getElementById('visitDate').value = jumpDate; sessionStorage.removeItem('cp_add_date'); }
             else { document.getElementById('visitDate').valueAsDate = new Date(); }
             
-            // 回覧者保持の復元
             if (localStorage.getItem('cp_keep_circular') === 'true') {
                 document.getElementById('keepCircular').checked = true;
                 document.getElementById('circularDisplay').innerText = localStorage.getItem('cp_last_circular') || '未選択';
@@ -147,7 +146,9 @@
                 const sSnap = await getDocs(query(collection(db, "staffs"), orderBy("name")));
                 allStaffs = sSnap.docs.map(doc => ({ ...doc.data() }));
                 const deptSelect = document.getElementById('staffDeptFilter');
-                TARGET_DEPTS.forEach(d => deptSelect.insertAdjacentHTML('beforeend', `<option value="${d}">${d}</option>`));
+                if(typeof TARGET_DEPTS !== 'undefined') {
+                    TARGET_DEPTS.forEach(d => deptSelect.insertAdjacentHTML('beforeend', `<option value="${d}">${d}</option>`));
+                }
                 
                 setupCustomerSearch();
                 window.addReportBlock();
@@ -157,15 +158,15 @@
         window.addReportBlock = () => {
             const container = document.getElementById('reportContainer');
             const blockId = Date.now();
-            const q1 = masterOptions.qual1.map(o => `<option>${o}</option>`).join('');
-            const q2 = masterOptions.qual2.map(o => `<option>${o}</option>`).join('');
-            const q3 = masterOptions.qual3.map(o => `<option>${o}</option>`).join('');
+            const q1 = (masterOptions.qual1||[]).map(o => `<option>${o}</option>`).join('');
+            const q2 = (masterOptions.qual2||[]).map(o => `<option>${o}</option>`).join('');
+            const q3 = (masterOptions.qual3||[]).map(o => `<option>${o}</option>`).join('');
 
             container.insertAdjacentHTML('beforeend', `
                 <div class="report-block" id="block-${blockId}">
                     ${container.children.length > 0 ? `<div class="remove-block-btn" onclick="document.getElementById('block-${blockId}').remove()"><i class="fa-solid fa-xmark"></i></div>` : ''}
                     <div class="mb-4">
-                        <label class="label-text">お客様先担当者を入力（カンマ区切り可）</label>
+                        <label class="label-text">お客様先担当者を入力</label>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <input type="text" class="customer-staff-input form-input" placeholder="例: 鈴木, 山田" oninput="window.syncStaffSelect(${blockId}, this.value)">
                             <select class="customer-staff-dropdown form-input text-xs font-bold" onchange="window.insertStaffLabel(${blockId}, this.value)">
@@ -174,26 +175,18 @@
                         </div>
                     </div>
                     <div class="mb-4">
-                        <label class="label-text uppercase tracking-widest text-[10px] opacity-60">お客様からの情報</label>
+                        <label class="label-text uppercase text-[10px] opacity-60">お客様からの情報</label>
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2">
-                            <select class="qual-data-1 form-input text-[10px] font-bold py-1 px-2"><option value="">(定性データ1)</option>${q1}</select>
-                            <select class="qual-data-2 form-input text-[10px] font-bold py-1 px-2"><option value="">(定性データ2)</option>${q2}</select>
-                            <select class="qual-data-3 form-input text-[10px] font-bold py-1 px-2"><option value="">(定性データ3)</option>${q3}</select>
-                            <input type="text" class="qual-free form-input text-[10px] font-bold py-1 px-2" placeholder="(自由入力)">
+                            <select class="qual-data-1 form-input text-[10px] font-bold"><option value="">(定性データ1)</option>${q1}</select>
+                            <select class="qual-data-2 form-input text-[10px] font-bold"><option value="">(定性データ2)</option>${q2}</select>
+                            <select class="qual-data-3 form-input text-[10px] font-bold"><option value="">(定性データ3)</option>${q3}</select>
+                            <input type="text" class="qual-free form-input text-[10px] font-bold" placeholder="(自由入力)">
                         </div>
                         <textarea class="customer-report form-input h-32 resize-none" placeholder="要望、状況など"></textarea>
                     </div>
                     <div class="mb-4">
-                        <label class="label-text uppercase tracking-widest text-[10px] opacity-60">自分・スタッフの考え</label>
+                        <label class="label-text uppercase text-[10px] opacity-60">自分・スタッフの考え</label>
                         <textarea class="staff-thoughts form-input h-24 resize-none" placeholder="次回の提案予定や課題"></textarea>
-                    </div>
-                    <div>
-                        <label class="label-text uppercase tracking-widest text-[10px] opacity-60">添付ファイル</label>
-                        <div class="flex items-center gap-3 mb-2">
-                            <input type="file" class="text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-black file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                            <button type="button" class="text-[10px] font-black text-rose-500 bg-rose-50 px-3 py-1 rounded-lg border border-rose-100">削除</button>
-                        </div>
-                        <textarea class="file-desc form-input h-16 resize-none text-xs" placeholder="ファイルの説明があれば入力してください"></textarea>
                     </div>
                 </div>`);
         };
@@ -251,13 +244,12 @@
             else modalSelected.push(name);
             window.renderStaffList();
         };
-               window.applySelection = () => {
+        window.applySelection = () => {
             const names = modalSelected.join(', ');
             if (currentTarget === 'visitor') document.getElementById('visitorName').value = names;
             else if (currentTarget === 'companion') document.getElementById('companionDisplay').value = names;
             else if (currentTarget === 'circular') {
                 document.getElementById('circularDisplay').innerText = names || '未選択';
-                // 🌟 回覧者保持の即時反映
                 if (document.getElementById('keepCircular').checked) {
                     localStorage.setItem('cp_keep_circular', 'true');
                     localStorage.setItem('cp_last_circular', names);
@@ -268,22 +260,6 @@
             }
             window.closeModal();
         };
-
-        // 🌟 チェックボックスの変更を監視
-        document.getElementById('keepCircular').onchange = (e) => {
-            if (!e.target.checked) {
-                localStorage.removeItem('cp_keep_circular');
-                localStorage.removeItem('cp_last_circular');
-            } else {
-                const names = document.getElementById('circularDisplay').innerText;
-                if (names !== '未選択') {
-                    localStorage.setItem('cp_keep_circular', 'true');
-                    localStorage.setItem('cp_last_circular', names);
-                }
-            }
-        };
-
-        window.clearModalSelection = () => { modalSelected = []; window.renderStaffList(); };
 
         document.getElementById('submitBtnTop').onclick = async () => {
             const form = document.getElementById('historyForm');
@@ -299,11 +275,10 @@
                 const endTime = document.getElementById('endTime').value;
                 const blocks = document.querySelectorAll('.report-block');
 
-                // 🌟 実績の保存（activity_records）
                 for (const b of blocks) {
                     await addDoc(collection(db, "activity_records"), {
                         customerName: customer, 
-                        visitDate: visitDate, 
+                        visitDate: visitDate.replace(/-/g, '/'), // 🌟 スラッシュ形式に統一
                         visitorName: visitor,
                         startTime: startTime, 
                         endTime: endTime,
@@ -317,25 +292,15 @@
                         createdAt: serverTimestamp()
                     });
                 }
-                
-                // 🌟 通知の保存（notifications）
                 const circularNames = document.getElementById('circularDisplay').innerText.split(', ').filter(n => n !== '未選択' && n !== '');
                 for (const name of circularNames) {
-                    await addDoc(collection(db, "notifications"), { 
-                        recipient: name, 
-                        visitorName: visitor, 
-                        customerName: customer, 
-                        visitDate: visitDate, 
-                        isRead: false, 
-                        createdAt: serverTimestamp(), 
-                        type: "実績回覧" 
-                    });
+                    await addDoc(collection(db, "notifications"), { recipient: name, visitorName: visitor, customerName: customer, visitDate: visitDate.replace(/-/g, '/'), isRead: false, createdAt: serverTimestamp(), type: "実績回覧" });
                 }
-                alert("登録が完了しました！");
+                alert("登録完了しました！");
                 location.href = 'list_records.html';
             } catch (e) { 
                 console.error("保存失敗:", e);
-                alert("保存に失敗しました。"); 
+                alert("保存エラー: " + e.message); 
                 btns.forEach(b => { b.disabled = false; b.innerHTML = '登録を実行'; }); 
             }
         };
