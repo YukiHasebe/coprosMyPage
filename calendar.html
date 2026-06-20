@@ -43,7 +43,6 @@
                     </div>
                     <button onclick="window.markSelectedAsRead()" class="px-6 py-2.5 bg-[#004098] text-white rounded-xl font-black text-xs hover:shadow-lg transition-all active:scale-95">選択済を既読にする</button>
                 </div>
-
                 <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-6">
                     <div class="flex justify-between items-center mb-4 border-b border-slate-50 pb-2">
                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">表示対象メンバー</p>
@@ -51,7 +50,6 @@
                     </div>
                     <div id="selectedNamesDisplay" class="flex flex-wrap gap-2 min-h-[40px] items-center"></div>
                 </div>
-
                 <div class="flex flex-col md:flex-row items-center justify-center w-full relative mb-6 gap-6">
                     <div class="flex items-center gap-10 bg-white py-2 px-10 rounded-2xl shadow-sm border border-slate-200">
                         <button onclick="window.changeMonth(-1)" class="text-slate-300 hover:text-slate-600 transition-colors"><i class="fa-solid fa-chevron-left fa-xl"></i></button>
@@ -65,212 +63,158 @@
                         <label class="flex items-center gap-2 cursor-pointer text-blue-600"><input type="checkbox" id="showApp" checked onchange="window.renderCalendar()" class="accent-blue-500"> アポ</label>
                     </div>
                 </div>
-
                 <div class="flex overflow-x-auto p-1 bg-white rounded-2xl border border-slate-200 shadow-sm whitespace-nowrap custom-scrollbar mb-6">
                     <script>for(let i=1; i<=12; i++) document.write(`<button onclick="window.jumpMonth(${i})" id="m-btn-${i}" class="month-btn">${i}月</button>`);</script>
                 </div>
                 <div id="calendarGrid" class="calendar-grid shadow-sm"></div>
             </div>
         </div>
-       <!-- fixed inset-0 を削除し、mainの中の特定エリアだけを覆うように変更 -->
-<div id="local-loader" class="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-[999] hidden flex flex-col items-center justify-center">
-    <div class="animate-spin text-[#ff7e11] text-6xl mb-4"><i class="fa-solid fa-circle-notch"></i></div>
-    <p class="text-slate-800 font-black tracking-tighter uppercase italic text-xs">Fast Syncing...</p>
-</div>
+        <div id="local-loader" class="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-[999] hidden flex flex-col items-center justify-center">
+            <div class="animate-spin text-[#ff7e11] text-6xl mb-4"><i class="fa-solid fa-circle-notch"></i></div>
+            <p class="text-slate-800 font-black tracking-tighter uppercase italic text-xs">Fast Syncing...</p>
+        </div>
     </main>
 
     <div id="staffModal" class="modal-overlay"><div class="modal-content"><div class="bg-slate-900 p-4 text-white flex justify-between items-center"><span class="font-black text-xs uppercase">Select Member</span><i class="fa-solid fa-xmark cursor-pointer" onclick="window.closeModal()"></i></div><div class="p-4 bg-slate-50 border-b border-slate-100"><div class="grid grid-cols-2 gap-2"><input type="text" id="modalSearch" oninput="window.renderModalList()" placeholder="氏名検索..." class="p-2.5 rounded-lg border border-slate-200 text-xs font-bold outline-none"><select id="modalDept" onchange="window.renderModalList()" class="p-2.5 rounded-lg border border-slate-200 text-xs font-bold outline-none"><option value="ALL">全ケコム関連</option><option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option></select></div></div><div id="modalStaffList" class="max-h-[350px] overflow-y-auto custom-scrollbar"></div><div class="p-4 bg-slate-50 grid grid-cols-2 gap-3"><button onclick="window.applyModal()" class="py-3 bg-[#004098] text-white rounded-xl font-black">決定</button><button onclick="window.clearModal()" class="py-3 bg-white border border-slate-200 rounded-xl font-bold">クリア</button></div></div></div>
 
     <script type="module" src="common.js"></script>
-　　<script type="module">
-    import { db, TARGET_DEPTS } from "./common.js";
-    import { collection, getDocs, query, where, doc, updateDoc, writeBatch, deleteDoc, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    <script type="module">
+        import { db, TARGET_DEPTS } from "./common.js";
+        import { collection, getDocs, query, where, doc, updateDoc, writeBatch, deleteDoc, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    let allStaffs = [], selectedStaffs = JSON.parse(localStorage.getItem('cp_cal_selected_staffs') || "[]");
-    let loadedData = { records: [], appoints: [], notifications: [] };
-    let currentDate = new Date();
+        let allStaffs = [], selectedStaffs = JSON.parse(localStorage.getItem('cp_cal_selected_staffs') || "[]");
+        let loadedData = { records: [], appoints: [], notifications: [] };
+        let currentDate = new Date();
 
-    // 🌟 全角・半角スペースをすべて消し去り、比較を100%正確にする関数
-    const clean = (s) => (s||"").toString().replace(/[\s\u3000]+/g, '').trim();
+        const clean = (s) => (s||"").toString().replace(/[\s\u3000]+/g, '').trim();
+        const dateToNum = (s) => (s||"").toString().replace(/\D/g, ''); // 20260620形式で比較
 
-    window.standardizeDate = (s) => {
-        if(!s) return "";
-        const d = s.toString().replace(/\//g, '-').split('-');
-        return d.length < 3 ? s : `${d[0]}-${d[1].padStart(2, '0')}-${d[2].padStart(2, '0')}`;
-    };
+        window.standardizeDate = (s) => {
+            if(!s) return "";
+            const d = s.toString().replace(/\//g, '-').split('-');
+            return d.length < 3 ? s : `${d[0]}-${d[1].padStart(2, '0')}-${d[2].padStart(2, '0')}`;
+        };
 
-       async function init() {
-        try {
-            // 先にカレンダーの「枠」だけ描画して、ユーザーに安心感を与える
-            window.renderCalendar(); 
-
-            const cached = sessionStorage.getItem('cp_cache_staffs');
-            if(cached) { allStaffs = JSON.parse(cached); }
-            else {
-                const sSnap = await getDocs(query(collection(db, "staffs"), orderBy("name")));
-                allStaffs = sSnap.docs.map(d => d.data());
-                sessionStorage.setItem('cp_cache_staffs', JSON.stringify(allStaffs));
-            }
-            window.updateSelectedDisplay();
-            
-            // 🌟 データの取得を「待たずに」実行（バックグラウンドで開始）
-            window.fetchMonthData(); 
-        } catch (e) { console.error(e); }
-    }
-
-            window.fetchMonthData = async (force = false) => {
-        const y = currentDate.getFullYear(), m = currentDate.getMonth() + 1, mStr = m.toString().padStart(2, '0');
-        const cacheKey = `cp_cal_cache_${y}_${mStr}`;
-        document.getElementById('displayMonthCenter').innerText = `${y}年 ${m}月`;
-        document.querySelectorAll('.month-btn').forEach(b => b.classList.toggle('active', b.id === `m-btn-${m}`));
-
-        // 🌟【キャッシュ活用】一度読み込んだデータがあればFirebaseに聞かずに即表示
-        const cached = sessionStorage.getItem(cacheKey);
-        if (cached && !force) { 
-            loadedData = JSON.parse(cached); 
-            window.renderCalendar(); 
-            return; 
-        }
-
-        // キャッシュがない場合のみ、ローダーを表示して通信開始
-        const loader = document.getElementById('local-loader');
-        if(loader) loader.style.display = 'flex';
-
-        try {
-            const tP1 = `${y}/${mStr}`, tP2 = `${y}-${mStr}`, myName = sessionStorage.getItem('userName') || "";
-            
-            // 確実性と省エネのバランスをとった取得（上限設定）
-            let qRecords = query(collection(db, "activity_records"), where("visitDate", ">=", tP1), where("visitDate", "<=", tP1 + "\uf8ff"), limit(500));
-            let qAppoints = query(collection(db, "appointments"), where("appointDate", ">=", tP2), where("appointDate", "<=", tP2 + "\uf8ff"), limit(200));
-
-            const [snapR, snapA, snapN] = await Promise.all([
-                getDocs(qRecords),
-                getDocs(qAppoints),
-                getDocs(query(collection(db, "notifications"), where("recipient", "==", myName)))
-            ]);
-
-            loadedData = { 
-                records: snapR.docs.map(d => d.data()), 
-                appoints: snapA.docs.map(d => ({id: d.id, ...d.data()})), 
-                notifications: snapN.docs.map(d => d.data()) 
-            };
-            
-            // 🌟 読み取ったデータをキャッシュに保存
-            sessionStorage.setItem(cacheKey, JSON.stringify(loadedData));
-            
-            if(loader) loader.style.display = 'none';
-            window.renderCalendar();
-        } catch (e) { 
-            console.error("Fetch Error:", e); 
-            if(loader) loader.style.display = 'none'; 
-        }
-    };
-        window.renderCalendar = () => {
-        const grid = document.getElementById('calendarGrid'); grid.innerHTML = "";
-        const year = currentDate.getFullYear(), month = currentDate.getMonth();
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-        const startOffset = (new Date(year, month, 1).getDay() + 6) % 7;
-        for(let i=0; i<startOffset; i++) grid.insertAdjacentHTML('beforeend', '<div class="calendar-day other-month bg-slate-50/50"></div>');
-        
-        const selCleans = selectedStaffs.map(n => clean(n));
-        const showUnread = document.getElementById('showUnreadOnly').checked;
-
-        for(let d=1; d<=daysInMonth; d++) {
-            const targetKey = `${year}-${(month + 1).toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
-            let evHtml = "";
-
-            // 実績
-            if (document.getElementById('showRes').checked) {
-                loadedData.records.filter(r => window.standardizeDate(r.visitDate) === targetKey && (selCleans.length === 0 || selCleans.includes(clean(r.visitorName)))).forEach(r => {
-                    const noti = loadedData.notifications.find(n => clean(n.visitorName) === clean(r.visitorName) && clean(n.customerName) === clean(r.customerName) && window.standardizeDate(n.visitDate || n.appointDate) === targetKey && n.isRead === false);
-                    const badge = noti ? `<span class="inline-block w-2 h-2 rounded-full bg-rose-500 mr-1 animate-pulse"></span>` : "";
-                    if (showUnread && !noti) return;
-                    evHtml += `<div class="event-item"><div class="event-label label-result" onclick="window.goUsage('${r.visitorName}', ${month+1}, '${r.customerName}', '${targetKey}')">${badge}${r.visitorName}: ${r.customerName}</div></div>`;
-                });
-            }
-            // 次回
-            if (document.getElementById('showNext').checked && !showUnread) {
-                loadedData.records.filter(r => window.standardizeDate(r.nextVisitDate) === targetKey && (selCleans.length === 0 || selCleans.includes(clean(r.visitorName)))).forEach(r => {
-                    evHtml += `<div class="event-item"><div class="event-label label-next" onclick="window.goUsage('${r.visitorName}', ${month+1}, '${r.customerName}', '${targetKey}')">${r.visitorName}: ${r.customerName}</div></div>`;
-                });
-            }
-                        // アポ（青）の表示ロジックを最強の数字比較に
-            if (document.getElementById('showApp').checked && !showUnread) {
-                loadedData.appoints.filter(a => {
-                    const targetNum = targetKey.replace(/\D/g, ''); // 20260620
-                    const appointNum = (a.appointDate||"").toString().replace(/\D/g, '');
-                    return appointNum === targetNum && (selCleans.length === 0 || selCleans.includes(clean(a.visitorName)));
-                }).forEach(a => {
-                    evHtml += `<div class="event-item"><div class="event-label label-appoint" onclick="window.handleAppoint('${a.id}','${a.customerName}','${a.appointDate}','${a.subject}')">${a.visitorName}: ${a.customerName}</div></div>`;
-                });
-            }
-            // 🌟 抜けていた一番大事な一行：カレンダーのマスを描画
-            grid.insertAdjacentHTML('beforeend', `<div class="calendar-day"><div class="day-header"><span class="day-num" onclick="window.goDailyReport('${targetKey}')">${d}</span><div class="add-btn" onclick="window.goAddHistory('${targetKey}')"><i class="fa-solid fa-plus"></i></div></div><div class="max-h-[110px] overflow-y-auto custom-scrollbar">${evHtml}</div></div>`);
-        }
-    };
-
-    window.markSelectedAsRead = async () => {
-        if (!confirm("表示中のメンバーの未読通知をすべて既読にしますか？")) return;
-        const myName = sessionStorage.getItem('userName') || "";
-        const selCleans = selectedStaffs.map(n => clean(n));
-        try {
-            const q = query(collection(db, "notifications"), where("recipient", "==", myName), where("isRead", "==", false));
-            const snap = await getDocs(q);
-            const batch = writeBatch(db);
-            let count = 0;
-            snap.forEach(d => {
-                const n = d.data();
-                if (selCleans.length === 0 || selCleans.includes(clean(n.visitorName))) {
-                    batch.update(d.ref, { isRead: true });
-                    count++;
+        async function init() {
+            try {
+                window.renderCalendar();
+                const cached = sessionStorage.getItem('cp_cache_staffs');
+                if(cached) { allStaffs = JSON.parse(cached); }
+                else {
+                    const sSnap = await getDocs(query(collection(db, "staffs"), orderBy("name")));
+                    allStaffs = sSnap.docs.map(d => d.data());
+                    sessionStorage.setItem('cp_cache_staffs', JSON.stringify(allStaffs));
                 }
-            });
-            if (count > 0) { await batch.commit(); alert(`${count}件を既読にしました`); window.fetchMonthData(true); }
-            else { alert("未読の通知はありません"); }
-        } catch (e) { console.error(e); alert("失敗"); }
-    };
+                window.updateSelectedDisplay();
+                window.fetchMonthData();
+            } catch (e) { console.error(e); }
+        }
 
-    window.openStaffModal = () => { document.getElementById('staffModal').style.display = 'flex'; window.renderModalList(); };
-    window.closeModal = () => { document.getElementById('staffModal').style.display = 'none'; };
-    window.renderModalList = () => {
-        const kw = clean(document.getElementById('modalSearch').value.toLowerCase());
-        const dept = document.getElementById('modalDept').value;
-        const container = document.getElementById('modalStaffList');
-        container.innerHTML = allStaffs.filter(s => (!kw || clean(s.name).toLowerCase().includes(kw)) && (dept === 'ALL' || clean(s.dept) === clean(dept))).map(s => `<div class="staff-item ${selectedStaffs.includes(s.name) ? 'selected' : ''}" onclick="window.toggleModalStaff('${s.name}')"><span>${s.name}</span><span class="text-[9px] opacity-40 font-black">${s.dept || ''}</span></div>`).join('');
-    };
-    window.toggleModalStaff = (name) => {
-        if (selectedStaffs.includes(name)) selectedStaffs = selectedStaffs.filter(n => n !== name);
-        else selectedStaffs.push(name);
-        window.renderModalList();
-    };
-    window.applyModal = () => { localStorage.setItem('cp_cal_selected_staffs', JSON.stringify(selectedStaffs)); window.updateSelectedDisplay(); window.renderCalendar(); window.closeModal(); };
-    window.updateSelectedDisplay = () => {
-        const container = document.getElementById('selectedNamesDisplay');
-        if (!selectedStaffs.length) { container.innerHTML = '<span class="text-slate-300 italic text-xs font-black uppercase">表示する社員を選択してください</span>'; return; }
-        container.innerHTML = selectedStaffs.map(name => `<div class="staff-tag"><span>${name}</span><i class="fa-solid fa-circle-xmark remove-staff-x" onclick="window.removeStaff('${name}')"></i></div>`).join('');
-    };
-    window.removeStaff = (name) => { selectedStaffs = selectedStaffs.filter(n => n !== name); localStorage.setItem('cp_cal_selected_staffs', JSON.stringify(selectedStaffs)); window.updateSelectedDisplay(); window.renderCalendar(); };
+        window.fetchMonthData = async (force = false) => {
+            const y = currentDate.getFullYear(), m = currentDate.getMonth() + 1, mStr = m.toString().padStart(2, '0');
+            const cacheKey = `cp_cal_cache_${y}_${mStr}`;
+            document.getElementById('displayMonthCenter').innerText = `${y}年 ${m}月`;
+            document.querySelectorAll('.month-btn').forEach(b => b.classList.toggle('active', b.id === `m-btn-${m}`));
 
-    window.goUsage = (name, month, customer, date) => { 
-        sessionStorage.setItem('cp_usage_jump_name', name); 
-        sessionStorage.setItem('cp_usage_jump_month', month); 
-        sessionStorage.setItem('cp_usage_jump_customer', customer); 
-        sessionStorage.setItem('cp_usage_jump_date', date); 
-        location.href = 'usage.html'; 
-    };
+            const cached = sessionStorage.getItem(cacheKey);
+            if (cached && !force) { loadedData = JSON.parse(cached); window.renderCalendar(); return; }
 
-    window.goDailyReport = (date) => { sessionStorage.setItem('cp_daily_date', date); location.href = 'daily_report.html'; };
-    window.goAddHistory = (date) => { sessionStorage.setItem('cp_add_date', date); location.href = 'history.html'; };
-    window.handleAppoint = (id, cust, date, subject) => {
-        const act = confirm(`【アポ詳細】\n顧客: ${cust}\n内容: ${subject || 'なし'}\n\n[OK] 実績に登録\n[キャンセル] 削除または戻る`);
-        if (act) { sessionStorage.setItem('cp_promote_appoint', JSON.stringify({id, cust, date, subject})); location.href = 'history.html'; }
-        else if(confirm("削除しますか？")) { deleteDoc(doc(db, "appointments", id)).then(() => window.fetchMonthData(true)); }
-    };
-    window.changeMonth = (v) => { currentDate.setMonth(currentDate.getMonth() + v); window.fetchMonthData(); };
-    window.jumpMonth = (m) => { currentDate.setMonth(m - 1); window.fetchMonthData(); };
-    init();
-</script>
+            const loader = document.getElementById('local-loader');
+            if(loader) loader.style.display = 'flex';
+            try {
+                const tP1 = `${y}/${mStr}`, tP2 = `${y}-${mStr}`, myName = sessionStorage.getItem('userName') || "";
+                // 🌟 ゆらぎに強いクエリ
+                const [snapR, snapA, snapN] = await Promise.all([
+                    getDocs(query(collection(db, "activity_records"), where("visitDate", ">=", tP1), where("visitDate", "<=", tP1 + "\uf8ff"), limit(800))),
+                    getDocs(query(collection(db, "appointments"), where("appointDate", ">=", tP2), where("appointDate", "<=", tP2 + "\uf8ff"), limit(400))),
+                    getDocs(query(collection(db, "notifications"), where("recipient", "==", myName)))
+                ]);
+                loadedData = { records: snapR.docs.map(d => d.data()), appoints: snapA.docs.map(d => ({id: d.id, ...d.data()})), notifications: snapN.docs.map(d => d.data()) };
+                sessionStorage.setItem(cacheKey, JSON.stringify(loadedData));
+                if(loader) loader.style.display = 'none';
+                window.renderCalendar();
+            } catch (e) { console.error(e); if(loader) loader.style.display = 'none'; }
+        };
 
-  
+        window.renderCalendar = () => {
+            const grid = document.getElementById('calendarGrid'); grid.innerHTML = "";
+            const year = currentDate.getFullYear(), month = currentDate.getMonth();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const startOffset = (new Date(year, month, 1).getDay() + 6) % 7;
+            for(let i=0; i<startOffset; i++) grid.insertAdjacentHTML('beforeend', '<div class="calendar-day other-month bg-slate-50/50"></div>');
+            
+            const selCleans = selectedStaffs.map(n => clean(n));
+            const showUnread = document.getElementById('showUnreadOnly').checked;
+
+            for(let d=1; d<=daysInMonth; d++) {
+                const targetKey = `${year}-${(month + 1).toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
+                const targetNum = dateToNum(targetKey);
+                let evHtml = "";
+
+                // 実績
+                if (document.getElementById('showRes').checked) {
+                    loadedData.records.filter(r => dateToNum(r.visitDate) === targetNum && (selCleans.length === 0 || selCleans.includes(clean(r.visitorName)))).forEach(r => {
+                        const noti = loadedData.notifications.find(n => clean(n.visitorName) === clean(r.visitorName) && clean(n.customerName) === clean(r.customerName) && dateToNum(n.visitDate || n.appointDate) === targetNum && n.isRead === false);
+                        const badge = noti ? `<span class="inline-block w-2 h-2 rounded-full bg-rose-500 mr-1 animate-pulse"></span>` : "";
+                        if (showUnread && !noti) return;
+                        evHtml += `<div class="event-item"><div class="event-label label-result" onclick="window.goUsage('${r.visitorName}', ${month+1}, '${r.customerName}', '${targetKey}')">${badge}${r.visitorName}: ${r.customerName}</div></div>`;
+                    });
+                }
+                // アポ
+                if (document.getElementById('showApp').checked && !showUnread) {
+                    loadedData.appoints.filter(a => dateToNum(a.appointDate) === targetNum && (selCleans.length === 0 || selCleans.includes(clean(a.visitorName)))).forEach(a => {
+                        evHtml += `<div class="event-item"><div class="event-label label-appoint" onclick="window.handleAppoint('${a.id}','${a.customerName}','${a.appointDate}','${a.subject}')">${a.visitorName}: ${a.customerName}</div></div>`;
+                    });
+                }
+                grid.insertAdjacentHTML('beforeend', `<div class="calendar-day"><div class="day-header"><span class="day-num" onclick="window.goDailyReport('${targetKey}')">${d}</span><div class="add-btn" onclick="window.goAddHistory('${targetKey}')"><i class="fa-solid fa-plus"></i></div></div><div class="max-h-[110px] overflow-y-auto custom-scrollbar">${evHtml}</div></div>`);
+            }
+        };
+
+        window.markSelectedAsRead = async () => {
+            if (!confirm("未読通知を既読にしますか？")) return;
+            const myName = sessionStorage.getItem('userName') || "";
+            const selCleans = selectedStaffs.map(n => clean(n));
+            try {
+                const q = query(collection(db, "notifications"), where("recipient", "==", myName), where("isRead", "==", false));
+                const snap = await getDocs(q);
+                const batch = writeBatch(db);
+                let count = 0;
+                snap.forEach(d => { if (selCleans.length === 0 || selCleans.includes(clean(d.data().visitorName))) { batch.update(d.ref, { isRead: true }); count++; } });
+                if (count > 0) { await batch.commit(); alert(`${count}件を既読にしました`); window.fetchMonthData(true); }
+            } catch (e) { console.error(e); }
+        };
+
+        window.openStaffModal = () => { document.getElementById('staffModal').style.display = 'flex'; window.renderModalList(); };
+        window.closeModal = () => { document.getElementById('staffModal').style.display = 'none'; };
+        window.renderModalList = () => {
+            const kw = clean(document.getElementById('modalSearch').value.toLowerCase());
+            const dept = document.getElementById('modalDept').value;
+            const container = document.getElementById('modalStaffList');
+            container.innerHTML = allStaffs.filter(s => (!kw || clean(s.name).toLowerCase().includes(kw)) && (dept === 'ALL' || clean(s.dept) === clean(dept))).map(s => `<div class="staff-item ${selectedStaffs.includes(s.name) ? 'selected' : ''}" onclick="window.toggleModalStaff('${s.name}')"><span>${s.name}</span><span class="text-[9px] opacity-40 font-black">${s.dept || ''}</span></div>`).join('');
+        };
+        window.toggleModalStaff = (name) => {
+            if (selectedStaffs.includes(name)) selectedStaffs = selectedStaffs.filter(n => n !== name);
+            else selectedStaffs.push(name);
+            window.renderModalList();
+        };
+        window.applyModal = () => { localStorage.setItem('cp_cal_selected_staffs', JSON.stringify(selectedStaffs)); window.updateSelectedDisplay(); window.renderCalendar(); window.closeModal(); };
+        window.updateSelectedDisplay = () => {
+            const container = document.getElementById('selectedNamesDisplay');
+            if (!selectedStaffs.length) { container.innerHTML = '<span class="text-slate-300 italic text-xs font-black uppercase">表示する社員を選択してください</span>'; return; }
+            container.innerHTML = selectedStaffs.map(name => `<div class="staff-tag"><span>${name}</span><i class="fa-solid fa-circle-xmark remove-staff-x" onclick="window.removeStaff('${name}')"></i></div>`).join('');
+        };
+        window.removeStaff = (name) => { selectedStaffs = selectedStaffs.filter(n => n !== name); localStorage.setItem('cp_cal_selected_staffs', JSON.stringify(selectedStaffs)); window.updateSelectedDisplay(); window.renderCalendar(); };
+        window.goUsage = (name, month, customer, date) => { sessionStorage.setItem('cp_usage_jump_name', name); sessionStorage.setItem('cp_usage_jump_month', month); sessionStorage.setItem('cp_usage_jump_customer', customer); sessionStorage.setItem('cp_usage_jump_date', date); location.href = 'usage.html'; };
+        window.goDailyReport = (date) => { sessionStorage.setItem('cp_daily_date', date); location.href = 'daily_report.html'; };
+        window.goAddHistory = (date) => { sessionStorage.setItem('cp_add_date', date); location.href = 'history.html'; };
+        window.handleAppoint = (id, cust, date, subject) => {
+            const act = confirm(`【アポ詳細】\n顧客: ${cust}\n内容: ${subject || 'なし'}\n\n[OK] 実績に登録\n[キャンセル] 削除または戻る`);
+            if (act) { sessionStorage.setItem('cp_promote_appoint', JSON.stringify({id, cust, date, subject})); location.href = 'history.html'; }
+            else if(confirm("削除しますか？")) { deleteDoc(doc(db, "appointments", id)).then(() => window.fetchMonthData(true)); }
+        };
+        window.changeMonth = (v) => { currentDate.setMonth(currentDate.getMonth() + v); window.fetchMonthData(); };
+        window.jumpMonth = (m) => { currentDate.setMonth(m - 1); window.fetchMonthData(); };
+        init();
+    </script>
 </body>
 </html>
