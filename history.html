@@ -280,6 +280,7 @@
                         customerName: customer, 
                         visitDate: visitDate.replace(/-/g, '/'), // 🌟 スラッシュ形式に統一
                         visitorName: visitor,
+                         visitorDept: allStaffs.find(s => clean(s.name) === clean(visitor))?.dept || "ケコム部",
                         startTime: startTime, 
                         endTime: endTime,
                         nextVisitDate: document.getElementById('nextVisitDate').value || "",
