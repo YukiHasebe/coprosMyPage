@@ -263,7 +263,7 @@
             window.closeModal();
         };
 
-               document.getElementById('submitBtnTop').onclick = async () => {
+                    document.getElementById('submitBtnTop').onclick = async () => {
             const form = document.getElementById('historyForm');
             if (!form.checkValidity()) { form.reportValidity(); return; }
             const btns = [document.getElementById('submitBtnTop'), document.getElementById('submitBtnBottom')];
@@ -273,38 +273,54 @@
                 const customer = document.getElementById('customerSearch').value;
                 const visitor = document.getElementById('visitorName').value;
                 const vDate = document.getElementById('visitDate').value;
-                        // 🌟 固定ではなく、ログイン情報やマスタから動的に部署を特定する
-        const vName = document.getElementById('visitorName').value;
-        const staffEntry = allStaffs.find(s => clean(s.name) === clean(vName));
-        
-        // 1. マスタに名前があればその部署を使う
-        // 2. なければ、ログイン時に保持している部署情報を使う
-        // 3. どちらもなければ、一旦「ケコム部」を仮置きするが、基本は1か2で決まるはず
-        const vDept = staffEntry ? staffEntry.dept : (sessionStorage.getItem('userDept') || "ケコム部");
+                const startTime = document.getElementById('startTime').value || "00:00";
+                const endTime = document.getElementById('endTime').value || "00:00";
+                
+                // 🌟 部署の特定（マスタから確実に）
+                const staffEntry = allStaffs.find(s => clean(s.name) === clean(visitor));
+                const vDept = staffEntry ? staffEntry.dept : (sessionStorage.getItem('userDept') || "不明");
+
                 const blocks = document.querySelectorAll('.report-block');
                 for (const b of blocks) {
                     await addDoc(collection(db, "activity_records"), {
                         customerName: customer, 
                         visitDate: vDate.replace(/-/g, '/'), 
                         visitorName: visitor,
-                        visitorDept: vDept, // 🌟 部署を保存！
-                        startTime: document.getElementById('startTime').value || "00:00", 
-                        endTime: document.getElementById('endTime').value || "00:00",
+                        visitorDept: vDept, 
+                        startTime: startTime, 
+                        endTime: endTime,
+                        nextVisitDate: (document.getElementById('nextVisitDate').value || "").replace(/-/g, '/'),
                         content: b.querySelector('.customer-report').value, 
-                        nextVisitDate: document.getElementById('nextVisitDate').value || "",
                         staffThoughts: b.querySelector('.staff-thoughts').value, 
                         createdAt: serverTimestamp()
                     });
                 }
                 
-                // 🌟 重要：登録成功時にカレンダーのキャッシュを削除する
-                const [y, m] = vDate.split('-');
-                sessionStorage.removeItem(`cp_cal_cache_${y}_${m.padStart(2,'0')}`);
+                // 🌟 通知の登録（スペースのゆらぎを排除して確実に届ける）
+                const cDisp = document.getElementById('circularDisplay').innerText;
+                const cNames = (cDisp !== '未選択' && cDisp !== '') ? cDisp.split(/[,、\s]+/).filter(n => n.trim() !== '') : [];
+                for (const name of cNames) {
+                    await addDoc(collection(db, "notifications"), { 
+                        recipient: name, 
+                        visitorName: visitor, 
+                        customerName: customer, 
+                        visitDate: vDate.replace(/-/g, '/'), 
+                        isRead: false, 
+                        createdAt: serverTimestamp(), 
+                        type: "実績回覧" 
+                    });
+                }
 
+                // 🌟 重要：カレンダーのキャッシュキーを【完全一致】させて消去
+                const [y, m] = vDate.split('-');
+                const mStr = m.padStart(2, '0');
+                sessionStorage.removeItem(`cp_cal_cache_v_ultimate_${y}_${mStr}`);
+                
                 alert("登録完了！カレンダーを更新しました。");
                 location.href = 'list_records.html';
             } catch (e) { 
-                alert("エラー: " + e.message); 
+                console.error("保存失敗:", e);
+                alert("保存エラー: " + e.message); 
                 btns.forEach(b => { b.disabled = false; b.innerHTML = '登録を実行'; }); 
             }
         };
