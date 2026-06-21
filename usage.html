@@ -61,14 +61,19 @@
     </main>
 
     <script type="module" src="common.js"></script>
-    <script type="module">
+        <script type="module">
         import { db, TARGET_DEPTS } from "./common.js";
         import { collection, getDocs, query, where, orderBy, limit, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let allStaffs = [], currentStaffRecords = [], selectedName = "", currentM = new Date().getMonth() + 1;
         
         const clean = (s) => (s||"").toString().replace(/[\s\u3000]+/g, '').trim();
-        const dateToNum = (s) => (s||"").toString().replace(/\D/g, '');
+        const dateToNum = (s) => {
+            if(!s) return "";
+            const p = s.toString().split(/[-/]/);
+            if(p.length < 3) return s.toString().replace(/\D/g, '');
+            return p[0] + p[1].padStart(2, '0') + p[2].padStart(2, '0');
+        };
 
         async function init() {
             try {
@@ -83,11 +88,13 @@
                 
                 const jName = sessionStorage.getItem('cp_usage_jump_name');
                 const jMonth = sessionStorage.getItem('cp_usage_jump_month');
+                const jDate = sessionStorage.getItem('cp_usage_jump_date');
+
                 if (jName) {
-                    sessionStorage.removeItem('cp_usage_jump_name');
-                    sessionStorage.removeItem('cp_usage_jump_month');
                     if(jMonth) currentM = parseInt(jMonth);
-                    window.selectStaff(jName);
+                    // 🌟 ジャンプ時は最新データを見たいので、この人のキャッシュを消す
+                    localStorage.removeItem(`cp_usage_data_v2_${clean(jName)}`);
+                    await window.selectStaff(jName);
                 }
             } catch (e) { console.error(e); }
         }
@@ -118,11 +125,9 @@
             }
 
             try {
-                // 🌟 【省エネ】その人のデータだけを取得（最大1000件）
                 const q = query(collection(db, "activity_records"), where("visitorName", "==", name), limit(1000));
                 const snap = await getDocs(q); 
                 currentStaffRecords = snap.docs.map(d => d.data());
-                
                 localStorage.setItem(cacheKey, JSON.stringify(currentStaffRecords));
                 window.finishSelectStaff(name);
             } catch (e) { console.error("Firebase通信エラー:", e); }
@@ -142,9 +147,8 @@
         window.renderAccordion = () => {
             const container = document.getElementById('activityAccordion');
             const filtered = currentStaffRecords.filter(r => {
-                const dStr = (r.visitDate||"").toString().replace(/\//g, '-');
-                const m = parseInt(dStr.split('-')[1]);
-                return m === currentM;
+                const dParts = (r.visitDate||"").toString().split(/[-/]/);
+                return dParts.length >= 2 && parseInt(dParts[1]) === currentM;
             }).sort((a,b) => (b.visitDate||"").toString().localeCompare((a.visitDate||"").toString()));
 
             let totalMins = 0;
@@ -169,7 +173,7 @@
                             <span class="text-xs font-black opacity-60">${r.visitDate}</span>
                             <span class="text-base font-black">${r.customerName}</span>
                         </div>
-                        <i class="fa-solid fa-chevron-down opacity-30 text-xs"></i>
+                        <i class="fa-solid fa-chevron-down opacity-30 text-xs transition-transform"></i>
                     </div>
                     <div class="accordion-content">
                         <div class="info-grid">
@@ -184,7 +188,6 @@
                     </div>
                 </div>`).join('') : '<p class="text-center py-20 text-slate-300 font-bold uppercase tracking-widest">実績はありません</p>';
 
-            // 🌟 【爆速連動】自動展開 ＋ 自動既読（カレンダーのバッジを消す）
             const jDate = sessionStorage.getItem('cp_usage_jump_date');
             if (jDate) {
                 const targetNum = dateToNum(jDate);
@@ -196,28 +199,29 @@
                         if(el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         window.markAsReadOnOpen(selectedName, jDate);
                         sessionStorage.removeItem('cp_usage_jump_date');
-                    }, 1200);
+                        sessionStorage.removeItem('cp_usage_jump_name');
+                    }, 1000);
                 }
             }
         };
 
         window.markAsReadOnOpen = async (visitor, date) => {
             const myName = sessionStorage.getItem('userName') || "";
-            const targetNum = date.toString().replace(/\D/g, '');
+            const targetNum = dateToNum(date);
             try {
                 const q = query(collection(db, "notifications"), where("recipient", "==", myName), where("isRead", "==", false), where("visitorName", "==", visitor));
                 const snap = await getDocs(q);
                 const batch = writeBatch(db);
                 let count = 0;
                 snap.forEach(d => {
-                    const nDate = (d.data().visitDate || d.data().appointDate || "").toString().replace(/\D/g, '');
-                    if (nDate === targetNum) { batch.update(d.ref, { isRead: true }); count++; }
+                    const nData = d.data();
+                    if (dateToNum(nData.visitDate || nData.appointDate) === targetNum) { batch.update(d.ref, { isRead: true }); count++; }
                 });
                 if (count > 0) {
                     await batch.commit();
-                    const y = date.split(/[-/]/)[0], m = date.split(/[-/]/)[1].padStart(2, '0');
-                    sessionStorage.removeItem(`cp_cal_cache_v_ultimate_${y}_${m}`);
-                    console.log(`自動既読連動: ${y}_${m} のキャッシュを破棄しました`);
+                    const p = date.split(/[-/]/);
+                    const key = `cp_cal_cache_v_ultimate_${p[0]}_${p[1].padStart(2, '0')}`;
+                    sessionStorage.removeItem(key);
                 }
             } catch (e) { console.error("AutoRead Error:", e); }
         };
@@ -226,7 +230,7 @@
             const item = document.getElementById(id);
             if(!item) return;
             const content = item.querySelector('.accordion-content');
-            const icon = item.querySelector('i');
+            const icon = item.querySelector('.fa-chevron-down');
             const isOpen = content.style.display === 'block';
             content.style.display = isOpen ? 'none' : 'block';
             if(icon) icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
