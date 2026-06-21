@@ -87,33 +87,37 @@
         let currentDate = new Date();
 
         const clean = (s) => (s||"").toString().replace(/[\s\u3000]+/g, '').trim();
-        const dateToNum = (s) => (s||"").toString().replace(/\D/g, ''); // 20260620形式で比較
+            // 🌟 どんな日付形式(6/1, 06-01等)でも「20260601」の8桁数字にする最強関数
+    const dateToNum = (s) => {
+        if(!s) return "";
+        const p = s.toString().split(/[-/]/);
+        if(p.length < 3) return s.toString().replace(/\D/g, '');
+        return p[0] + p[1].padStart(2, '0') + p[2].padStart(2, '0');
+    };
 
-        window.standardizeDate = (s) => {
-            if(!s) return "";
-            const d = s.toString().replace(/\//g, '-').split('-');
-            return d.length < 3 ? s : `${d[0]}-${d[1].padStart(2, '0')}-${d[2].padStart(2, '0')}`;
-        };
+    window.standardizeDate = (s) => {
+        if(!s) return "";
+        const d = s.toString().replace(/\//g, '-').split('-');
+        return d.length < 3 ? s : `${d[0]}-${d[1].padStart(2, '0')}-${d[2].padStart(2, '0')}`;
+    };
 
-        async function init() {
-            try {
-                window.renderCalendar();
-                const cached = sessionStorage.getItem('cp_cache_staffs');
-                if(cached) { allStaffs = JSON.parse(cached); }
-                else {
-                    const sSnap = await getDocs(query(collection(db, "staffs"), orderBy("name")));
-                    allStaffs = sSnap.docs.map(d => d.data());
-                    sessionStorage.setItem('cp_cache_staffs', JSON.stringify(allStaffs));
-                }
-                window.updateSelectedDisplay();
-                window.fetchMonthData();
-            } catch (e) { console.error(e); }
-        }
+    async function init() {
+        try {
+            window.renderCalendar();
+            const cached = sessionStorage.getItem('cp_cache_staffs');
+            if(cached) { allStaffs = JSON.parse(cached); }
+            else {
+                const sSnap = await getDocs(query(collection(db, "staffs"), orderBy("name")));
+                allStaffs = sSnap.docs.map(d => d.data());
+                sessionStorage.setItem('cp_cache_staffs', JSON.stringify(allStaffs));
+            }
+            window.updateSelectedDisplay();
+            window.fetchMonthData();
+        } catch (e) { console.error(e); }
+    }
 
-              // 🌟 最終決定版：ハイフン・スラッシュ両対応 ＆ 重複排除
     window.fetchMonthData = async (force = false) => {
         const y = currentDate.getFullYear(), m = currentDate.getMonth() + 1, mStr = m.toString().padStart(2, '0');
-        // キャッシュキーの名前を他画面と完全に統一
         const cacheKey = `cp_cal_cache_v_ultimate_${y}_${mStr}`;
         document.getElementById('displayMonthCenter').innerText = `${y}年 ${m}月`;
         document.querySelectorAll('.month-btn').forEach(b => b.classList.toggle('active', b.id === `m-btn-${m}`));
@@ -126,17 +130,16 @@
 
         try {
             const myName = sessionStorage.getItem('userName') || "";
-            // 🌟 最強の安全策：スラッシュ形式とハイフン形式を別々に取得して合体させる
-            const qR_slash = query(collection(db, "activity_records"), where("visitDate", ">=", `${y}/${mStr}/01`), where("visitDate", "<=", `${y}/${mStr}/31`), limit(800));
-            const qR_hyphen = query(collection(db, "activity_records"), where("visitDate", ">=", `${y}-${mStr}-01`), where("visitDate", "<=", `${y}-${mStr}-31`), limit(800));
+            // 🌟 最強の安全策：スラッシュ形式とハイフン形式を別々に取得して合体
+            const qR1 = query(collection(db, "activity_records"), where("visitDate", ">=", `${y}/${mStr}/01`), where("visitDate", "<=", `${y}/${mStr}/31`), limit(800));
+            const qR2 = query(collection(db, "activity_records"), where("visitDate", ">=", `${y}-${mStr}-01`), where("visitDate", "<=", `${y}-${mStr}-31`), limit(800));
             const qA = query(collection(db, "appointments"), where("appointDate", ">=", `${y}-${mStr}-01`), where("appointDate", "<=", `${y}/${mStr}/31`), limit(500));
             
             const [snapR1, snapR2, snapA, snapN] = await Promise.all([
-                getDocs(qR_slash), getDocs(qR_hyphen), getDocs(qA),
+                getDocs(qR1), getDocs(qR2), getDocs(qA),
                 getDocs(query(collection(db, "notifications"), where("recipient", "==", myName)))
             ]);
 
-            // 全ての実績を統合（IDで重複を排除）
             const recordMap = {};
             [...snapR1.docs, ...snapR2.docs].forEach(d => { recordMap[d.id] = d.data(); });
 
@@ -162,8 +165,8 @@
         const showUnread = document.getElementById('showUnreadOnly').checked;
 
         for(let d=1; d<=daysInMonth; d++) {
+            const targetNum = `${year}${(month + 1).toString().padStart(2, '0')}${d.toString().padStart(2, '0')}`;
             const targetKey = `${year}-${(month + 1).toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
-            const targetNum = dateToNum(targetKey);
             let evHtml = "";
             let processedKeys = new Set(); 
 
@@ -173,7 +176,6 @@
                 n.isRead === false && (type ? n.type === type : true)
             );
 
-            // 1. 実績
             if (document.getElementById('showRes').checked) {
                 loadedData.records.filter(r => dateToNum(r.visitDate) === targetNum && (selCleans.length === 0 || selCleans.includes(clean(r.visitorName)))).forEach(r => {
                     const uniqueKey = `res-${clean(r.visitorName)}-${clean(r.customerName)}-${targetNum}`;
@@ -185,13 +187,11 @@
                     processedKeys.add(uniqueKey);
                 });
             }
-            // 2. 次回
             if (document.getElementById('showNext').checked && !showUnread) {
                 loadedData.records.filter(r => dateToNum(r.nextVisitDate) === targetNum && (selCleans.length === 0 || selCleans.includes(clean(r.visitorName)))).forEach(r => {
                     evHtml += `<div class="event-item"><div class="event-label label-next" onclick="window.goUsage('${r.visitorName}', ${month+1}, '${r.customerName}', '${targetKey}')">${r.visitorName}: ${r.customerName}</div></div>`;
                 });
             }
-            // 3. アポ
             if (document.getElementById('showApp').checked) {
                 loadedData.appoints.filter(a => dateToNum(a.appointDate) === targetNum && (selCleans.length === 0 || selCleans.includes(clean(a.visitorName)))).forEach(a => {
                     const noti = findNoti(a.visitorName, "アポ回覧");
@@ -203,7 +203,7 @@
             grid.insertAdjacentHTML('beforeend', `<div class="calendar-day"><div class="day-header"><span class="day-num" onclick="window.goDailyReport('${targetKey}')">${d}</span><div class="add-btn" onclick="window.goAddHistory('${targetKey}')"><i class="fa-solid fa-plus"></i></div></div><div class="max-h-[110px] overflow-y-auto custom-scrollbar">${evHtml}</div></div>`);
         }
     };
-
+        
     window.markSelectedAsRead = async () => {
         if (!confirm("未読通知を既読にしますか？")) return;
         const myName = sessionStorage.getItem('userName') || "";
