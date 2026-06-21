@@ -150,7 +150,7 @@
             window.renderAccordion();
         };
 
-        window.renderAccordion = () => {
+                window.renderAccordion = () => {
             const container = document.getElementById('activityAccordion');
             const filtered = currentStaffRecords.filter(r => {
                 const dateStr = (r.visitDate||"").toString().replace(/\//g, '-');
@@ -195,7 +195,7 @@
                     </div>
                 </div>`).join('') : '<p class="text-center py-20 text-slate-300 font-bold uppercase tracking-widest">実績はありません</p>';
 
-            // 🌟 自動展開 (比較ロジックを強化)
+            // 🌟 自動展開 ＋ 自動既読
             const jDate = sessionStorage.getItem('cp_usage_jump_date');
             if (jDate) {
                 const targetNum = dateToNum(jDate);
@@ -206,10 +206,34 @@
                         window.toggleAcc(`acc-${idx}`);
                         const el = document.getElementById(`acc-${idx}`);
                         if(el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        
+                        // 🌟 ここで既読処理を呼び出す
+                        window.markAsReadOnOpen(selectedName, jDate);
                         sessionStorage.removeItem('cp_usage_jump_date');
-                    }, 1200); // 1.2秒待つ（確実性のため）
+                    }, 1200);
                 }
             }
+        };
+
+        // 🌟 追加：通知を自動で既読にする関数
+        window.markAsReadOnOpen = async (visitor, date) => {
+            const myName = sessionStorage.getItem('userName') || "";
+            const targetNum = date.toString().replace(/\D/g, '');
+            try {
+                const q = query(collection(db, "notifications"), where("recipient", "==", myName), where("isRead", "==", false), where("visitorName", "==", visitor));
+                const snap = await getDocs(q);
+                const batch = writeBatch(db);
+                let count = 0;
+                snap.forEach(d => {
+                    const nDate = (d.data().visitDate || d.data().appointDate || "").toString().replace(/\D/g, '');
+                    if (nDate === targetNum) { batch.update(d.ref, { isRead: true }); count++; }
+                });
+                if (count > 0) {
+                    await batch.commit();
+                    const y = date.split(/[-/]/)[0], m = date.split(/[-/]/)[1].padStart(2, '0');
+                    sessionStorage.removeItem(`cp_cal_cache_v_ultimate_${y}_${m}`);
+                }
+            } catch (e) { console.error(e); }
         };
 
         window.toggleAcc = (id) => {
@@ -221,7 +245,6 @@
             content.style.display = isOpen ? 'none' : 'block';
             if(icon) icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
         };
-
         init();       
     </script>
 </body>
