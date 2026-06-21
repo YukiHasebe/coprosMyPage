@@ -110,9 +110,10 @@
             } catch (e) { console.error(e); }
         }
 
-           window.fetchMonthData = async (force = false) => {
+              // 🌟 最終決定版：ハイフン・スラッシュ両対応 ＆ 重複排除
+    window.fetchMonthData = async (force = false) => {
         const y = currentDate.getFullYear(), m = currentDate.getMonth() + 1, mStr = m.toString().padStart(2, '0');
-        // キャッシュキーを新しくして確実に最新を取得
+        // キャッシュキーの名前を他画面と完全に統一
         const cacheKey = `cp_cal_cache_v_ultimate_${y}_${mStr}`;
         document.getElementById('displayMonthCenter').innerText = `${y}年 ${m}月`;
         document.querySelectorAll('.month-btn').forEach(b => b.classList.toggle('active', b.id === `m-btn-${m}`));
@@ -125,17 +126,22 @@
 
         try {
             const myName = sessionStorage.getItem('userName') || "";
-            // 🌟 【漏れ対策】ハイフン(-)形式もスラッシュ(/)形式も同時に拾う最強クエリ
-            const qR = query(collection(db, "activity_records"), where("visitDate", ">=", `${y}-${mStr}-01`), where("visitDate", "<=", `${y}/${mStr}/31`), limit(1000));
+            // 🌟 最強の安全策：スラッシュ形式とハイフン形式を別々に取得して合体させる
+            const qR_slash = query(collection(db, "activity_records"), where("visitDate", ">=", `${y}/${mStr}/01`), where("visitDate", "<=", `${y}/${mStr}/31`), limit(800));
+            const qR_hyphen = query(collection(db, "activity_records"), where("visitDate", ">=", `${y}-${mStr}-01`), where("visitDate", "<=", `${y}-${mStr}-31`), limit(800));
             const qA = query(collection(db, "appointments"), where("appointDate", ">=", `${y}-${mStr}-01`), where("appointDate", "<=", `${y}/${mStr}/31`), limit(500));
             
-            const [snapR, snapA, snapN] = await Promise.all([
-                getDocs(qR), getDocs(qA),
+            const [snapR1, snapR2, snapA, snapN] = await Promise.all([
+                getDocs(qR_slash), getDocs(qR_hyphen), getDocs(qA),
                 getDocs(query(collection(db, "notifications"), where("recipient", "==", myName)))
             ]);
 
+            // 全ての実績を統合（IDで重複を排除）
+            const recordMap = {};
+            [...snapR1.docs, ...snapR2.docs].forEach(d => { recordMap[d.id] = d.data(); });
+
             loadedData = { 
-                records: snapR.docs.map(d => ({id: d.id, ...d.data()})), 
+                records: Object.values(recordMap), 
                 appoints: snapA.docs.map(d => ({id: d.id, ...d.data()})),
                 notifications: snapN.docs.map(d => d.data()) 
             };
@@ -159,45 +165,38 @@
             const targetKey = `${year}-${(month + 1).toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
             const targetNum = dateToNum(targetKey);
             let evHtml = "";
-            let processedKeys = new Set(); // 🌟 重複表示をガード
+            let processedKeys = new Set(); 
 
-            // 🌟 通知（未読）判定の共通関数
             const findNoti = (visitor, type) => loadedData.notifications.find(n => 
                 clean(n.visitorName) === clean(visitor) && 
                 dateToNum(n.visitDate || n.appointDate) === targetNum && 
-                n.isRead === false &&
-                (type ? n.type === type : true)
+                n.isRead === false && (type ? n.type === type : true)
             );
 
-            // 1. 実績（オレンジ）
+            // 1. 実績
             if (document.getElementById('showRes').checked) {
                 loadedData.records.filter(r => dateToNum(r.visitDate) === targetNum && (selCleans.length === 0 || selCleans.includes(clean(r.visitorName)))).forEach(r => {
                     const uniqueKey = `res-${clean(r.visitorName)}-${clean(r.customerName)}-${targetNum}`;
                     if (processedKeys.has(uniqueKey)) return;
-
                     const noti = findNoti(r.visitorName, "実績回覧");
                     const badge = noti ? `<span class="inline-block w-2 h-2 rounded-full bg-rose-500 mr-1 animate-pulse"></span>` : "";
                     if (showUnread && !noti) return;
-
                     evHtml += `<div class="event-item"><div class="event-label label-result" onclick="window.goUsage('${r.visitorName}', ${month+1}, '${r.customerName}', '${targetKey}')">${badge}${r.visitorName}: ${r.customerName}</div></div>`;
                     processedKeys.add(uniqueKey);
                 });
             }
-
-            // 2. 次回（緑）
+            // 2. 次回
             if (document.getElementById('showNext').checked && !showUnread) {
                 loadedData.records.filter(r => dateToNum(r.nextVisitDate) === targetNum && (selCleans.length === 0 || selCleans.includes(clean(r.visitorName)))).forEach(r => {
                     evHtml += `<div class="event-item"><div class="event-label label-next" onclick="window.goUsage('${r.visitorName}', ${month+1}, '${r.customerName}', '${targetKey}')">${r.visitorName}: ${r.customerName}</div></div>`;
                 });
             }
-
-            // 3. アポ（青）
+            // 3. アポ
             if (document.getElementById('showApp').checked) {
                 loadedData.appoints.filter(a => dateToNum(a.appointDate) === targetNum && (selCleans.length === 0 || selCleans.includes(clean(a.visitorName)))).forEach(a => {
                     const noti = findNoti(a.visitorName, "アポ回覧");
                     const badge = noti ? `<span class="inline-block w-2 h-2 rounded-full bg-rose-500 mr-1 animate-pulse"></span>` : "";
                     if (showUnread && !noti) return;
-
                     evHtml += `<div class="event-item"><div class="event-label label-appoint" onclick="window.handleAppoint('${a.id}','${a.customerName}','${a.appointDate}','${a.subject}')">${badge}${a.visitorName}: ${a.customerName}</div></div>`;
                 });
             }
@@ -218,7 +217,6 @@
             if (count > 0) { await batch.commit(); alert(`${count}件を既読にしました`); window.fetchMonthData(true); }
         } catch (e) { console.error(e); }
     };
-
     window.openStaffModal = () => { document.getElementById('staffModal').style.display = 'flex'; window.renderModalList(); };
     window.closeModal = () => { document.getElementById('staffModal').style.display = 'none'; };
     window.renderModalList = () => {
@@ -227,11 +225,7 @@
         const container = document.getElementById('modalStaffList');
         container.innerHTML = allStaffs.filter(s => (!kw || clean(s.name).toLowerCase().includes(kw)) && (dept === 'ALL' || clean(s.dept) === clean(dept))).map(s => `<div class="staff-item ${selectedStaffs.includes(s.name) ? 'selected' : ''}" onclick="window.toggleModalStaff('${s.name}')"><span>${s.name}</span><span class="text-[9px] opacity-40 font-black">${s.dept || ''}</span></div>`).join('');
     };
-    window.toggleModalStaff = (name) => {
-        if (selectedStaffs.includes(name)) selectedStaffs = selectedStaffs.filter(n => n !== name);
-        else selectedStaffs.push(name);
-        window.renderModalList();
-    };
+    window.toggleModalStaff = (name) => { if (selectedStaffs.includes(name)) selectedStaffs = selectedStaffs.filter(n => n !== name); else selectedStaffs.push(name); window.renderModalList(); };
     window.applyModal = () => { localStorage.setItem('cp_cal_selected_staffs', JSON.stringify(selectedStaffs)); window.updateSelectedDisplay(); window.renderCalendar(); window.closeModal(); };
     window.updateSelectedDisplay = () => {
         const container = document.getElementById('selectedNamesDisplay');
