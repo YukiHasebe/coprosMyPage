@@ -14,69 +14,55 @@
         .tab-btn.active { background: var(--copros-navy); color: white; border-color: var(--copros-navy); box-shadow: 0 4px 12px rgba(0,64,152,0.2); }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        /* 🌟 ローダーをエリア限定に */
+        #loading-overlay { display: none; position: absolute; inset: 0; background: rgba(255,255,255,0.7); backdrop-filter: blur(2px); z-index: 50; flex-direction: column; align-items: center; justify-content: center; border-radius: 2.5rem; }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700">
     <div id="sidebar-placeholder"></div>
-    <main class="flex-1 flex flex-col overflow-hidden">
+    <main class="flex-1 flex flex-col overflow-hidden relative">
         <div id="header-placeholder"></div>
         <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
-            <div class="max-w-[1200px] mx-auto">
+            <div class="max-w-[1200px] mx-auto relative">
                 
-                <!-- 🌟 ヘッドエリア：他画面と配置を完全同期 -->
                 <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-10 gap-6">
                     <div class="flex items-end gap-6 shrink-0">
-                        <div>
-                            <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-1">実績グラフ出力</h1>
-                            <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Performance Analytics Visualizer</nav>
-                        </div>
-                        <!-- 🌟 タイトルの横に配置 -->
-                        <select id="deptFilter" onchange="window.init()" class="scope-select shadow-inner mb-1">
+                        <div><h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-1">実績グラフ出力</h1><nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Performance Visualizer</nav></div>
+                        <select id="deptFilter" onchange="window.init(true)" class="scope-select shadow-inner mb-1">
                             <option value="ALL">全ケコム関連 合計</option>
                             <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option>
                         </select>
                     </div>
-
-                    <!-- モード切り替えタブ -->
                     <div class="flex gap-1 bg-white p-1 rounded-xl shadow-sm border border-slate-200 w-full lg:w-auto">
                         <button onclick="window.switchChart('trend')" id="btn-trend" class="tab-btn active flex-1">月別推移</button>
                         <button onclick="window.switchChart('quality')" id="btn-quality" class="tab-btn flex-1">内容分析</button>
                     </div>
                 </div>
 
-                <!-- 年度切り替え（中央） -->
                 <div class="flex justify-center mb-10">
                     <div class="flex items-center gap-8 bg-white py-2.5 px-8 rounded-2xl shadow-sm border border-slate-100">
-                        <button onclick="window.changeYear(-1)" class="p-2 text-slate-300 hover:text-slate-600 transition-colors"><i class="fa-solid fa-chevron-left fa-lg"></i></button>
+                        <button onclick="window.changeYear(-1)" class="p-2 text-slate-300 hover:text-slate-600"><i class="fa-solid fa-chevron-left fa-lg"></i></button>
                         <span id="displayYear" class="text-xl font-black text-slate-700 min-w-[140px] text-center">----年度</span>
-                        <button onclick="window.changeYear(1)" class="p-2 text-slate-300 hover:text-slate-600 transition-colors"><i class="fa-solid fa-chevron-right fa-lg"></i></button>
+                        <button onclick="window.changeYear(1)" class="p-2 text-slate-300 hover:text-slate-600"><i class="fa-solid fa-chevron-right fa-lg"></i></button>
                     </div>
                 </div>
 
-                <!-- サマリーカード -->
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10 text-center">
                     <div class="stat-card"><p class="text-[10px] font-black text-slate-400 mb-1 uppercase tracking-widest">総営業件数</p><p id="statTotalVisits" class="text-3xl font-black text-slate-800">--</p></div>
                     <div class="stat-card"><p class="text-[10px] font-black text-slate-400 mb-1 uppercase tracking-widest">合計滞在時間</p><p id="statTotalTime" class="text-3xl font-black text-[#004098]">--</p></div>
                     <div class="stat-card"><p class="text-[10px] font-black text-slate-400 mb-1 uppercase tracking-widest">平均滞在時間</p><p id="statAvgTime" class="text-3xl font-black text-[#ff7e11]">--</p></div>
                 </div>
 
-                <div class="bg-white p-6 lg:p-10 rounded-[2.5rem] shadow-2xl border border-slate-100 min-h-[500px] flex flex-col items-center mb-20">
-                    <!-- 内容分析モードの時だけ表示される切り替え -->
+                <div class="bg-white p-6 lg:p-10 rounded-[2.5rem] shadow-2xl border border-slate-100 min-h-[500px] flex flex-col items-center mb-20 relative">
+                    <div id="loading-overlay"><div class="animate-spin mb-4 text-[#ff7e11] text-6xl"><i class="fa-solid fa-circle-notch"></i></div><p class="text-slate-800 font-black italic text-xs uppercase">Rendering Charts...</p></div>
                     <div id="qualityControls" class="mb-10 hidden w-full max-w-md">
-                        <label class="block text-center text-[10px] font-black text-slate-400 uppercase mb-3 tracking-widest">分析する項目を切り替え</label>
                         <select id="qualityType" onchange="window.updateCharts()" class="scope-select bg-slate-50 font-black w-full border border-slate-200 py-3">
                             <option value="qualData1">定性データ1 (リサーチ・受注等)</option>
                             <option value="qualData2">定性データ2 (工法・区分等)</option>
                             <option value="qualData3">定性データ3 (エリア等)</option>
                         </select>
                     </div>
-                    <!-- グラフ描画エリア -->
                     <div class="w-full relative h-[400px]"><canvas id="mainChart"></canvas></div>
-                </div>
-
-                <div id="loading" class="fixed inset-0 bg-white/80 backdrop-blur-sm z-[100] hidden flex-col items-center justify-center">
-                    <div class="animate-spin mb-4 text-[#ff7e11] text-6xl"><i class="fa-solid fa-circle-notch"></i></div>
-                    <p class="text-slate-800 font-black tracking-tighter uppercase italic text-xs">Processing Visuals...</p>
                 </div>
             </div>
         </div>
@@ -93,80 +79,77 @@
         let chartInstance = null;
         let currentChartType = 'trend';
 
-        const standardizeDate = (s) => {
-            if(!s) return "";
-            const d = s.replace(/\//g, '-').split('-');
-            return d.length < 3 ? s : `${d[0]}-${d[1].padStart(2, '0')}-${d[2].padStart(2, '0')}`;
-        };
+        const clean = (s) => (s||"").toString().replace(/[\s\u3000]+/g, '').trim();
 
-        window.init = async () => {
-            document.getElementById('loading').style.display = 'flex';
+        window.init = async (forceRefresh = false) => {
+            const loader = document.getElementById('loading-overlay');
+            loader.style.display = 'flex';
             document.getElementById('displayYear').innerText = `${currentYear}年度`;
-            const selectedDept = document.getElementById('deptFilter').value;
+
+            if (!forceRefresh && document.getElementById('deptFilter').value === 'ALL') {
+                const myDept = sessionStorage.getItem('userDept');
+                if (myDept) document.getElementById('deptFilter').value = myDept;
+            }
+            const dept = document.getElementById('deptFilter').value;
+
+            const cacheKey = `cp_graph_cache_${currentYear}_${clean(dept)}`;
+            const cached = localStorage.getItem(cacheKey);
+            if (cached && !forceRefresh) {
+                allRecords = JSON.parse(cached);
+                window.updateCharts();
+                loader.style.display = 'none';
+                return;
+            }
 
             try {
-                let q;
-                const ref = collection(db, "activity_records");
+                // 🌟 【省エネ】年度の範囲（7月〜翌6月）でクエリ
+                const startDate = `${currentYear}/07/01`, endDate = `${currentYear+1}/06/30`;
+                let q = query(collection(db, "activity_records"), where("visitDate", ">=", startDate), where("visitDate", "<=", endDate), limit(3000));
                 
-                // 🌟 【省エネ】年度・ケコム関連に絞って取得
-                if (selectedDept === 'ALL') {
-                    q = query(ref, where("visitorDept", "in", TARGET_DEPTS), where("visitDate", ">=", `${currentYear}`), limit(3000));
-                } else {
-                    q = query(ref, where("visitorDept", "==", selectedDept), where("visitDate", ">=", `${currentYear}`), limit(2000));
-                }
-
                 const snap = await getDocs(q);
-                allRecords = snap.docs.map(d => d.data());
-                
-                document.getElementById('loading').style.display = 'none';
+                allRecords = snap.docs.map(doc => {
+                    const r = doc.data();
+                    if (dept !== 'ALL' && clean(r.visitorDept || "") !== clean(dept)) return null;
+                    return r;
+                }).filter(r => r !== null);
+
+                localStorage.setItem(cacheKey, JSON.stringify(allRecords));
                 window.updateCharts();
-            } catch (e) { 
-                console.error(e); 
-                document.getElementById('loading').style.display = 'none';
-            }
+            } catch (e) { console.error(e); }
+            finally { loader.style.display = 'none'; }
         };
 
         window.updateCharts = () => {
-            const filtered = allRecords.filter(r => {
-                const sDate = standardizeDate(r.visitDate);
-                const parts = sDate.split('-');
-                const y = parseInt(parts[0]), m = parseInt(parts[1]);
-                return (y === currentYear && m >= 7) || (y === currentYear + 1 && m <= 6);
-            });
-
             let totalMins = 0;
-            filtered.forEach(r => {
+            allRecords.forEach(r => {
                 if(r.startTime && r.endTime && r.startTime !== "00:00") {
                     const s = r.startTime.split(':'), e = r.endTime.split(':');
                     totalMins += (parseInt(e[0])*60 + parseInt(e[1]||0)) - (parseInt(s[0])*60 + parseInt(s[1]||0));
                 }
             });
 
-            document.getElementById('statTotalVisits').innerHTML = `${filtered.length} <span class="text-xs">件</span>`;
+            document.getElementById('statTotalVisits').innerHTML = `${allRecords.length} <span class="text-xs">件</span>`;
             document.getElementById('statTotalTime').innerHTML = `${Math.floor(totalMins/60)} <span class="text-xs">時間</span>`;
-            document.getElementById('statAvgTime').innerHTML = `${filtered.length ? Math.round(totalMins/filtered.length) : 0} <span class="text-xs">分</span>`;
+            document.getElementById('statAvgTime').innerHTML = `${allRecords.length ? Math.round(totalMins/allRecords.length) : 0} <span class="text-xs">分</span>`;
 
-            if (currentChartType === 'trend') renderTrendChart(filtered);
-            else renderQualityChart(filtered);
+            if (currentChartType === 'trend') renderTrendChart(allRecords);
+            else renderQualityChart(allRecords);
         };
 
         function renderTrendChart(data) {
             const months = ["7月", "8月", "9月", "10月", "11月", "12月", "1月", "2月", "3月", "4月", "5月", "6月"];
+            const order = [7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6];
             const counts = new Array(12).fill(0);
             data.forEach(r => {
-                const parts = standardizeDate(r.visitDate).split('-');
-                const m = parseInt(parts[1]);
-                const idx = (m >= 7) ? m - 7 : m + 5; 
-                if (idx >= 0 && idx < 12) counts[idx]++;
+                const m = parseInt((r.visitDate||"").toString().split(/[-/]/)[1]);
+                const idx = order.indexOf(m);
+                if (idx !== -1) counts[idx]++;
             });
             if (chartInstance) chartInstance.destroy();
             const ctx = document.getElementById('mainChart').getContext('2d');
             chartInstance = new Chart(ctx, {
                 type: 'bar',
-                data: {
-                    labels: months,
-                    datasets: [{ label: '営業件数', data: counts, backgroundColor: '#ff7e11', borderRadius: 8 }]
-                },
+                data: { labels: months, datasets: [{ label: '営業件数', data: counts, backgroundColor: '#ff7e11', borderRadius: 8 }] },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
         }
@@ -174,37 +157,26 @@
         function renderQualityChart(data) {
             const field = document.getElementById('qualityType').value;
             const counts = {};
-            data.forEach(r => { 
-                const val = r[field] || "未設定"; 
-                if(val.trim() !== "") counts[val] = (counts[val] || 0) + 1; 
-            });
-            
+            data.forEach(r => { const val = r[field] || "未設定"; if(val.trim() !== "") counts[val] = (counts[val] || 0) + 1; });
             if (chartInstance) chartInstance.destroy();
             const ctx = document.getElementById('mainChart').getContext('2d');
             chartInstance = new Chart(ctx, {
                 type: 'doughnut',
-                data: {
-                    labels: Object.keys(counts),
-                    datasets: [{ data: Object.values(counts), backgroundColor: ['#004098', '#ff7e11', '#0ea5e9', '#10b981', '#f59e0b', '#6366f1', '#ec4899'], borderWidth: 0 }]
-                },
+                data: { labels: Object.keys(counts), datasets: [{ data: Object.values(counts), backgroundColor: ['#004098', '#ff7e11', '#0ea5e9', '#10b981', '#f59e0b', '#6366f1', '#ec4899'], borderWidth: 0 }] },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 20, font: { weight: 'bold' } } } } }
             });
         }
 
         window.switchChart = (type) => {
             currentChartType = type;
-            document.getElementById('btn-trend').classList.add('active');
-            document.getElementById('btn-quality').classList.remove('active');
-            if(type === 'quality') {
-                document.getElementById('btn-trend').classList.remove('active');
-                document.getElementById('btn-quality').classList.add('active');
-            }
+            document.getElementById('btn-trend').classList.toggle('active', type === 'trend');
+            document.getElementById('btn-quality').classList.toggle('active', type === 'quality');
             document.getElementById('qualityControls').classList.toggle('hidden', type !== 'quality');
             window.updateCharts();
         };
 
-        window.changeYear = (val) => { currentYear += val; window.init(); };
-        window.addEventListener('load', () => setTimeout(window.init, 300));
+        window.changeYear = (val) => { currentYear += val; window.init(true); };
+        window.init();
     </script>
 </body>
 </html>
