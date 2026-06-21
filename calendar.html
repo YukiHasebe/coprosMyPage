@@ -136,7 +136,7 @@
             } catch (e) { console.error(e); if(loader) loader.style.display = 'none'; }
         };
 
-           window.renderCalendar = () => {
+              window.renderCalendar = () => {
         const grid = document.getElementById('calendarGrid'); grid.innerHTML = "";
         const year = currentDate.getFullYear(), month = currentDate.getMonth();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -151,39 +151,47 @@
             const targetNum = dateToNum(targetKey);
             let evHtml = "";
 
-            // 🌟 実績（オレンジ）：未読チェックを「訪問者名＋日付」のみで判定するように強化
+            // 🌟 通知（未読）を判定する共通関数
+            const findNoti = (visitor, type) => loadedData.notifications.find(n => 
+                clean(n.visitorName) === clean(visitor) && 
+                dateToNum(n.visitDate || n.appointDate) === targetNum && 
+                n.isRead === false &&
+                (type ? n.type === type : true)
+            );
+
+            // 1. 実績（オレンジ）
             if (document.getElementById('showRes').checked) {
                 loadedData.records.filter(r => dateToNum(r.visitDate) === targetNum && (selCleans.length === 0 || selCleans.includes(clean(r.visitorName)))).forEach(r => {
-                    // 回覧一覧と同じ基準で通知を探す
-                    const noti = loadedData.notifications.find(n => 
-                        clean(n.visitorName) === clean(r.visitorName) && 
-                        dateToNum(n.visitDate || n.appointDate) === targetNum && 
-                        n.isRead === false
-                    );
+                    const noti = findNoti(r.visitorName, "実績回覧");
                     const badge = noti ? `<span class="inline-block w-2 h-2 rounded-full bg-rose-500 mr-1 animate-pulse"></span>` : "";
-                    
-                    if (showUnread && !noti) return; // 未読フィルタ時に通知がないものは表示しない
+                    if (showUnread && !noti) return;
                     evHtml += `<div class="event-item"><div class="event-label label-result" onclick="window.goUsage('${r.visitorName}', ${month+1}, '${r.customerName}', '${targetKey}')">${badge}${r.visitorName}: ${r.customerName}</div></div>`;
                 });
             }
 
-            // 🌟 次回（緑）
-            if (document.getElementById('showNext').checked && !showUnread) {
+            // 2. 次回（緑）
+            if (document.getElementById('showNext').checked) {
                 loadedData.records.filter(r => dateToNum(r.nextVisitDate) === targetNum && (selCleans.length === 0 || selCleans.includes(clean(r.visitorName)))).forEach(r => {
+                    // 次回予定は未読フィルタの影響を受けない（常に表示）
+                    if (showUnread) return; 
                     evHtml += `<div class="event-item"><div class="event-label label-next" onclick="window.goUsage('${r.visitorName}', ${month+1}, '${r.customerName}', '${targetKey}')">${r.visitorName}: ${r.customerName}</div></div>`;
                 });
             }
 
-            // 🌟 アポ（青）
-            if (document.getElementById('showApp').checked && !showUnread) {
+            // 3. アポ（青）
+            if (document.getElementById('showApp').checked) {
                 loadedData.appoints.filter(a => dateToNum(a.appointDate) === targetNum && (selCleans.length === 0 || selCleans.includes(clean(a.visitorName)))).forEach(a => {
-                    evHtml += `<div class="event-item"><div class="event-label label-appoint" onclick="window.handleAppoint('${a.id}','${a.customerName}','${a.appointDate}','${a.subject}')">${a.visitorName}: ${a.customerName}</div></div>`;
+                    const noti = findNoti(a.visitorName, "アポ回覧");
+                    const badge = noti ? `<span class="inline-block w-2 h-2 rounded-full bg-rose-500 mr-1 animate-pulse"></span>` : "";
+                    if (showUnread && !noti) return;
+                    evHtml += `<div class="event-item"><div class="event-label label-appoint" onclick="window.handleAppoint('${a.id}','${a.customerName}','${a.appointDate}','${a.subject}')">${badge}${a.visitorName}: ${a.customerName}</div></div>`;
                 });
             }
             grid.insertAdjacentHTML('beforeend', `<div class="calendar-day"><div class="day-header"><span class="day-num" onclick="window.goDailyReport('${targetKey}')">${d}</span><div class="add-btn" onclick="window.goAddHistory('${targetKey}')"><i class="fa-solid fa-plus"></i></div></div><div class="max-h-[110px] overflow-y-auto custom-scrollbar">${evHtml}</div></div>`);
         }
     };
 
+    // --- 以下の関数群は以前のコードと同じ（変更なし） ---
     window.markSelectedAsRead = async () => {
         if (!confirm("未読通知を既読にしますか？")) return;
         const myName = sessionStorage.getItem('userName') || "";
@@ -197,7 +205,6 @@
             if (count > 0) { await batch.commit(); alert(`${count}件を既読にしました`); window.fetchMonthData(true); }
         } catch (e) { console.error(e); }
     };
-
     window.openStaffModal = () => { document.getElementById('staffModal').style.display = 'flex'; window.renderModalList(); };
     window.closeModal = () => { document.getElementById('staffModal').style.display = 'none'; };
     window.renderModalList = () => {
