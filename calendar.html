@@ -82,12 +82,13 @@
         import { db, TARGET_DEPTS } from "./common.js";
         import { collection, getDocs, query, where, doc, updateDoc, writeBatch, deleteDoc, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        let allStaffs = [], selectedStaffs = JSON.parse(localStorage.getItem('cp_cal_selected_staffs') || "[]");
-        let loadedData = { records: [], appoints: [], notifications: [] };
-        let currentDate = new Date();
+           let allStaffs = [], selectedStaffs = JSON.parse(localStorage.getItem('cp_cal_selected_staffs') || "[]");
+    let loadedData = { records: [], appoints: [], notifications: [] };
+    let currentDate = new Date();
 
-        const clean = (s) => (s||"").toString().replace(/[\s\u3000]+/g, '').trim();
-            // 🌟 どんな日付形式(6/1, 06-01等)でも「20260601」の8桁数字にする最強関数
+    const clean = (s) => (s||"").toString().replace(/[\s\u3000]+/g, '').trim();
+    
+    // 🌟 爆速化の鍵：日付から数字のみを抽出する超軽量関数
     const dateToNum = (s) => {
         if(!s) return "";
         const p = s.toString().split(/[-/]/);
@@ -112,7 +113,7 @@
                 sessionStorage.setItem('cp_cache_staffs', JSON.stringify(allStaffs));
             }
             window.updateSelectedDisplay();
-            window.fetchMonthData();
+            await window.fetchMonthData();
         } catch (e) { console.error(e); }
     }
 
@@ -130,21 +131,17 @@
 
         try {
             const myName = sessionStorage.getItem('userName') || "";
-            // 🌟 最強の安全策：スラッシュ形式とハイフン形式を別々に取得して合体
-            const qR1 = query(collection(db, "activity_records"), where("visitDate", ">=", `${y}/${mStr}/01`), where("visitDate", "<=", `${y}/${mStr}/31`), limit(800));
-            const qR2 = query(collection(db, "activity_records"), where("visitDate", ">=", `${y}-${mStr}-01`), where("visitDate", "<=", `${y}-${mStr}-31`), limit(800));
+            // 🌟 省エネ：範囲を当月に限定し、Read数を最小化
+            const qR = query(collection(db, "activity_records"), where("visitDate", ">=", `${y}-${mStr}-01`), where("visitDate", "<=", `${y}/${mStr}/31`), limit(1000));
             const qA = query(collection(db, "appointments"), where("appointDate", ">=", `${y}-${mStr}-01`), where("appointDate", "<=", `${y}/${mStr}/31`), limit(500));
             
-            const [snapR1, snapR2, snapA, snapN] = await Promise.all([
-                getDocs(qR1), getDocs(qR2), getDocs(qA),
-                getDocs(query(collection(db, "notifications"), where("recipient", "==", myName)))
+            const [snapR, snapA, snapN] = await Promise.all([
+                getDocs(qR), getDocs(qA),
+                getDocs(query(collection(db, "notifications"), where("recipient", "==", myName), where("isRead", "==", false)))
             ]);
 
-            const recordMap = {};
-            [...snapR1.docs, ...snapR2.docs].forEach(d => { recordMap[d.id] = d.data(); });
-
             loadedData = { 
-                records: Object.values(recordMap), 
+                records: snapR.docs.map(d => d.data()), 
                 appoints: snapA.docs.map(d => ({id: d.id, ...d.data()})),
                 notifications: snapN.docs.map(d => d.data()) 
             };
@@ -164,46 +161,59 @@
         const selCleans = selectedStaffs.map(n => clean(n));
         const showUnread = document.getElementById('showUnreadOnly').checked;
 
+        // 🌟 爆速化の極意：データを日付ごとに事前グループ化（O(N)処理）
+        const recMap = {}, appMap = {}, notiMap = {};
+        loadedData.records.forEach(r => { const d = dateToNum(r.visitDate); if(!recMap[d]) recMap[d]=[]; recMap[d].push(r); });
+        loadedData.appoints.forEach(a => { const d = dateToNum(a.appointDate); if(!appMap[d]) appMap[d]=[]; appMap[d].push(a); });
+        loadedData.notifications.forEach(n => { const d = dateToNum(n.visitDate || n.appointDate); if(!notiMap[d]) notiMap[d]=[]; notiMap[d].push(n); });
+
         for(let d=1; d<=daysInMonth; d++) {
             const targetNum = `${year}${(month + 1).toString().padStart(2, '0')}${d.toString().padStart(2, '0')}`;
             const targetKey = `${year}-${(month + 1).toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
             let evHtml = "";
             let processedKeys = new Set(); 
 
-            const findNoti = (visitor, type) => loadedData.notifications.find(n => 
-                clean(n.visitorName) === clean(visitor) && 
-                dateToNum(n.visitDate || n.appointDate) === targetNum && 
-                n.isRead === false && (type ? n.type === type : true)
-            );
+            // 1. 実績（オレンジ）
+            if (document.getElementById('showRes').checked && recMap[targetNum]) {
+                recMap[targetNum].forEach(r => {
+                    if (selCleans.length > 0 && !selCleans.includes(clean(r.visitorName))) return;
+                    const uKey = `res-${clean(r.visitorName)}-${clean(r.customerName)}`;
+                    if (processedKeys.has(uKey)) return;
 
-            if (document.getElementById('showRes').checked) {
-                loadedData.records.filter(r => dateToNum(r.visitDate) === targetNum && (selCleans.length === 0 || selCleans.includes(clean(r.visitorName)))).forEach(r => {
-                    const uniqueKey = `res-${clean(r.visitorName)}-${clean(r.customerName)}-${targetNum}`;
-                    if (processedKeys.has(uniqueKey)) return;
-                    const noti = findNoti(r.visitorName, "実績回覧");
-                    const badge = noti ? `<span class="inline-block w-2 h-2 rounded-full bg-rose-500 mr-1 animate-pulse"></span>` : "";
-                    if (showUnread && !noti) return;
+                    const hasNoti = notiMap[targetNum]?.some(n => clean(n.visitorName) === clean(r.visitorName) && n.type === "実績回覧");
+                    if (showUnread && !hasNoti) return;
+
+                    const badge = hasNoti ? `<span class="inline-block w-2 h-2 rounded-full bg-rose-500 mr-1 animate-pulse"></span>` : "";
                     evHtml += `<div class="event-item"><div class="event-label label-result" onclick="window.goUsage('${r.visitorName}', ${month+1}, '${r.customerName}', '${targetKey}')">${badge}${r.visitorName}: ${r.customerName}</div></div>`;
-                    processedKeys.add(uniqueKey);
+                    processedKeys.add(uKey);
                 });
             }
+
+            // 2. 次回（緑）
             if (document.getElementById('showNext').checked && !showUnread) {
-                loadedData.records.filter(r => dateToNum(r.nextVisitDate) === targetNum && (selCleans.length === 0 || selCleans.includes(clean(r.visitorName)))).forEach(r => {
-                    evHtml += `<div class="event-item"><div class="event-label label-next" onclick="window.goUsage('${r.visitorName}', ${month+1}, '${r.customerName}', '${targetKey}')">${r.visitorName}: ${r.customerName}</div></div>`;
+                loadedData.records.forEach(r => {
+                    if (dateToNum(r.nextVisitDate) === targetNum) {
+                        if (selCleans.length > 0 && !selCleans.includes(clean(r.visitorName))) return;
+                        evHtml += `<div class="event-item"><div class="event-label label-next" onclick="window.goUsage('${r.visitorName}', ${month+1}, '${r.customerName}', '${targetKey}')">${r.visitorName}: ${r.customerName}</div></div>`;
+                    }
                 });
             }
-            if (document.getElementById('showApp').checked) {
-                loadedData.appoints.filter(a => dateToNum(a.appointDate) === targetNum && (selCleans.length === 0 || selCleans.includes(clean(a.visitorName)))).forEach(a => {
-                    const noti = findNoti(a.visitorName, "アポ回覧");
-                    const badge = noti ? `<span class="inline-block w-2 h-2 rounded-full bg-rose-500 mr-1 animate-pulse"></span>` : "";
-                    if (showUnread && !noti) return;
+
+            // 3. アポ（青）
+            if (document.getElementById('showApp').checked && appMap[targetNum]) {
+                appMap[targetNum].forEach(a => {
+                    if (selCleans.length > 0 && !selCleans.includes(clean(a.visitorName))) return;
+                    const hasNoti = notiMap[targetNum]?.some(n => clean(n.visitorName) === clean(a.visitorName) && n.type === "アポ回覧");
+                    if (showUnread && !hasNoti) return;
+
+                    const badge = hasNoti ? `<span class="inline-block w-2 h-2 rounded-full bg-rose-500 mr-1 animate-pulse"></span>` : "";
                     evHtml += `<div class="event-item"><div class="event-label label-appoint" onclick="window.handleAppoint('${a.id}','${a.customerName}','${a.appointDate}','${a.subject}')">${badge}${a.visitorName}: ${a.customerName}</div></div>`;
                 });
             }
             grid.insertAdjacentHTML('beforeend', `<div class="calendar-day"><div class="day-header"><span class="day-num" onclick="window.goDailyReport('${targetKey}')">${d}</span><div class="add-btn" onclick="window.goAddHistory('${targetKey}')"><i class="fa-solid fa-plus"></i></div></div><div class="max-h-[110px] overflow-y-auto custom-scrollbar">${evHtml}</div></div>`);
         }
     };
-        
+
     window.markSelectedAsRead = async () => {
         if (!confirm("未読通知を既読にしますか？")) return;
         const myName = sessionStorage.getItem('userName') || "";
@@ -214,9 +224,10 @@
             const batch = writeBatch(db);
             let count = 0;
             snap.forEach(d => { if (selCleans.length === 0 || selCleans.includes(clean(d.data().visitorName))) { batch.update(d.ref, { isRead: true }); count++; } });
-            if (count > 0) { await batch.commit(); alert(`${count}件を既読にしました`); window.fetchMonthData(true); }
+            if (count > 0) { await batch.commit(); sessionStorage.clear(); window.fetchMonthData(true); }
         } catch (e) { console.error(e); }
     };
+
     window.openStaffModal = () => { document.getElementById('staffModal').style.display = 'flex'; window.renderModalList(); };
     window.closeModal = () => { document.getElementById('staffModal').style.display = 'none'; };
     window.renderModalList = () => {
@@ -239,11 +250,10 @@
     window.handleAppoint = (id, cust, date, subject) => {
         const act = confirm(`【アポ詳細】\n顧客: ${cust}\n内容: ${subject || 'なし'}\n\n[OK] 実績に登録\n[キャンセル] 削除または戻る`);
         if (act) { sessionStorage.setItem('cp_promote_appoint', JSON.stringify({id, cust, date, subject})); location.href = 'history.html'; }
-        else if(confirm("削除しますか？")) { deleteDoc(doc(db, "appointments", id)).then(() => window.fetchMonthData(true)); }
+        else if(confirm("削除しますか？")) { deleteDoc(doc(db, "appointments", id)).then(() => { sessionStorage.clear(); window.fetchMonthData(true); }); }
     };
     window.changeMonth = (v) => { currentDate.setMonth(currentDate.getMonth() + v); window.fetchMonthData(); };
     window.jumpMonth = (m) => { currentDate.setMonth(m - 1); window.fetchMonthData(); };
     init();
 </script>
-</body>
 </html>
