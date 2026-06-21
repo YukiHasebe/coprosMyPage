@@ -195,7 +195,7 @@
                     </div>
                 </div>`).join('') : '<p class="text-center py-20 text-slate-300 font-bold uppercase tracking-widest">実績はありません</p>';
 
-            // 🌟 自動展開 ＋ 自動既読
+                       // 🌟 自動展開 ＋ 自動既読（カレンダーのバッジを消す）
             const jDate = sessionStorage.getItem('cp_usage_jump_date');
             if (jDate) {
                 const targetNum = dateToNum(jDate);
@@ -207,7 +207,7 @@
                         const el = document.getElementById(`acc-${idx}`);
                         if(el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         
-                        // 🌟 ここで既読処理を呼び出す
+                        // 🌟 ここで「見た瞬間に既読にする」機能を呼び出す
                         window.markAsReadOnOpen(selectedName, jDate);
                         sessionStorage.removeItem('cp_usage_jump_date');
                     }, 1200);
