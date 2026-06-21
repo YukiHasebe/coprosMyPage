@@ -128,6 +128,8 @@
         let allStaffs = [], currentTarget = '', modalSelected = [];
         let masterOptions = { qual1: [], qual2: [], qual3: [] };
 
+        const clean = (s) => (s||"").toString().replace(/[\s\u3000]+/g, '').trim();
+
         async function init() {
             document.getElementById('visitorName').value = sessionStorage.getItem('userName') || "";
             const jumpDate = sessionStorage.getItem('cp_add_date');
