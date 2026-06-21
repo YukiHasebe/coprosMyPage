@@ -110,33 +110,42 @@
             } catch (e) { console.error(e); }
         }
 
-        window.fetchMonthData = async (force = false) => {
-            const y = currentDate.getFullYear(), m = currentDate.getMonth() + 1, mStr = m.toString().padStart(2, '0');
-            const cacheKey = `cp_cal_cache_${y}_${mStr}`;
-            document.getElementById('displayMonthCenter').innerText = `${y}年 ${m}月`;
-            document.querySelectorAll('.month-btn').forEach(b => b.classList.toggle('active', b.id === `m-btn-${m}`));
+           window.fetchMonthData = async (force = false) => {
+        const y = currentDate.getFullYear(), m = currentDate.getMonth() + 1, mStr = m.toString().padStart(2, '0');
+        // キャッシュキーを新しくして確実に最新を取得
+        const cacheKey = `cp_cal_cache_v_ultimate_${y}_${mStr}`;
+        document.getElementById('displayMonthCenter').innerText = `${y}年 ${m}月`;
+        document.querySelectorAll('.month-btn').forEach(b => b.classList.toggle('active', b.id === `m-btn-${m}`));
 
-            const cached = sessionStorage.getItem(cacheKey);
-            if (cached && !force) { loadedData = JSON.parse(cached); window.renderCalendar(); return; }
+        const cached = sessionStorage.getItem(cacheKey);
+        if (cached && !force) { loadedData = JSON.parse(cached); window.renderCalendar(); return; }
 
-            const loader = document.getElementById('local-loader');
-            if(loader) loader.style.display = 'flex';
-            try {
-                const tP1 = `${y}/${mStr}`, tP2 = `${y}-${mStr}`, myName = sessionStorage.getItem('userName') || "";
-                // 🌟 ゆらぎに強いクエリ
-                const [snapR, snapA, snapN] = await Promise.all([
-                    getDocs(query(collection(db, "activity_records"), where("visitDate", ">=", tP1), where("visitDate", "<=", tP1 + "\uf8ff"), limit(800))),
-                    getDocs(query(collection(db, "appointments"), where("appointDate", ">=", tP2), where("appointDate", "<=", tP2 + "\uf8ff"), limit(400))),
-                    getDocs(query(collection(db, "notifications"), where("recipient", "==", myName)))
-                ]);
-                loadedData = { records: snapR.docs.map(d => d.data()), appoints: snapA.docs.map(d => ({id: d.id, ...d.data()})), notifications: snapN.docs.map(d => d.data()) };
-                sessionStorage.setItem(cacheKey, JSON.stringify(loadedData));
-                if(loader) loader.style.display = 'none';
-                window.renderCalendar();
-            } catch (e) { console.error(e); if(loader) loader.style.display = 'none'; }
-        };
+        const loader = document.getElementById('local-loader');
+        if(loader) loader.style.display = 'flex';
 
-              window.renderCalendar = () => {
+        try {
+            const myName = sessionStorage.getItem('userName') || "";
+            // 🌟 【漏れ対策】ハイフン(-)形式もスラッシュ(/)形式も同時に拾う最強クエリ
+            const qR = query(collection(db, "activity_records"), where("visitDate", ">=", `${y}-${mStr}-01`), where("visitDate", "<=", `${y}/${mStr}/31`), limit(1000));
+            const qA = query(collection(db, "appointments"), where("appointDate", ">=", `${y}-${mStr}-01`), where("appointDate", "<=", `${y}/${mStr}/31`), limit(500));
+            
+            const [snapR, snapA, snapN] = await Promise.all([
+                getDocs(qR), getDocs(qA),
+                getDocs(query(collection(db, "notifications"), where("recipient", "==", myName)))
+            ]);
+
+            loadedData = { 
+                records: snapR.docs.map(d => ({id: d.id, ...d.data()})), 
+                appoints: snapA.docs.map(d => ({id: d.id, ...d.data()})),
+                notifications: snapN.docs.map(d => d.data()) 
+            };
+            sessionStorage.setItem(cacheKey, JSON.stringify(loadedData));
+            if(loader) loader.style.display = 'none';
+            window.renderCalendar();
+        } catch (e) { console.error(e); if(loader) loader.style.display = 'none'; }
+    };
+
+    window.renderCalendar = () => {
         const grid = document.getElementById('calendarGrid'); grid.innerHTML = "";
         const year = currentDate.getFullYear(), month = currentDate.getMonth();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -150,8 +159,9 @@
             const targetKey = `${year}-${(month + 1).toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
             const targetNum = dateToNum(targetKey);
             let evHtml = "";
+            let processedKeys = new Set(); // 🌟 重複表示をガード
 
-            // 🌟 通知（未読）を判定する共通関数
+            // 🌟 通知（未読）判定の共通関数
             const findNoti = (visitor, type) => loadedData.notifications.find(n => 
                 clean(n.visitorName) === clean(visitor) && 
                 dateToNum(n.visitDate || n.appointDate) === targetNum && 
@@ -162,18 +172,21 @@
             // 1. 実績（オレンジ）
             if (document.getElementById('showRes').checked) {
                 loadedData.records.filter(r => dateToNum(r.visitDate) === targetNum && (selCleans.length === 0 || selCleans.includes(clean(r.visitorName)))).forEach(r => {
+                    const uniqueKey = `res-${clean(r.visitorName)}-${clean(r.customerName)}-${targetNum}`;
+                    if (processedKeys.has(uniqueKey)) return;
+
                     const noti = findNoti(r.visitorName, "実績回覧");
                     const badge = noti ? `<span class="inline-block w-2 h-2 rounded-full bg-rose-500 mr-1 animate-pulse"></span>` : "";
                     if (showUnread && !noti) return;
+
                     evHtml += `<div class="event-item"><div class="event-label label-result" onclick="window.goUsage('${r.visitorName}', ${month+1}, '${r.customerName}', '${targetKey}')">${badge}${r.visitorName}: ${r.customerName}</div></div>`;
+                    processedKeys.add(uniqueKey);
                 });
             }
 
             // 2. 次回（緑）
-            if (document.getElementById('showNext').checked) {
+            if (document.getElementById('showNext').checked && !showUnread) {
                 loadedData.records.filter(r => dateToNum(r.nextVisitDate) === targetNum && (selCleans.length === 0 || selCleans.includes(clean(r.visitorName)))).forEach(r => {
-                    // 次回予定は未読フィルタの影響を受けない（常に表示）
-                    if (showUnread) return; 
                     evHtml += `<div class="event-item"><div class="event-label label-next" onclick="window.goUsage('${r.visitorName}', ${month+1}, '${r.customerName}', '${targetKey}')">${r.visitorName}: ${r.customerName}</div></div>`;
                 });
             }
@@ -184,6 +197,7 @@
                     const noti = findNoti(a.visitorName, "アポ回覧");
                     const badge = noti ? `<span class="inline-block w-2 h-2 rounded-full bg-rose-500 mr-1 animate-pulse"></span>` : "";
                     if (showUnread && !noti) return;
+
                     evHtml += `<div class="event-item"><div class="event-label label-appoint" onclick="window.handleAppoint('${a.id}','${a.customerName}','${a.appointDate}','${a.subject}')">${badge}${a.visitorName}: ${a.customerName}</div></div>`;
                 });
             }
@@ -191,7 +205,6 @@
         }
     };
 
-    // --- 以下の関数群は以前のコードと同じ（変更なし） ---
     window.markSelectedAsRead = async () => {
         if (!confirm("未読通知を既読にしますか？")) return;
         const myName = sessionStorage.getItem('userName') || "";
@@ -205,6 +218,7 @@
             if (count > 0) { await batch.commit(); alert(`${count}件を既読にしました`); window.fetchMonthData(true); }
         } catch (e) { console.error(e); }
     };
+
     window.openStaffModal = () => { document.getElementById('staffModal').style.display = 'flex'; window.renderModalList(); };
     window.closeModal = () => { document.getElementById('staffModal').style.display = 'none'; };
     window.renderModalList = () => {
