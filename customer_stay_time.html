@@ -7,28 +7,29 @@
     <style>
         :root { --copros-blue: #87ceeb; --copros-orange: #ff7e11; --copros-navy: #004098; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
-        .table-container { border-radius: 2rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
+        .table-container { border-radius: 2rem; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; position: relative; min-height: 400px; }
         thead tr { background-color: #3c4b5a; }
-        .scope-select { background: #e2e8f0; border: none; padding: 0.4rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; cursor: pointer; }
+        .scope-select { background: #e2e8f0; border: none; padding: 0.5rem 1rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; color: #475569; outline: none; cursor: pointer; }
         .time-badge { background: #fff7ed; color: var(--copros-orange); padding: 4px 14px; border-radius: 20px; font-weight: 900; border: 1px solid #ffedd5; white-space: nowrap; }
         .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        /* 🌟 ローダーをメインエリアに限定 */
+        #loading-overlay { display: none; position: absolute; inset: 0; background: rgba(255,255,255,0.7); backdrop-filter: blur(2px); z-index: 50; flex-direction: column; align-items: center; justify-content: center; }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700 font-sans">
     <div id="sidebar-placeholder"></div>
-    <main class="flex-1 flex flex-col overflow-hidden">
+    <main class="flex-1 flex flex-col overflow-hidden relative">
         <div id="header-placeholder"></div>
         <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1400px] mx-auto">
-                
                 <div class="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-8 gap-6">
                     <div class="flex items-end gap-6 shrink-0">
                         <div>
                             <h1 class="text-4xl font-black text-slate-800 tracking-tighter mb-1">お客様別滞在時間</h1>
                             <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Engagement & Stay Duration Analysis</nav>
                         </div>
-                        <select id="deptFilter" onchange="window.init()" class="scope-select shadow-inner mb-2">
+                        <select id="deptFilter" onchange="window.init(true)" class="scope-select shadow-inner mb-2">
                             <option value="ALL">全ケコム関連 表示</option>
                             <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option>
                         </select>
@@ -43,29 +44,28 @@
                     </div>
                 </div>
 
-                <div class="table-container overflow-x-auto bg-white mb-24">
-                    <table class="w-full text-left border-collapse min-w-[900px]">
-                        <thead>
-                            <tr class="text-white text-[10px] font-black uppercase text-center tracking-widest">
-                                <th class="p-6 text-left">お客様名</th>
-                                <th class="p-6 w-32">営業件数</th>
-                                <th class="p-6 w-48">合計滞在時間</th>
-                                <th class="p-6 w-48">平均滞在時間</th>
-                            </tr>
-                        </thead>
-                        <tbody id="stayTableBody" class="divide-y divide-slate-100 text-sm font-bold bg-white text-center">
-                            <!-- JS注入 -->
-                        </tbody>
-                    </table>
+                <div class="table-container">
+                    <div id="loading-overlay">
+                        <div class="animate-spin mb-4 text-[#ff7e11] text-6xl"><i class="fa-solid fa-circle-notch"></i></div>
+                        <p class="text-slate-800 font-black italic text-xs uppercase">Analyzing Duration...</p>
+                    </div>
+                    <div class="overflow-x-auto custom-scrollbar">
+                        <table class="w-full text-left border-collapse min-w-[900px]">
+                            <thead>
+                                <tr class="text-white text-[10px] font-black uppercase text-center tracking-widest">
+                                    <th class="p-6 text-left">お客様名</th>
+                                    <th class="p-6 w-32">営業件数</th>
+                                    <th class="p-6 w-48">合計滞在時間</th>
+                                    <th class="p-6 w-48">平均滞在時間</th>
+                                </tr>
+                            </thead>
+                            <tbody id="stayTableBody" class="divide-y divide-slate-100 text-sm font-bold bg-white text-center"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
     </main>
-
-    <div id="loading" class="fixed inset-0 bg-white/80 backdrop-blur-sm z-[100] hidden flex-col items-center justify-center">
-        <div class="animate-spin mb-4 text-[#ff7e11] text-6xl"><i class="fa-solid fa-circle-notch"></i></div>
-        <p class="text-slate-800 font-black tracking-tighter italic text-xs uppercase">Analyzing Data...</p>
-    </div>
 
     <script type="module" src="common.js"></script>
     <script type="module">
@@ -73,83 +73,92 @@
         import { collection, getDocs, query, where, limit, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let targetDate = new Date();
+        const clean = (s) => (s||"").toString().replace(/[\s\u3000]+/g, '').trim();
 
-        const standardizeDate = (s) => {
-            if(!s) return "";
-            const d = s.replace(/\//g, '-').split('-');
-            if(d.length < 3) return s;
-            return `${d[0]}-${d[1].padStart(2, '0')}-${d[2].padStart(2, '0')}`;
-        };
-
-        window.init = async () => {
-            const loader = document.getElementById('loading');
-            loader.style.display = 'flex';
+        window.init = async (forceRefresh = false) => {
+            const loader = document.getElementById('loading-overlay');
             const tbody = document.getElementById('stayTableBody');
-            tbody.innerHTML = "";
-            
             const targetY = targetDate.getFullYear(), targetM = targetDate.getMonth() + 1;
             const mStr = targetM.toString().padStart(2, '0');
             document.getElementById('displayMonth').innerText = `${targetY}年 ${targetM}月`;
-            
+
+            // 🌟 初回起動時のみ、ログインユーザーの部署をセット
+            if (!forceRefresh && document.getElementById('deptFilter').value === 'ALL') {
+                const myDept = sessionStorage.getItem('userDept');
+                if (myDept) document.getElementById('deptFilter').value = myDept;
+            }
+
             const selectedDept = document.getElementById('deptFilter').value;
+            const cacheKey = `cp_stay_cache_${targetY}_${mStr}_${clean(selectedDept)}`;
+            const cached = localStorage.getItem(cacheKey);
+
+            if (cached && !forceRefresh) {
+                renderTable(JSON.parse(cached));
+                return;
+            }
+
+            loader.style.display = 'flex';
+            tbody.innerHTML = "";
 
             try {
-                let q;
-                const ref = collection(db, "activity_records");
+                // 🌟 【極限省エネ】月間範囲を絞ったクエリ
+                const tP1 = `${targetY}/${mStr}/01`, tP2 = `${targetY}/${mStr}/31`;
+                const tH1 = `${targetY}-${mStr}-01`, tH2 = `${targetY}-${mStr}-31`;
                 
-                if (selectedDept === 'ALL') {
-                    q = query(ref, where("visitorDept", "in", TARGET_DEPTS), where("visitDate", ">=", `${targetY}`), limit(2000));
-                } else {
-                    q = query(ref, where("visitorDept", "==", selectedDept), where("visitDate", ">=", `${targetY}`), limit(1500));
-                }
+                // スラッシュとハイフン両方を考慮した並列取得
+                const q1 = query(collection(db, "activity_records"), where("visitDate", ">=", tP1), where("visitDate", "<=", tP2), limit(1000));
+                const q2 = query(collection(db, "activity_records"), where("visitDate", ">=", tH1), where("visitDate", "<=", tH2), limit(1000));
 
-                const snap = await getDocs(q);
-                const records = snap.docs.map(d => d.data());
+                const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
+                const stayMap = {};
 
-                const stayMap = new Map();
-                records.forEach(r => {
-                    const sDate = standardizeDate(r.visitDate);
-                    if (sDate.startsWith(`${targetY}-${mStr}`)) {
-                        if(!stayMap.has(r.customerName)) stayMap.set(r.customerName, { count: 0, totalMins: 0 });
-                        const data = stayMap.get(r.customerName);
-                        
-                        data.count++;
+                [...snap1.docs, ...snap2.docs].forEach(doc => {
+                    const r = doc.data();
+                    // 部署フィルタ
+                    if (selectedDept !== 'ALL' && clean(r.visitorDept || "") !== clean(selectedDept)) return;
 
-                        if(r.startTime && r.endTime && r.startTime !== "00:00") {
-                            const s = r.startTime.split(':'), e = r.endTime.split(':');
-                            const diff = (parseInt(e[0])*60 + parseInt(e[1]||0)) - (parseInt(s[0])*60 + parseInt(s[1]||0));
-                            if (diff > 0) data.totalMins += diff;
-                        }
+                    const name = r.customerName || "不明";
+                    if (!stayMap[name]) stayMap[name] = { count: 0, totalMins: 0 };
+                    
+                    stayMap[name].count++;
+                    if(r.startTime && r.endTime && r.startTime !== "00:00") {
+                        const s = r.startTime.split(':'), e = r.endTime.split(':');
+                        const diff = (parseInt(e[0])*60 + parseInt(e[1]||0)) - (parseInt(s[0])*60 + parseInt(s[1]||0));
+                        if (diff > 0) stayMap[name].totalMins += diff;
                     }
                 });
 
-                const stats = Array.from(stayMap.entries()).map(([name, d]) => ({
+                const stats = Object.entries(stayMap).map(([name, d]) => ({
                     name, count: d.count, total: d.totalMins, avg: Math.round(d.totalMins / d.count)
                 })).sort((a,b) => b.total - a.total);
 
+                localStorage.setItem(cacheKey, JSON.stringify(stats));
+                renderTable(stats);
+            } catch (e) {
+                console.error(e);
+                tbody.innerHTML = '<tr><td colspan="4" class="p-20 text-center text-rose-400">データ取得エラー</td></tr>';
+            } finally {
                 loader.style.display = 'none';
-                if (stats.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4" class="p-24 text-center text-slate-300 font-bold italic tracking-widest uppercase">当月の実績データはありません</td></tr>';
-                } else {
-                    stats.forEach(s => {
-                        tbody.insertAdjacentHTML('beforeend', `
-                            <tr class="hover:bg-blue-50/30 transition-colors border-b border-slate-50 text-center">
-                                <td class="p-6 text-left font-black text-slate-800 cursor-pointer hover:text-orange-500" onclick="location.href='customer_history.html?name=${encodeURIComponent(s.name)}'">${s.name}</td>
-                                <td class="p-6 text-slate-500 font-bold">${s.count}回</td>
-                                <td class="p-6 text-emerald-600 font-black"><span class="time-badge">${Math.floor(s.total/60)}時間 ${s.total%60}分</span></td>
-                                <td class="p-6 text-slate-400 font-bold">${s.avg}分 / 回</td>
-                            </tr>`);
-                    });
-                }
-            } catch (e) { 
-                console.error(e); 
-                loader.style.display = 'none';
-                tbody.innerHTML = '<tr><td colspan="4" class="p-20 text-center text-rose-400 font-bold italic">データ同期エラー</td></tr>';
             }
         };
 
-        window.changeMonth = (v) => { targetDate.setMonth(targetDate.getMonth() + v); window.init(); };
-        window.addEventListener('load', () => { setTimeout(() => window.init(), 300); });
+        function renderTable(stats) {
+            const tbody = document.getElementById('stayTableBody');
+            if (stats.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="p-24 text-center text-slate-300 italic uppercase">No Data Found</td></tr>';
+                return;
+            }
+            tbody.innerHTML = stats.map(s => `
+                <tr class="hover:bg-blue-50/30 transition-colors border-b border-slate-50 text-center">
+                    <td class="p-6 text-left font-black text-slate-800 cursor-pointer hover:text-orange-500" onclick="location.href='customer_history.html?name=${encodeURIComponent(s.name)}'">${s.name}</td>
+                    <td class="p-6 text-slate-500 font-bold">${s.count}回</td>
+                    <td class="p-6 text-emerald-600 font-black"><span class="time-badge">${Math.floor(s.total/60)}時間 ${s.total%60}分</span></td>
+                    <td class="p-6 text-slate-400 font-bold">${s.avg}分 / 回</td>
+                </tr>`).join('');
+        }
+
+        window.changeMonth = (v) => { targetDate.setMonth(targetDate.getMonth() + v); window.init(true); };
+        window.init();
     </script>
 </body>
 </html>
