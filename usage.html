@@ -33,7 +33,6 @@
                 <div class="flex justify-between items-end mb-8"><h1 class="text-4xl font-black text-slate-800 tracking-tighter">組織員利用状況</h1>
                     <button onclick="location.href='calendar.html'" class="px-6 py-2 bg-white border rounded-xl font-bold text-xs shadow-sm">カレンダーへ戻る</button>
                 </div>
-
                 <div class="staff-selector-card p-6 mb-8">
                     <div class="flex flex-col lg:flex-row gap-4 mb-6">
                         <select id="deptFilter" onchange="window.renderStaffList()" class="scope-select min-w-[240px]">
@@ -44,7 +43,6 @@
                     </div>
                     <div id="staffList" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 max-h-[160px] overflow-y-auto custom-scrollbar p-1 text-center"></div>
                 </div>
-
                 <div id="toolArea" class="hidden">
                     <div class="summary-card shadow-lg">
                         <div><p class="text-[9px] opacity-60 font-black uppercase mb-1">訪問件数</p><p class="text-xl font-black"><span id="sumActualVisits">0</span>件</p></div>
@@ -63,15 +61,13 @@
     </main>
 
     <script type="module" src="common.js"></script>
-       <script type="module">
-                import { db, TARGET_DEPTS } from "./common.js";
-        import { collection, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    <script type="module">
+        import { db, TARGET_DEPTS } from "./common.js";
+        import { collection, getDocs, query, where, orderBy, limit, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        let allStaffs = [], currentStaffRecords = [], selectedName = "", currentY = 2026, currentM = new Date().getMonth() + 1;
+        let allStaffs = [], currentStaffRecords = [], selectedName = "", currentM = new Date().getMonth() + 1;
         
-        // 🌟 徹底的に不純物を取り除くクリーン関数
         const clean = (s) => (s||"").toString().replace(/[\s\u3000]+/g, '').trim();
-        // 🌟 日付から数字だけを抽出する関数 (2026/06/20 -> 20260620)
         const dateToNum = (s) => (s||"").toString().replace(/\D/g, '');
 
         async function init() {
@@ -87,7 +83,6 @@
                 
                 const jName = sessionStorage.getItem('cp_usage_jump_name');
                 const jMonth = sessionStorage.getItem('cp_usage_jump_month');
-                // 🌟 ここで確実に日付を受け取る
                 if (jName) {
                     sessionStorage.removeItem('cp_usage_jump_name');
                     sessionStorage.removeItem('cp_usage_jump_month');
@@ -114,7 +109,7 @@
             document.getElementById('guideMsg').style.display = 'none';
             document.getElementById('toolArea').style.display = 'block';
             
-            const cacheKey = `cp_usage_data_${clean(name)}`;
+            const cacheKey = `cp_usage_data_v2_${clean(name)}`;
             const cached = localStorage.getItem(cacheKey);
             if (cached) {
                 currentStaffRecords = JSON.parse(cached);
@@ -123,17 +118,11 @@
             }
 
             try {
+                // 🌟 【省エネ】その人のデータだけを取得（最大1000件）
                 const q = query(collection(db, "activity_records"), where("visitorName", "==", name), limit(1000));
                 const snap = await getDocs(q); 
                 currentStaffRecords = snap.docs.map(d => d.data());
                 
-                if (currentStaffRecords.length === 0) {
-                    const altName = name.includes(' ') ? name.replace(' ', '') : name.substring(0,2) + ' ' + name.substring(2);
-                    const q2 = query(collection(db, "activity_records"), where("visitorName", "==", altName), limit(1000));
-                    const snap2 = await getDocs(q2);
-                    currentStaffRecords = snap2.docs.map(d => d.data());
-                }
-
                 localStorage.setItem(cacheKey, JSON.stringify(currentStaffRecords));
                 window.finishSelectStaff(name);
             } catch (e) { console.error("Firebase通信エラー:", e); }
@@ -150,11 +139,11 @@
             window.renderAccordion();
         };
 
-                window.renderAccordion = () => {
+        window.renderAccordion = () => {
             const container = document.getElementById('activityAccordion');
             const filtered = currentStaffRecords.filter(r => {
-                const dateStr = (r.visitDate||"").toString().replace(/\//g, '-');
-                const m = parseInt(dateStr.split('-')[1]);
+                const dStr = (r.visitDate||"").toString().replace(/\//g, '-');
+                const m = parseInt(dStr.split('-')[1]);
                 return m === currentM;
             }).sort((a,b) => (b.visitDate||"").toString().localeCompare((a.visitDate||"").toString()));
 
@@ -195,19 +184,16 @@
                     </div>
                 </div>`).join('') : '<p class="text-center py-20 text-slate-300 font-bold uppercase tracking-widest">実績はありません</p>';
 
-                       // 🌟 自動展開 ＋ 自動既読（カレンダーのバッジを消す）
+            // 🌟 【爆速連動】自動展開 ＋ 自動既読（カレンダーのバッジを消す）
             const jDate = sessionStorage.getItem('cp_usage_jump_date');
             if (jDate) {
                 const targetNum = dateToNum(jDate);
                 const idx = filtered.findIndex(r => dateToNum(r.visitDate) === targetNum || dateToNum(r.nextVisitDate) === targetNum);
-
                 if (idx !== -1) {
                     setTimeout(() => {
                         window.toggleAcc(`acc-${idx}`);
                         const el = document.getElementById(`acc-${idx}`);
                         if(el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        
-                        // 🌟 ここで「見た瞬間に既読にする」機能を呼び出す
                         window.markAsReadOnOpen(selectedName, jDate);
                         sessionStorage.removeItem('cp_usage_jump_date');
                     }, 1200);
@@ -215,7 +201,6 @@
             }
         };
 
-        // 🌟 追加：通知を自動で既読にする関数
         window.markAsReadOnOpen = async (visitor, date) => {
             const myName = sessionStorage.getItem('userName') || "";
             const targetNum = date.toString().replace(/\D/g, '');
@@ -232,8 +217,9 @@
                     await batch.commit();
                     const y = date.split(/[-/]/)[0], m = date.split(/[-/]/)[1].padStart(2, '0');
                     sessionStorage.removeItem(`cp_cal_cache_v_ultimate_${y}_${m}`);
+                    console.log(`自動既読連動: ${y}_${m} のキャッシュを破棄しました`);
                 }
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error("AutoRead Error:", e); }
         };
 
         window.toggleAcc = (id) => {
@@ -245,6 +231,7 @@
             content.style.display = isOpen ? 'none' : 'block';
             if(icon) icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
         };
+
         init();       
     </script>
 </body>
