@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8"><title>カレンダー回覧 | CP My Page</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/all/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root { --copros-blue: #87ceeb; --copros-orange: #ff7e11; --copros-navy: #004098; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
@@ -14,14 +14,15 @@
         .day-num:hover { background: #f1f5f9; color: var(--copros-navy); }
         .is-today .day-num { background: var(--copros-orange); color: white; }
         .add-btn { width: 20px; height: 20px; border-radius: 6px; background: #f1f5f9; color: #94a3b8; display: flex; align-items: center; justify-content: center; font-size: 10px; cursor: pointer; border: 1px solid #e2e8f0; }
+        .add-btn:hover { background: #e2e8f0; color: var(--copros-navy); }
         .event-item { display: flex; align-items: center; gap: 4px; margin-bottom: 3px; }
         .event-label { flex: 1; font-size: 9px; font-weight: 800; padding: 3px 6px; border-radius: 4px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 3px solid; }
         .label-result { border-left-color: var(--copros-orange); background: #fff7ed; color: #ea580c; }
         .label-next { border-left-color: #10b981; background: #f0fdf4; color: #16a34a; }
         .label-appoint { border-left-color: #3b82f6; background: #eff6ff; color: #1d4ed8; }
-        .is-read { color: #000 !important; font-weight: 900; opacity: 0.6; }
         .staff-tag { background: #eff6ff; color: #1d4ed8; padding: 0.4rem 0.8rem; border-radius: 9999px; border: 1px solid #dbeafe; font-weight: 900; font-size: 0.75rem; display: flex; align-items: center; gap: 0.5rem; }
         .remove-staff-x { cursor: pointer; color: #94a3b8; }
+        .remove-staff-x:hover { color: #ef4444; }
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; backdrop-filter: blur(4px); align-items: center; justify-content: center; }
         .modal-content { background: white; width: 95%; max-width: 450px; border-radius: 1.5rem; overflow: hidden; }
         .staff-item { padding: 0.8rem 1.5rem; cursor: pointer; border-bottom: 1px solid #f1f5f9; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
@@ -86,7 +87,6 @@
         let currentDate = new Date();
 
         const clean = (s) => (s||"").toString().replace(/[\s\u3000]+/g, '').trim();
-        
         const dateToNum = (s) => {
             if(!s) return "";
             const p = s.toString().split(/[-/]/);
@@ -112,7 +112,7 @@
                 }
                 window.updateSelectedDisplay();
                 await window.fetchMonthData();
-            } catch (e) { console.error("Error:", e); }
+            } catch (e) { console.error(e); }
         }
 
         window.fetchMonthData = async (force = false) => {
@@ -126,16 +126,14 @@
 
             const loader = document.getElementById('local-loader');
             if(loader) loader.style.display = 'flex';
-
             try {
                 const myName = sessionStorage.getItem('userName') || "";
-                // 🌟 クエリのエラーを修正：qR2を廃止し、ハイフンとスラッシュ両方を安全に取得
-                const qR_slash = query(collection(db, "activity_records"), where("visitDate", ">=", `${y}/${mStr}/01`), where("visitDate", "<=", `${y}/${mStr}/31`), limit(800));
-                const qR_hyphen = query(collection(db, "activity_records"), where("visitDate", ">=", `${y}-${mStr}-01`), where("visitDate", "<=", `${y}-${mStr}-31`), limit(800));
+                const qR1 = query(collection(db, "activity_records"), where("visitDate", ">=", `${y}/${mStr}/01`), where("visitDate", "<=", `${y}/${mStr}/31`), limit(800));
+                const qR2 = query(collection(db, "activity_records"), where("visitDate", ">=", `${y}-${mStr}-01`), where("visitDate", "<=", `${y}-${mStr}-31`), limit(800));
                 const qA = query(collection(db, "appointments"), where("appointDate", ">=", `${y}-${mStr}-01`), where("appointDate", "<=", `${y}/${mStr}/31`), limit(500));
                 
                 const [snapR1, snapR2, snapA, snapN] = await Promise.all([
-                    getDocs(qR_slash), getDocs(qR_hyphen), getDocs(qA),
+                    getDocs(qR1), getDocs(qR2), getDocs(qA),
                     getDocs(query(collection(db, "notifications"), where("recipient", "==", myName), where("isRead", "==", false)))
                 ]);
 
@@ -150,7 +148,7 @@
                 sessionStorage.setItem(cacheKey, JSON.stringify(loadedData));
                 if(loader) loader.style.display = 'none';
                 window.renderCalendar();
-            } catch (e) { console.error("Fetch Error:", e); if(loader) loader.style.display = 'none'; }
+            } catch (e) { console.error(e); if(loader) loader.style.display = 'none'; }
         };
 
         window.renderCalendar = () => {
@@ -220,7 +218,12 @@
             if (!selectedStaffs.length) { container.innerHTML = '<span class="text-slate-300 italic text-xs font-black uppercase">表示する社員を選択してください</span>'; return; }
             container.innerHTML = selectedStaffs.map(name => `<div class="staff-tag"><span>${name}</span><i class="fa-solid fa-circle-xmark remove-staff-x" onclick="window.removeStaff('${name}')"></i></div>`).join('');
         };
-        window.removeStaff = (name) => { selectedStaffs = selectedStaffs.filter(n => n !== name); localStorage.setItem('cp_cal_selected_staffs', JSON.stringify(selectedStaffs)); window.updateSelectedDisplay(); window.renderCalendar(); };
+        window.removeStaff = (name) => { 
+            selectedStaffs = selectedStaffs.filter(n => n !== name); 
+            localStorage.setItem('cp_cal_selected_staffs', JSON.stringify(selectedStaffs)); 
+            window.updateSelectedDisplay(); 
+            window.renderCalendar(); 
+        };
         window.goUsage = (name, month, customer, date) => { sessionStorage.setItem('cp_usage_jump_name', name); sessionStorage.setItem('cp_usage_jump_month', month); sessionStorage.setItem('cp_usage_jump_customer', customer); sessionStorage.setItem('cp_usage_jump_date', date); location.href = 'usage.html'; };
         window.goDailyReport = (date) => { sessionStorage.setItem('cp_daily_date', date); location.href = 'daily_report.html'; };
         window.goAddHistory = (date) => { sessionStorage.setItem('cp_add_date', date); location.href = 'history.html'; };
