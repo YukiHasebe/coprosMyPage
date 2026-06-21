@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8"><title>カレンダー回覧 | CP My Page</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/all/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root { --copros-blue: #87ceeb; --copros-orange: #ff7e11; --copros-navy: #004098; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
@@ -41,8 +41,6 @@
                         <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-1">カレンダー回覧</h1>
                         <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Management & Activity Board</nav>
                     </div>
-                    <!-- 🌟 元々あった既読ボタンです -->
-                    <button onclick="window.markSelectedAsRead()" class="px-6 py-2.5 bg-[#004098] text-white rounded-xl font-black text-xs hover:shadow-lg transition-all active:scale-95">選択済を既読にする</button>
                 </div>
                 <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-6">
                     <div class="flex justify-between items-center mb-4 border-b border-slate-50 pb-2">
@@ -70,7 +68,6 @@
                 <div id="calendarGrid" class="calendar-grid shadow-sm"></div>
             </div>
         </div>
-        <!-- 🌟 サイドバーを殺さないローダー -->
         <div id="local-loader" class="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-[999] hidden flex flex-col items-center justify-center">
             <div class="animate-spin text-[#ff7e11] text-6xl mb-4"><i class="fa-solid fa-circle-notch"></i></div>
             <p class="text-slate-800 font-black tracking-tighter uppercase italic text-xs">Fast Syncing...</p>
@@ -90,7 +87,6 @@
 
         const clean = (s) => (s||"").toString().replace(/[\s\u3000]+/g, '').trim();
         
-        // 🌟 爆速・確実化：どんな日付形式でも「YYYYMMDD」に統一する
         const dateToNum = (s) => {
             if(!s) return "";
             const p = s.toString().split(/[-/]/);
@@ -116,7 +112,7 @@
                 }
                 window.updateSelectedDisplay();
                 await window.fetchMonthData();
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error("Error:", e); }
         }
 
         window.fetchMonthData = async (force = false) => {
@@ -133,17 +129,16 @@
 
             try {
                 const myName = sessionStorage.getItem('userName') || "";
-                // 🌟 省エネ：範囲を当月に限定。ハイフン版とスラッシュ版の両方を確実に取得
+                // 🌟 クエリのエラーを修正：qR2を廃止し、ハイフンとスラッシュ両方を安全に取得
                 const qR_slash = query(collection(db, "activity_records"), where("visitDate", ">=", `${y}/${mStr}/01`), where("visitDate", "<=", `${y}/${mStr}/31`), limit(800));
                 const qR_hyphen = query(collection(db, "activity_records"), where("visitDate", ">=", `${y}-${mStr}-01`), where("visitDate", "<=", `${y}-${mStr}-31`), limit(800));
                 const qA = query(collection(db, "appointments"), where("appointDate", ">=", `${y}-${mStr}-01`), where("appointDate", "<=", `${y}/${mStr}/31`), limit(500));
                 
                 const [snapR1, snapR2, snapA, snapN] = await Promise.all([
-                    getDocs(qR_slash), getDocs(qR2 || qR_hyphen), getDocs(qA),
+                    getDocs(qR_slash), getDocs(qR_hyphen), getDocs(qA),
                     getDocs(query(collection(db, "notifications"), where("recipient", "==", myName), where("isRead", "==", false)))
                 ]);
 
-                // 実績の合体（重複排除）
                 const recordMap = {};
                 [...snapR1.docs, ...snapR2.docs].forEach(d => { recordMap[d.id] = d.data(); });
 
@@ -155,7 +150,7 @@
                 sessionStorage.setItem(cacheKey, JSON.stringify(loadedData));
                 if(loader) loader.style.display = 'none';
                 window.renderCalendar();
-            } catch (e) { console.error(e); if(loader) loader.style.display = 'none'; }
+            } catch (e) { console.error("Fetch Error:", e); if(loader) loader.style.display = 'none'; }
         };
 
         window.renderCalendar = () => {
@@ -168,7 +163,6 @@
             const selCleans = selectedStaffs.map(n => clean(n));
             const showUnread = document.getElementById('showUnreadOnly').checked;
 
-            // 🌟 爆速・正確：事前マッピング
             const recMap = {}, appMap = {}, notiMap = {};
             loadedData.records.forEach(r => { const d = dateToNum(r.visitDate); if(!recMap[d]) recMap[d]=[]; recMap[d].push(r); });
             loadedData.appoints.forEach(a => { const d = dateToNum(a.appointDate); if(!appMap[d]) appMap[d]=[]; appMap[d].push(a); });
@@ -180,55 +174,35 @@
                 let evHtml = "";
                 let processedKeys = new Set(); 
 
-                // 1. 実績
                 if (document.getElementById('showRes').checked && recMap[targetNum]) {
                     recMap[targetNum].forEach(r => {
                         if (selCleans.length > 0 && !selCleans.includes(clean(r.visitorName))) return;
                         const uKey = `res-${clean(r.visitorName)}-${clean(r.customerName)}`;
                         if (processedKeys.has(uKey)) return;
-
                         const hasNoti = notiMap[targetNum]?.some(n => clean(n.visitorName) === clean(r.visitorName) && n.type.includes("実績"));
                         if (showUnread && !hasNoti) return;
-
                         const badge = hasNoti ? `<span class="inline-block w-2 h-2 rounded-full bg-rose-500 mr-1 animate-pulse"></span>` : "";
                         evHtml += `<div class="event-item"><div class="event-label label-result" onclick="window.goUsage('${r.visitorName}', ${month+1}, '${r.customerName}', '${targetKey}')">${badge}${r.visitorName}: ${r.customerName}</div></div>`;
                         processedKeys.add(uKey);
                     });
                 }
-                // 2. 次回
                 if (document.getElementById('showNext').checked && !showUnread) {
                     loadedData.records.filter(r => dateToNum(r.nextVisitDate) === targetNum).forEach(r => {
                         if (selCleans.length > 0 && !selCleans.includes(clean(r.visitorName))) return;
                         evHtml += `<div class="event-item"><div class="event-label label-next" onclick="window.goUsage('${r.visitorName}', ${month+1}, '${r.customerName}', '${targetKey}')">${r.visitorName}: ${r.customerName}</div></div>`;
                     });
                 }
-                // 3. アポ
                 if (document.getElementById('showApp').checked && appMap[targetNum]) {
                     appMap[targetNum].forEach(a => {
                         if (selCleans.length > 0 && !selCleans.includes(clean(a.visitorName))) return;
                         const hasNoti = notiMap[targetNum]?.some(n => clean(n.visitorName) === clean(a.visitorName) && n.type.includes("アポ"));
                         if (showUnread && !hasNoti) return;
-
                         const badge = hasNoti ? `<span class="inline-block w-2 h-2 rounded-full bg-rose-500 mr-1 animate-pulse"></span>` : "";
                         evHtml += `<div class="event-item"><div class="event-label label-appoint" onclick="window.handleAppoint('${a.id}','${a.customerName}','${a.appointDate}','${a.subject}')">${badge}${a.visitorName}: ${a.customerName}</div></div>`;
                     });
                 }
                 grid.insertAdjacentHTML('beforeend', `<div class="calendar-day"><div class="day-header"><span class="day-num" onclick="window.goDailyReport('${targetKey}')">${d}</span><div class="add-btn" onclick="window.goAddHistory('${targetKey}')"><i class="fa-solid fa-plus"></i></div></div><div class="max-h-[110px] overflow-y-auto custom-scrollbar">${evHtml}</div></div>`);
             }
-        };
-
-        window.markSelectedAsRead = async () => {
-            if (!confirm("未読通知を既読にしますか？")) return;
-            const myName = sessionStorage.getItem('userName') || "";
-            const selCleans = selectedStaffs.map(n => clean(n));
-            try {
-                const q = query(collection(db, "notifications"), where("recipient", "==", myName), where("isRead", "==", false));
-                const snap = await getDocs(q);
-                const batch = writeBatch(db);
-                let count = 0;
-                snap.forEach(d => { if (selCleans.length === 0 || selCleans.includes(clean(d.data().visitorName))) { batch.update(d.ref, { isRead: true }); count++; } });
-                if (count > 0) { await batch.commit(); sessionStorage.clear(); window.fetchMonthData(true); }
-            } catch (e) { console.error(e); }
         };
 
         window.openStaffModal = () => { document.getElementById('staffModal').style.display = 'flex'; window.renderModalList(); };
