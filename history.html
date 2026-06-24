@@ -445,30 +445,29 @@
         }
 
         // Canvas で画像を圧縮して Base64 に変換
-        function compressAndConvert(file, callback) {
-            const img    = new Image();
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                img.onload = () => {
-                    const canvas  = document.createElement('canvas');
-                    const MAX_PX  = 1200; // 最大辺1200px
-                    let w = img.width, h = img.height;
-                    if (w > MAX_PX || h > MAX_PX) {
-                        if (w > h) { h = Math.round(h * MAX_PX / w); w = MAX_PX; }
-                        else       { w = Math.round(w * MAX_PX / h); h = MAX_PX; }
-                    }
-                    canvas.width  = w;
-                    canvas.height = h;
-                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-                    const base64     = canvas.toDataURL('image/jpeg', 0.75); // 品質75%
-                    const finalSizeKB = Math.round(base64.length * 0.75 / 1024);
-                    callback(base64, finalSizeKB);
-                };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
-
+       function compressAndConvert(file, callback) {
+    const img    = new Image();
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const MAX_PX = 800;   // ← 1200 から 800 に変更（より小さく）
+            let w = img.width, h = img.height;
+            if (w > MAX_PX || h > MAX_PX) {
+                if (w > h) { h = Math.round(h * MAX_PX / w); w = MAX_PX; }
+                else       { w = Math.round(w * MAX_PX / h); h = MAX_PX; }
+            }
+            canvas.width  = w;
+            canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            const base64      = canvas.toDataURL('image/jpeg', 0.6); // ← 0.75 から 0.6 に変更
+            const finalSizeKB = Math.round(base64.length * 0.75 / 1024);
+            callback(base64, finalSizeKB);
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
         function renderAttachmentPreview() {
             const area = document.getElementById('attachmentPreview');
             if (!selectedFiles.length) { area.innerHTML = ''; return; }
