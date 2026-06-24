@@ -23,19 +23,19 @@
         .suggestion-item:hover { background-color: #f1f5f9; color: var(--copros-orange); }
         .report-block { border: 2px solid #f1f5f9; padding: 1.5rem; border-radius: 1rem; margin-bottom: 1.5rem; position: relative; background: #fff; }
         .remove-block-btn { position: absolute; top: -10px; right: -10px; width: 28px; height: 28px; background: #ef4444; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 10; border: 2px solid white; }
-        /* 添付ファイル用スタイル */
+        /* 添付ファイル */
         .attach-drop-zone { border: 2px dashed #e2e8f0; border-radius: 1rem; padding: 1.5rem; text-align: center; cursor: pointer; transition: all 0.2s; }
         .attach-drop-zone:hover, .attach-drop-zone.dragover { border-color: var(--copros-orange); background: #fff7ed; }
+        .attach-item { position: relative; display: inline-block; }
         .attach-thumb { width: 80px; height: 80px; object-fit: cover; border-radius: 0.75rem; border: 2px solid #e2e8f0; cursor: pointer; transition: transform 0.2s; display: block; }
         .attach-thumb:hover { transform: scale(1.05); border-color: var(--copros-orange); }
-        .attach-thumb-wrap { position: relative; display: inline-block; }
-        .attach-remove-btn { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; background: #ef4444; color: white; border-radius: 50%; font-size: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.3); font-weight: 900; }
-        .size-warning { font-size: 0.7rem; color: #f59e0b; font-weight: 700; }
+        .attach-remove-btn { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; background: #ef4444; color: white; border-radius: 50%; font-size: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.3); font-weight: 900; z-index: 1; }
         /* ライトボックス */
-        .lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 9999; align-items: center; justify-content: center; }
+        .lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.93); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(8px); }
         .lightbox.active { display: flex; }
-        .lightbox img { max-width: 92vw; max-height: 92vh; border-radius: 1rem; box-shadow: 0 25px 60px rgba(0,0,0,0.6); object-fit: contain; }
-        .lightbox-close { position: absolute; top: 1.5rem; right: 1.5rem; color: white; font-size: 2rem; cursor: pointer; opacity: 0.7; transition: opacity 0.2s; }
+        .lightbox-img-wrap { position: relative; max-width: 94vw; max-height: 94vh; }
+        .lightbox-img-wrap img { max-width: 94vw; max-height: 88vh; border-radius: 1rem; object-fit: contain; box-shadow: 0 30px 80px rgba(0,0,0,0.7); }
+        .lightbox-close { position: absolute; top: -2.5rem; right: 0; color: white; font-size: 1.8rem; cursor: pointer; opacity: 0.7; line-height: 1; }
         .lightbox-close:hover { opacity: 1; }
     </style>
 </head>
@@ -59,7 +59,7 @@
                 </div>
 
                 <form id="historyForm">
-                    <!-- 基本報告情報（既存まま） -->
+                    <!-- 基本報告情報 -->
                     <div class="section-card">
                         <p class="section-title">基本報告情報</p>
                         <div class="space-y-6">
@@ -103,7 +103,7 @@
                         </div>
                     </div>
 
-                    <!-- 詳細報告（既存まま） -->
+                    <!-- 詳細報告 -->
                     <div class="section-card">
                         <div class="flex justify-between items-center border-b pb-3 mb-6">
                             <p class="section-title border-0 mb-0">詳細報告（追加可能）</p>
@@ -112,7 +112,7 @@
                         <div id="reportContainer" class="space-y-8"></div>
                     </div>
 
-                    <!-- ▼▼▼ 添付ファイルセクション（Base64方式）▼▼▼ -->
+                    <!-- 添付ファイル -->
                     <div class="section-card">
                         <p class="section-title">添付ファイル（画像）</p>
                         <div class="space-y-4">
@@ -121,31 +121,46 @@
                                 ondragleave="window.onDragLeave(event)"
                                 ondrop="window.onDrop(event)">
                                 <input type="file" id="attachmentInput" multiple
-                                    accept="image/jpeg,image/png,image/gif,image/webp"
+                                    accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif"
                                     class="hidden"
                                     onchange="window.handleFileSelect(this)">
                                 <i class="fa-solid fa-image text-3xl text-slate-300 mb-2 block"></i>
                                 <p class="text-sm font-bold text-slate-400">クリック または ドラッグ＆ドロップ</p>
-                                <p class="text-[11px] font-bold text-slate-300 mt-1">JPG・PNG・GIF・WEBP 対応　1枚200KB以内・最大3枚</p>
+                                <!-- ▼ サイズ制限の説明を削除（自動圧縮するので不要） -->
+                                <p class="text-[11px] font-bold text-slate-300 mt-1">
+                                    JPG・PNG・GIF・WEBP 対応　最大5枚　※自動圧縮されます
+                                </p>
                             </label>
-                            <!-- サイズ警告 -->
-                            <div id="sizeWarning" class="hidden p-3 bg-amber-50 border border-amber-200 rounded-xl">
-                                <p class="size-warning"><i class="fa-solid fa-triangle-exclamation mr-1"></i>
-                                    <span id="sizeWarningText"></span>
+
+                            <!-- 変換中インジケーター -->
+                            <div id="compressIndicator" class="hidden">
+                                <div class="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-xl">
+                                    <i class="fa-solid fa-spinner fa-spin text-blue-400"></i>
+                                    <span class="text-xs font-bold text-blue-500">画像を最適化中...</span>
+                                </div>
+                            </div>
+
+                            <!-- 警告メッセージ -->
+                            <div id="attachWarning" class="hidden p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                                <p class="text-[11px] font-bold text-amber-600">
+                                    <i class="fa-solid fa-triangle-exclamation mr-1"></i>
+                                    <span id="attachWarningText"></span>
                                 </p>
                             </div>
+
                             <!-- プレビューエリア -->
-                            <div id="attachmentPreview" class="flex flex-wrap gap-3 min-h-0"></div>
-                            <!-- 合計サイズ表示 -->
-                            <div id="totalSizeDisplay" class="hidden text-[11px] font-bold text-slate-400">
-                                合計サイズ：<span id="totalSizeText"></span>
-                                <span class="ml-2 text-slate-300">（推奨上限：600KB）</span>
+                            <div id="attachmentPreview" class="flex flex-wrap gap-3"></div>
+
+                            <!-- 合計サイズ -->
+                            <div id="totalSizeDisplay" class="hidden text-[11px] font-bold">
+                                <span class="text-slate-400">圧縮後サイズ：</span>
+                                <span id="totalSizeText" class="text-slate-600"></span>
+                                <span class="text-slate-300 ml-1">（Firestore上限の1MB以内を自動維持）</span>
                             </div>
                         </div>
                     </div>
-                    <!-- ▲▲▲ 添付ファイルセクションここまで ▲▲▲ -->
 
-                    <!-- 回覧設定（既存まま） -->
+                    <!-- 回覧設定 -->
                     <div class="section-card">
                         <p class="section-title">回覧設定</p>
                         <div class="flex flex-col gap-4">
@@ -168,7 +183,7 @@
         </div>
     </main>
 
-    <!-- スタッフモーダル（既存まま） -->
+    <!-- スタッフモーダル -->
     <div id="staffModal" class="modal-overlay">
         <div class="modal-content">
             <div class="bg-slate-900 p-4 text-white flex justify-between items-center">
@@ -189,10 +204,14 @@
         </div>
     </div>
 
-    <!-- ライトボックス（クリックで拡大表示） -->
+    <!-- ライトボックス（登録前プレビュー用） -->
     <div id="lightbox" class="lightbox" onclick="window.closeLightbox()">
-        <span class="lightbox-close"><i class="fa-solid fa-xmark"></i></span>
-        <img id="lightboxImg" src="" alt="拡大表示">
+        <div class="lightbox-img-wrap" onclick="event.stopPropagation()">
+            <div class="lightbox-close" onclick="window.closeLightbox()">
+                <i class="fa-solid fa-xmark"></i>
+            </div>
+            <img id="lightboxImg" src="" alt="プレビュー">
+        </div>
     </div>
 
     <script type="module" src="common.js"></script>
@@ -207,15 +226,20 @@
         let allStaffs = [], currentTarget = '', modalSelected = [];
         let masterOptions = { qual1: [], qual2: [], qual3: [] };
         let searchDebounceTimer = null;
-        let selectedFiles = []; // { name, base64, sizeKB, type }
+        let selectedFiles = []; // { name, base64, sizeKB }
 
         const clean = (s) => (s || "").toString().replace(/[\s\u3000]+/g, '').trim();
-        const MAX_FILES    = 3;
-        const MAX_SIZE_KB  = 200;   // 1枚あたりの上限
-        const MAX_TOTAL_KB = 700;   // 合計上限（Firestoreの1MB制限に余裕を持たせる）
+
+        // ▼ 圧縮設定（スマホ写真をそのまま添付できるよう強めに圧縮）
+        const COMPRESS_CONFIG = {
+            maxPx:    800,   // 最大辺800px
+            quality:  0.6,   // JPEG品質60%
+            maxFiles: 5,     // 最大5枚
+            maxTotalKB: 800  // 合計上限800KB
+        };
 
         // =========================================================
-        // URLパラメータ受け取り（既存まま）
+        // URLパラメータ受け取り
         // =========================================================
         function applyUrlParams() {
             const p     = new URLSearchParams(window.location.search);
@@ -228,35 +252,35 @@
         }
 
         // =========================================================
-        // staffs キャッシュ（既存まま）
+        // staffs キャッシュ
         // =========================================================
         async function loadStaffsWithCache() {
-            const CACHE_KEY = 'cp_staffs_cache', CACHE_TTL = 'cp_staffs_cache_date';
+            const KEY = 'cp_staffs_cache', TTL = 'cp_staffs_cache_date';
             const today = new Date().toDateString();
-            const cached = sessionStorage.getItem(CACHE_KEY);
-            if (cached && sessionStorage.getItem(CACHE_TTL) === today) return JSON.parse(cached);
+            const cached = sessionStorage.getItem(KEY);
+            if (cached && sessionStorage.getItem(TTL) === today) return JSON.parse(cached);
             const snap = await getDocs(query(collection(db, "staffs"), orderBy("name")));
             const data = snap.docs.map(d => ({ ...d.data() }));
-            sessionStorage.setItem(CACHE_KEY, JSON.stringify(data));
-            sessionStorage.setItem(CACHE_TTL, today);
+            sessionStorage.setItem(KEY, JSON.stringify(data));
+            sessionStorage.setItem(TTL, today);
             return data;
         }
 
         // =========================================================
-        // masterOptions キャッシュ（既存まま）
+        // masterOptions キャッシュ
         // =========================================================
         async function loadMasterOptionsWithCache() {
-            const CACHE_KEY = 'cp_master_qual_options';
-            const cached = localStorage.getItem(CACHE_KEY);
+            const KEY = 'cp_master_qual_options';
+            const cached = localStorage.getItem(KEY);
             if (cached) return JSON.parse(cached);
             const snap = await getDoc(doc(db, "master_settings", "qual_options"));
             const data = snap.exists() ? snap.data() : { qual1: [], qual2: [], qual3: [] };
-            localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+            localStorage.setItem(KEY, JSON.stringify(data));
             return data;
         }
 
         // =========================================================
-        // init（既存まま）
+        // init
         // =========================================================
         async function init() {
             document.getElementById('visitorName').value = sessionStorage.getItem('userName') || "";
@@ -284,7 +308,7 @@
         }
 
         // =========================================================
-        // addReportBlock（既存まま）
+        // addReportBlock
         // =========================================================
         window.addReportBlock = () => {
             const container = document.getElementById('reportContainer');
@@ -321,7 +345,6 @@
                 </div>`);
         };
 
-        // syncStaffSelect / insertStaffLabel（既存まま）
         window.syncStaffSelect = (id, val) => {
             const select = document.getElementById(`block-${id}`).querySelector('.customer-staff-dropdown');
             const names  = val.split(/[,、\s]+/).filter(n => n.trim() !== "");
@@ -329,16 +352,17 @@
         };
         window.insertStaffLabel = (id, val) => {
             if (!val) return;
-            const area  = document.getElementById(`block-${id}`).querySelector('.customer-report');
-            const label = `${val} 様「」\n`;
+            const area = document.getElementById(`block-${id}`).querySelector('.customer-report');
             if (!area.value.includes(`${val} 様「`)) {
-                area.value = label + area.value;
+                area.value = `${val} 様「」\n` + area.value;
                 area.focus();
                 area.setSelectionRange(val.length + 3, val.length + 3);
             }
         };
 
-        // 顧客検索（既存まま）
+        // =========================================================
+        // 顧客検索
+        // =========================================================
         function setupCustomerSearch() {
             const input = document.getElementById('customerSearch');
             const box   = document.getElementById('customerSuggestions');
@@ -365,7 +389,9 @@
             });
         }
 
-        // スタッフモーダル（既存まま）
+        // =========================================================
+        // スタッフモーダル
+        // =========================================================
         window.openStaffModal = (target) => {
             currentTarget = target;
             document.getElementById('staffModal').style.display = 'flex';
@@ -409,128 +435,133 @@
         };
 
         // =========================================================
-        // ▼▼▼ 添付ファイル（Base64）管理ロジック ▼▼▼
+        // ▼ 添付ファイル管理（自動圧縮・サイズ制限なし）
         // =========================================================
-
-        // ドラッグ＆ドロップ
         window.onDragOver  = (e) => { e.preventDefault(); document.getElementById('attachDropZone').classList.add('dragover'); };
-        window.onDragLeave = (e) => { document.getElementById('attachDropZone').classList.remove('dragover'); };
-        window.onDrop      = (e) => {
-            e.preventDefault();
-            document.getElementById('attachDropZone').classList.remove('dragover');
-            addFiles(Array.from(e.dataTransfer.files));
-        };
+        window.onDragLeave = ()  => { document.getElementById('attachDropZone').classList.remove('dragover'); };
+        window.onDrop      = (e) => { e.preventDefault(); document.getElementById('attachDropZone').classList.remove('dragover'); addFiles(Array.from(e.dataTransfer.files)); };
         window.handleFileSelect = (input) => { addFiles(Array.from(input.files)); input.value = ''; };
 
         function addFiles(files) {
-            const warnings = [];
-            files.forEach(file => {
-                if (selectedFiles.length >= MAX_FILES) {
-                    warnings.push(`最大${MAX_FILES}枚までです。${file.name} はスキップしました。`);
-                    return;
-                }
-                const sizeKB = Math.round(file.size / 1024);
-                if (sizeKB > MAX_SIZE_KB) {
-                    warnings.push(`${file.name}（${sizeKB}KB）は${MAX_SIZE_KB}KBを超えています。`);
-                    return;
-                }
-                // ▼ 画像を圧縮してBase64変換
-                compressAndConvert(file, (base64, finalSizeKB) => {
-                    selectedFiles.push({ name: file.name, base64, sizeKB: finalSizeKB, type: file.type });
-                    updateSizeWarning();
-                    renderAttachmentPreview();
+            const remaining = COMPRESS_CONFIG.maxFiles - selectedFiles.length;
+            if (remaining <= 0) { showAttachWarning(`最大${COMPRESS_CONFIG.maxFiles}枚までです`); return; }
+            const targets = files.slice(0, remaining);
+            if (files.length > remaining) showAttachWarning(`${files.length}枚選択されましたが、残り${remaining}枚のみ追加しました`);
+
+            // 変換中インジケーター表示
+            document.getElementById('compressIndicator').classList.remove('hidden');
+
+            let processed = 0;
+            targets.forEach(file => {
+                compressImage(file, (base64, sizeKB) => {
+                    selectedFiles.push({ name: file.name, base64, sizeKB });
+                    processed++;
+                    if (processed === targets.length) {
+                        document.getElementById('compressIndicator').classList.add('hidden');
+                        updateTotalSize();
+                        renderPreview();
+                    }
                 });
             });
-            if (warnings.length) showWarning(warnings.join(' / '));
         }
 
-        // Canvas で画像を圧縮して Base64 に変換
-       function compressAndConvert(file, callback) {
-    const img    = new Image();
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const MAX_PX = 800;   // ← 1200 から 800 に変更（より小さく）
-            let w = img.width, h = img.height;
-            if (w > MAX_PX || h > MAX_PX) {
-                if (w > h) { h = Math.round(h * MAX_PX / w); w = MAX_PX; }
-                else       { w = Math.round(w * MAX_PX / h); h = MAX_PX; }
-            }
-            canvas.width  = w;
-            canvas.height = h;
-            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-            const base64      = canvas.toDataURL('image/jpeg', 0.6); // ← 0.75 から 0.6 に変更
-            const finalSizeKB = Math.round(base64.length * 0.75 / 1024);
-            callback(base64, finalSizeKB);
-        };
-        img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
-}
-        function renderAttachmentPreview() {
+        // ▼ Canvas圧縮（スマホ写真も自動的に小さくする）
+        function compressImage(file, callback) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let w = img.width, h = img.height;
+                    const maxPx = COMPRESS_CONFIG.maxPx;
+
+                    // リサイズ
+                    if (w > maxPx || h > maxPx) {
+                        if (w > h) { h = Math.round(h * maxPx / w); w = maxPx; }
+                        else       { w = Math.round(w * maxPx / h); h = maxPx; }
+                    }
+                    canvas.width  = w;
+                    canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+
+                    // ▼ まず指定品質で圧縮
+                    let base64  = canvas.toDataURL('image/jpeg', COMPRESS_CONFIG.quality);
+                    let sizeKB  = Math.round(base64.length * 0.75 / 1024);
+
+                    // ▼ それでも大きければ品質を下げて再圧縮（最大3回）
+                    let quality = COMPRESS_CONFIG.quality;
+                    let attempt = 0;
+                    while (sizeKB > 180 && attempt < 3) {
+                        quality -= 0.15;
+                        base64   = canvas.toDataURL('image/jpeg', Math.max(quality, 0.2));
+                        sizeKB   = Math.round(base64.length * 0.75 / 1024);
+                        attempt++;
+                    }
+                    callback(base64, sizeKB);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function renderPreview() {
             const area = document.getElementById('attachmentPreview');
             if (!selectedFiles.length) { area.innerHTML = ''; return; }
             area.innerHTML = selectedFiles.map((f, idx) => `
-                <div class="attach-thumb-wrap">
+                <div class="attach-item">
                     <img src="${f.base64}" class="attach-thumb" alt="${f.name}"
-                        onclick="window.openLightbox('${f.base64}')"
-                        title="${f.name}（${f.sizeKB}KB）">
+                         onclick="window.openLightbox('${f.base64}')"
+                         title="${f.name}（圧縮後 ${f.sizeKB}KB）">
                     <div class="attach-remove-btn" onclick="window.removeAttachment(${idx})">✕</div>
                 </div>`).join('');
         }
 
         window.removeAttachment = (idx) => {
             selectedFiles.splice(idx, 1);
-            updateSizeWarning();
-            renderAttachmentPreview();
+            updateTotalSize();
+            renderPreview();
         };
 
-        function updateSizeWarning() {
-            const totalKB   = selectedFiles.reduce((sum, f) => sum + f.sizeKB, 0);
-            const display   = document.getElementById('totalSizeDisplay');
-            const sizeText  = document.getElementById('totalSizeText');
+        function updateTotalSize() {
+            const totalKB  = selectedFiles.reduce((s, f) => s + f.sizeKB, 0);
+            const display  = document.getElementById('totalSizeDisplay');
+            const sizeText = document.getElementById('totalSizeText');
             if (selectedFiles.length) {
                 display.classList.remove('hidden');
-                sizeText.innerText = `${totalKB}KB`;
-                sizeText.style.color = totalKB > MAX_TOTAL_KB ? '#ef4444' : '#64748b';
+                sizeText.innerText      = `${totalKB}KB（${selectedFiles.length}枚）`;
+                sizeText.style.color    = totalKB > COMPRESS_CONFIG.maxTotalKB ? '#ef4444' : '#16a34a';
             } else {
                 display.classList.add('hidden');
             }
         }
 
-        function showWarning(msg) {
-            const box  = document.getElementById('sizeWarning');
-            const text = document.getElementById('sizeWarningText');
-            text.innerText = msg;
+        function showAttachWarning(msg) {
+            const box = document.getElementById('attachWarning');
+            document.getElementById('attachWarningText').innerText = msg;
             box.classList.remove('hidden');
-            setTimeout(() => box.classList.add('hidden'), 5000);
+            setTimeout(() => box.classList.add('hidden'), 4000);
         }
 
-        // ライトボックス
+        // ライトボックス（プレビュー用）
         window.openLightbox = (src) => {
             document.getElementById('lightboxImg').src = src;
             document.getElementById('lightbox').classList.add('active');
         };
         window.closeLightbox = () => {
             document.getElementById('lightbox').classList.remove('active');
-            document.getElementById('lightboxImg').src = '';
         };
-        // =========================================================
-        // ▲▲▲ 添付ファイル管理ここまで ▲▲▲
-        // =========================================================
 
         // =========================================================
-        // 登録処理（既存まま + attachments / rank / attr 追加）
+        // 登録処理
         // =========================================================
         document.getElementById('submitBtnTop').onclick = async () => {
             const form = document.getElementById('historyForm');
             if (!form.checkValidity()) { form.reportValidity(); return; }
 
             // 合計サイズチェック
-            const totalKB = selectedFiles.reduce((sum, f) => sum + f.sizeKB, 0);
-            if (totalKB > MAX_TOTAL_KB) {
-                alert(`添付ファイルの合計が${totalKB}KBです。${MAX_TOTAL_KB}KB以内にしてください。\n（画像を減らすか、別の画像に変えてください）`);
+            const totalKB = selectedFiles.reduce((s, f) => s + f.sizeKB, 0);
+            if (totalKB > COMPRESS_CONFIG.maxTotalKB) {
+                alert(`添付画像の合計が${totalKB}KBです。\n枚数を減らしてください。`);
                 return;
             }
 
@@ -546,11 +577,10 @@
                 const staffEntry   = allStaffs.find(s => clean(s.name) === clean(visitor));
                 const vDept        = staffEntry ? staffEntry.dept : (sessionStorage.getItem('userDept') || "ケコム部");
 
-                // Base64 添付データ（軽量メタ情報のみ保存）
                 const attachments = selectedFiles.map(f => ({
                     name:   f.name,
                     base64: f.base64,
-                    type:   'image/jpeg' // 圧縮後は常にJPEG
+                    type:   'image/jpeg'
                 }));
 
                 const blocks = document.querySelectorAll('.report-block');
@@ -559,7 +589,7 @@
                         customerName:  customer,
                         customerRank:  customerRank,
                         customerAttr:  customerAttr,
-                        attachments:   attachments,   // ← Base64添付
+                        attachments:   attachments,
                         visitDate:     vDate.replace(/-/g, '/'),
                         visitorName:   visitor,
                         visitorDept:   vDept,
@@ -572,7 +602,6 @@
                     })
                 ));
 
-                // 通知（既存まま）
                 const cDisp  = document.getElementById('circularDisplay').innerText;
                 const cNames = (cDisp !== '未選択' && cDisp !== '') ? cDisp.split(/[,、\s]+/).filter(n => n.trim() !== '') : [];
                 await Promise.all(cNames.map(name =>
@@ -583,7 +612,6 @@
                     })
                 ));
 
-                // キャッシュクリア（既存まま + 実績一覧キャッシュ追加）
                 const [y, m] = vDate.split('-');
                 sessionStorage.removeItem(`cp_cal_cache_v_ultimate_${y}_${m.padStart(2, '0')}`);
                 Object.keys(sessionStorage).filter(k => k.startsWith('cp_records_')).forEach(k => sessionStorage.removeItem(k));
