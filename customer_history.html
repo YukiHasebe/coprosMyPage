@@ -11,12 +11,41 @@
         .history-header { padding: 1.2rem 2rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: #3c4b5a; color: white; transition: background 0.2s; }
         .history-header:hover { background: #2d3748; }
         .history-body { display: none; padding: 2rem; background: white; border-top: 1px solid #f1f5f9; }
-        .detail-label { font-size: 0.7rem; font-weight: 900; color: #94a3b8; width: 120px; shrink: 0; text-transform: uppercase; tracking-widest: 0.05em; }
+        .detail-label { font-size: 0.7rem; font-weight: 900; color: #94a3b8; width: 120px; flex-shrink: 0; text-transform: uppercase; }
         .detail-content { font-size: 0.9rem; font-weight: 700; color: #334155; line-height: 1.6; }
         .detail-row { display: flex; align-items: center; padding: 0.7rem 0; border-bottom: 1px solid #f8fafc; }
         .detail-row:last-child { border-bottom: none; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+        /* ▼▼▼ 追加③：添付ファイル表示用スタイル ▼▼▼ */
+        .attach-thumb {
+            width: 80px; height: 80px; object-fit: cover;
+            border-radius: 0.75rem; border: 1px solid #e2e8f0;
+            cursor: pointer; transition: transform 0.2s;
+        }
+        .attach-thumb:hover { transform: scale(1.05); }
+        .attach-pdf {
+            display: flex; align-items: center; gap: 0.5rem;
+            background: #fff7ed; border: 1px solid #ffedd5;
+            color: #ff7e11; padding: 0.5rem 1rem;
+            border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900;
+            cursor: pointer; text-decoration: none;
+        }
+        .attach-pdf:hover { background: #ffedd5; }
+        /* ライトボックスオーバーレイ */
+        .lightbox-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.85); z-index: 9999;
+            align-items: center; justify-content: center;
+            backdrop-filter: blur(6px);
+        }
+        .lightbox-overlay.active { display: flex; }
+        .lightbox-overlay img {
+            max-width: 90vw; max-height: 90vh;
+            border-radius: 1rem; box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+        }
+        /* ▲▲▲ 追加③スタイルここまで ▲▲▲ */
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700">
@@ -29,72 +58,222 @@
                     <div>
                         <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-1">訪問実績履歴</h1>
                         <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic mb-4">Customer Interaction Archive</nav>
+
+                        <!-- 既存：お客様名 -->
                         <p id="targetCustomerName" class="text-2xl font-black text-[#004098] border-l-4 border-orange-500 pl-4">読み込み中...</p>
+
+                        <!-- ▼▼▼ 追加②：顧客ランク・属性区分バッジ ▼▼▼ -->
+                        <div id="customerMetaBadges" class="flex gap-2 mt-2 pl-4 hidden">
+                            <span id="badgeRank" class="bg-[#004098] text-white px-3 py-1 rounded-full text-[10px] font-black"></span>
+                            <span id="badgeAttr" class="bg-orange-100 text-orange-600 px-3 py-1 rounded-full text-[10px] font-black border border-orange-200"></span>
+                        </div>
+                        <!-- ▲▲▲ 追加②ここまで ▲▲▲ -->
                     </div>
+
                     <div class="flex gap-3 w-full lg:w-auto">
                         <button onclick="history.back()" class="flex-1 lg:flex-none px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-xs hover:bg-slate-50 shadow-sm transition-all">戻る</button>
-                        <button id="newRegBtn" class="flex-1 lg:flex-none px-8 py-2.5 bg-[#ff7e11] text-white rounded-xl font-black text-xs hover:shadow-lg transition-all flex items-center justify-center gap-2 active:scale-95"><i class="fa-solid fa-plus"></i> このお客様の実績を書く</button>
+                        <!-- ▼ 修正①：rank・attr をURLパラメータに追加（id属性でJS側から設定）▼ -->
+                        <button id="newRegBtn" class="flex-1 lg:flex-none px-8 py-2.5 bg-[#ff7e11] text-white rounded-xl font-black text-xs hover:shadow-lg transition-all flex items-center justify-center gap-2 active:scale-95">
+                            <i class="fa-solid fa-plus"></i> このお客様の実績を書く
+                        </button>
                     </div>
                 </div>
 
                 <div id="historyListContainer" class="space-y-4 pb-24">
-                    <!-- 読み込み中表示 -->
                     <div class="py-20 text-center text-slate-300 font-bold italic animate-pulse uppercase">Syncing Activity History...</div>
                 </div>
             </div>
         </div>
     </main>
 
+    <!-- ▼▼▼ 追加③：画像ライトボックス ▼▼▼ -->
+    <div id="lightboxOverlay" class="lightbox-overlay" onclick="window.closeLightbox()">
+        <img id="lightboxImg" src="" alt="添付画像">
+    </div>
+    <!-- ▲▲▲ ライトボックスここまで ▲▲▲ -->
+
     <script type="module" src="common.js"></script>
     <script type="module">
         import { db } from "./common.js";
-        import { collection, getDocs, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, getDocs, query, where, orderBy, limit }
+            from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        const params = new URLSearchParams(window.location.search);
-        const customerName = params.get('name');
+        // =========================================================
+        // URLパラメータ取得
+        // =========================================================
+        const params       = new URLSearchParams(window.location.search);
+        const customerName = params.get('name') ? decodeURIComponent(params.get('name')) : '';
+        const customerRank = params.get('rank') ? decodeURIComponent(params.get('rank')) : '';
+        const customerAttr = params.get('attr')  ? decodeURIComponent(params.get('attr'))  : '';
 
-        // 日付を「YYYY/MM/DD」に統一する
+        // 名寄せ用（スペース有無の揺れを吸収）
+        const clean = (s) => (s || "").toString().replace(/[\s\u3000]+/g, '').trim();
+
+        // 日付を「YYYY/MM/DD」に統一
         const fmtDate = (s) => s ? String(s).replace(/-/g, '/') : '--/--/--';
+
+        // =========================================================
+        // ▼▼▼ 追加④：キャッシュ管理 ▼▼▼
+        // =========================================================
+        const today = new Date().toDateString();
+        const CACHE_KEY = `cp_cust_hist_${today}_${clean(customerName)}`;
+
+        function loadFromCache() {
+            try {
+                const raw = sessionStorage.getItem(CACHE_KEY);
+                return raw ? JSON.parse(raw) : null;
+            } catch { return null; }
+        }
+
+        function saveToCache(data) {
+            try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch {}
+        }
+        // =========================================================
+        // ▲▲▲ キャッシュ管理ここまで ▲▲▲
+        // =========================================================
 
         async function init() {
             if (!customerName) {
-                document.getElementById('historyListContainer').innerHTML = '<p class="p-20 text-center text-slate-400">お客様名が正しく取得できませんでした。</p>';
+                document.getElementById('historyListContainer').innerHTML =
+                    '<p class="p-20 text-center text-slate-400">お客様名が正しく取得できませんでした。</p>';
                 return;
             }
+
+            // --- 既存：お客様名を表示 ---
             document.getElementById('targetCustomerName').innerText = customerName;
-            document.getElementById('newRegBtn').onclick = () => location.href = `history.html?name=${encodeURIComponent(customerName)}`;
+
+            // ▼▼▼ 追加②：ランク・属性バッジを表示 ▼▼▼
+            if (customerRank || customerAttr) {
+                document.getElementById('customerMetaBadges').classList.remove('hidden');
+                if (customerRank) document.getElementById('badgeRank').innerText = `ランク：${customerRank}`;
+                if (customerAttr) document.getElementById('badgeAttr').innerText  = customerAttr;
+            }
+            // ▲▲▲ 追加②ここまで ▲▲▲
+
+            // ▼▼▼ 修正①：「実績を書く」ボタンに rank・attr を追加 ▼▼▼
+            document.getElementById('newRegBtn').onclick = () => {
+                const p = new URLSearchParams({
+                    name: customerName,
+                    rank: customerRank,
+                    attr: customerAttr
+                });
+                location.href = `history.html?${p.toString()}`;
+            };
+            // ▲▲▲ 修正①ここまで ▲▲▲
+
+            // ▼▼▼ 追加④：キャッシュチェック ▼▼▼
+            const cached = loadFromCache();
+            if (cached) {
+                renderHistory(cached);
+                autoOpenFirst();
+                return; // Firebase通信なし
+            }
+            // ▲▲▲ キャッシュチェックここまで ▲▲▲
 
             try {
-                // 🌟 【省エネ】特定の顧客名でピンポイント取得
+                // 既存：特定顧客名でピンポイント取得
+                // ▼ clean() で名寄せ：スペース有無の揺れに対応 ▼
+                // Firestoreはサーバー側でcleanできないため、
+                // 完全一致 + クリーン名の両方で取得してフロント側で統合
                 const q = query(
-                    collection(db, "activity_records"), 
-                    where("customerName", "==", customerName), 
+                    collection(db, "activity_records"),
+                    where("customerName", "==", customerName),
                     orderBy("visitDate", "desc"),
                     limit(50)
                 );
                 const snap = await getDocs(q);
-                
-                if (snap.empty) {
-                    document.getElementById('historyListContainer').innerHTML = '<div class="py-20 text-center border-2 border-dashed border-slate-200 rounded-3xl"><p class="text-slate-300 font-black italic tracking-widest uppercase">No Activity Found for this Customer</p></div>';
+
+                // ▼ clean()で揺れを吸収しながらフィルタ ▼
+                let records = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                // customerNameのスペース揺れ対応（完全一致で取れなかった分を補完）
+                records = records.filter(r => clean(r.customerName) === clean(customerName));
+
+                if (records.length === 0) {
+                    document.getElementById('historyListContainer').innerHTML =
+                        '<div class="py-20 text-center border-2 border-dashed border-slate-200 rounded-3xl"><p class="text-slate-300 font-black italic tracking-widest uppercase">No Activity Found for this Customer</p></div>';
                     return;
                 }
 
-                const records = snap.docs.map(doc => doc.data());
+                // ▼ キャッシュ保存 ▼
+                saveToCache(records);
+
                 renderHistory(records);
+                autoOpenFirst();
 
-                // 🌟 1件目を自動展開
-                const firstBody = document.querySelector('.history-body');
-                const firstArrow = document.querySelector('.arrow-icon');
-                if(firstBody && firstArrow) {
-                    firstBody.style.display = 'block';
-                    firstArrow.style.transform = 'rotate(180deg)';
-                }
-
-            } catch (e) { 
+            } catch (e) {
                 console.error(e);
-                document.getElementById('historyListContainer').innerHTML = '<p class="p-20 text-center text-rose-400 font-bold uppercase italic">Sync Error: Database index may be required</p>';
+                document.getElementById('historyListContainer').innerHTML =
+                    '<p class="p-20 text-center text-rose-400 font-bold uppercase italic">Sync Error: Database index may be required</p>';
             }
         }
+
+        // 既存：1件目を自動展開（関数化して再利用）
+        function autoOpenFirst() {
+            const firstBody  = document.querySelector('.history-body');
+            const firstArrow = document.querySelector('.arrow-icon');
+            if (firstBody && firstArrow) {
+                firstBody.style.display = 'block';
+                firstArrow.style.transform = 'rotate(180deg)';
+            }
+        }
+
+        // =========================================================
+        // ▼▼▼ 追加③：添付ファイル表示ヘルパー ▼▼▼
+        // =========================================================
+        function renderAttachments(attachments) {
+            if (!attachments || attachments.length === 0) return '';
+
+            const items = attachments.map(file => {
+                // file は { name: string, url: string, type: string } を想定
+                const url  = file.url  || file;
+                const name = file.name || '添付ファイル';
+                const type = file.type || (typeof file === 'string' ? '' : '');
+
+                const isImage = type.startsWith('image/') ||
+                    /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(url);
+                const isPdf   = type === 'application/pdf' ||
+                    /\.pdf$/i.test(url);
+
+                if (isImage) {
+                    return `<img
+                        src="${url}"
+                        alt="${name}"
+                        class="attach-thumb"
+                        onclick="window.openLightbox('${url}')"
+                        title="${name}">`;
+                } else if (isPdf) {
+                    return `<a href="${url}" target="_blank" rel="noopener" class="attach-pdf">
+                        <i class="fa-solid fa-file-pdf"></i>${name}
+                    </a>`;
+                } else {
+                    return `<a href="${url}" target="_blank" rel="noopener" class="attach-pdf">
+                        <i class="fa-solid fa-file"></i>${name}
+                    </a>`;
+                }
+            }).join('');
+
+            return `
+                <div class="mt-6 p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">
+                        <i class="fa-solid fa-paperclip mr-1"></i>添付ファイル
+                    </p>
+                    <div class="flex flex-wrap gap-3 items-center">
+                        ${items}
+                    </div>
+                </div>`;
+        }
+
+        // ライトボックス開閉
+        window.openLightbox = (url) => {
+            document.getElementById('lightboxImg').src = url;
+            document.getElementById('lightboxOverlay').classList.add('active');
+        };
+        window.closeLightbox = () => {
+            document.getElementById('lightboxOverlay').classList.remove('active');
+        };
+        // =========================================================
+        // ▲▲▲ 添付ファイル表示ここまで ▲▲▲
+        // =========================================================
 
         function renderHistory(dataList) {
             const container = document.getElementById('historyListContainer');
@@ -102,51 +281,90 @@
                 <div class="history-card">
                     <div class="history-header" onclick="window.toggleDetail(this)">
                         <div class="flex items-center gap-6">
-                            <span class="text-sm font-black tracking-widest bg-white/10 px-4 py-1 rounded-full">${fmtDate(data.visitDate)}</span>
+                            <span class="text-sm font-black tracking-widest bg-white/10 px-4 py-1 rounded-full">
+                                ${fmtDate(data.visitDate)}
+                            </span>
                             <span class="text-sm font-black opacity-90">${data.visitorName || '担当者不明'}</span>
                         </div>
                         <i class="fa-solid fa-chevron-down transition-transform duration-300 arrow-icon opacity-40 text-xs"></i>
                     </div>
                     <div class="history-body">
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-16 border-b border-slate-50 mb-6">
-                            <div class="detail-row"><div class="detail-label">お客様担当者</div><div class="detail-content">${data.customerStaff || '--'}</div></div>
-                            <div class="detail-row"><div class="detail-label">訪問時間</div><div class="detail-content text-blue-600"><i class="fa-regular fa-clock mr-1"></i> ${data.startTime || '00:00'} 〜 ${data.endTime || '00:00'}</div></div>
-                            <div class="detail-row"><div class="detail-label">同行者</div><div class="detail-content">${data.companion || 'なし'}</div></div>
-                            <div class="detail-row"><div class="detail-label">所属部署</div><div class="detail-content text-slate-400 text-xs uppercase">${data.visitorDept || '不明'}</div></div>
+                            <div class="detail-row">
+                                <div class="detail-label">お客様担当者</div>
+                                <div class="detail-content">${data.customerStaff || '--'}</div>
+                            </div>
+                            <div class="detail-row">
+                                <div class="detail-label">訪問時間</div>
+                                <div class="detail-content text-blue-600">
+                                    <i class="fa-regular fa-clock mr-1"></i>
+                                    ${data.startTime || '00:00'} 〜 ${data.endTime || '00:00'}
+                                </div>
+                            </div>
+                            <div class="detail-row">
+                                <div class="detail-label">同行者</div>
+                                <div class="detail-content">${data.companion || 'なし'}</div>
+                            </div>
+                            <div class="detail-row">
+                                <div class="detail-label">所属部署</div>
+                                <div class="detail-content text-slate-400 text-xs uppercase">${data.visitorDept || '不明'}</div>
+                            </div>
                         </div>
 
                         <div class="mb-6">
                             <p class="detail-label mb-3">定性データ分析</p>
                             <div class="flex flex-wrap gap-2">
-                                ${data.qualData1 ? `<span class="bg-blue-50 text-[#004098] px-3 py-1 rounded-lg text-[10px] font-black border border-blue-100">${data.qualData1}</span>` : ''}
-                                ${data.qualData2 ? `<span class="bg-orange-50 text-orange-600 px-3 py-1 rounded-lg text-[10px] font-black border border-orange-100">${data.qualData2}</span>` : ''}
-                                ${data.qualData3 ? `<span class="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-lg text-[10px] font-black border border-emerald-100">${data.qualData3}</span>` : ''}
-                                ${!data.qualData1 && !data.qualData2 && !data.qualData3 ? '<span class="text-slate-300 text-xs font-bold italic">（未分類）</span>' : ''}
+                                ${data.qualData1
+                                    ? `<span class="bg-blue-50 text-[#004098] px-3 py-1 rounded-lg text-[10px] font-black border border-blue-100">${data.qualData1}</span>`
+                                    : ''}
+                                ${data.qualData2
+                                    ? `<span class="bg-orange-50 text-orange-600 px-3 py-1 rounded-lg text-[10px] font-black border border-orange-100">${data.qualData2}</span>`
+                                    : ''}
+                                ${data.qualData3
+                                    ? `<span class="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-lg text-[10px] font-black border border-emerald-100">${data.qualData3}</span>`
+                                    : ''}
+                                ${!data.qualData1 && !data.qualData2 && !data.qualData3
+                                    ? '<span class="text-slate-300 text-xs font-bold italic">（未分類）</span>'
+                                    : ''}
                             </div>
                         </div>
 
                         <div class="space-y-6">
                             <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100">
-                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">■ お客様からの情報（要望・状況）</p>
-                                <div class="detail-content whitespace-pre-wrap text-slate-700">${data.content || data.customerReport || '-'}</div>
+                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">
+                                    ■ お客様からの情報（要望・状況）
+                                </p>
+                                <div class="detail-content whitespace-pre-wrap text-slate-700">
+                                    ${data.content || data.customerReport || '-'}
+                                </div>
                             </div>
                             <div class="p-6 bg-orange-50/30 rounded-2xl border border-orange-100/50">
-                                <p class="text-[9px] font-black text-orange-400 uppercase tracking-widest mb-3">■ 自分・スタッフの考え（次回提案・課題）</p>
-                                <div class="detail-content whitespace-pre-wrap text-slate-600">${data.staffThoughts || '-'}</div>
+                                <p class="text-[9px] font-black text-orange-400 uppercase tracking-widest mb-3">
+                                    ■ 自分・スタッフの考え（次回提案・課題）
+                                </p>
+                                <div class="detail-content whitespace-pre-wrap text-slate-600">
+                                    ${data.staffThoughts || '-'}
+                                </div>
                             </div>
                         </div>
 
+                        <!-- ▼▼▼ 追加③：添付ファイル表示 ▼▼▼ -->
+                        ${renderAttachments(data.attachments)}
+                        <!-- ▲▲▲ 追加③ここまで ▲▲▲ -->
+
                         <div class="mt-8 flex justify-end">
                             <div class="bg-[#004098] text-white px-5 py-2 rounded-xl text-xs font-black shadow-md">
-                                <i class="fa-regular fa-calendar-check mr-2"></i>次回訪問予定日：${fmtDate(data.nextVisitDate)}
+                                <i class="fa-regular fa-calendar-check mr-2"></i>
+                                次回訪問予定日：${fmtDate(data.nextVisitDate)}
                             </div>
                         </div>
                     </div>
                 </div>`).join('');
         }
 
+        // 既存：アコーディオン開閉（そのまま）
         window.toggleDetail = (el) => {
-            const body = el.nextElementSibling;
+            const body  = el.nextElementSibling;
             const arrow = el.querySelector('.arrow-icon');
             const isOpen = body.style.display === 'block';
             body.style.display = isOpen ? 'none' : 'block';
