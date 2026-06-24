@@ -23,15 +23,20 @@
         .suggestion-item:hover { background-color: #f1f5f9; color: var(--copros-orange); }
         .report-block { border: 2px solid #f1f5f9; padding: 1.5rem; border-radius: 1rem; margin-bottom: 1.5rem; position: relative; background: #fff; }
         .remove-block-btn { position: absolute; top: -10px; right: -10px; width: 28px; height: 28px; background: #ef4444; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 10; border: 2px solid white; }
-        /* ▼ 添付ファイル用スタイル */
+        /* 添付ファイル用スタイル */
         .attach-drop-zone { border: 2px dashed #e2e8f0; border-radius: 1rem; padding: 1.5rem; text-align: center; cursor: pointer; transition: all 0.2s; }
         .attach-drop-zone:hover, .attach-drop-zone.dragover { border-color: var(--copros-orange); background: #fff7ed; }
+        .attach-thumb { width: 80px; height: 80px; object-fit: cover; border-radius: 0.75rem; border: 2px solid #e2e8f0; cursor: pointer; transition: transform 0.2s; display: block; }
+        .attach-thumb:hover { transform: scale(1.05); border-color: var(--copros-orange); }
         .attach-thumb-wrap { position: relative; display: inline-block; }
-        .attach-thumb { width: 80px; height: 80px; object-fit: cover; border-radius: 0.75rem; border: 1px solid #e2e8f0; display: block; }
-        .attach-pdf-card { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 80px; height: 80px; background: #fff7ed; border: 1px solid #ffedd5; border-radius: 0.75rem; font-size: 9px; font-weight: 900; color: #ff7e11; gap: 4px; }
-        .attach-remove-btn { position: absolute; top: -6px; right: -6px; width: 18px; height: 18px; background: #ef4444; color: white; border-radius: 50%; font-size: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
-        .upload-progress { height: 4px; background: #e2e8f0; border-radius: 2px; overflow: hidden; margin-top: 0.5rem; display: none; }
-        .upload-progress-bar { height: 100%; background: var(--copros-orange); border-radius: 2px; transition: width 0.3s; width: 0%; }
+        .attach-remove-btn { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; background: #ef4444; color: white; border-radius: 50%; font-size: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.3); font-weight: 900; }
+        .size-warning { font-size: 0.7rem; color: #f59e0b; font-weight: 700; }
+        /* ライトボックス */
+        .lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 9999; align-items: center; justify-content: center; }
+        .lightbox.active { display: flex; }
+        .lightbox img { max-width: 92vw; max-height: 92vh; border-radius: 1rem; box-shadow: 0 25px 60px rgba(0,0,0,0.6); object-fit: contain; }
+        .lightbox-close { position: absolute; top: 1.5rem; right: 1.5rem; color: white; font-size: 2rem; cursor: pointer; opacity: 0.7; transition: opacity 0.2s; }
+        .lightbox-close:hover { opacity: 1; }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700">
@@ -107,36 +112,38 @@
                         <div id="reportContainer" class="space-y-8"></div>
                     </div>
 
-                    <!-- ▼▼▼ 追加①：添付ファイルセクション（回覧設定の直前）▼▼▼ -->
+                    <!-- ▼▼▼ 添付ファイルセクション（Base64方式）▼▼▼ -->
                     <div class="section-card">
-                        <p class="section-title">添付ファイル</p>
+                        <p class="section-title">添付ファイル（画像）</p>
                         <div class="space-y-4">
-                            <!-- ドロップゾーン -->
                             <label id="attachDropZone" class="attach-drop-zone block"
                                 ondragover="window.onDragOver(event)"
                                 ondragleave="window.onDragLeave(event)"
                                 ondrop="window.onDrop(event)">
                                 <input type="file" id="attachmentInput" multiple
-                                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                                    accept="image/jpeg,image/png,image/gif,image/webp"
                                     class="hidden"
                                     onchange="window.handleFileSelect(this)">
-                                <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-300 mb-2 block"></i>
-                                <p class="text-sm font-bold text-slate-400">
-                                    クリック または ドラッグ＆ドロップ
-                                </p>
-                                <p class="text-[10px] font-bold text-slate-300 mt-1">
-                                    画像・PDF・Word・Excel 対応
-                                </p>
+                                <i class="fa-solid fa-image text-3xl text-slate-300 mb-2 block"></i>
+                                <p class="text-sm font-bold text-slate-400">クリック または ドラッグ＆ドロップ</p>
+                                <p class="text-[11px] font-bold text-slate-300 mt-1">JPG・PNG・GIF・WEBP 対応　1枚200KB以内・最大3枚</p>
                             </label>
-                            <!-- アップロード進捗バー -->
-                            <div class="upload-progress" id="uploadProgress">
-                                <div class="upload-progress-bar" id="uploadProgressBar"></div>
+                            <!-- サイズ警告 -->
+                            <div id="sizeWarning" class="hidden p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                                <p class="size-warning"><i class="fa-solid fa-triangle-exclamation mr-1"></i>
+                                    <span id="sizeWarningText"></span>
+                                </p>
                             </div>
                             <!-- プレビューエリア -->
-                            <div id="attachmentPreview" class="flex flex-wrap gap-3"></div>
+                            <div id="attachmentPreview" class="flex flex-wrap gap-3 min-h-0"></div>
+                            <!-- 合計サイズ表示 -->
+                            <div id="totalSizeDisplay" class="hidden text-[11px] font-bold text-slate-400">
+                                合計サイズ：<span id="totalSizeText"></span>
+                                <span class="ml-2 text-slate-300">（推奨上限：600KB）</span>
+                            </div>
                         </div>
                     </div>
-                    <!-- ▲▲▲ 追加①ここまで ▲▲▲ -->
+                    <!-- ▲▲▲ 添付ファイルセクションここまで ▲▲▲ -->
 
                     <!-- 回覧設定（既存まま） -->
                     <div class="section-card">
@@ -182,27 +189,30 @@
         </div>
     </div>
 
+    <!-- ライトボックス（クリックで拡大表示） -->
+    <div id="lightbox" class="lightbox" onclick="window.closeLightbox()">
+        <span class="lightbox-close"><i class="fa-solid fa-xmark"></i></span>
+        <img id="lightboxImg" src="" alt="拡大表示">
+    </div>
+
     <script type="module" src="common.js"></script>
     <script type="module">
         import { db, TARGET_DEPTS } from "./common.js";
         import { collection, getDocs, getDoc, addDoc, doc, serverTimestamp, query, where, limit, orderBy }
             from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-        // ▼ Firebase Storage のインポート追加
-        import { getStorage, ref, uploadBytes, getDownloadURL }
-            from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
         // =========================================================
-        // 定数・状態管理（既存まま）
+        // 定数・状態管理
         // =========================================================
         let allStaffs = [], currentTarget = '', modalSelected = [];
         let masterOptions = { qual1: [], qual2: [], qual3: [] };
         let searchDebounceTimer = null;
-
-        // ▼ 追加②：添付ファイル管理
-        let selectedFiles = []; // { file: File, previewUrl: string, name: string }
+        let selectedFiles = []; // { name, base64, sizeKB, type }
 
         const clean = (s) => (s || "").toString().replace(/[\s\u3000]+/g, '').trim();
-        const storage = getStorage();
+        const MAX_FILES    = 3;
+        const MAX_SIZE_KB  = 200;   // 1枚あたりの上限
+        const MAX_TOTAL_KB = 700;   // 合計上限（Firestoreの1MB制限に余裕を持たせる）
 
         // =========================================================
         // URLパラメータ受け取り（既存まま）
@@ -221,12 +231,10 @@
         // staffs キャッシュ（既存まま）
         // =========================================================
         async function loadStaffsWithCache() {
-            const CACHE_KEY  = 'cp_staffs_cache';
-            const CACHE_TTL  = 'cp_staffs_cache_date';
-            const today      = new Date().toDateString();
-            const cached     = sessionStorage.getItem(CACHE_KEY);
-            const cachedDate = sessionStorage.getItem(CACHE_TTL);
-            if (cached && cachedDate === today) return JSON.parse(cached);
+            const CACHE_KEY = 'cp_staffs_cache', CACHE_TTL = 'cp_staffs_cache_date';
+            const today = new Date().toDateString();
+            const cached = sessionStorage.getItem(CACHE_KEY);
+            if (cached && sessionStorage.getItem(CACHE_TTL) === today) return JSON.parse(cached);
             const snap = await getDocs(query(collection(db, "staffs"), orderBy("name")));
             const data = snap.docs.map(d => ({ ...d.data() }));
             sessionStorage.setItem(CACHE_KEY, JSON.stringify(data));
@@ -239,7 +247,7 @@
         // =========================================================
         async function loadMasterOptionsWithCache() {
             const CACHE_KEY = 'cp_master_qual_options';
-            const cached    = localStorage.getItem(CACHE_KEY);
+            const cached = localStorage.getItem(CACHE_KEY);
             if (cached) return JSON.parse(cached);
             const snap = await getDoc(doc(db, "master_settings", "qual_options"));
             const data = snap.exists() ? snap.data() : { qual1: [], qual2: [], qual3: [] };
@@ -253,28 +261,21 @@
         async function init() {
             document.getElementById('visitorName').value = sessionStorage.getItem('userName') || "";
             const jumpDate = sessionStorage.getItem('cp_add_date');
-            if (jumpDate) {
-                document.getElementById('visitDate').value = jumpDate;
-                sessionStorage.removeItem('cp_add_date');
-            } else {
-                document.getElementById('visitDate').valueAsDate = new Date();
-            }
+            if (jumpDate) { document.getElementById('visitDate').value = jumpDate; sessionStorage.removeItem('cp_add_date'); }
+            else { document.getElementById('visitDate').valueAsDate = new Date(); }
             if (localStorage.getItem('cp_keep_circular') === 'true') {
-                document.getElementById('keepCircular').checked    = true;
+                document.getElementById('keepCircular').checked     = true;
                 document.getElementById('circularDisplay').innerText = localStorage.getItem('cp_last_circular') || '未選択';
             }
             try {
                 const [loadedMaster, loadedStaffs] = await Promise.all([
-                    loadMasterOptionsWithCache(),
-                    loadStaffsWithCache()
+                    loadMasterOptionsWithCache(), loadStaffsWithCache()
                 ]);
                 masterOptions = loadedMaster;
                 allStaffs     = loadedStaffs;
                 const deptSelect = document.getElementById('staffDeptFilter');
                 if (typeof TARGET_DEPTS !== 'undefined') {
-                    TARGET_DEPTS.forEach(d =>
-                        deptSelect.insertAdjacentHTML('beforeend', `<option value="${d}">${d}</option>`)
-                    );
+                    TARGET_DEPTS.forEach(d => deptSelect.insertAdjacentHTML('beforeend', `<option value="${d}">${d}</option>`));
                 }
                 setupCustomerSearch();
                 window.addReportBlock();
@@ -293,9 +294,7 @@
             const q3 = (masterOptions.qual3 || []).map(o => `<option>${o}</option>`).join('');
             container.insertAdjacentHTML('beforeend', `
                 <div class="report-block" id="block-${blockId}">
-                    ${container.children.length > 0
-                        ? `<div class="remove-block-btn" onclick="document.getElementById('block-${blockId}').remove()"><i class="fa-solid fa-xmark"></i></div>`
-                        : ''}
+                    ${container.children.length > 0 ? `<div class="remove-block-btn" onclick="document.getElementById('block-${blockId}').remove()"><i class="fa-solid fa-xmark"></i></div>` : ''}
                     <div class="mb-4">
                         <label class="label-text">お客様先担当者を入力</label>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -322,31 +321,24 @@
                 </div>`);
         };
 
-        // =========================================================
         // syncStaffSelect / insertStaffLabel（既存まま）
-        // =========================================================
         window.syncStaffSelect = (id, val) => {
             const select = document.getElementById(`block-${id}`).querySelector('.customer-staff-dropdown');
             const names  = val.split(/[,、\s]+/).filter(n => n.trim() !== "");
-            select.innerHTML = '<option value="">担当者を選択してください</option>'
-                + names.map(n => `<option value="${n}">${n}</option>`).join('');
+            select.innerHTML = '<option value="">担当者を選択してください</option>' + names.map(n => `<option value="${n}">${n}</option>`).join('');
         };
         window.insertStaffLabel = (id, val) => {
             if (!val) return;
-            const block = document.getElementById(`block-${id}`);
-            const area  = block.querySelector('.customer-report');
+            const area  = document.getElementById(`block-${id}`).querySelector('.customer-report');
             const label = `${val} 様「」\n`;
             if (!area.value.includes(`${val} 様「`)) {
                 area.value = label + area.value;
-                const targetPos = val.length + 3;
                 area.focus();
-                area.setSelectionRange(targetPos, targetPos);
+                area.setSelectionRange(val.length + 3, val.length + 3);
             }
         };
 
-        // =========================================================
         // 顧客検索（既存まま）
-        // =========================================================
         function setupCustomerSearch() {
             const input = document.getElementById('customerSearch');
             const box   = document.getElementById('customerSuggestions');
@@ -355,11 +347,8 @@
                 const val = input.value.trim();
                 if (val.length < 1) { box.style.display = 'none'; return; }
                 searchDebounceTimer = setTimeout(async () => {
-                    const q    = query(collection(db, "customers"), where("name", ">=", val), where("name", "<=", val + "\uf8ff"), limit(10));
-                    const snap = await getDocs(q);
-                    box.innerHTML = snap.docs.map(d =>
-                        `<div class="suggestion-item" data-rank="${d.data().rank || '--'}" data-type="${d.data().type || '--'}">${d.data().name}</div>`
-                    ).join('');
+                    const snap = await getDocs(query(collection(db, "customers"), where("name", ">=", val), where("name", "<=", val + "\uf8ff"), limit(10)));
+                    box.innerHTML = snap.docs.map(d => `<div class="suggestion-item" data-rank="${d.data().rank||'--'}" data-type="${d.data().type||'--'}">${d.data().name}</div>`).join('');
                     box.style.display = snap.empty ? 'none' : 'block';
                 }, 300);
             };
@@ -376,29 +365,24 @@
             });
         }
 
-        // =========================================================
         // スタッフモーダル（既存まま）
-        // =========================================================
         window.openStaffModal = (target) => {
             currentTarget = target;
             document.getElementById('staffModal').style.display = 'flex';
-            const curVal = (target === 'circular')
-                ? document.getElementById('circularDisplay').innerText
+            const curVal = (target === 'circular') ? document.getElementById('circularDisplay').innerText
                 : document.getElementById(target === 'visitor' ? 'visitorName' : 'companionDisplay').value;
             modalSelected = (curVal && curVal !== '未選択') ? curVal.split(', ') : [];
             window.renderStaffList();
         };
         window.closeModal = () => document.getElementById('staffModal').style.display = 'none';
         window.renderStaffList = () => {
-            const kw        = document.getElementById('staffKeyword').value.toLowerCase();
-            const dp        = document.getElementById('staffDeptFilter').value;
-            const container = document.getElementById('staffList');
-            const filtered  = allStaffs.filter(s => (!kw || s.name.includes(kw)) && (dp === 'ALL' || s.dept === dp));
-            container.innerHTML = filtered.map(s =>
+            const kw = document.getElementById('staffKeyword').value.toLowerCase();
+            const dp = document.getElementById('staffDeptFilter').value;
+            const filtered = allStaffs.filter(s => (!kw || s.name.includes(kw)) && (dp === 'ALL' || s.dept === dp));
+            document.getElementById('staffList').innerHTML = filtered.map(s =>
                 `<div class="staff-item ${modalSelected.includes(s.name) ? 'selected' : ''}" onclick="window.toggleStaffSelection('${s.name}')">
                     <span>${s.name}</span><span class="text-[9px] opacity-40 font-black">${s.dept || ''}</span>
-                </div>`
-            ).join('');
+                </div>`).join('');
         };
         window.toggleStaffSelection = (name) => {
             if (currentTarget === 'visitor') modalSelected = [name];
@@ -425,122 +409,131 @@
         };
 
         // =========================================================
-        // ▼▼▼ 追加②：添付ファイル管理ロジック ▼▼▼
+        // ▼▼▼ 添付ファイル（Base64）管理ロジック ▼▼▼
         // =========================================================
 
-        // ファイル選択（inputクリック）
-        window.handleFileSelect = (input) => {
-            addFiles(Array.from(input.files));
-            input.value = ''; // 同ファイルの再選択を許可
-        };
-
-        // ドラッグ＆ドロップ対応
-        window.onDragOver = (e) => {
-            e.preventDefault();
-            document.getElementById('attachDropZone').classList.add('dragover');
-        };
-        window.onDragLeave = (e) => {
-            document.getElementById('attachDropZone').classList.remove('dragover');
-        };
-        window.onDrop = (e) => {
+        // ドラッグ＆ドロップ
+        window.onDragOver  = (e) => { e.preventDefault(); document.getElementById('attachDropZone').classList.add('dragover'); };
+        window.onDragLeave = (e) => { document.getElementById('attachDropZone').classList.remove('dragover'); };
+        window.onDrop      = (e) => {
             e.preventDefault();
             document.getElementById('attachDropZone').classList.remove('dragover');
             addFiles(Array.from(e.dataTransfer.files));
         };
+        window.handleFileSelect = (input) => { addFiles(Array.from(input.files)); input.value = ''; };
 
-        // ファイルをリストに追加してプレビュー生成
         function addFiles(files) {
+            const warnings = [];
             files.forEach(file => {
-                // 20MB 超はスキップ
-                if (file.size > 20 * 1024 * 1024) {
-                    alert(`${file.name} は20MBを超えています。スキップします。`);
+                if (selectedFiles.length >= MAX_FILES) {
+                    warnings.push(`最大${MAX_FILES}枚までです。${file.name} はスキップしました。`);
                     return;
                 }
-                const isImage = file.type.startsWith('image/');
-                if (isImage) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        selectedFiles.push({ file, previewUrl: e.target.result, name: file.name });
-                        renderAttachmentPreview();
-                    };
-                    reader.readAsDataURL(file);
-                } else {
-                    selectedFiles.push({ file, previewUrl: null, name: file.name });
-                    renderAttachmentPreview();
+                const sizeKB = Math.round(file.size / 1024);
+                if (sizeKB > MAX_SIZE_KB) {
+                    warnings.push(`${file.name}（${sizeKB}KB）は${MAX_SIZE_KB}KBを超えています。`);
+                    return;
                 }
+                // ▼ 画像を圧縮してBase64変換
+                compressAndConvert(file, (base64, finalSizeKB) => {
+                    selectedFiles.push({ name: file.name, base64, sizeKB: finalSizeKB, type: file.type });
+                    updateSizeWarning();
+                    renderAttachmentPreview();
+                });
             });
+            if (warnings.length) showWarning(warnings.join(' / '));
         }
 
-        // プレビュー描画
+        // Canvas で画像を圧縮して Base64 に変換
+        function compressAndConvert(file, callback) {
+            const img    = new Image();
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                img.onload = () => {
+                    const canvas  = document.createElement('canvas');
+                    const MAX_PX  = 1200; // 最大辺1200px
+                    let w = img.width, h = img.height;
+                    if (w > MAX_PX || h > MAX_PX) {
+                        if (w > h) { h = Math.round(h * MAX_PX / w); w = MAX_PX; }
+                        else       { w = Math.round(w * MAX_PX / h); h = MAX_PX; }
+                    }
+                    canvas.width  = w;
+                    canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                    const base64     = canvas.toDataURL('image/jpeg', 0.75); // 品質75%
+                    const finalSizeKB = Math.round(base64.length * 0.75 / 1024);
+                    callback(base64, finalSizeKB);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
         function renderAttachmentPreview() {
             const area = document.getElementById('attachmentPreview');
             if (!selectedFiles.length) { area.innerHTML = ''; return; }
-            area.innerHTML = selectedFiles.map((f, idx) => {
-                const isImage = f.file.type.startsWith('image/');
-                const isPdf   = f.file.type === 'application/pdf';
-                const thumb   = isImage
-                    ? `<img src="${f.previewUrl}" class="attach-thumb" alt="${f.name}">`
-                    : `<div class="attach-pdf-card">
-                           <i class="fa-solid ${isPdf ? 'fa-file-pdf' : 'fa-file-lines'} text-2xl"></i>
-                           <span class="truncate w-16 text-center px-1">${f.name}</span>
-                       </div>`;
-                return `
-                    <div class="attach-thumb-wrap">
-                        ${thumb}
-                        <div class="attach-remove-btn" onclick="window.removeAttachment(${idx})">✕</div>
-                    </div>`;
-            }).join('');
+            area.innerHTML = selectedFiles.map((f, idx) => `
+                <div class="attach-thumb-wrap">
+                    <img src="${f.base64}" class="attach-thumb" alt="${f.name}"
+                        onclick="window.openLightbox('${f.base64}')"
+                        title="${f.name}（${f.sizeKB}KB）">
+                    <div class="attach-remove-btn" onclick="window.removeAttachment(${idx})">✕</div>
+                </div>`).join('');
         }
 
-        // ファイル削除
         window.removeAttachment = (idx) => {
             selectedFiles.splice(idx, 1);
+            updateSizeWarning();
             renderAttachmentPreview();
         };
 
-        // Firebase Storage へアップロード → URL配列を返す
-        async function uploadAttachments(visitDate, customerName) {
-            if (!selectedFiles.length) return [];
-
-            const progressWrap = document.getElementById('uploadProgress');
-            const progressBar  = document.getElementById('uploadProgressBar');
-            progressWrap.style.display = 'block';
-
-            const total   = selectedFiles.length;
-            let completed = 0;
-
-            const uploads = selectedFiles.map(async ({ file, name }) => {
-                // ファイル名を安全な文字列に変換
-                const safeName   = name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-                const path       = `attachments/${visitDate}/${clean(customerName)}/${Date.now()}_${safeName}`;
-                const storageRef = ref(storage, path);
-                await uploadBytes(storageRef, file);
-                const url = await getDownloadURL(storageRef);
-                completed++;
-                // プログレスバー更新
-                progressBar.style.width = `${Math.round((completed / total) * 100)}%`;
-                return { name, url, type: file.type };
-            });
-
-            const results = await Promise.all(uploads);
-            progressWrap.style.display = 'none';
-            progressBar.style.width    = '0%';
-            return results;
+        function updateSizeWarning() {
+            const totalKB   = selectedFiles.reduce((sum, f) => sum + f.sizeKB, 0);
+            const display   = document.getElementById('totalSizeDisplay');
+            const sizeText  = document.getElementById('totalSizeText');
+            if (selectedFiles.length) {
+                display.classList.remove('hidden');
+                sizeText.innerText = `${totalKB}KB`;
+                sizeText.style.color = totalKB > MAX_TOTAL_KB ? '#ef4444' : '#64748b';
+            } else {
+                display.classList.add('hidden');
+            }
         }
+
+        function showWarning(msg) {
+            const box  = document.getElementById('sizeWarning');
+            const text = document.getElementById('sizeWarningText');
+            text.innerText = msg;
+            box.classList.remove('hidden');
+            setTimeout(() => box.classList.add('hidden'), 5000);
+        }
+
+        // ライトボックス
+        window.openLightbox = (src) => {
+            document.getElementById('lightboxImg').src = src;
+            document.getElementById('lightbox').classList.add('active');
+        };
+        window.closeLightbox = () => {
+            document.getElementById('lightbox').classList.remove('active');
+            document.getElementById('lightboxImg').src = '';
+        };
         // =========================================================
         // ▲▲▲ 添付ファイル管理ここまで ▲▲▲
         // =========================================================
 
         // =========================================================
-        // 登録処理
-        // 変更点：
-        //   ・attachments をアップロードして Firestore に保存
-        //   ・customerRank / customerAttr を保存（list_records 連携）
-        //   ・登録後に実績一覧キャッシュもクリア
+        // 登録処理（既存まま + attachments / rank / attr 追加）
         // =========================================================
         document.getElementById('submitBtnTop').onclick = async () => {
             const form = document.getElementById('historyForm');
             if (!form.checkValidity()) { form.reportValidity(); return; }
+
+            // 合計サイズチェック
+            const totalKB = selectedFiles.reduce((sum, f) => sum + f.sizeKB, 0);
+            if (totalKB > MAX_TOTAL_KB) {
+                alert(`添付ファイルの合計が${totalKB}KBです。${MAX_TOTAL_KB}KB以内にしてください。\n（画像を減らすか、別の画像に変えてください）`);
+                return;
+            }
 
             const btns = [document.getElementById('submitBtnTop'), document.getElementById('submitBtnBottom')];
             btns.forEach(b => { b.disabled = true; b.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>保存中...'; });
@@ -554,21 +547,20 @@
                 const staffEntry   = allStaffs.find(s => clean(s.name) === clean(visitor));
                 const vDept        = staffEntry ? staffEntry.dept : (sessionStorage.getItem('userDept') || "ケコム部");
 
-                // ▼ 添付ファイルを先にアップロード（全ブロック共通）
-                const attachments = await uploadAttachments(
-                    vDate.replace(/-/g, '/'),
-                    customer
-                );
+                // Base64 添付データ（軽量メタ情報のみ保存）
+                const attachments = selectedFiles.map(f => ({
+                    name:   f.name,
+                    base64: f.base64,
+                    type:   'image/jpeg' // 圧縮後は常にJPEG
+                }));
 
                 const blocks = document.querySelectorAll('.report-block');
-
-                // ▼ 全ブロックを並列 addDoc（既存まま + attachments/rank/attr 追加）
                 await Promise.all([...blocks].map(b =>
                     addDoc(collection(db, "activity_records"), {
                         customerName:  customer,
-                        customerRank:  customerRank,   // ▼ 追加③
-                        customerAttr:  customerAttr,   // ▼ 追加③
-                        attachments:   attachments,    // ▼ 追加②
+                        customerRank:  customerRank,
+                        customerAttr:  customerAttr,
+                        attachments:   attachments,   // ← Base64添付
                         visitDate:     vDate.replace(/-/g, '/'),
                         visitorName:   visitor,
                         visitorDept:   vDept,
@@ -581,10 +573,9 @@
                     })
                 ));
 
-                // 通知を並列 addDoc（既存まま）
+                // 通知（既存まま）
                 const cDisp  = document.getElementById('circularDisplay').innerText;
-                const cNames = (cDisp !== '未選択' && cDisp !== '')
-                    ? cDisp.split(/[,、\s]+/).filter(n => n.trim() !== '') : [];
+                const cNames = (cDisp !== '未選択' && cDisp !== '') ? cDisp.split(/[,、\s]+/).filter(n => n.trim() !== '') : [];
                 await Promise.all(cNames.map(name =>
                     addDoc(collection(db, "notifications"), {
                         recipient: name, visitorName: visitor, customerName: customer,
@@ -593,18 +584,13 @@
                     })
                 ));
 
-                // カレンダーキャッシュ削除（既存まま）
+                // キャッシュクリア（既存まま + 実績一覧キャッシュ追加）
                 const [y, m] = vDate.split('-');
                 sessionStorage.removeItem(`cp_cal_cache_v_ultimate_${y}_${m.padStart(2, '0')}`);
+                Object.keys(sessionStorage).filter(k => k.startsWith('cp_records_')).forEach(k => sessionStorage.removeItem(k));
 
-                // ▼ 追加④：実績一覧キャッシュも削除（新規登録が即反映）
-                Object.keys(sessionStorage)
-                    .filter(k => k.startsWith('cp_records_'))
-                    .forEach(k => sessionStorage.removeItem(k));
-
-                alert("登録完了！バッジとカレンダーを更新しました。");
+                alert("登録完了！");
                 location.href = 'list_records.html';
-
             } catch (e) {
                 alert("保存エラー: " + e.message);
                 btns.forEach(b => { b.disabled = false; b.innerHTML = '登録を実行'; });
