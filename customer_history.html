@@ -7,7 +7,7 @@
     <style>
         :root { --copros-blue: #004098; --copros-orange: #ff7e11; }
         body { font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; background-color: #f1f5f9; }
-        .history-card { background: white; border-radius: 1.2rem; border: 1px solid #e2e8f0; transition: all 0.3s; overflow: hidden; margin-bottom: 1rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03); }
+        .history-card { background: white; border-radius: 1.2rem; border: 1px solid #e2e8f0; transition: all 0.3s; overflow: hidden; margin-bottom: 1rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03); }
         .history-header { padding: 1.2rem 2rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: #3c4b5a; color: white; transition: background 0.2s; }
         .history-header:hover { background: #2d3748; }
         .history-body { display: none; padding: 2rem; background: white; border-top: 1px solid #f1f5f9; }
@@ -18,34 +18,41 @@
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
-        /* ▼▼▼ 追加③：添付ファイル表示用スタイル ▼▼▼ */
-        .attach-thumb {
-            width: 80px; height: 80px; object-fit: cover;
-            border-radius: 0.75rem; border: 1px solid #e2e8f0;
-            cursor: pointer; transition: transform 0.2s;
-        }
-        .attach-thumb:hover { transform: scale(1.05); }
-        .attach-pdf {
-            display: flex; align-items: center; gap: 0.5rem;
-            background: #fff7ed; border: 1px solid #ffedd5;
-            color: #ff7e11; padding: 0.5rem 1rem;
-            border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900;
-            cursor: pointer; text-decoration: none;
-        }
-        .attach-pdf:hover { background: #ffedd5; }
-        /* ライトボックスオーバーレイ */
-        .lightbox-overlay {
-            display: none; position: fixed; inset: 0;
-            background: rgba(0,0,0,0.85); z-index: 9999;
-            align-items: center; justify-content: center;
-            backdrop-filter: blur(6px);
-        }
-        .lightbox-overlay.active { display: flex; }
-        .lightbox-overlay img {
-            max-width: 90vw; max-height: 90vh;
-            border-radius: 1rem; box-shadow: 0 25px 50px rgba(0,0,0,0.5);
-        }
-        /* ▲▲▲ 追加③スタイルここまで ▲▲▲ */
+        /* 添付サムネイル */
+        .attach-grid { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 0.75rem; }
+        .attach-item { position: relative; cursor: pointer; border-radius: 0.75rem; overflow: hidden;
+                       border: 2px solid #e2e8f0; transition: all 0.2s; flex-shrink: 0; }
+        .attach-item:hover { border-color: var(--copros-orange); transform: scale(1.03);
+                              box-shadow: 0 8px 20px rgba(255,126,17,0.2); }
+        .attach-item img { width: 90px; height: 90px; object-fit: cover; display: block; }
+        .attach-zoom-icon { position: absolute; inset: 0; background: rgba(0,0,0,0); display: flex;
+                            align-items: center; justify-content: center; transition: background 0.2s; }
+        .attach-item:hover .attach-zoom-icon { background: rgba(0,0,0,0.35); }
+        .attach-zoom-icon i { color: white; font-size: 1.2rem; opacity: 0; transition: opacity 0.2s; }
+        .attach-item:hover .attach-zoom-icon i { opacity: 1; }
+
+        /* ライトボックス */
+        .lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.93);
+                    z-index: 9999; align-items: center; justify-content: center;
+                    backdrop-filter: blur(8px); }
+        .lightbox.active { display: flex; }
+        .lightbox-img-wrap { position: relative; max-width: 94vw; max-height: 94vh; }
+        .lightbox-img-wrap img { max-width: 94vw; max-height: 88vh; border-radius: 1rem;
+                                  object-fit: contain; box-shadow: 0 30px 80px rgba(0,0,0,0.7); }
+        .lightbox-close { position: absolute; top: -2.5rem; right: 0; color: white; font-size: 1.8rem;
+                          cursor: pointer; opacity: 0.7; transition: opacity 0.2s; line-height: 1; }
+        .lightbox-close:hover { opacity: 1; }
+        .lightbox-filename { text-align: center; color: rgba(255,255,255,0.5);
+                              font-size: 0.75rem; font-weight: 700; margin-top: 0.75rem; }
+        /* ライトボックス：前後ナビ */
+        .lightbox-nav { position: absolute; top: 50%; transform: translateY(-50%);
+                        color: white; font-size: 1.8rem; cursor: pointer; opacity: 0.5;
+                        transition: opacity 0.2s; padding: 0.5rem; user-select: none; }
+        .lightbox-nav:hover { opacity: 1; }
+        .lightbox-nav.prev { left: -3.5rem; }
+        .lightbox-nav.next { right: -3.5rem; }
+        .lightbox-counter { text-align: center; color: rgba(255,255,255,0.4);
+                            font-size: 0.7rem; font-weight: 900; margin-top: 0.4rem; }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700">
@@ -58,27 +65,20 @@
                     <div>
                         <h1 class="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-1">訪問実績履歴</h1>
                         <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic mb-4">Customer Interaction Archive</nav>
-
-                        <!-- 既存：お客様名 -->
                         <p id="targetCustomerName" class="text-2xl font-black text-[#004098] border-l-4 border-orange-500 pl-4">読み込み中...</p>
-
-                        <!-- ▼▼▼ 追加②：顧客ランク・属性区分バッジ ▼▼▼ -->
+                        <!-- ランク・属性バッジ -->
                         <div id="customerMetaBadges" class="flex gap-2 mt-2 pl-4 hidden">
                             <span id="badgeRank" class="bg-[#004098] text-white px-3 py-1 rounded-full text-[10px] font-black"></span>
                             <span id="badgeAttr" class="bg-orange-100 text-orange-600 px-3 py-1 rounded-full text-[10px] font-black border border-orange-200"></span>
                         </div>
-                        <!-- ▲▲▲ 追加②ここまで ▲▲▲ -->
                     </div>
-
                     <div class="flex gap-3 w-full lg:w-auto">
                         <button onclick="history.back()" class="flex-1 lg:flex-none px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-xs hover:bg-slate-50 shadow-sm transition-all">戻る</button>
-                        <!-- ▼ 修正①：rank・attr をURLパラメータに追加（id属性でJS側から設定）▼ -->
                         <button id="newRegBtn" class="flex-1 lg:flex-none px-8 py-2.5 bg-[#ff7e11] text-white rounded-xl font-black text-xs hover:shadow-lg transition-all flex items-center justify-center gap-2 active:scale-95">
                             <i class="fa-solid fa-plus"></i> このお客様の実績を書く
                         </button>
                     </div>
                 </div>
-
                 <div id="historyListContainer" class="space-y-4 pb-24">
                     <div class="py-20 text-center text-slate-300 font-bold italic animate-pulse uppercase">Syncing Activity History...</div>
                 </div>
@@ -86,11 +86,24 @@
         </div>
     </main>
 
-    <!-- ▼▼▼ 追加③：画像ライトボックス ▼▼▼ -->
-    <div id="lightboxOverlay" class="lightbox-overlay" onclick="window.closeLightbox()">
-        <img id="lightboxImg" src="" alt="添付画像">
+    <!-- ライトボックス -->
+    <div id="lightbox" class="lightbox" onclick="window.handleLightboxClick(event)">
+        <div class="lightbox-img-wrap">
+            <div class="lightbox-close" onclick="window.closeLightbox()">
+                <i class="fa-solid fa-xmark"></i>
+            </div>
+            <!-- 前後ナビ（複数枚の時に表示） -->
+            <div class="lightbox-nav prev" id="lbPrev" onclick="window.lbNavigate(-1); event.stopPropagation();">
+                <i class="fa-solid fa-chevron-left"></i>
+            </div>
+            <div class="lightbox-nav next" id="lbNext" onclick="window.lbNavigate(1); event.stopPropagation();">
+                <i class="fa-solid fa-chevron-right"></i>
+            </div>
+            <img id="lightboxImg" src="" alt="拡大表示">
+            <div class="lightbox-filename" id="lightboxFilename"></div>
+            <div class="lightbox-counter" id="lightboxCounter"></div>
+        </div>
     </div>
-    <!-- ▲▲▲ ライトボックスここまで ▲▲▲ -->
 
     <script type="module" src="common.js"></script>
     <script type="module">
@@ -99,39 +112,93 @@
             from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         // =========================================================
-        // URLパラメータ取得
+        // URLパラメータ
         // =========================================================
         const params       = new URLSearchParams(window.location.search);
         const customerName = params.get('name') ? decodeURIComponent(params.get('name')) : '';
         const customerRank = params.get('rank') ? decodeURIComponent(params.get('rank')) : '';
-        const customerAttr = params.get('attr')  ? decodeURIComponent(params.get('attr'))  : '';
+        const customerAttr = params.get('attr') ? decodeURIComponent(params.get('attr')) : '';
 
-        // 名寄せ用（スペース有無の揺れを吸収）
-        const clean = (s) => (s || "").toString().replace(/[\s\u3000]+/g, '').trim();
-
-        // 日付を「YYYY/MM/DD」に統一
+        const clean   = (s) => (s || "").toString().replace(/[\s\u3000]+/g, '').trim();
         const fmtDate = (s) => s ? String(s).replace(/-/g, '/') : '--/--/--';
 
         // =========================================================
-        // ▼▼▼ 追加④：キャッシュ管理 ▼▼▼
+        // ライトボックス状態管理
         // =========================================================
-        const today = new Date().toDateString();
+        let lbImages  = [];  // { src, name } の配列
+        let lbCurrent = 0;
+
+        window.openLightbox = (images, startIdx) => {
+            lbImages  = images;
+            lbCurrent = startIdx || 0;
+            renderLightbox();
+            document.getElementById('lightbox').classList.add('active');
+            // キーボード操作
+            document.addEventListener('keydown', handleLbKey);
+        };
+
+        window.closeLightbox = () => {
+            document.getElementById('lightbox').classList.remove('active');
+            document.getElementById('lightboxImg').src = '';
+            document.removeEventListener('keydown', handleLbKey);
+        };
+
+        window.lbNavigate = (dir) => {
+            lbCurrent = (lbCurrent + dir + lbImages.length) % lbImages.length;
+            renderLightbox();
+        };
+
+        window.handleLightboxClick = (e) => {
+            // 画像・ナビ以外（背景）クリックで閉じる
+            if (e.target === document.getElementById('lightbox')) window.closeLightbox();
+        };
+
+        function renderLightbox() {
+            const img      = document.getElementById('lightboxImg');
+            const filename = document.getElementById('lightboxFilename');
+            const counter  = document.getElementById('lightboxCounter');
+            const prev     = document.getElementById('lbPrev');
+            const next     = document.getElementById('lbNext');
+            const cur      = lbImages[lbCurrent];
+
+            img.src          = cur.src;
+            filename.innerText = cur.name || '';
+            counter.innerText  = lbImages.length > 1
+                ? `${lbCurrent + 1} / ${lbImages.length}`
+                : '';
+
+            // 1枚だけなら前後ナビを隠す
+            prev.style.display = lbImages.length > 1 ? 'block' : 'none';
+            next.style.display = lbImages.length > 1 ? 'block' : 'none';
+        }
+
+        function handleLbKey(e) {
+            if (e.key === 'ArrowLeft')  window.lbNavigate(-1);
+            if (e.key === 'ArrowRight') window.lbNavigate(1);
+            if (e.key === 'Escape')     window.closeLightbox();
+        }
+
+        // =========================================================
+        // キャッシュ管理
+        // =========================================================
+        const today    = new Date().toDateString();
         const CACHE_KEY = `cp_cust_hist_${today}_${clean(customerName)}`;
 
         function loadFromCache() {
-            try {
-                const raw = sessionStorage.getItem(CACHE_KEY);
-                return raw ? JSON.parse(raw) : null;
-            } catch { return null; }
+            try { const r = sessionStorage.getItem(CACHE_KEY); return r ? JSON.parse(r) : null; }
+            catch { return null; }
         }
-
         function saveToCache(data) {
-            try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch {}
+            try {
+                // Base64画像はサイズが大きいのでキャッシュから除外
+                const lite = data.map(d => ({ ...d, attachments: [] }));
+                sessionStorage.setItem(CACHE_KEY, JSON.stringify(lite));
+            } catch {}
         }
-        // =========================================================
-        // ▲▲▲ キャッシュ管理ここまで ▲▲▲
-        // =========================================================
 
+        // =========================================================
+        // init
+        // =========================================================
         async function init() {
             if (!customerName) {
                 document.getElementById('historyListContainer').innerHTML =
@@ -139,42 +206,23 @@
                 return;
             }
 
-            // --- 既存：お客様名を表示 ---
             document.getElementById('targetCustomerName').innerText = customerName;
 
-            // ▼▼▼ 追加②：ランク・属性バッジを表示 ▼▼▼
+            // ランク・属性バッジ
             if (customerRank || customerAttr) {
                 document.getElementById('customerMetaBadges').classList.remove('hidden');
                 if (customerRank) document.getElementById('badgeRank').innerText = `ランク：${customerRank}`;
                 if (customerAttr) document.getElementById('badgeAttr').innerText  = customerAttr;
             }
-            // ▲▲▲ 追加②ここまで ▲▲▲
 
-            // ▼▼▼ 修正①：「実績を書く」ボタンに rank・attr を追加 ▼▼▼
+            // 「実績を書く」ボタン
             document.getElementById('newRegBtn').onclick = () => {
-                const p = new URLSearchParams({
-                    name: customerName,
-                    rank: customerRank,
-                    attr: customerAttr
-                });
+                const p = new URLSearchParams({ name: customerName, rank: customerRank, attr: customerAttr });
                 location.href = `history.html?${p.toString()}`;
             };
-            // ▲▲▲ 修正①ここまで ▲▲▲
 
-            // ▼▼▼ 追加④：キャッシュチェック ▼▼▼
-            const cached = loadFromCache();
-            if (cached) {
-                renderHistory(cached);
-                autoOpenFirst();
-                return; // Firebase通信なし
-            }
-            // ▲▲▲ キャッシュチェックここまで ▲▲▲
-
+            // キャッシュチェック（Base64はキャッシュ除外のため常にFirebase通信）
             try {
-                // 既存：特定顧客名でピンポイント取得
-                // ▼ clean() で名寄せ：スペース有無の揺れに対応 ▼
-                // Firestoreはサーバー側でcleanできないため、
-                // 完全一致 + クリーン名の両方で取得してフロント側で統合
                 const q = query(
                     collection(db, "activity_records"),
                     where("customerName", "==", customerName),
@@ -182,20 +230,14 @@
                     limit(50)
                 );
                 const snap = await getDocs(q);
-
-                // ▼ clean()で揺れを吸収しながらフィルタ ▼
                 let records = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                // customerNameのスペース揺れ対応（完全一致で取れなかった分を補完）
                 records = records.filter(r => clean(r.customerName) === clean(customerName));
 
-                if (records.length === 0) {
+                if (!records.length) {
                     document.getElementById('historyListContainer').innerHTML =
                         '<div class="py-20 text-center border-2 border-dashed border-slate-200 rounded-3xl"><p class="text-slate-300 font-black italic tracking-widest uppercase">No Activity Found for this Customer</p></div>';
                     return;
                 }
-
-                // ▼ キャッシュ保存 ▼
-                saveToCache(records);
 
                 renderHistory(records);
                 autoOpenFirst();
@@ -207,77 +249,93 @@
             }
         }
 
-        // 既存：1件目を自動展開（関数化して再利用）
         function autoOpenFirst() {
             const firstBody  = document.querySelector('.history-body');
             const firstArrow = document.querySelector('.arrow-icon');
             if (firstBody && firstArrow) {
-                firstBody.style.display = 'block';
-                firstArrow.style.transform = 'rotate(180deg)';
+                firstBody.style.display      = 'block';
+                firstArrow.style.transform   = 'rotate(180deg)';
             }
         }
 
         // =========================================================
-        // ▼▼▼ 追加③：添付ファイル表示ヘルパー ▼▼▼
+        // 添付ファイル表示（Base64対応）
         // =========================================================
-        function renderAttachments(attachments) {
-            if (!attachments || attachments.length === 0) return '';
+        function renderAttachments(attachments, recordIdx) {
+            if (!attachments || !attachments.length) return '';
 
-            const items = attachments.map(file => {
-                // file は { name: string, url: string, type: string } を想定
-                const url  = file.url  || file;
-                const name = file.name || '添付ファイル';
-                const type = file.type || (typeof file === 'string' ? '' : '');
+            // Base64 と Storage URL の両方に対応
+            const images = attachments
+                .filter(f => {
+                    const src = f.base64 || f.url || '';
+                    const tp  = f.type  || '';
+                    return src && (
+                        tp.startsWith('image/') ||
+                        src.startsWith('data:image') ||
+                        /\.(jpg|jpeg|png|gif|webp)$/i.test(src)
+                    );
+                })
+                .map(f => ({ src: f.base64 || f.url, name: f.name || '添付画像' }));
 
-                const isImage = type.startsWith('image/') ||
-                    /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(url);
-                const isPdf   = type === 'application/pdf' ||
-                    /\.pdf$/i.test(url);
+            if (!images.length) return '';
 
-                if (isImage) {
-                    return `<img
-                        src="${url}"
-                        alt="${name}"
-                        class="attach-thumb"
-                        onclick="window.openLightbox('${url}')"
-                        title="${name}">`;
-                } else if (isPdf) {
-                    return `<a href="${url}" target="_blank" rel="noopener" class="attach-pdf">
-                        <i class="fa-solid fa-file-pdf"></i>${name}
-                    </a>`;
-                } else {
-                    return `<a href="${url}" target="_blank" rel="noopener" class="attach-pdf">
-                        <i class="fa-solid fa-file"></i>${name}
-                    </a>`;
-                }
-            }).join('');
+            // サムネイルHTML生成
+            // onclick で openLightbox に渡す配列インデックスを記録
+            const thumbs = images.map((img, imgIdx) => `
+                <div class="attach-item"
+                     onclick="window.openLightboxFromRecord(${recordIdx}, ${imgIdx})"
+                     title="${img.name}">
+                    <img src="${img.src}" alt="${img.name}" loading="lazy">
+                    <div class="attach-zoom-icon">
+                        <i class="fa-solid fa-magnifying-glass-plus"></i>
+                    </div>
+                </div>`).join('');
 
             return `
                 <div class="mt-6 p-4 bg-slate-50 rounded-2xl border border-slate-200">
                     <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">
-                        <i class="fa-solid fa-paperclip mr-1"></i>添付ファイル
+                        <i class="fa-solid fa-images mr-1 text-orange-400"></i>
+                        添付画像（${images.length}枚）・クリックで拡大
                     </p>
-                    <div class="flex flex-wrap gap-3 items-center">
-                        ${items}
-                    </div>
+                    <div class="attach-grid">${thumbs}</div>
                 </div>`;
         }
 
-        // ライトボックス開閉
-        window.openLightbox = (url) => {
-            document.getElementById('lightboxImg').src = url;
-            document.getElementById('lightboxOverlay').classList.add('active');
-        };
-        window.closeLightbox = () => {
-            document.getElementById('lightboxOverlay').classList.remove('active');
-        };
         // =========================================================
-        // ▲▲▲ 添付ファイル表示ここまで ▲▲▲
+        // レコードごとの画像リストをキャッシュしてライトボックスに渡す
         // =========================================================
+        let recordImageMap = {}; // { recordIdx: [{src,name},...] }
 
+        window.openLightboxFromRecord = (recordIdx, imgIdx) => {
+            const images = recordImageMap[recordIdx] || [];
+            if (!images.length) return;
+            window.openLightbox(images, imgIdx);
+        };
+
+        // =========================================================
+        // renderHistory
+        // =========================================================
         function renderHistory(dataList) {
+            recordImageMap = {}; // リセット
+
             const container = document.getElementById('historyListContainer');
-            container.innerHTML = dataList.map(data => `
+            container.innerHTML = dataList.map((data, recordIdx) => {
+
+                // 添付画像リストをキャッシュ（ライトボックス用）
+                const attachments = data.attachments || [];
+                const images = attachments
+                    .filter(f => {
+                        const src = f.base64 || f.url || '';
+                        return src && (
+                            (f.type || '').startsWith('image/') ||
+                            src.startsWith('data:image') ||
+                            /\.(jpg|jpeg|png|gif|webp)$/i.test(src)
+                        );
+                    })
+                    .map(f => ({ src: f.base64 || f.url, name: f.name || '添付画像' }));
+                recordImageMap[recordIdx] = images;
+
+                return `
                 <div class="history-card">
                     <div class="history-header" onclick="window.toggleDetail(this)">
                         <div class="flex items-center gap-6">
@@ -285,10 +343,16 @@
                                 ${fmtDate(data.visitDate)}
                             </span>
                             <span class="text-sm font-black opacity-90">${data.visitorName || '担当者不明'}</span>
+                            ${images.length > 0
+                                ? `<span class="bg-orange-400/20 text-orange-200 px-2 py-0.5 rounded-full text-[10px] font-black">
+                                       <i class="fa-solid fa-image mr-1"></i>${images.length}枚
+                                   </span>`
+                                : ''}
                         </div>
                         <i class="fa-solid fa-chevron-down transition-transform duration-300 arrow-icon opacity-40 text-xs"></i>
                     </div>
                     <div class="history-body">
+                        <!-- 基本情報グリッド（既存まま） -->
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-16 border-b border-slate-50 mb-6">
                             <div class="detail-row">
                                 <div class="detail-label">お客様担当者</div>
@@ -311,24 +375,19 @@
                             </div>
                         </div>
 
+                        <!-- 定性データ（既存まま） -->
                         <div class="mb-6">
                             <p class="detail-label mb-3">定性データ分析</p>
                             <div class="flex flex-wrap gap-2">
-                                ${data.qualData1
-                                    ? `<span class="bg-blue-50 text-[#004098] px-3 py-1 rounded-lg text-[10px] font-black border border-blue-100">${data.qualData1}</span>`
-                                    : ''}
-                                ${data.qualData2
-                                    ? `<span class="bg-orange-50 text-orange-600 px-3 py-1 rounded-lg text-[10px] font-black border border-orange-100">${data.qualData2}</span>`
-                                    : ''}
-                                ${data.qualData3
-                                    ? `<span class="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-lg text-[10px] font-black border border-emerald-100">${data.qualData3}</span>`
-                                    : ''}
+                                ${data.qualData1 ? `<span class="bg-blue-50 text-[#004098] px-3 py-1 rounded-lg text-[10px] font-black border border-blue-100">${data.qualData1}</span>` : ''}
+                                ${data.qualData2 ? `<span class="bg-orange-50 text-orange-600 px-3 py-1 rounded-lg text-[10px] font-black border border-orange-100">${data.qualData2}</span>` : ''}
+                                ${data.qualData3 ? `<span class="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-lg text-[10px] font-black border border-emerald-100">${data.qualData3}</span>` : ''}
                                 ${!data.qualData1 && !data.qualData2 && !data.qualData3
-                                    ? '<span class="text-slate-300 text-xs font-bold italic">（未分類）</span>'
-                                    : ''}
+                                    ? '<span class="text-slate-300 text-xs font-bold italic">（未分類）</span>' : ''}
                             </div>
                         </div>
 
+                        <!-- 報告内容（既存まま） -->
                         <div class="space-y-6">
                             <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100">
                                 <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">
@@ -348,10 +407,11 @@
                             </div>
                         </div>
 
-                        <!-- ▼▼▼ 追加③：添付ファイル表示 ▼▼▼ -->
-                        ${renderAttachments(data.attachments)}
-                        <!-- ▲▲▲ 追加③ここまで ▲▲▲ -->
+                        <!-- ▼▼▼ 添付画像表示（新規追加）▼▼▼ -->
+                        ${renderAttachments(data.attachments, recordIdx)}
+                        <!-- ▲▲▲ 添付画像ここまで ▲▲▲ -->
 
+                        <!-- 次回訪問予定（既存まま） -->
                         <div class="mt-8 flex justify-end">
                             <div class="bg-[#004098] text-white px-5 py-2 rounded-xl text-xs font-black shadow-md">
                                 <i class="fa-regular fa-calendar-check mr-2"></i>
@@ -359,15 +419,16 @@
                             </div>
                         </div>
                     </div>
-                </div>`).join('');
+                </div>`;
+            }).join('');
         }
 
-        // 既存：アコーディオン開閉（そのまま）
+        // アコーディオン（既存まま）
         window.toggleDetail = (el) => {
             const body  = el.nextElementSibling;
             const arrow = el.querySelector('.arrow-icon');
             const isOpen = body.style.display === 'block';
-            body.style.display = isOpen ? 'none' : 'block';
+            body.style.display    = isOpen ? 'none' : 'block';
             arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
         };
 
