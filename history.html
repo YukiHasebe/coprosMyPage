@@ -23,6 +23,15 @@
         .suggestion-item:hover { background-color: #f1f5f9; color: var(--copros-orange); }
         .report-block { border: 2px solid #f1f5f9; padding: 1.5rem; border-radius: 1rem; margin-bottom: 1.5rem; position: relative; background: #fff; }
         .remove-block-btn { position: absolute; top: -10px; right: -10px; width: 28px; height: 28px; background: #ef4444; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 10; border: 2px solid white; }
+        /* ▼ 添付ファイル用スタイル */
+        .attach-drop-zone { border: 2px dashed #e2e8f0; border-radius: 1rem; padding: 1.5rem; text-align: center; cursor: pointer; transition: all 0.2s; }
+        .attach-drop-zone:hover, .attach-drop-zone.dragover { border-color: var(--copros-orange); background: #fff7ed; }
+        .attach-thumb-wrap { position: relative; display: inline-block; }
+        .attach-thumb { width: 80px; height: 80px; object-fit: cover; border-radius: 0.75rem; border: 1px solid #e2e8f0; display: block; }
+        .attach-pdf-card { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 80px; height: 80px; background: #fff7ed; border: 1px solid #ffedd5; border-radius: 0.75rem; font-size: 9px; font-weight: 900; color: #ff7e11; gap: 4px; }
+        .attach-remove-btn { position: absolute; top: -6px; right: -6px; width: 18px; height: 18px; background: #ef4444; color: white; border-radius: 50%; font-size: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+        .upload-progress { height: 4px; background: #e2e8f0; border-radius: 2px; overflow: hidden; margin-top: 0.5rem; display: none; }
+        .upload-progress-bar { height: 100%; background: var(--copros-orange); border-radius: 2px; transition: width 0.3s; width: 0%; }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700">
@@ -45,6 +54,7 @@
                 </div>
 
                 <form id="historyForm">
+                    <!-- 基本報告情報（既存まま） -->
                     <div class="section-card">
                         <p class="section-title">基本報告情報</p>
                         <div class="space-y-6">
@@ -88,6 +98,7 @@
                         </div>
                     </div>
 
+                    <!-- 詳細報告（既存まま） -->
                     <div class="section-card">
                         <div class="flex justify-between items-center border-b pb-3 mb-6">
                             <p class="section-title border-0 mb-0">詳細報告（追加可能）</p>
@@ -96,6 +107,38 @@
                         <div id="reportContainer" class="space-y-8"></div>
                     </div>
 
+                    <!-- ▼▼▼ 追加①：添付ファイルセクション（回覧設定の直前）▼▼▼ -->
+                    <div class="section-card">
+                        <p class="section-title">添付ファイル</p>
+                        <div class="space-y-4">
+                            <!-- ドロップゾーン -->
+                            <label id="attachDropZone" class="attach-drop-zone block"
+                                ondragover="window.onDragOver(event)"
+                                ondragleave="window.onDragLeave(event)"
+                                ondrop="window.onDrop(event)">
+                                <input type="file" id="attachmentInput" multiple
+                                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                                    class="hidden"
+                                    onchange="window.handleFileSelect(this)">
+                                <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-300 mb-2 block"></i>
+                                <p class="text-sm font-bold text-slate-400">
+                                    クリック または ドラッグ＆ドロップ
+                                </p>
+                                <p class="text-[10px] font-bold text-slate-300 mt-1">
+                                    画像・PDF・Word・Excel 対応
+                                </p>
+                            </label>
+                            <!-- アップロード進捗バー -->
+                            <div class="upload-progress" id="uploadProgress">
+                                <div class="upload-progress-bar" id="uploadProgressBar"></div>
+                            </div>
+                            <!-- プレビューエリア -->
+                            <div id="attachmentPreview" class="flex flex-wrap gap-3"></div>
+                        </div>
+                    </div>
+                    <!-- ▲▲▲ 追加①ここまで ▲▲▲ -->
+
+                    <!-- 回覧設定（既存まま） -->
                     <div class="section-card">
                         <p class="section-title">回覧設定</p>
                         <div class="flex flex-col gap-4">
@@ -118,6 +161,7 @@
         </div>
     </main>
 
+    <!-- スタッフモーダル（既存まま） -->
     <div id="staffModal" class="modal-overlay">
         <div class="modal-content">
             <div class="bg-slate-900 p-4 text-white flex justify-between items-center">
@@ -143,90 +187,70 @@
         import { db, TARGET_DEPTS } from "./common.js";
         import { collection, getDocs, getDoc, addDoc, doc, serverTimestamp, query, where, limit, orderBy }
             from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        // ▼ Firebase Storage のインポート追加
+        import { getStorage, ref, uploadBytes, getDownloadURL }
+            from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
         // =========================================================
-        // 定数・状態管理
+        // 定数・状態管理（既存まま）
         // =========================================================
         let allStaffs = [], currentTarget = '', modalSelected = [];
         let masterOptions = { qual1: [], qual2: [], qual3: [] };
         let searchDebounceTimer = null;
 
+        // ▼ 追加②：添付ファイル管理
+        let selectedFiles = []; // { file: File, previewUrl: string, name: string }
+
         const clean = (s) => (s || "").toString().replace(/[\s\u3000]+/g, '').trim();
+        const storage = getStorage();
 
         // =========================================================
-        // ▼▼▼ 追加①：URLパラメータ受け取り関数 ▼▼▼
+        // URLパラメータ受け取り（既存まま）
         // =========================================================
         function applyUrlParams() {
-            const p = new URLSearchParams(window.location.search);
+            const p     = new URLSearchParams(window.location.search);
             const pName = p.get('name') ? decodeURIComponent(p.get('name')) : '';
             const pRank = p.get('rank') ? decodeURIComponent(p.get('rank')) : '';
-            const pAttr  = p.get('attr')  ? decodeURIComponent(p.get('attr'))  : '';
-
-            if (pName) {
-                document.getElementById('customerSearch').value = pName;
-            }
-            if (pRank) {
-                document.getElementById('autoRank').value = pRank;
-            }
-            if (pAttr) {
-                document.getElementById('autoType').value = pAttr;
-            }
+            const pAttr = p.get('attr') ? decodeURIComponent(p.get('attr')) : '';
+            if (pName) document.getElementById('customerSearch').value = pName;
+            if (pRank) document.getElementById('autoRank').value        = pRank;
+            if (pAttr) document.getElementById('autoType').value        = pAttr;
         }
-        // =========================================================
-        // ▲▲▲ 追加①ここまで ▲▲▲
-        // =========================================================
 
         // =========================================================
-        // ▼▼▼ 追加②：キャッシュ付き staffs 取得 ▼▼▼
+        // staffs キャッシュ（既存まま）
         // =========================================================
         async function loadStaffsWithCache() {
-            const CACHE_KEY = 'cp_staffs_cache';
-            const CACHE_TTL = 'cp_staffs_cache_date';
-            const today = new Date().toDateString();
-
-            const cached = sessionStorage.getItem(CACHE_KEY);
+            const CACHE_KEY  = 'cp_staffs_cache';
+            const CACHE_TTL  = 'cp_staffs_cache_date';
+            const today      = new Date().toDateString();
+            const cached     = sessionStorage.getItem(CACHE_KEY);
             const cachedDate = sessionStorage.getItem(CACHE_TTL);
-
-            // 同日キャッシュがあればFirebase通信ゼロ
-            if (cached && cachedDate === today) {
-                return JSON.parse(cached);
-            }
-
-            // キャッシュなし → Firestore取得 → キャッシュ保存
+            if (cached && cachedDate === today) return JSON.parse(cached);
             const snap = await getDocs(query(collection(db, "staffs"), orderBy("name")));
             const data = snap.docs.map(d => ({ ...d.data() }));
             sessionStorage.setItem(CACHE_KEY, JSON.stringify(data));
             sessionStorage.setItem(CACHE_TTL, today);
             return data;
         }
-        // =========================================================
-        // ▲▲▲ 追加②ここまで ▲▲▲
-        // =========================================================
 
         // =========================================================
-        // ▼▼▼ 追加③：キャッシュ付き masterOptions 取得 ▼▼▼
+        // masterOptions キャッシュ（既存まま）
         // =========================================================
         async function loadMasterOptionsWithCache() {
             const CACHE_KEY = 'cp_master_qual_options';
-            const cached = localStorage.getItem(CACHE_KEY);
-            if (cached) {
-                return JSON.parse(cached);
-            }
+            const cached    = localStorage.getItem(CACHE_KEY);
+            if (cached) return JSON.parse(cached);
             const snap = await getDoc(doc(db, "master_settings", "qual_options"));
             const data = snap.exists() ? snap.data() : { qual1: [], qual2: [], qual3: [] };
-            // マスタはほぼ変わらないのでlocalStorageに永続キャッシュ
             localStorage.setItem(CACHE_KEY, JSON.stringify(data));
             return data;
         }
-        // =========================================================
-        // ▲▲▲ 追加③ここまで ▲▲▲
-        // =========================================================
 
         // =========================================================
-        // init（既存ロジック維持 ＋ 並列取得 ＋ URLパラメータ反映）
+        // init（既存まま）
         // =========================================================
         async function init() {
-            // --- 既存：ユーザー名・日付の初期設定 ---
             document.getElementById('visitorName').value = sessionStorage.getItem('userName') || "";
             const jumpDate = sessionStorage.getItem('cp_add_date');
             if (jumpDate) {
@@ -235,37 +259,26 @@
             } else {
                 document.getElementById('visitDate').valueAsDate = new Date();
             }
-
-            // --- 既存：回覧者保持 ---
             if (localStorage.getItem('cp_keep_circular') === 'true') {
-                document.getElementById('keepCircular').checked = true;
+                document.getElementById('keepCircular').checked    = true;
                 document.getElementById('circularDisplay').innerText = localStorage.getItem('cp_last_circular') || '未選択';
             }
-
             try {
-                // ▼ 変更点：並列取得でFirebase通信を最小化 ▼
                 const [loadedMaster, loadedStaffs] = await Promise.all([
                     loadMasterOptionsWithCache(),
                     loadStaffsWithCache()
                 ]);
                 masterOptions = loadedMaster;
                 allStaffs     = loadedStaffs;
-                // ▲ 変更点ここまで ▲
-
-                // --- 既存：部署フィルタ構築 ---
                 const deptSelect = document.getElementById('staffDeptFilter');
                 if (typeof TARGET_DEPTS !== 'undefined') {
                     TARGET_DEPTS.forEach(d =>
                         deptSelect.insertAdjacentHTML('beforeend', `<option value="${d}">${d}</option>`)
                     );
                 }
-
                 setupCustomerSearch();
                 window.addReportBlock();
-
-                // ▼ 追加①呼び出し：URLパラメータをフォームに反映（init完了後）▼
                 applyUrlParams();
-
             } catch (e) { console.error("init error:", e); }
         }
 
@@ -274,11 +287,10 @@
         // =========================================================
         window.addReportBlock = () => {
             const container = document.getElementById('reportContainer');
-            const blockId = Date.now();
+            const blockId   = Date.now();
             const q1 = (masterOptions.qual1 || []).map(o => `<option>${o}</option>`).join('');
             const q2 = (masterOptions.qual2 || []).map(o => `<option>${o}</option>`).join('');
             const q3 = (masterOptions.qual3 || []).map(o => `<option>${o}</option>`).join('');
-
             container.insertAdjacentHTML('beforeend', `
                 <div class="report-block" id="block-${blockId}">
                     ${container.children.length > 0
@@ -315,11 +327,10 @@
         // =========================================================
         window.syncStaffSelect = (id, val) => {
             const select = document.getElementById(`block-${id}`).querySelector('.customer-staff-dropdown');
-            const names = val.split(/[,、\s]+/).filter(n => n.trim() !== "");
+            const names  = val.split(/[,、\s]+/).filter(n => n.trim() !== "");
             select.innerHTML = '<option value="">担当者を選択してください</option>'
                 + names.map(n => `<option value="${n}">${n}</option>`).join('');
         };
-
         window.insertStaffLabel = (id, val) => {
             if (!val) return;
             const block = document.getElementById(`block-${id}`);
@@ -334,35 +345,24 @@
         };
 
         // =========================================================
-        // ▼▼▼ 変更点：顧客検索にデバウンス追加（通信削減）▼▼▼
+        // 顧客検索（既存まま）
         // =========================================================
         function setupCustomerSearch() {
             const input = document.getElementById('customerSearch');
             const box   = document.getElementById('customerSuggestions');
-
             input.oninput = () => {
                 clearTimeout(searchDebounceTimer);
                 const val = input.value.trim();
                 if (val.length < 1) { box.style.display = 'none'; return; }
-
-                // 300ms 待ってから検索（連打によるFirebase過剰通信を防止）
                 searchDebounceTimer = setTimeout(async () => {
-                    const q = query(
-                        collection(db, "customers"),
-                        where("name", ">=", val),
-                        where("name", "<=", val + "\uf8ff"),
-                        limit(10)
-                    );
+                    const q    = query(collection(db, "customers"), where("name", ">=", val), where("name", "<=", val + "\uf8ff"), limit(10));
                     const snap = await getDocs(q);
                     box.innerHTML = snap.docs.map(d =>
-                        `<div class="suggestion-item"
-                              data-rank="${d.data().rank || '--'}"
-                              data-type="${d.data().type || '--'}">${d.data().name}</div>`
+                        `<div class="suggestion-item" data-rank="${d.data().rank || '--'}" data-type="${d.data().type || '--'}">${d.data().name}</div>`
                     ).join('');
                     box.style.display = snap.empty ? 'none' : 'block';
                 }, 300);
             };
-
             box.onclick = (e) => {
                 const item = e.target.closest('.suggestion-item');
                 if (!item) return;
@@ -371,20 +371,13 @@
                 document.getElementById('autoType').value = item.dataset.type;
                 box.style.display = 'none';
             };
-
-            // サジェスト外クリックで閉じる
             document.addEventListener('click', (e) => {
-                if (!input.contains(e.target) && !box.contains(e.target)) {
-                    box.style.display = 'none';
-                }
+                if (!input.contains(e.target) && !box.contains(e.target)) box.style.display = 'none';
             });
         }
-        // =========================================================
-        // ▲▲▲ 変更点ここまで ▲▲▲
-        // =========================================================
 
         // =========================================================
-        // スタッフモーダル関連（既存まま）
+        // スタッフモーダル（既存まま）
         // =========================================================
         window.openStaffModal = (target) => {
             currentTarget = target;
@@ -395,41 +388,30 @@
             modalSelected = (curVal && curVal !== '未選択') ? curVal.split(', ') : [];
             window.renderStaffList();
         };
-
         window.closeModal = () => document.getElementById('staffModal').style.display = 'none';
-
         window.renderStaffList = () => {
             const kw        = document.getElementById('staffKeyword').value.toLowerCase();
             const dp        = document.getElementById('staffDeptFilter').value;
             const container = document.getElementById('staffList');
-            const filtered  = allStaffs.filter(s =>
-                (!kw || s.name.includes(kw)) && (dp === 'ALL' || s.dept === dp)
-            );
+            const filtered  = allStaffs.filter(s => (!kw || s.name.includes(kw)) && (dp === 'ALL' || s.dept === dp));
             container.innerHTML = filtered.map(s =>
-                `<div class="staff-item ${modalSelected.includes(s.name) ? 'selected' : ''}"
-                      onclick="window.toggleStaffSelection('${s.name}')">
-                    <span>${s.name}</span>
-                    <span class="text-[9px] opacity-40 font-black">${s.dept || ''}</span>
+                `<div class="staff-item ${modalSelected.includes(s.name) ? 'selected' : ''}" onclick="window.toggleStaffSelection('${s.name}')">
+                    <span>${s.name}</span><span class="text-[9px] opacity-40 font-black">${s.dept || ''}</span>
                 </div>`
             ).join('');
         };
-
         window.toggleStaffSelection = (name) => {
             if (currentTarget === 'visitor') modalSelected = [name];
             else if (modalSelected.includes(name)) modalSelected = modalSelected.filter(n => n !== name);
             else modalSelected.push(name);
             window.renderStaffList();
         };
-
         window.clearModalSelection = () => { modalSelected = []; window.renderStaffList(); };
-
         window.applySelection = () => {
             const names = modalSelected.join(', ');
-            if (currentTarget === 'visitor') {
-                document.getElementById('visitorName').value = names;
-            } else if (currentTarget === 'companion') {
-                document.getElementById('companionDisplay').value = names;
-            } else if (currentTarget === 'circular') {
+            if (currentTarget === 'visitor')        document.getElementById('visitorName').value       = names;
+            else if (currentTarget === 'companion') document.getElementById('companionDisplay').value  = names;
+            else if (currentTarget === 'circular') {
                 document.getElementById('circularDisplay').innerText = names || '未選択';
                 if (document.getElementById('keepCircular').checked) {
                     localStorage.setItem('cp_keep_circular', 'true');
@@ -443,7 +425,118 @@
         };
 
         // =========================================================
-        // 登録処理（既存ロジック維持 ＋ Promise.all で並列addDoc）
+        // ▼▼▼ 追加②：添付ファイル管理ロジック ▼▼▼
+        // =========================================================
+
+        // ファイル選択（inputクリック）
+        window.handleFileSelect = (input) => {
+            addFiles(Array.from(input.files));
+            input.value = ''; // 同ファイルの再選択を許可
+        };
+
+        // ドラッグ＆ドロップ対応
+        window.onDragOver = (e) => {
+            e.preventDefault();
+            document.getElementById('attachDropZone').classList.add('dragover');
+        };
+        window.onDragLeave = (e) => {
+            document.getElementById('attachDropZone').classList.remove('dragover');
+        };
+        window.onDrop = (e) => {
+            e.preventDefault();
+            document.getElementById('attachDropZone').classList.remove('dragover');
+            addFiles(Array.from(e.dataTransfer.files));
+        };
+
+        // ファイルをリストに追加してプレビュー生成
+        function addFiles(files) {
+            files.forEach(file => {
+                // 20MB 超はスキップ
+                if (file.size > 20 * 1024 * 1024) {
+                    alert(`${file.name} は20MBを超えています。スキップします。`);
+                    return;
+                }
+                const isImage = file.type.startsWith('image/');
+                if (isImage) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        selectedFiles.push({ file, previewUrl: e.target.result, name: file.name });
+                        renderAttachmentPreview();
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    selectedFiles.push({ file, previewUrl: null, name: file.name });
+                    renderAttachmentPreview();
+                }
+            });
+        }
+
+        // プレビュー描画
+        function renderAttachmentPreview() {
+            const area = document.getElementById('attachmentPreview');
+            if (!selectedFiles.length) { area.innerHTML = ''; return; }
+            area.innerHTML = selectedFiles.map((f, idx) => {
+                const isImage = f.file.type.startsWith('image/');
+                const isPdf   = f.file.type === 'application/pdf';
+                const thumb   = isImage
+                    ? `<img src="${f.previewUrl}" class="attach-thumb" alt="${f.name}">`
+                    : `<div class="attach-pdf-card">
+                           <i class="fa-solid ${isPdf ? 'fa-file-pdf' : 'fa-file-lines'} text-2xl"></i>
+                           <span class="truncate w-16 text-center px-1">${f.name}</span>
+                       </div>`;
+                return `
+                    <div class="attach-thumb-wrap">
+                        ${thumb}
+                        <div class="attach-remove-btn" onclick="window.removeAttachment(${idx})">✕</div>
+                    </div>`;
+            }).join('');
+        }
+
+        // ファイル削除
+        window.removeAttachment = (idx) => {
+            selectedFiles.splice(idx, 1);
+            renderAttachmentPreview();
+        };
+
+        // Firebase Storage へアップロード → URL配列を返す
+        async function uploadAttachments(visitDate, customerName) {
+            if (!selectedFiles.length) return [];
+
+            const progressWrap = document.getElementById('uploadProgress');
+            const progressBar  = document.getElementById('uploadProgressBar');
+            progressWrap.style.display = 'block';
+
+            const total   = selectedFiles.length;
+            let completed = 0;
+
+            const uploads = selectedFiles.map(async ({ file, name }) => {
+                // ファイル名を安全な文字列に変換
+                const safeName   = name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+                const path       = `attachments/${visitDate}/${clean(customerName)}/${Date.now()}_${safeName}`;
+                const storageRef = ref(storage, path);
+                await uploadBytes(storageRef, file);
+                const url = await getDownloadURL(storageRef);
+                completed++;
+                // プログレスバー更新
+                progressBar.style.width = `${Math.round((completed / total) * 100)}%`;
+                return { name, url, type: file.type };
+            });
+
+            const results = await Promise.all(uploads);
+            progressWrap.style.display = 'none';
+            progressBar.style.width    = '0%';
+            return results;
+        }
+        // =========================================================
+        // ▲▲▲ 添付ファイル管理ここまで ▲▲▲
+        // =========================================================
+
+        // =========================================================
+        // 登録処理
+        // 変更点：
+        //   ・attachments をアップロードして Firestore に保存
+        //   ・customerRank / customerAttr を保存（list_records 連携）
+        //   ・登録後に実績一覧キャッシュもクリア
         // =========================================================
         document.getElementById('submitBtnTop').onclick = async () => {
             const form = document.getElementById('historyForm');
@@ -453,18 +546,29 @@
             btns.forEach(b => { b.disabled = true; b.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>保存中...'; });
 
             try {
-                const customer = document.getElementById('customerSearch').value;
-                const visitor  = document.getElementById('visitorName').value;
-                const vDate    = document.getElementById('visitDate').value;
-                const staffEntry = allStaffs.find(s => clean(s.name) === clean(visitor));
-                const vDept    = staffEntry ? staffEntry.dept : (sessionStorage.getItem('userDept') || "ケコム部");
+                const customer     = document.getElementById('customerSearch').value;
+                const visitor      = document.getElementById('visitorName').value;
+                const vDate        = document.getElementById('visitDate').value;
+                const customerRank = document.getElementById('autoRank').value || '';
+                const customerAttr = document.getElementById('autoType').value  || '';
+                const staffEntry   = allStaffs.find(s => clean(s.name) === clean(visitor));
+                const vDept        = staffEntry ? staffEntry.dept : (sessionStorage.getItem('userDept') || "ケコム部");
+
+                // ▼ 添付ファイルを先にアップロード（全ブロック共通）
+                const attachments = await uploadAttachments(
+                    vDate.replace(/-/g, '/'),
+                    customer
+                );
 
                 const blocks = document.querySelectorAll('.report-block');
 
-                // ▼ 変更点：Promise.all で全ブロックを並列登録 ▼
+                // ▼ 全ブロックを並列 addDoc（既存まま + attachments/rank/attr 追加）
                 await Promise.all([...blocks].map(b =>
                     addDoc(collection(db, "activity_records"), {
                         customerName:  customer,
+                        customerRank:  customerRank,   // ▼ 追加③
+                        customerAttr:  customerAttr,   // ▼ 追加③
+                        attachments:   attachments,    // ▼ 追加②
                         visitDate:     vDate.replace(/-/g, '/'),
                         visitorName:   visitor,
                         visitorDept:   vDept,
@@ -476,31 +580,27 @@
                         createdAt:     serverTimestamp()
                     })
                 ));
-                // ▲ 変更点ここまで ▲
 
-                // --- 既存：通知をFirebaseに保存 ---
+                // 通知を並列 addDoc（既存まま）
                 const cDisp  = document.getElementById('circularDisplay').innerText;
                 const cNames = (cDisp !== '未選択' && cDisp !== '')
-                    ? cDisp.split(/[,、\s]+/).filter(n => n.trim() !== '')
-                    : [];
-
-                // ▼ 変更点：通知も並列登録 ▼
+                    ? cDisp.split(/[,、\s]+/).filter(n => n.trim() !== '') : [];
                 await Promise.all(cNames.map(name =>
                     addDoc(collection(db, "notifications"), {
-                        recipient:    name,
-                        visitorName:  visitor,
-                        customerName: customer,
-                        visitDate:    vDate.replace(/-/g, '/'),
-                        isRead:       false,
-                        createdAt:    serverTimestamp(),
-                        type:         "実績回覧"
+                        recipient: name, visitorName: visitor, customerName: customer,
+                        visitDate: vDate.replace(/-/g, '/'), isRead: false,
+                        createdAt: serverTimestamp(), type: "実績回覧"
                     })
                 ));
-                // ▲ 変更点ここまで ▲
 
-                // --- 既存：カレンダーキャッシュ削除 ---
+                // カレンダーキャッシュ削除（既存まま）
                 const [y, m] = vDate.split('-');
                 sessionStorage.removeItem(`cp_cal_cache_v_ultimate_${y}_${m.padStart(2, '0')}`);
+
+                // ▼ 追加④：実績一覧キャッシュも削除（新規登録が即反映）
+                Object.keys(sessionStorage)
+                    .filter(k => k.startsWith('cp_records_'))
+                    .forEach(k => sessionStorage.removeItem(k));
 
                 alert("登録完了！バッジとカレンダーを更新しました。");
                 location.href = 'list_records.html';
