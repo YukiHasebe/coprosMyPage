@@ -22,7 +22,7 @@
         <div id="header-placeholder"></div>
         <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1400px] mx-auto">
-                
+
                 <div class="flex justify-between items-end mb-8 gap-4">
                     <div class="flex items-end gap-6">
                         <div>
@@ -49,12 +49,25 @@
                     </div>
                 </div>
 
-                <!-- 詳細検索エリア -->
+                <!-- 詳細検索エリア（既存まま） -->
                 <div id="detailSearchSection" class="hidden mb-8 p-8 bg-white rounded-[2rem] shadow-xl border border-blue-50">
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-xs font-bold">
-                        <div class="space-y-2"><label class="text-slate-400">お客様名</label><input type="text" id="filterCustomer" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-orange-400" placeholder="お客様名で検索"></div>
-                        <div class="space-y-2"><label class="text-slate-400">訪問者名</label><input type="text" id="filterVisitor" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-orange-400" placeholder="氏名検索"></div>
-                        <div class="md:col-span-2 space-y-2"><label class="text-slate-400">訪問期間</label><div class="flex items-center gap-2"><input type="date" id="startDate" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl"><span>〜</span><input type="date" id="endDate" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl"></div></div>
+                        <div class="space-y-2">
+                            <label class="text-slate-400">お客様名</label>
+                            <input type="text" id="filterCustomer" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-orange-400" placeholder="お客様名で検索">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-slate-400">訪問者名</label>
+                            <input type="text" id="filterVisitor" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-orange-400" placeholder="氏名検索">
+                        </div>
+                        <div class="md:col-span-2 space-y-2">
+                            <label class="text-slate-400">訪問期間</label>
+                            <div class="flex items-center gap-2">
+                                <input type="date" id="startDate" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                                <span>〜</span>
+                                <input type="date" id="endDate" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                            </div>
+                        </div>
                     </div>
                     <div class="flex justify-center gap-4 mt-8">
                         <button onclick="window.executeSearch()" class="bg-slate-800 text-white px-16 py-3 rounded-xl font-black shadow-lg active:scale-95 transition-all">検索を実行</button>
@@ -62,13 +75,16 @@
                     </div>
                 </div>
 
-                <!-- 🌟 あかさたなフィルター：実績一覧版 -->
+                <!-- あかさたなフィルター（既存まま） -->
                 <div class="flex items-center gap-6 mb-6 px-2">
                     <div id="syllabaryFilter" class="flex p-1.5 bg-white rounded-xl border border-slate-200 shadow-sm font-black items-center overflow-x-auto custom-scrollbar gap-1">
                         <button class="filter-btn active px-4 py-1.5 text-xs" onclick="window.setKanaFilter(this, 'all')">全件</button>
                         <script>['あ','か','さ','た','な','は','ま','や','ら','わ','他'].forEach(k => document.write(`<button class="filter-btn px-3 py-1.5 text-xs hover:text-orange-500" onclick="window.setKanaFilter(this, '${k}')">${k}</button>`));</script>
                     </div>
-                    <div class="text-slate-400 font-bold text-sm whitespace-nowrap ml-auto bg-white px-5 py-2 rounded-full border border-slate-100 shadow-sm"><span id="totalDisplay" class="text-slate-800 text-xl tracking-tighter">0</span> <span class="text-[10px] uppercase font-black">Records Found</span></div>
+                    <div class="text-slate-400 font-bold text-sm whitespace-nowrap ml-auto bg-white px-5 py-2 rounded-full border border-slate-100 shadow-sm">
+                        <span id="totalDisplay" class="text-slate-800 text-xl tracking-tighter">0</span>
+                        <span class="text-[10px] uppercase font-black">Records Found</span>
+                    </div>
                 </div>
 
                 <div class="table-container overflow-x-auto mb-24">
@@ -93,52 +109,126 @@
     </main>
 
     <script type="module" src="common.js"></script>
-       <script type="module">
+    <script type="module">
         import { db, TARGET_DEPTS } from "./common.js";
-        import { collection, getDocs, query, limit, doc, writeBatch, where, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { collection, getDocs, query, limit, doc, writeBatch, where, orderBy }
+            from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        let allRecords = [];
+        // =========================================================
+        // 定数・状態管理
+        // =========================================================
+        let allRecords  = [];
         let currentKana = 'all';
 
-        const nowForCache = new Date();
-        const currentCacheKey = `cp_cal_cache_${nowForCache.getFullYear()}_${(nowForCache.getMonth() + 1).toString().padStart(2, '0')}`;
-        sessionStorage.removeItem(currentCacheKey);
-
-        const clean = (s) => (s||"").toString().replace(/[\s\u3000]+/g, '').trim();
+        const clean = (s) => (s || "").toString().replace(/[\s\u3000]+/g, '').trim();
 
         function normalizeDate(str) {
             if (!str) return "0000-00-00";
             const d = str.toString().replace(/\//g, '-').split('-');
             if (d.length < 3) return str;
-            return `${d[0]}-${d[1].padStart(2,'0')}-${d[2].padStart(2,'0')}`;
+            return `${d[0]}-${d[1].padStart(2, '0')}-${d[2].padStart(2, '0')}`;
         }
 
+        // =========================================================
+        // ▼▼▼ 修正⑤：起動時のカレンダーキャッシュ削除を廃止 ▼▼▼
+        // 元コードは毎回カレンダーキャッシュを消していたため
+        // カレンダー画面のパフォーマンスを損ねていた。
+        // 実績登録完了時（history.html）にのみ削除するのが正しい設計。
+        // =========================================================
+
+        // =========================================================
+        // ▼▼▼ 追加②：キャッシュ管理 ▼▼▼
+        // =========================================================
+        const today = new Date().toDateString();
+
+        function getCacheKey(dept, custK, visiK, startD, endD) {
+            return `cp_records_${today}_${clean(dept)}_${clean(custK)}_${clean(visiK)}_${startD}_${endD}`;
+        }
+
+        function loadFromCache(key) {
+            try {
+                const raw = sessionStorage.getItem(key);
+                return raw ? JSON.parse(raw) : null;
+            } catch { return null; }
+        }
+
+        function saveToCache(key, data) {
+            try {
+                sessionStorage.setItem(key, JSON.stringify(data));
+            } catch {
+                // 容量超過時は無視（通信にフォールバック）
+            }
+        }
+        // =========================================================
+        // ▲▲▲ キャッシュ管理ここまで ▲▲▲
+        // =========================================================
+
         window.executeSearch = async () => {
-            const tbody = document.getElementById('recordTable');
+            const tbody  = document.getElementById('recordTable');
             tbody.innerHTML = `<tr><td colspan="6" class="p-20 text-center text-slate-400 font-bold italic animate-pulse">データを取得中...</td></tr>`;
-            
-            const custK = document.getElementById('filterCustomer').value.trim();
-            const visiK = document.getElementById('filterVisitor').value.trim();
+
+            const custK  = document.getElementById('filterCustomer').value.trim();
+            const visiK  = document.getElementById('filterVisitor').value.trim();
             const startD = document.getElementById('startDate').value;
-            const endD = document.getElementById('endDate').value;
-            const dept = document.getElementById('deptFilter').value;
+            const endD   = document.getElementById('endDate').value;
+            const dept   = document.getElementById('deptFilter').value;
+
+            // =========================================================
+            // ▼▼▼ 追加②：キャッシュチェック ▼▼▼
+            // =========================================================
+            const cacheKey = getCacheKey(dept, custK, visiK, startD, endD);
+            const cached   = loadFromCache(cacheKey);
+            if (cached) {
+                allRecords = cached;
+                window.updateView();
+                return; // ✅ キャッシュHIT → Firebase通信なし
+            }
+            // =========================================================
+            // ▲▲▲ キャッシュチェックここまで ▲▲▲
+            // =========================================================
 
             try {
-                // 🌟 【省エネと確実性の両立】
-                // 部署フィルタがALLでない場合も、まずは日付順で取得しJS側でフィルタする方が「名寄せミス」を防げます
-                let q = query(collection(db, "activity_records"), orderBy("visitDate", "desc"), limit(500));
-                
+                // =========================================================
+                // ▼▼▼ 修正③：部署条件がある場合はFirestore側で絞る ▼▼▼
+                // 全件500件取得 → JS絞り込みは読み取り数が多い
+                // 部署指定時はFirestore側でwhere絞り込みで読み取り数を削減
+                // =========================================================
+                let q;
+                if (dept !== 'ALL') {
+                    // 部署指定あり：Firestore側でwhere絞り込み（読み取り数削減）
+                    q = query(
+                        collection(db, "activity_records"),
+                        where("visitorDept", "==", dept),
+                        orderBy("visitDate", "desc"),
+                        limit(500)
+                    );
+                } else {
+                    // 全件：日付降順で取得
+                    q = query(
+                        collection(db, "activity_records"),
+                        orderBy("visitDate", "desc"),
+                        limit(500)
+                    );
+                }
+                // =========================================================
+                // ▲▲▲ 修正③ここまで ▲▲▲
+                // =========================================================
+
                 const snap = await getDocs(q);
                 let data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-                // 🌟 JS側での徹底フィルタリング
+                // 既存：JS側フィルタ（名寄せ対応）
                 if (dept !== 'ALL') data = data.filter(r => clean(r.visitorDept) === clean(dept));
-                if (custK) data = data.filter(r => (r.customerName||"").includes(custK));
-                if (visiK) data = data.filter(r => (r.visitorName||"").includes(visiK));
+                if (custK)  data = data.filter(r => (r.customerName || "").includes(custK));
+                if (visiK)  data = data.filter(r => (r.visitorName  || "").includes(visiK));
                 if (startD) data = data.filter(r => normalizeDate(r.visitDate) >= startD);
-                if (endD) data = data.filter(r => normalizeDate(r.visitDate) <= endD);
+                if (endD)   data = data.filter(r => normalizeDate(r.visitDate) <= endD);
 
                 allRecords = data;
+
+                // ▼ 取得データをキャッシュ保存 ▼
+                saveToCache(cacheKey, allRecords);
+
                 window.updateView();
             } catch (e) {
                 console.error(e);
@@ -146,6 +236,7 @@
             }
         };
 
+        // 既存：あかさたなフィルター（そのまま）
         window.setKanaFilter = (btn, kana) => {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active', 'text-white'));
             btn.classList.add('active', 'text-white');
@@ -153,13 +244,31 @@
             window.updateView();
         };
 
+        // 既存：カナフィルター適用（そのまま）
         window.updateView = () => {
             let filtered = allRecords;
-            const rangeMap = { 'あ': /^[あ-おア-オ安阿伊藤]/, 'か': /^[か-こカ-コ加河]/, 'さ': /^[さ-そサ-ソ佐佐藤]/, 'た': /^[た-とタ-トだ-ど田高]/, 'な': /^[な-のナ-ノ内中]/, 'は': /^[は-ほハ-ホ波橋]/, 'ま': /^[ま-もマ-モ前松]/, 'や': /^[や-よヤ-ヨ山谷]/, 'ら': /^[ら-ろラ-ロ]/, 'わ': /^[わ-んワ-ン]/ };
-            
+            const rangeMap = {
+                'あ': /^[あ-おア-オ安阿伊藤]/,
+                'か': /^[か-こカ-コ加河]/,
+                'さ': /^[さ-そサ-ソ佐佐藤]/,
+                'た': /^[た-とタ-トだ-ど田高]/,
+                'な': /^[な-のナ-ノ内中]/,
+                'は': /^[は-ほハ-ホ波橋]/,
+                'ま': /^[ま-もマ-モ前松]/,
+                'や': /^[や-よヤ-ヨ山谷]/,
+                'ら': /^[ら-ろラ-ロ]/,
+                'わ': /^[わ-んワ-ン]/
+            };
             if (currentKana !== 'all') {
-                if (currentKana === '他') filtered = filtered.filter(r => !Object.values(rangeMap).some(re => re.test(r.customerName||"")));
-                else filtered = filtered.filter(r => rangeMap[currentKana].test(r.customerName||""));
+                if (currentKana === '他') {
+                    filtered = filtered.filter(r =>
+                        !Object.values(rangeMap).some(re => re.test(r.customerName || ""))
+                    );
+                } else {
+                    filtered = filtered.filter(r =>
+                        rangeMap[currentKana] && rangeMap[currentKana].test(r.customerName || "")
+                    );
+                }
             }
             renderTable(filtered);
         };
@@ -171,28 +280,66 @@
                 document.getElementById('totalDisplay').innerText = 0;
                 return;
             }
+
             tbody.innerHTML = dataList.map((data, i) => {
+                // 既存：滞在時間計算
                 let dur = "";
-                if(data.startTime && data.endTime && data.startTime !== "00:00") {
-                    const s = data.startTime.split(':'), e = data.endTime.split(':');
-                    const diff = (parseInt(e[0])*60+parseInt(e[1]||0)) - (parseInt(s[0])*60+parseInt(s[1]||0));
-                    if(diff > 0) dur = `<div class="text-[#0ea5e9] text-[10px] mt-1 font-black"><i class="fa-regular fa-clock mr-1"></i>滞在: ${diff}分</div>`;
+                if (data.startTime && data.endTime && data.startTime !== "00:00") {
+                    const s    = data.startTime.split(':');
+                    const e    = data.endTime.split(':');
+                    const diff = (parseInt(e[0]) * 60 + parseInt(e[1] || 0))
+                                - (parseInt(s[0]) * 60 + parseInt(s[1] || 0));
+                    if (diff > 0) {
+                        dur = `<div class="text-[#0ea5e9] text-[10px] mt-1 font-black">
+                                   <i class="fa-regular fa-clock mr-1"></i>滞在: ${diff}分
+                               </div>`;
+                    }
                 }
-                return `<tr class="hover:bg-sky-50/50 transition-colors">
-                    <td class="p-6 text-slate-300 font-mono text-xs border-r border-slate-50">${i+1}</td>
-                    <td class="p-6 text-left font-black text-slate-800 leading-snug w-[400px]">${data.customerName || '---'}</td>
-                    <td class="p-6 w-[200px]"><div class="text-slate-600 font-mono text-sm">${(data.visitDate || '').replace(/-/g,'/')}</div><div class="text-[10px] text-slate-400 mt-0.5 font-bold uppercase">${data.startTime || '00:00'} 〜 ${data.endTime || '00:00'}</div>${dur}</td>
-                    <td class="p-6 w-[180px] text-slate-700 font-bold">${data.visitorName || '不明'}<br><span class="text-[8px] text-slate-400 uppercase font-black tracking-tighter">${data.visitorDept || ''}</span></td>
+
+                // =========================================================
+                // ▼▼▼ 修正①：履歴ボタンに rank・attr を追加 ▼▼▼
+                // ※ list_records には rank/attr フィールドが activity_records に
+                //    保存されていない場合があるため、存在すれば渡す設計にする
+                // =========================================================
+                const eName = encodeURIComponent(data.customerName || '');
+                const eRank = encodeURIComponent(data.customerRank || '');
+                const eAttr = encodeURIComponent(data.customerAttr || data.customerType || '');
+
+                return `
+                <tr class="hover:bg-sky-50/50 transition-colors">
+                    <td class="p-6 text-slate-300 font-mono text-xs border-r border-slate-50">${i + 1}</td>
+                    <td class="p-6 text-left font-black text-slate-800 leading-snug w-[400px]">
+                        ${data.customerName || '---'}
+                    </td>
+                    <td class="p-6 w-[200px]">
+                        <div class="text-slate-600 font-mono text-sm">${(data.visitDate || '').replace(/-/g, '/')}</div>
+                        <div class="text-[10px] text-slate-400 mt-0.5 font-bold uppercase">
+                            ${data.startTime || '00:00'} 〜 ${data.endTime || '00:00'}
+                        </div>
+                        ${dur}
+                    </td>
+                    <td class="p-6 w-[180px] text-slate-700 font-bold">
+                        ${data.visitorName || '不明'}
+                        <br>
+                        <span class="text-[8px] text-slate-400 uppercase font-black tracking-tighter">
+                            ${data.visitorDept || ''}
+                        </span>
+                    </td>
                     <td class="p-6 text-center">
-                        <button onclick="location.href='customer_history.html?name=${encodeURIComponent(data.customerName)}'" class="w-9 h-9 flex items-center justify-center bg-blue-50 text-[#004098] rounded-xl hover:bg-[#004098] hover:text-white mx-auto transition-all shadow-sm">
+                        <!-- ▼ 修正①：rank・attr をURLパラメータに追加 ▼ -->
+                        <button
+                            onclick="location.href='customer_history.html?name=${eName}&rank=${eRank}&attr=${eAttr}'"
+                            class="w-9 h-9 flex items-center justify-center bg-blue-50 text-[#004098] rounded-xl hover:bg-[#004098] hover:text-white mx-auto transition-all shadow-sm">
                             <i class="fa-solid fa-chevron-right text-xs"></i>
                         </button>
+                        <!-- ▲ 修正①ここまで ▲ -->
                     </td>
                     <td class="p-6 text-center">
                         <input type="checkbox" class="record-check w-5 h-5 accent-rose-500 rounded-md cursor-pointer border-slate-200" value="${data.id}">
                     </td>
                 </tr>`;
             }).join('');
+
             document.getElementById('totalDisplay').innerText = dataList.length;
         }
 
@@ -203,9 +350,16 @@
 
             const batch = writeBatch(db);
             checks.forEach(cb => { batch.delete(doc(db, "activity_records", cb.value)); });
-            
+
             try {
                 await batch.commit();
+
+                // ▼▼▼ 追加④：削除後はキャッシュをクリアして再取得 ▼▼▼
+                Object.keys(sessionStorage)
+                    .filter(k => k.startsWith('cp_records_'))
+                    .forEach(k => sessionStorage.removeItem(k));
+                // ▲▲▲ 追加④ここまで ▲▲▲
+
                 alert("一括削除が完了しました");
                 window.executeSearch();
             } catch (e) { alert("削除に失敗しました"); }
@@ -214,8 +368,8 @@
         window.clearSearch = () => {
             document.getElementById('filterCustomer').value = "";
             document.getElementById('filterVisitor').value = "";
-            document.getElementById('startDate').value = "";
-            document.getElementById('endDate').value = "";
+            document.getElementById('startDate').value     = "";
+            document.getElementById('endDate').value       = "";
             window.executeSearch();
         };
 
