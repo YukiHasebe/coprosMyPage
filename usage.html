@@ -22,6 +22,30 @@
         .info-value { font-size: 13px; font-weight: 800; color: #475569; }
         .report-box { background: #f8fafc; border-radius: 1rem; padding: 1.5rem; border: 1px solid #f1f5f9; font-size: 13px; line-height: 1.7; margin-bottom: 1rem; }
         .scope-select { background: #f8fafc; border: 1px solid #e2e8f0; padding: 0.6rem 1rem; border-radius: 0.75rem; font-size: 0.8rem; font-weight: 800; color: #475569; outline: none; }
+        /* 添付サムネイル */
+        .attach-grid { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 0.75rem; }
+        .attach-item { position: relative; cursor: pointer; border-radius: 0.75rem; overflow: hidden; border: 2px solid #e2e8f0; transition: all 0.2s; flex-shrink: 0; }
+        .attach-item:hover { border-color: var(--copros-orange); transform: scale(1.03); box-shadow: 0 8px 20px rgba(255,126,17,0.2); }
+        .attach-item img { width: 90px; height: 90px; object-fit: cover; display: block; }
+        .attach-zoom-icon { position: absolute; inset: 0; background: rgba(0,0,0,0); display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+        .attach-item:hover .attach-zoom-icon { background: rgba(0,0,0,0.35); }
+        .attach-zoom-icon i { color: white; font-size: 1.2rem; opacity: 0; transition: opacity 0.2s; }
+        .attach-item:hover .attach-zoom-icon i { opacity: 1; }
+        /* ライトボックス */
+        .lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.93); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(8px); }
+        .lightbox.active { display: flex; }
+        .lightbox-img-wrap { position: relative; max-width: 94vw; max-height: 94vh; }
+        .lightbox-img-wrap img { max-width: 94vw; max-height: 88vh; border-radius: 1rem; object-fit: contain; box-shadow: 0 30px 80px rgba(0,0,0,0.7); }
+        .lightbox-close { position: absolute; top: -2.5rem; right: 0; color: white; font-size: 1.8rem; cursor: pointer; opacity: 0.7; line-height: 1; }
+        .lightbox-close:hover { opacity: 1; }
+        .lightbox-filename { text-align: center; color: rgba(255,255,255,0.5); font-size: 0.75rem; font-weight: 700; margin-top: 0.75rem; }
+        .lightbox-nav { position: absolute; top: 50%; transform: translateY(-50%); color: white; font-size: 1.8rem; cursor: pointer; opacity: 0.5; transition: opacity 0.2s; padding: 0.5rem; user-select: none; }
+        .lightbox-nav:hover { opacity: 1; }
+        .lightbox-nav.prev { left: -3.5rem; }
+        .lightbox-nav.next { right: -3.5rem; }
+        .lightbox-counter { text-align: center; color: rgba(255,255,255,0.4); font-size: 0.7rem; font-weight: 900; margin-top: 0.4rem; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700 font-sans">
@@ -30,213 +54,503 @@
         <div id="header-placeholder"></div>
         <div class="flex-1 overflow-auto p-4 lg:p-8 custom-scrollbar">
             <div class="max-w-[1200px] mx-auto">
-                <div class="flex justify-between items-end mb-8"><h1 class="text-4xl font-black text-slate-800 tracking-tighter">組織員利用状況</h1>
-                    <button onclick="location.href='calendar.html'" class="px-6 py-2 bg-white border rounded-xl font-bold text-xs shadow-sm">カレンダーへ戻る</button>
+                <div class="flex justify-between items-end mb-8">
+                    <div>
+                        <h1 class="text-4xl font-black text-slate-800 tracking-tighter">組織員利用状況</h1>
+                        <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic mt-1">Staff Activity Dashboard</nav>
+                    </div>
+                    <button onclick="location.href='calendar.html'" class="px-6 py-2 bg-white border rounded-xl font-bold text-xs shadow-sm hover:bg-slate-50 transition-all">カレンダーへ戻る</button>
                 </div>
+
+                <!-- 社員選択カード -->
                 <div class="staff-selector-card p-6 mb-8">
                     <div class="flex flex-col lg:flex-row gap-4 mb-6">
                         <select id="deptFilter" onchange="window.renderStaffList()" class="scope-select min-w-[240px]">
                             <option value="ALL">全ケコム関連</option>
                             <option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option>
                         </select>
-                        <input type="text" id="staffSearch" oninput="window.renderStaffList()" placeholder="氏名で検索..." class="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold">
+                        <input type="text" id="staffSearch" oninput="window.renderStaffList()" placeholder="氏名で検索..."
+                            class="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold">
                     </div>
                     <div id="staffList" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 max-h-[160px] overflow-y-auto custom-scrollbar p-1 text-center"></div>
                 </div>
+
+                <!-- ツールエリア -->
                 <div id="toolArea" class="hidden">
+                    <!-- サマリーカード -->
                     <div class="summary-card shadow-lg">
                         <div><p class="text-[9px] opacity-60 font-black uppercase mb-1">訪問件数</p><p class="text-xl font-black"><span id="sumActualVisits">0</span>件</p></div>
                         <div><p class="text-[9px] opacity-60 font-black uppercase mb-1">営業件数</p><p class="text-xl font-black"><span id="sumSales">0</span>件</p></div>
                         <div><p class="text-[9px] opacity-60 font-black uppercase mb-1">合計滞在</p><p class="text-xl font-black"><span id="sumTime">0</span>時間</p></div>
                         <div><p class="text-[9px] opacity-60 font-black uppercase mb-1">平均滞在</p><p class="text-xl font-black"><span id="sumAvg">0</span>分</p></div>
                     </div>
+
+                    <!-- 月選択 -->
                     <div class="bg-white p-1 rounded-2xl border mb-8 flex overflow-x-auto whitespace-nowrap custom-scrollbar">
-                        <script>for(let i=1; i<=12; i++) document.write(`<button onclick="window.setMonth(${i})" id="m-btn-${i}" class="month-btn">${i}月</button>`);</script>
+                        <script>for(let i=1;i<=12;i++) document.write(`<button onclick="window.setMonth(${i})" id="m-btn-${i}" class="month-btn">${i}月</button>`);</script>
                     </div>
-                    <div class="mb-20"><h3 id="selectedStaffLabel" class="text-xl font-black mb-8 px-4 text-slate-800 border-l-4 border-orange-500 pl-4"></h3><div id="activityAccordion" class="space-y-4"></div></div>
+
+                    <!-- アコーディオン -->
+                    <div class="mb-20">
+                        <h3 id="selectedStaffLabel" class="text-xl font-black mb-8 text-slate-800 border-l-4 border-orange-500 pl-4"></h3>
+                        <div id="activityAccordion" class="space-y-4"></div>
+                    </div>
                 </div>
-                <div id="guideMsg" class="py-20 text-center"><p class="text-slate-400 font-bold tracking-widest uppercase italic">左上のリストから社員を選択してください</p></div>
+
+                <div id="guideMsg" class="py-20 text-center">
+                    <p class="text-slate-400 font-bold tracking-widest uppercase italic">左上のリストから社員を選択してください</p>
+                </div>
             </div>
         </div>
     </main>
 
-    <script type="module" src="common.js"></script>
-        <script type="module">
-        import { db, TARGET_DEPTS } from "./common.js";
-        import { collection, getDocs, query, where, orderBy, limit, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    <!-- ライトボックス -->
+    <div id="lightbox" class="lightbox" onclick="window.handleLightboxClick(event)">
+        <div class="lightbox-img-wrap">
+            <div class="lightbox-close" onclick="window.closeLightbox(); event.stopPropagation();">
+                <i class="fa-solid fa-xmark"></i>
+            </div>
+            <div class="lightbox-nav prev" id="lbPrev" onclick="window.lbNavigate(-1); event.stopPropagation();">
+                <i class="fa-solid fa-chevron-left"></i>
+            </div>
+            <div class="lightbox-nav next" id="lbNext" onclick="window.lbNavigate(1); event.stopPropagation();">
+                <i class="fa-solid fa-chevron-right"></i>
+            </div>
+            <img id="lightboxImg" src="" alt="拡大表示">
+            <div class="lightbox-filename" id="lightboxFilename"></div>
+            <div class="lightbox-counter" id="lightboxCounter"></div>
+        </div>
+    </div>
 
-        let allStaffs = [], currentStaffRecords = [], selectedName = "", currentM = new Date().getMonth() + 1;
-        
-        const clean = (s) => (s||"").toString().replace(/[\s\u3000]+/g, '').trim();
+    <script type="module" src="common.js"></script>
+    <script type="module">
+        import { db, TARGET_DEPTS } from "./common.js";
+        import { collection, getDocs, query, where, orderBy, limit, writeBatch }
+            from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // =========================================================
+        // 状態管理
+        // =========================================================
+        let allStaffs          = [];
+        let currentStaffRecords = [];
+        let selectedName       = "";
+        let currentM           = new Date().getMonth() + 1;
+
+        // レコードごとの画像リスト（ライトボックス用）
+        let recordImageMap = {};
+
+        const clean     = (s) => (s || "").toString().replace(/[\s\u3000]+/g, '').trim();
         const dateToNum = (s) => {
-            if(!s) return "";
+            if (!s) return "";
             const p = s.toString().split(/[-/]/);
-            if(p.length < 3) return s.toString().replace(/\D/g, '');
+            if (p.length < 3) return s.toString().replace(/\D/g, '');
             return p[0] + p[1].padStart(2, '0') + p[2].padStart(2, '0');
         };
 
+        // =========================================================
+        // ライトボックス
+        // =========================================================
+        let lbImages = [], lbCurrent = 0;
+
+        window.openLightbox = (images, startIdx) => {
+            lbImages  = images;
+            lbCurrent = startIdx || 0;
+            renderLightbox();
+            document.getElementById('lightbox').classList.add('active');
+            document.addEventListener('keydown', handleLbKey);
+        };
+        window.closeLightbox = () => {
+            document.getElementById('lightbox').classList.remove('active');
+            document.getElementById('lightboxImg').src = '';
+            document.removeEventListener('keydown', handleLbKey);
+        };
+        window.lbNavigate = (dir) => {
+            lbCurrent = (lbCurrent + dir + lbImages.length) % lbImages.length;
+            renderLightbox();
+        };
+        window.handleLightboxClick = (e) => {
+            if (e.target === document.getElementById('lightbox')) window.closeLightbox();
+        };
+        function renderLightbox() {
+            document.getElementById('lightboxImg').src            = lbImages[lbCurrent].src;
+            document.getElementById('lightboxFilename').innerText = lbImages[lbCurrent].name || '';
+            document.getElementById('lightboxCounter').innerText  = lbImages.length > 1 ? `${lbCurrent + 1} / ${lbImages.length}` : '';
+            document.getElementById('lbPrev').style.display = lbImages.length > 1 ? 'block' : 'none';
+            document.getElementById('lbNext').style.display = lbImages.length > 1 ? 'block' : 'none';
+        }
+        function handleLbKey(e) {
+            if (e.key === 'ArrowLeft')  window.lbNavigate(-1);
+            if (e.key === 'ArrowRight') window.lbNavigate(1);
+            if (e.key === 'Escape')     window.closeLightbox();
+        }
+        window.openLightboxFromRecord = (recordIdx, imgIdx) => {
+            const images = recordImageMap[recordIdx] || [];
+            if (images.length) window.openLightbox(images, imgIdx);
+        };
+
+        // =========================================================
+        // 添付画像レンダリング
+        // =========================================================
+        function renderAttachments(attachments, recordIdx) {
+            if (!attachments || !attachments.length) return '';
+            const images = attachments
+                .filter(f => {
+                    const src = f.base64 || f.url || '';
+                    return src && (
+                        (f.type || '').startsWith('image/') ||
+                        src.startsWith('data:image') ||
+                        /\.(jpg|jpeg|png|gif|webp)$/i.test(src)
+                    );
+                })
+                .map(f => ({ src: f.base64 || f.url, name: f.name || '添付画像' }));
+            if (!images.length) return '';
+            recordImageMap[recordIdx] = images;
+            return `
+                <div class="mt-4 p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">
+                        <i class="fa-solid fa-images mr-1 text-orange-400"></i>
+                        添付画像（${images.length}枚）・クリックで拡大
+                    </p>
+                    <div class="attach-grid">
+                        ${images.map((img, imgIdx) => `
+                            <div class="attach-item"
+                                 onclick="window.openLightboxFromRecord(${recordIdx}, ${imgIdx})"
+                                 title="${img.name}">
+                                <img src="${img.src}" alt="${img.name}" loading="lazy">
+                                <div class="attach-zoom-icon">
+                                    <i class="fa-solid fa-magnifying-glass-plus"></i>
+                                </div>
+                            </div>`).join('')}
+                    </div>
+                </div>`;
+        }
+
+        // =========================================================
+        // ▼ 省エネ：staffs キャッシュ（sessionStorage・当日限り）
+        // =========================================================
+        async function loadStaffs() {
+            const KEY  = 'cp_cache_staffs';
+            const TTL  = 'cp_cache_staffs_date';
+            const today = new Date().toDateString();
+            const cached = sessionStorage.getItem(KEY);
+            if (cached && sessionStorage.getItem(TTL) === today) return JSON.parse(cached);
+            const snap = await getDocs(query(collection(db, "staffs"), orderBy("name")));
+            const data = snap.docs.map(d => d.data());
+            sessionStorage.setItem(KEY, JSON.stringify(data));
+            sessionStorage.setItem(TTL, today);
+            return data;
+        }
+
+        // =========================================================
+        // ▼ 省エネ：activity_records キャッシュ
+        //   Base64画像を含むためlocalStorageに保存すると容量超過の恐れあり
+        //   → 画像なしのliteデータをlocalStorageに、フル取得はsessionStorageに
+        // =========================================================
+        async function loadRecords(name) {
+            const SESSION_KEY = `cp_usage_session_${clean(name)}`;
+            const LOCAL_KEY   = `cp_usage_data_v2_${clean(name)}`;
+            const today       = new Date().toDateString();
+            const TTL_KEY     = `cp_usage_data_v2_${clean(name)}_date`;
+
+            // ① sessionStorage（同ページセッション内、フルデータ）
+            const sessionCached = sessionStorage.getItem(SESSION_KEY);
+            if (sessionCached) return JSON.parse(sessionCached);
+
+            // ② localStorage（当日キャッシュ、画像なし）
+            const localCached = localStorage.getItem(LOCAL_KEY);
+            const localDate   = localStorage.getItem(TTL_KEY);
+            if (localCached && localDate === today) {
+                const data = JSON.parse(localCached);
+                sessionStorage.setItem(SESSION_KEY, JSON.stringify(data));
+                return data;
+            }
+
+            // ③ Firebase取得
+            const snap = await getDocs(query(
+                collection(db, "activity_records"),
+                where("visitorName", "==", name),
+                limit(500)
+            ));
+            const fullData = snap.docs.map(d => d.data());
+
+            // sessionStorageにフルデータ（Base64含む）を保存
+            try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(fullData)); } catch {}
+
+            // localStorageには画像なしのliteデータを保存（容量節約）
+            const liteData = fullData.map(r => ({ ...r, attachments: [] }));
+            try {
+                localStorage.setItem(LOCAL_KEY, JSON.stringify(liteData));
+                localStorage.setItem(TTL_KEY, today);
+            } catch {}
+
+            return fullData;
+        }
+
+        // =========================================================
+        // init
+        // =========================================================
         async function init() {
             try {
-                let sData = sessionStorage.getItem('cp_cache_staffs');
-                if(sData) { allStaffs = JSON.parse(sData); } 
-                else {
-                    const snap = await getDocs(query(collection(db, "staffs"), orderBy("name")));
-                    allStaffs = snap.docs.map(d => d.data());
-                    sessionStorage.setItem('cp_cache_staffs', JSON.stringify(allStaffs));
-                }
+                allStaffs = await loadStaffs();
                 window.renderStaffList();
-                
-                const jName = sessionStorage.getItem('cp_usage_jump_name');
+
+                const jName  = sessionStorage.getItem('cp_usage_jump_name');
                 const jMonth = sessionStorage.getItem('cp_usage_jump_month');
-                const jDate = sessionStorage.getItem('cp_usage_jump_date');
 
                 if (jName) {
-                    if(jMonth) currentM = parseInt(jMonth);
-                    // 🌟 ジャンプ時は最新データを見たいので、この人のキャッシュを消す
+                    if (jMonth) currentM = parseInt(jMonth);
+                    // ジャンプ時は最新データを見たいのでキャッシュをクリア
+                    sessionStorage.removeItem(`cp_usage_session_${clean(jName)}`);
                     localStorage.removeItem(`cp_usage_data_v2_${clean(jName)}`);
                     await window.selectStaff(jName);
                 }
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error("init error:", e); }
         }
 
+        // =========================================================
+        // 社員リスト描画（既存まま）
+        // =========================================================
         window.renderStaffList = () => {
-            const kw = clean(document.getElementById('staffSearch').value.toLowerCase());
+            const kw   = clean(document.getElementById('staffSearch').value.toLowerCase());
             const dept = document.getElementById('deptFilter').value;
-            const container = document.getElementById('staffList');
-            container.innerHTML = allStaffs.filter(s => {
-                const nameM = !kw || clean(s.name).toLowerCase().includes(kw);
-                const sDept = clean(s.dept || "");
-                return nameM && (dept === 'ALL' ? TARGET_DEPTS.some(t => clean(t) === sDept) : sDept === clean(dept));
-            }).map(s => `<div class="staff-item ${clean(selectedName) === clean(s.name) ? 'active' : ''}" onclick="window.selectStaff('${s.name}')"><p class="font-black text-xs">${s.name}</p><p class="text-[8px] opacity-60 uppercase">${s.dept || ''}</p></div>`).join('');
+            document.getElementById('staffList').innerHTML = allStaffs
+                .filter(s => {
+                    const nameM = !kw || clean(s.name).toLowerCase().includes(kw);
+                    const sDept = clean(s.dept || "");
+                    return nameM && (dept === 'ALL'
+                        ? TARGET_DEPTS.some(t => clean(t) === sDept)
+                        : sDept === clean(dept));
+                })
+                .map(s => `
+                    <div class="staff-item ${clean(selectedName) === clean(s.name) ? 'active' : ''}"
+                         onclick="window.selectStaff('${s.name}')">
+                        <p class="font-black text-xs">${s.name}</p>
+                        <p class="text-[8px] opacity-60 uppercase">${s.dept || ''}</p>
+                    </div>`).join('');
         };
 
+        // =========================================================
+        // 社員選択（省エネキャッシュ対応）
+        // =========================================================
         window.selectStaff = async (name) => {
-            selectedName = name; 
+            selectedName = name;
             window.renderStaffList();
-            document.getElementById('guideMsg').style.display = 'none';
-            document.getElementById('toolArea').style.display = 'block';
-            
-            const cacheKey = `cp_usage_data_v2_${clean(name)}`;
-            const cached = localStorage.getItem(cacheKey);
-            if (cached) {
-                currentStaffRecords = JSON.parse(cached);
-                window.finishSelectStaff(name);
-                return;
-            }
+            document.getElementById('guideMsg').style.display  = 'none';
+            document.getElementById('toolArea').style.display  = 'block';
+
+            // ローディング表示
+            document.getElementById('activityAccordion').innerHTML =
+                '<p class="text-center py-10 text-slate-300 font-bold animate-pulse">データを読み込み中...</p>';
 
             try {
-                const q = query(collection(db, "activity_records"), where("visitorName", "==", name), limit(1000));
-                const snap = await getDocs(q); 
-                currentStaffRecords = snap.docs.map(d => d.data());
-                localStorage.setItem(cacheKey, JSON.stringify(currentStaffRecords));
-                window.finishSelectStaff(name);
-            } catch (e) { console.error("Firebase通信エラー:", e); }
+                currentStaffRecords = await loadRecords(name);
+                document.getElementById('selectedStaffLabel').innerText = `${name} さんの活動履歴`;
+                window.setMonth(currentM);
+            } catch (e) {
+                console.error("データ取得エラー:", e);
+                document.getElementById('activityAccordion').innerHTML =
+                    `<div class="p-8 text-center bg-rose-50 rounded-2xl border border-rose-200">
+                        <p class="text-rose-500 font-black text-sm">データの読み込みに失敗しました</p>
+                        <p class="text-rose-300 text-xs mt-1">${e.message}</p>
+                        <button onclick="window.selectStaff('${name}')" class="mt-4 px-6 py-2 bg-[#004098] text-white rounded-xl font-black text-xs">再読み込み</button>
+                    </div>`;
+            }
         };
 
-        window.finishSelectStaff = (name) => {
-            document.getElementById('selectedStaffLabel').innerText = `${name} さんの活動履歴`;
-            window.setMonth(currentM); 
-        };
-
+        // =========================================================
+        // 月選択（既存まま）
+        // =========================================================
         window.setMonth = (m) => {
             currentM = m;
-            document.querySelectorAll('.month-btn').forEach(btn => btn.classList.toggle('active', btn.id === `m-btn-${m}`));
+            document.querySelectorAll('.month-btn').forEach(btn =>
+                btn.classList.toggle('active', btn.id === `m-btn-${m}`)
+            );
             window.renderAccordion();
         };
 
+        // =========================================================
+        // アコーディオン描画（添付画像追加）
+        // =========================================================
         window.renderAccordion = () => {
+            recordImageMap = {}; // リセット
             const container = document.getElementById('activityAccordion');
-            const filtered = currentStaffRecords.filter(r => {
-                const dParts = (r.visitDate||"").toString().split(/[-/]/);
-                return dParts.length >= 2 && parseInt(dParts[1]) === currentM;
-            }).sort((a,b) => (b.visitDate||"").toString().localeCompare((a.visitDate||"").toString()));
 
+            const filtered = currentStaffRecords
+                .filter(r => {
+                    const dParts = (r.visitDate || "").toString().split(/[-/]/);
+                    return dParts.length >= 2 && parseInt(dParts[1]) === currentM;
+                })
+                .sort((a, b) =>
+                    (b.visitDate || "").toString().localeCompare((a.visitDate || "").toString())
+                );
+
+            // サマリー計算（既存まま）
             let totalMins = 0;
             const uniqueVisits = new Set();
             filtered.forEach(r => {
                 uniqueVisits.add(`${r.visitDate}_${r.customerName}`);
-                if(r.startTime && r.endTime){
+                if (r.startTime && r.endTime) {
                     const s = r.startTime.split(':'), e = r.endTime.split(':');
-                    if(s.length===2 && e.length===2) totalMins += (parseInt(e[0])*60+parseInt(e[1])) - (parseInt(s[0])*60+parseInt(s[1]));
+                    if (s.length === 2 && e.length === 2) {
+                        totalMins += (parseInt(e[0]) * 60 + parseInt(e[1]))
+                                   - (parseInt(s[0]) * 60 + parseInt(s[1]));
+                    }
                 }
             });
-
             document.getElementById('sumActualVisits').innerText = uniqueVisits.size;
-            document.getElementById('sumSales').innerText = filtered.length;
-            document.getElementById('sumTime').innerText = Math.floor(totalMins/60);
-            document.getElementById('sumAvg').innerText = filtered.length ? Math.round(totalMins / filtered.length) : 0;
+            document.getElementById('sumSales').innerText        = filtered.length;
+            document.getElementById('sumTime').innerText         = Math.floor(totalMins / 60);
+            document.getElementById('sumAvg').innerText          = filtered.length ? Math.round(totalMins / filtered.length) : 0;
 
-            container.innerHTML = filtered.length ? filtered.map((r, i) => `
+            if (!filtered.length) {
+                container.innerHTML = '<p class="text-center py-20 text-slate-300 font-bold uppercase tracking-widest">実績はありません</p>';
+                return;
+            }
+
+            // ▼ 画像枚数バッジ用に事前チェック
+            const getImageCount = (attachments) => {
+                if (!attachments || !attachments.length) return 0;
+                return attachments.filter(f => {
+                    const src = f.base64 || f.url || '';
+                    return src && (
+                        (f.type || '').startsWith('image/') ||
+                        src.startsWith('data:image') ||
+                        /\.(jpg|jpeg|png|gif|webp)$/i.test(src)
+                    );
+                }).length;
+            };
+
+            container.innerHTML = filtered.map((r, i) => {
+                const imgCount = getImageCount(r.attachments);
+                return `
                 <div class="accordion-item" id="acc-${i}">
                     <div class="accordion-header" onclick="window.toggleAcc('acc-${i}')">
-                        <div class="flex items-center gap-4">
-                            <span class="text-xs font-black opacity-60">${r.visitDate}</span>
-                            <span class="text-base font-black">${r.customerName}</span>
+                        <div class="flex items-center gap-4 flex-wrap">
+                            <span class="text-xs font-black opacity-60 bg-white/10 px-3 py-1 rounded-full">
+                                ${r.visitDate || ''}
+                            </span>
+                            <span class="text-base font-black">${r.customerName || '---'}</span>
+                            ${imgCount > 0
+                                ? `<span class="bg-orange-400/20 text-orange-200 px-2 py-0.5 rounded-full text-[10px] font-black">
+                                       <i class="fa-solid fa-image mr-1"></i>${imgCount}枚
+                                   </span>`
+                                : ''}
                         </div>
-                        <i class="fa-solid fa-chevron-down opacity-30 text-xs transition-transform"></i>
+                        <i class="fa-solid fa-chevron-down opacity-30 text-xs transition-transform flex-shrink-0"></i>
                     </div>
                     <div class="accordion-content">
                         <div class="info-grid">
-                            <div><p class="info-label">お客様担当者</p><p class="info-value">${r.customerStaff || '-'}</p></div>
-                            <div><p class="info-label">訪問時間</p><p class="info-value">${r.startTime}〜${r.endTime}</p></div>
-                            <div><p class="info-label">同行者</p><p class="info-value text-blue-600">${r.companion || 'なし'}</p></div>
+                            <div>
+                                <p class="info-label">お客様担当者</p>
+                                <p class="info-value">${r.customerStaff || '-'}</p>
+                            </div>
+                            <div>
+                                <p class="info-label">訪問時間</p>
+                                <p class="info-value text-blue-600">
+                                    <i class="fa-regular fa-clock mr-1"></i>
+                                    ${r.startTime || '--:--'} 〜 ${r.endTime || '--:--'}
+                                </p>
+                            </div>
+                            <div>
+                                <p class="info-label">同行者</p>
+                                <p class="info-value text-blue-600">${r.companion || 'なし'}</p>
+                            </div>
+                            <div>
+                                <p class="info-label">次回訪問予定</p>
+                                <p class="info-value">${r.nextVisitDate ? r.nextVisitDate.replace(/-/g,'/') : '未設定'}</p>
+                            </div>
                         </div>
-                        <p class="info-label mb-2 uppercase tracking-widest">報告内容</p>
-                        <div class="report-box">${r.content || '報告なし'}</div>
-                        <p class="info-label mb-2 uppercase tracking-widest">スタッフの考え</p>
-                        <div class="report-box border-l-4 border-orange-100">${r.staffThoughts || '未入力'}</div>
-                    </div>
-                </div>`).join('') : '<p class="text-center py-20 text-slate-300 font-bold uppercase tracking-widest">実績はありません</p>';
 
+                        ${r.qualData1 || r.qualData2 || r.qualData3 ? `
+                        <div class="mb-4">
+                            <p class="info-label mb-2">定性データ</p>
+                            <div class="flex flex-wrap gap-2">
+                                ${r.qualData1 ? `<span class="bg-blue-50 text-[#004098] px-3 py-1 rounded-lg text-[10px] font-black border border-blue-100">${r.qualData1}</span>` : ''}
+                                ${r.qualData2 ? `<span class="bg-orange-50 text-orange-600 px-3 py-1 rounded-lg text-[10px] font-black border border-orange-100">${r.qualData2}</span>` : ''}
+                                ${r.qualData3 ? `<span class="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-lg text-[10px] font-black border border-emerald-100">${r.qualData3}</span>` : ''}
+                            </div>
+                        </div>` : ''}
+
+                        <p class="info-label mb-2 uppercase tracking-widest">■ お客様からの情報（要望・状況）</p>
+                        <div class="report-box whitespace-pre-wrap">${r.content || r.customerReport || '報告なし'}</div>
+
+                        <p class="info-label mb-2 uppercase tracking-widest">■ スタッフの考え（次回提案・課題）</p>
+                        <div class="report-box border-l-4 border-orange-100 whitespace-pre-wrap">${r.staffThoughts || '未入力'}</div>
+
+                        <!-- ▼▼▼ 添付画像（新規追加）▼▼▼ -->
+                        ${renderAttachments(r.attachments, i)}
+                        <!-- ▲▲▲ 添付画像ここまで ▲▲▲ -->
+                    </div>
+                </div>`;
+            }).join('');
+
+            // ジャンプ処理（既存まま）
             const jDate = sessionStorage.getItem('cp_usage_jump_date');
             if (jDate) {
                 const targetNum = dateToNum(jDate);
-                const idx = filtered.findIndex(r => dateToNum(r.visitDate) === targetNum || dateToNum(r.nextVisitDate) === targetNum);
+                const idx = filtered.findIndex(r =>
+                    dateToNum(r.visitDate) === targetNum ||
+                    dateToNum(r.nextVisitDate) === targetNum
+                );
                 if (idx !== -1) {
                     setTimeout(() => {
                         window.toggleAcc(`acc-${idx}`);
                         const el = document.getElementById(`acc-${idx}`);
-                        if(el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         window.markAsReadOnOpen(selectedName, jDate);
                         sessionStorage.removeItem('cp_usage_jump_date');
                         sessionStorage.removeItem('cp_usage_jump_name');
-                    }, 1000);
+                    }, 800);
                 }
             }
         };
 
+        // =========================================================
+        // 既読処理（既存まま）
+        // =========================================================
         window.markAsReadOnOpen = async (visitor, date) => {
-            const myName = sessionStorage.getItem('userName') || "";
+            const myName    = sessionStorage.getItem('userName') || "";
             const targetNum = dateToNum(date);
             try {
-                const q = query(collection(db, "notifications"), where("recipient", "==", myName), where("isRead", "==", false), where("visitorName", "==", visitor));
-                const snap = await getDocs(q);
+                const q = query(
+                    collection(db, "notifications"),
+                    where("recipient",  "==", myName),
+                    where("isRead",     "==", false),
+                    where("visitorName","==", visitor)
+                );
+                const snap  = await getDocs(q);
                 const batch = writeBatch(db);
-                let count = 0;
+                let count   = 0;
                 snap.forEach(d => {
                     const nData = d.data();
-                    if (dateToNum(nData.visitDate || nData.appointDate) === targetNum) { batch.update(d.ref, { isRead: true }); count++; }
+                    if (dateToNum(nData.visitDate || nData.appointDate) === targetNum) {
+                        batch.update(d.ref, { isRead: true });
+                        count++;
+                    }
                 });
                 if (count > 0) {
                     await batch.commit();
-                    const p = date.split(/[-/]/);
+                    const p   = date.split(/[-/]/);
                     const key = `cp_cal_cache_v_ultimate_${p[0]}_${p[1].padStart(2, '0')}`;
                     sessionStorage.removeItem(key);
                 }
             } catch (e) { console.error("AutoRead Error:", e); }
         };
 
+        // =========================================================
+        // アコーディオン開閉（既存まま）
+        // =========================================================
         window.toggleAcc = (id) => {
             const item = document.getElementById(id);
-            if(!item) return;
+            if (!item) return;
             const content = item.querySelector('.accordion-content');
-            const icon = item.querySelector('.fa-chevron-down');
-            const isOpen = content.style.display === 'block';
+            const icon    = item.querySelector('.fa-chevron-down');
+            const isOpen  = content.style.display === 'block';
             content.style.display = isOpen ? 'none' : 'block';
-            if(icon) icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+            if (icon) icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
         };
 
-        init();       
+        init();
     </script>
 </body>
 </html>
