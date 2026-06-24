@@ -92,25 +92,28 @@
     <script type="module" src="common.js"></script>
     <script type="module">
         import { db } from "./common.js";
-        import { collection, getDocs, query, where, orderBy, limit }
+        import { collection, getDocs, query, where, limit }
             from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         // =========================================================
         // URLパラメータ
         // =========================================================
-        const params       = new URLSearchParams(window.location.search);
-        const customerName = params.get('name') ? decodeURIComponent(params.get('name')) : '';
+        const params   = new URLSearchParams(window.location.search);
+        const rawName  = params.get('name') ? decodeURIComponent(params.get('name')) : '';
         const customerRank = params.get('rank') ? decodeURIComponent(params.get('rank')) : '';
         const customerAttr = params.get('attr') ? decodeURIComponent(params.get('attr')) : '';
 
-        const clean   = (s) => (s || "").toString().replace(/[\s\u3000]+/g, '').trim();
+        // ▼ 表示用はそのまま・検索用はclean()でスペース除去
+        const customerName = rawName;
+        const clean = (s) => (s || "").toString().replace(/[\s\u3000]+/g, '').trim();
+        const cleanName = clean(rawName);
+
         const fmtDate = (s) => s ? String(s).replace(/-/g, '/') : '--/--/--';
 
         // =========================================================
         // ライトボックス
         // =========================================================
-        let lbImages  = [];
-        let lbCurrent = 0;
+        let lbImages = [], lbCurrent = 0;
 
         window.openLightbox = (images, startIdx) => {
             lbImages  = images;
@@ -119,30 +122,25 @@
             document.getElementById('lightbox').classList.add('active');
             document.addEventListener('keydown', handleLbKey);
         };
-
         window.closeLightbox = () => {
             document.getElementById('lightbox').classList.remove('active');
             document.getElementById('lightboxImg').src = '';
             document.removeEventListener('keydown', handleLbKey);
         };
-
         window.lbNavigate = (dir) => {
             lbCurrent = (lbCurrent + dir + lbImages.length) % lbImages.length;
             renderLightbox();
         };
-
         window.handleLightboxClick = (e) => {
             if (e.target === document.getElementById('lightbox')) window.closeLightbox();
         };
-
         function renderLightbox() {
-            document.getElementById('lightboxImg').src         = lbImages[lbCurrent].src;
+            document.getElementById('lightboxImg').src            = lbImages[lbCurrent].src;
             document.getElementById('lightboxFilename').innerText = lbImages[lbCurrent].name || '';
             document.getElementById('lightboxCounter').innerText  = lbImages.length > 1 ? `${lbCurrent + 1} / ${lbImages.length}` : '';
             document.getElementById('lbPrev').style.display = lbImages.length > 1 ? 'block' : 'none';
             document.getElementById('lbNext').style.display = lbImages.length > 1 ? 'block' : 'none';
         }
-
         function handleLbKey(e) {
             if (e.key === 'ArrowLeft')  window.lbNavigate(-1);
             if (e.key === 'ArrowRight') window.lbNavigate(1);
@@ -153,7 +151,6 @@
         // レコードごとの画像リスト
         // =========================================================
         let recordImageMap = {};
-
         window.openLightboxFromRecord = (recordIdx, imgIdx) => {
             const images = recordImageMap[recordIdx] || [];
             if (images.length) window.openLightbox(images, imgIdx);
@@ -163,12 +160,13 @@
         // init
         // =========================================================
         async function init() {
-            if (!customerName) {
+            if (!rawName) {
                 document.getElementById('historyListContainer').innerHTML =
                     '<p class="p-20 text-center text-slate-400">お客様名が正しく取得できませんでした。</p>';
                 return;
             }
 
+            // 表示用はスペースありのまま
             document.getElementById('targetCustomerName').innerText = customerName;
 
             if (customerRank || customerAttr) {
@@ -184,37 +182,56 @@
 
             try {
                 // =========================================================
-                // ▼ インデックスエラー対策：orderBy を外してJS側でソート
-                // customerName の where + visitDate の orderBy の複合インデックスが
-                // 未作成の場合にエラーになるため、orderBy を外して取得後にソート
+                // ▼ 検索戦略：
+                // ① まず完全一致（rawName）で検索
+                // ② ヒットしなければ clean済み名前で検索
+                // ③ それでもなければ全件取得してJS側でclean比較
                 // =========================================================
-                const q = query(
-                    collection(db, "activity_records"),
-                    where("customerName", "==", customerName),
-                    limit(50)
-                );
-                const snap = await getDocs(q);
 
-                if (snap.empty) {
-                    // スペース違いの名前でリトライ
-                    document.getElementById('historyListContainer').innerHTML =
-                        '<div class="py-20 text-center border-2 border-dashed border-slate-200 rounded-3xl"><p class="text-slate-300 font-black italic tracking-widest uppercase">No Activity Found for this Customer</p></div>';
-                    return;
+                let records = [];
+
+                // ① 完全一致検索
+                const snap1 = await getDocs(query(
+                    collection(db, "activity_records"),
+                    where("customerName", "==", rawName),
+                    limit(50)
+                ));
+                records = snap1.docs.map(d => ({ id: d.id, ...d.data() }));
+
+                // ② cleanした名前で再検索（スペースなし版）
+                if (records.length === 0 && cleanName !== rawName) {
+                    const snap2 = await getDocs(query(
+                        collection(db, "activity_records"),
+                        where("customerName", "==", cleanName),
+                        limit(50)
+                    ));
+                    records = snap2.docs.map(d => ({ id: d.id, ...d.data() }));
                 }
 
-                // JS側でフィルタ（名寄せ）＋日付降順ソート
-                let records = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                records = records
-                    .filter(r => clean(r.customerName) === clean(customerName))
-                    .sort((a, b) => {
-                        const da = (a.visitDate || '').replace(/\//g, '-');
-                        const db_ = (b.visitDate || '').replace(/\//g, '-');
-                        return da > db_ ? -1 : da < db_ ? 1 : 0;
-                    });
+                // ③ それでもヒットしなければ全件取得してJS側でclean比較
+                if (records.length === 0) {
+                    const snap3 = await getDocs(query(
+                        collection(db, "activity_records"),
+                        limit(500)
+                    ));
+                    records = snap3.docs
+                        .map(d => ({ id: d.id, ...d.data() }))
+                        .filter(r => clean(r.customerName) === cleanName);
+                }
+
+                // 日付降順ソート（JS側）
+                records.sort((a, b) => {
+                    const da  = (a.visitDate || '').replace(/\//g, '-');
+                    const db_ = (b.visitDate || '').replace(/\//g, '-');
+                    return da > db_ ? -1 : da < db_ ? 1 : 0;
+                });
 
                 if (!records.length) {
                     document.getElementById('historyListContainer').innerHTML =
-                        '<div class="py-20 text-center border-2 border-dashed border-slate-200 rounded-3xl"><p class="text-slate-300 font-black italic tracking-widest uppercase">No Activity Found for this Customer</p></div>';
+                        `<div class="py-20 text-center border-2 border-dashed border-slate-200 rounded-3xl">
+                            <p class="text-slate-300 font-black italic tracking-widest uppercase">No Activity Found for this Customer</p>
+                            <p class="text-slate-300 text-xs mt-2">${customerName}</p>
+                        </div>`;
                     return;
                 }
 
@@ -223,12 +240,12 @@
 
             } catch (e) {
                 console.error("履歴取得エラー:", e);
-                // エラー詳細をユーザーに表示
                 document.getElementById('historyListContainer').innerHTML = `
                     <div class="py-16 text-center border-2 border-dashed border-rose-200 rounded-3xl bg-rose-50 px-8">
                         <i class="fa-solid fa-triangle-exclamation text-rose-400 text-3xl mb-4 block"></i>
                         <p class="text-rose-500 font-black text-sm mb-2">データの読み込みに失敗しました</p>
-                        <p class="text-rose-300 font-bold text-xs">${e.message}</p>
+                        <p class="text-rose-300 font-bold text-xs mb-1">${e.message}</p>
+                        <p class="text-rose-300 font-bold text-[10px]">コード: ${e.code || '不明'}</p>
                         <button onclick="init()" class="mt-6 px-8 py-2 bg-[#004098] text-white rounded-xl font-black text-xs hover:opacity-90">
                             再読み込み
                         </button>
@@ -250,7 +267,6 @@
         // =========================================================
         function renderAttachments(attachments, recordIdx) {
             if (!attachments || !attachments.length) return '';
-
             const images = attachments
                 .filter(f => {
                     const src = f.base64 || f.url || '';
@@ -261,11 +277,8 @@
                     );
                 })
                 .map(f => ({ src: f.base64 || f.url, name: f.name || '添付画像' }));
-
             if (!images.length) return '';
-
             recordImageMap[recordIdx] = images;
-
             const thumbs = images.map((img, imgIdx) => `
                 <div class="attach-item"
                      onclick="window.openLightboxFromRecord(${recordIdx}, ${imgIdx})"
@@ -275,7 +288,6 @@
                         <i class="fa-solid fa-magnifying-glass-plus"></i>
                     </div>
                 </div>`).join('');
-
             return `
                 <div class="mt-6 p-4 bg-slate-50 rounded-2xl border border-slate-200">
                     <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">
@@ -293,7 +305,6 @@
             recordImageMap = {};
             const container = document.getElementById('historyListContainer');
             container.innerHTML = dataList.map((data, recordIdx) => {
-
                 const attachments = data.attachments || [];
                 const images = attachments
                     .filter(f => {
@@ -345,7 +356,6 @@
                                 <div class="detail-content text-slate-400 text-xs uppercase">${data.visitorDept || '不明'}</div>
                             </div>
                         </div>
-
                         <div class="mb-6">
                             <p class="detail-label mb-3">定性データ分析</p>
                             <div class="flex flex-wrap gap-2">
@@ -356,28 +366,17 @@
                                     ? '<span class="text-slate-300 text-xs font-bold italic">（未分類）</span>' : ''}
                             </div>
                         </div>
-
                         <div class="space-y-6">
                             <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100">
-                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">
-                                    ■ お客様からの情報（要望・状況）
-                                </p>
-                                <div class="detail-content whitespace-pre-wrap text-slate-700">
-                                    ${data.content || data.customerReport || '-'}
-                                </div>
+                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">■ お客様からの情報（要望・状況）</p>
+                                <div class="detail-content whitespace-pre-wrap text-slate-700">${data.content || data.customerReport || '-'}</div>
                             </div>
                             <div class="p-6 bg-orange-50/30 rounded-2xl border border-orange-100/50">
-                                <p class="text-[9px] font-black text-orange-400 uppercase tracking-widest mb-3">
-                                    ■ 自分・スタッフの考え（次回提案・課題）
-                                </p>
-                                <div class="detail-content whitespace-pre-wrap text-slate-600">
-                                    ${data.staffThoughts || '-'}
-                                </div>
+                                <p class="text-[9px] font-black text-orange-400 uppercase tracking-widest mb-3">■ 自分・スタッフの考え（次回提案・課題）</p>
+                                <div class="detail-content whitespace-pre-wrap text-slate-600">${data.staffThoughts || '-'}</div>
                             </div>
                         </div>
-
                         ${renderAttachments(data.attachments, recordIdx)}
-
                         <div class="mt-8 flex justify-end">
                             <div class="bg-[#004098] text-white px-5 py-2 rounded-xl text-xs font-black shadow-md">
                                 <i class="fa-regular fa-calendar-check mr-2"></i>
