@@ -17,7 +17,6 @@
         .detail-row:last-child { border-bottom: none; }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        /* 添付サムネイル */
         .attach-grid { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 0.75rem; }
         .attach-item { position: relative; cursor: pointer; border-radius: 0.75rem; overflow: hidden; border: 2px solid #e2e8f0; transition: all 0.2s; flex-shrink: 0; }
         .attach-item:hover { border-color: var(--copros-orange); transform: scale(1.03); box-shadow: 0 8px 20px rgba(255,126,17,0.2); }
@@ -26,7 +25,6 @@
         .attach-item:hover .attach-zoom-icon { background: rgba(0,0,0,0.35); }
         .attach-zoom-icon i { color: white; font-size: 1.2rem; opacity: 0; transition: opacity 0.2s; }
         .attach-item:hover .attach-zoom-icon i { opacity: 1; }
-        /* ライトボックス */
         .lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.93); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(8px); }
         .lightbox.active { display: flex; }
         .lightbox-img-wrap { position: relative; max-width: 94vw; max-height: 94vh; }
@@ -58,7 +56,7 @@
                         </div>
                     </div>
                     <div class="flex gap-3 w-full lg:w-auto">
-                        <button onclick="history.back()" class="flex-1 lg:flex-none px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-xs hover:bg-slate-50 shadow-sm transition-all">戻る</button>
+                        <button onclick="window.goBack()" class="flex-1 lg:flex-none px-6 py-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl font-bold text-xs hover:bg-slate-50 shadow-sm transition-all">戻る</button>
                         <button id="newRegBtn" class="flex-1 lg:flex-none px-8 py-2.5 bg-[#ff7e11] text-white rounded-xl font-black text-xs hover:shadow-lg transition-all flex items-center justify-center gap-2 active:scale-95">
                             <i class="fa-solid fa-plus"></i> このお客様の実績を書く
                         </button>
@@ -103,11 +101,9 @@
         const customerRank = params.get('rank') ? decodeURIComponent(params.get('rank')) : '';
         const customerAttr = params.get('attr') ? decodeURIComponent(params.get('attr')) : '';
 
-        // ▼ 表示用はそのまま・検索用はclean()でスペース除去
         const customerName = rawName;
         const clean = (s) => (s || "").toString().replace(/[\s\u3000]+/g, '').trim();
         const cleanName = clean(rawName);
-
         const fmtDate = (s) => s ? String(s).replace(/-/g, '/') : '--/--/--';
 
         // =========================================================
@@ -157,6 +153,18 @@
         };
 
         // =========================================================
+        // 戻る処理（省エネ＋既読同期）
+        // =========================================================
+        window.goBack = () => {
+            // ▼ カレンダーキャッシュをクリア
+            Object.keys(sessionStorage).forEach(k => {
+                if (k.startsWith('cp_cal_cache')) sessionStorage.removeItem(k);
+            });
+            
+            history.back();
+        };
+
+        // =========================================================
         // init
         // =========================================================
         async function init() {
@@ -166,7 +174,6 @@
                 return;
             }
 
-            // 表示用はスペースありのまま
             document.getElementById('targetCustomerName').innerText = customerName;
 
             if (customerRank || customerAttr) {
@@ -181,13 +188,6 @@
             };
 
             try {
-                // =========================================================
-                // ▼ 検索戦略：
-                // ① まず完全一致（rawName）で検索
-                // ② ヒットしなければ clean済み名前で検索
-                // ③ それでもなければ全件取得してJS側でclean比較
-                // =========================================================
-
                 let records = [];
 
                 // ① 完全一致検索
@@ -198,7 +198,7 @@
                 ));
                 records = snap1.docs.map(d => ({ id: d.id, ...d.data() }));
 
-                // ② cleanした名前で再検索（スペースなし版）
+                // ② cleanした名前で再検索
                 if (records.length === 0 && cleanName !== rawName) {
                     const snap2 = await getDocs(query(
                         collection(db, "activity_records"),
@@ -208,7 +208,7 @@
                     records = snap2.docs.map(d => ({ id: d.id, ...d.data() }));
                 }
 
-                // ③ それでもヒットしなければ全件取得してJS側でclean比較
+                // ③ 全件取得してJS側でclean比較
                 if (records.length === 0) {
                     const snap3 = await getDocs(query(
                         collection(db, "activity_records"),
@@ -219,7 +219,7 @@
                         .filter(r => clean(r.customerName) === cleanName);
                 }
 
-                // 日付降順ソート（JS側）
+                // 日付降順ソート
                 records.sort((a, b) => {
                     const da  = (a.visitDate || '').replace(/\//g, '-');
                     const db_ = (b.visitDate || '').replace(/\//g, '-');
