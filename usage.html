@@ -59,7 +59,6 @@
                     </div>
                     <button onclick="window.returnToCalendar()" class="px-6 py-2 bg-white border rounded-xl font-bold text-xs shadow-sm hover:bg-slate-50 transition-all">カレンダーへ戻る</button>
                 </div>
-
                 <div class="staff-selector-card p-6 mb-8">
                     <div class="flex flex-col lg:flex-row gap-4 mb-6">
                         <select id="deptFilter" onchange="window.renderStaffList()" class="scope-select min-w-[240px]">
@@ -71,7 +70,6 @@
                     </div>
                     <div id="staffList" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 max-h-[160px] overflow-y-auto custom-scrollbar p-1 text-center"></div>
                 </div>
-
                 <div id="toolArea" class="hidden">
                     <div class="summary-card shadow-lg">
                         <div><p class="text-[9px] opacity-60 font-black uppercase mb-1">訪問件数</p><p class="text-xl font-black"><span id="sumActualVisits">0</span>件</p></div>
@@ -79,17 +77,14 @@
                         <div><p class="text-[9px] opacity-60 font-black uppercase mb-1">合計滞在</p><p class="text-xl font-black"><span id="sumTime">0</span>時間</p></div>
                         <div><p class="text-[9px] opacity-60 font-black uppercase mb-1">平均滞在</p><p class="text-xl font-black"><span id="sumAvg">0</span>分</p></div>
                     </div>
-
                     <div class="bg-white p-1 rounded-2xl border mb-8 flex overflow-x-auto whitespace-nowrap custom-scrollbar">
                         <script>for(let i=1;i<=12;i++) document.write(`<button onclick="window.setMonth(${i})" id="m-btn-${i}" class="month-btn">${i}月</button>`);</script>
                     </div>
-
                     <div class="mb-20">
                         <h3 id="selectedStaffLabel" class="text-xl font-black mb-8 text-slate-800 border-l-4 border-orange-500 pl-4"></h3>
                         <div id="activityAccordion" class="space-y-4"></div>
                     </div>
                 </div>
-
                 <div id="guideMsg" class="py-20 text-center">
                     <p class="text-slate-400 font-bold tracking-widest uppercase italic">左上のリストから社員を選択してください</p>
                 </div>
@@ -114,7 +109,6 @@
         </div>
     </div>
 
-                   <!-- ... (前方のHTML/CSS部分は変更なし) ... -->
     <script type="module" src="common.js"></script>
     <script type="module">
         import { db, TARGET_DEPTS } from "./common.js";
@@ -288,7 +282,7 @@
 
             container.innerHTML = filtered.map((r, i) => {
                 const targetNum = dateToNum(r.visitDate);
-                const noti = myNotifications.find(n => clean(n.visitorName) === clean(selectedName) && dateToNum(n.visitDate) === targetNum);
+                const noti = myNotifications.find(n => clean(n.visitorName) === clean(selectedName) && dateToNum(n.visitDate || n.appointDate) === targetNum);
                 const isUnread = noti && noti.isRead === false;
                 return `
                 <div class="accordion-item" id="acc-${i}" data-visit-date="${r.visitDate}">
@@ -321,7 +315,8 @@
 
             const jDate = sessionStorage.getItem('cp_usage_jump_date');
             if (jDate) {
-                const idx = filtered.findIndex(r => dateToNum(r.visitDate) === dateToNum(jDate));
+                const targetNum = dateToNum(jDate);
+                const idx = filtered.findIndex(r => dateToNum(r.visitDate) === targetNum);
                 if (idx !== -1) { setTimeout(() => { window.toggleAcc(`acc-${idx}`); document.getElementById(`acc-${idx}`).scrollIntoView({ behavior: 'smooth', block: 'center' }); sessionStorage.removeItem('cp_usage_jump_date'); }, 800); }
             }
         };
@@ -334,26 +329,20 @@
                 const snap = await getDocs(q);
                 let targetDoc = null;
                 snap.forEach(d => { if (dateToNum(d.data().visitDate || d.data().appointDate) === targetNum) targetDoc = d; });
-                               if (targetDoc) {
+                if (targetDoc) {
                     const nextStatus = !targetDoc.data().isRead;
                     await updateDoc(targetDoc.ref, { isRead: nextStatus });
                     
-                    // 🌟 カレンダーのキャッシュをクリアして戻りフラグを立てる
+                    // 🌟 同期を確実にするためのキャッシュクリア
                     Object.keys(sessionStorage).forEach(k => { if (k.startsWith('cp_cal_cache')) sessionStorage.removeItem(k); });
                     sessionStorage.setItem('cp_return_from_usage', 'true');
-                    
-                    if (nextStatus) {
-                        btn.className = "px-6 py-2 rounded-xl font-black text-[11px] bg-slate-100 text-slate-400";
-                        btn.innerHTML = '<i class="fa-solid fa-envelope mr-2"></i>未読に戻す';
-                        badge.style.display = 'none';
-                    } else {
-                        btn.className = "px-6 py-2 rounded-xl font-black text-[11px] bg-emerald-500 text-white";
-                        btn.innerHTML = '<i class="fa-solid fa-check-double mr-2"></i>既読にする';
-                        badge.style.display = 'inline';
-                    }
+
+                    if (nextStatus) { btn.className = "px-6 py-2 rounded-xl font-black text-[11px] bg-slate-100 text-slate-400"; btn.innerHTML = '<i class="fa-solid fa-envelope mr-2"></i>未読に戻す'; badge.style.display = 'none'; }
+                    else { btn.className = "px-6 py-2 rounded-xl font-black text-[11px] bg-emerald-500 text-white"; btn.innerHTML = '<i class="fa-solid fa-check-double mr-2"></i>既読にする'; badge.style.display = 'inline'; }
                     await fetchMyNotifications();
                     window.dispatchEvent(new CustomEvent('notificationUpdated'));
                 }
+            } catch (e) { console.error(e); }
         };
 
         window.toggleAcc = (id) => {
@@ -363,7 +352,7 @@
             content.style.display = isOpen ? 'none' : 'block';
             if (icon) icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
             if (!isOpen) {
-                const idx = id.split('-')[1], btn = document.getElementById(`toggle-btn-${idx}`);
+                const idx = id.split('-')[1], btn = document.getElementById(`toggle-btn(${idx})`);
                 if (btn && btn.innerText.includes('既読にする')) window.toggleReadStatus(item.dataset.visitDate, idx);
             }
         };
