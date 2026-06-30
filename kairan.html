@@ -51,7 +51,7 @@
         </div>
     </main>
 
-       <script type="module" src="common.js"></script>
+    <script type="module" src="common.js"></script>
     <script type="module">
         import { db } from "./common.js";
         import { collection, getDocs, updateDoc, doc, writeBatch, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -59,9 +59,14 @@
         let myName = sessionStorage.getItem('userName');
         const clean = (s) => (s||"").toString().replace(/\s+/g, '');
 
-        // 🌟 カレンダーのキャッシュを消す共通関数（0埋め対応）
+        // ▼ カレンダーのキャッシュを消す共通関数（0埋め対応）
         const clearCalCache = (dateStr) => {
-            if(!dateStr) { sessionStorage.clear(); return; }
+            if(!dateStr) { 
+                Object.keys(sessionStorage).forEach(k => {
+                    if (k.startsWith('cp_cal_cache')) sessionStorage.removeItem(k);
+                });
+                return; 
+            }
             const parts = dateStr.split(/[-/]/);
             const key = `cp_cal_cache_v_ultimate_${parts[0]}_${parts[1].padStart(2, '0')}`;
             sessionStorage.removeItem(key);
@@ -72,7 +77,7 @@
             if(!myName) { container.innerHTML = '<p class="text-center py-20 text-rose-400 font-bold">ログイン情報がありません</p>'; return; }
 
             try {
-                // 🌟 最新を常に反映させるため、あえてキャッシュを使わずに取得（limit 100で省エネ）
+                // ▼ 最新を常に反映させるため、あえてキャッシュを使わずに取得（limit 100で省エネ）
                 const q = query(collection(db, "notifications"), where("recipient", "==", myName), limit(100));
                 const snap = await getDocs(q);
                 let data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -125,6 +130,7 @@
             }).join('') : '<div class="py-20 text-center border-2 border-dashed border-slate-200 rounded-3xl"><p class="text-slate-300 font-black italic tracking-widest uppercase">No review items found</p></div>';
         }
 
+        // ▼ アコーディオン開く時に既読処理
         window.toggleKairan = async (id, isRead, date) => {
             const item = document.getElementById(`item-${id}`);
             const content = item.querySelector('.accordion-content');
@@ -136,13 +142,15 @@
                     await updateDoc(doc(db, "notifications", id), { isRead: true });
                     item.classList.remove('unread');
                     const label = item.querySelector('.status-txt');
-                    label.innerText = "既読"; label.className = "status-txt status-read";
-                    // 🌟 カレンダーの記憶を消して連動
+                    label.innerText = "既読"; 
+                    label.className = "status-txt status-read";
+                    // ▼ カレンダーキャッシュをクリア
                     clearCalCache(date);
                 } catch (e) { console.error(e); }
             }
         };
 
+        // ▼ 一括処理
         window.bulkAction = async (action) => {
             const checks = document.querySelectorAll('.bulk-check:checked');
             if (!checks.length) return alert("項目にチェックを入れてください");
@@ -155,11 +163,16 @@
                 else batch.delete(ref);
             });
             await batch.commit();
-            // 🌟 確実性を期して全ての記憶を消去
-            sessionStorage.clear();
+            
+            // ▼ 一括処理後、カレンダーキャッシュを全クリア
+            Object.keys(sessionStorage).forEach(k => {
+                if (k.startsWith('cp_cal_cache')) sessionStorage.removeItem(k);
+            });
+            
             location.reload();
         };
 
+        // ▼ 個人履歴へ遷移（省エネ＋既読同期）
         window.goUsage = (name, date, customer) => {
             let m = new Date().getMonth() + 1;
             if (date) {
@@ -169,12 +182,27 @@
             sessionStorage.setItem('cp_usage_jump_name', name);
             sessionStorage.setItem('cp_usage_jump_month', m);
             sessionStorage.setItem('cp_usage_jump_customer', customer);
-            // 🌟 【最重要】日付情報をセット（これでUsageの自動展開・自動既読が発動する）
-            sessionStorage.setItem('cp_usage_jump_date', date); 
+            sessionStorage.setItem('cp_usage_jump_date', date);
+            
+            // ▼ 戻ってくるまでのフラグをセット
+            sessionStorage.setItem('cp_return_from_kairan', 'true');
+            
             location.href = 'usage.html';
         };
 
+        // ▼ usage から戻ってきた時の処理
+        async function handleReturnFromUsage() {
+            if (sessionStorage.getItem('cp_return_from_kairan') === 'true') {
+                sessionStorage.removeItem('cp_return_from_kairan');
+                // ▼ 最新データを再取得（既読状態が反映される）
+                await init();
+            }
+        }
+
         init();
+
+        // ▼ ページ表示時に戻り処理を実行
+        window.addEventListener('pageshow', handleReturnFromUsage);
     </script>
 </body>
 </html>
