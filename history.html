@@ -606,11 +606,15 @@
                 const cNames = (cDisp !== '未選択' && cDisp !== '') ? cDisp.split(/[,、\s]+/).filter(n => n.trim() !== '') : [];
                 const visitor = document.getElementById('visitorName').value;
 　　　　　　　　　if (!cNames.includes(visitor)) cNames.push(visitor);
-                await Promise.all(cNames.map(name =>
+                               await Promise.all(cNames.map(name =>
                     addDoc(collection(db, "notifications"), {
-                        recipient: name, visitorName: visitor, customerName: customer,
-                        visitDate: vDate.replace(/-/g, '/'), isRead: false,
-                        createdAt: serverTimestamp(), type: "実績回覧"
+                        recipient: name,
+                        visitorName: visitor,
+                        customerName: customer,
+                        visitDate: vDate.replace(/-/g, '/'),
+                        isRead: false,
+                        createdAt: serverTimestamp(),
+                        type: "実績回覧"
                     })
                 ));
 
