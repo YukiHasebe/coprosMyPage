@@ -540,7 +540,7 @@
         // =========================================================
         // アコーディオン開閉（既存まま）
         // =========================================================
-       window.toggleAcc = (id) => {
+      window.toggleAcc = (id) => {
     const item = document.getElementById(id);
     if (!item) return;
     const content = item.querySelector('.accordion-content');
@@ -551,9 +551,8 @@
         content.style.display = 'block';
         if (icon) icon.style.transform = 'rotate(180deg)';
         
+        const date = item.dataset.visitDate;
         const visitor = selectedName;
-        const dateEl = item.querySelector('.text-xs.font-black.opacity-60');
-        const date = dateEl ? dateEl.innerText.trim() : '';
         if (date && visitor) {
             window.markAsReadOnOpen(visitor, date);
         }
