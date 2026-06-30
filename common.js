@@ -17,11 +17,9 @@ export const db = getFirestore(app);
 // 🌟 ケコム関連部署の定義
 export const TARGET_DEPTS = ["ケコム部", "関西支店", "関東支店", "中部営業所"];
 
-// --- 省エネ・爆速同期ロジック (追加) ---
 let unsubscribeStore = null;
 /**
- * 通知のリアルタイム監視を開始する
- * 無料枠節約のため、onSnapshotを使用し、変更時のみUIを更新する
+ * 通知のリアルタイム監視
  */
 export function watchNotifications(callback) {
     const rawName = sessionStorage.getItem('userName') || "";
@@ -36,7 +34,6 @@ export function watchNotifications(callback) {
     );
 
     unsubscribeStore = onSnapshot(q, (snap) => {
-        // 🌟 サイドバー用：回覧一覧に表示されるべき未読の総数をそのままカウント
         const unreadCount = snap.size; 
         const allUnread = snap.docs.map(d => d.data());
 
@@ -50,15 +47,13 @@ export function watchNotifications(callback) {
             }
         }
         
-        // カレンダー等の個別ページ側には、全未読リストを渡す
         if (callback) callback(allUnread);
-        
         window.dispatchEvent(new CustomEvent('notificationUpdated', { detail: { count: unreadCount } }));
     }, (error) => {
         console.error("Snapshot error:", error);
     });
 }
-}
+
 // 🌟 ローディング演出の統一
 function unifyLoaders() {
     const oldLoader = document.getElementById('loading');
@@ -79,7 +74,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const currentFile = window.location.pathname.split("/").pop().split('?')[0] || 'index.html';
     const rawName = sessionStorage.getItem('userName') || "";
-    let userDept = sessionStorage.getItem('userDept') || "ALL";
     const displayName = rawName.replace(/[様殿]$/, "");
 
     if (!rawName && currentFile !== 'index.html') {
@@ -87,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    // ヘッダー注入 (変更なし)
+    // ヘッダー注入
     hp.innerHTML = `
         <header class="h-16 bg-[#3c4b5a] flex items-center justify-between px-4 lg:px-6 text-white shadow-lg shrink-0 z-50 sticky top-0">
             <div class="flex items-center gap-4">
@@ -109,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </header>
     `;
 
-    // サイドバー注入 (変更なし)
+    // サイドバー注入
     sp.innerHTML = `
         <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 z-40 hidden lg:hidden"></div>
         <aside id="main-sidebar" class="sidebar flex flex-col shrink-0 fixed lg:static inset-y-0 left-0 z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-300" style="width: 220px; background-color: #1a1a1a; color: white; height: 100vh; overflow-y: auto;">
@@ -182,7 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </aside>
     `;
 
-    // --- 既存のUIロジック (維持) ---
+    // UIロジック
     const ms = document.getElementById('main-sidebar'), so = document.getElementById('sidebar-overlay'), mt = document.getElementById('mobile-toggle');
     const ts = (o) => { if(ms) ms.classList.toggle('-translate-x-full', !o); if(so) so.classList.toggle('hidden', !o); };
     if (mt) mt.onclick = () => ts(true); if (so) so.onclick = () => ts(false);
@@ -217,11 +211,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const lo = document.getElementById('logout-btn');
     if(lo) lo.onclick = () => { if(confirm("ログアウトしますか？")){ sessionStorage.clear(); location.href = 'index.html'; } };
 
-    // --- 監視開始 ---
+    // 監視開始
     watchNotifications();
 });
 
-// ブラウザの「戻る」で戻ってきたときにリアルタイム監視を再起動
-window.addEventListener('pageshow', (event) => {
+window.addEventListener('pageshow', () => {
     watchNotifications();
 });
