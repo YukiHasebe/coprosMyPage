@@ -328,7 +328,12 @@
                 const q = query(collection(db, "notifications"), where("recipient", "==", myName), where("visitorName", "==", selectedName));
                 const snap = await getDocs(q);
                 let targetDoc = null;
-                snap.forEach(d => { if (dateToNum(d.data().visitDate || d.data().appointDate) === targetNum) targetDoc = d; });
+                               snap.forEach(d => { 
+                    const nData = d.data();
+                    if (dateToNum(nData.visitDate || nData.appointDate) === targetNum && clean(nData.customerName) === clean(currentStaffRecords[index].customerName)) {
+                        targetDoc = d;
+                    }
+                });
                 if (targetDoc) {
                     const nextStatus = !targetDoc.data().isRead;
                     await updateDoc(targetDoc.ref, { isRead: nextStatus });
