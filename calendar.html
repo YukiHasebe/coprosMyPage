@@ -186,7 +186,7 @@
                 if (document.getElementById('showApp').checked && appMap[targetNum]) {
                     appMap[targetNum].forEach(a => {
                         if (selCleans.length > 0 && !selCleans.includes(clean(a.visitorName))) return;
-                        const hasNoti = notiMap[targetNum]?.some(n => clean(n.visitorName) === clean(a.visitorName) && n.type.includes("アポ"));
+                       const hasNoti = notiMap[targetNum]?.some(n => clean(n.visitorName) === clean(a.visitorName) && clean(n.customerName) === clean(a.customerName) && n.type.includes("アポ"));
                         if (showUnread && !hasNoti) return;
                         const badge = hasNoti ? `<span class="inline-block w-2 h-2 rounded-full bg-rose-500 mr-1 animate-pulse"></span>` : "";
                         evHtml += `<div class="event-item"><div class="event-label label-appoint" onclick="window.handleAppoint('${a.id}','${a.customerName}','${a.appointDate}','${a.subject}')">${badge}${a.visitorName}: ${a.customerName}</div></div>`;
