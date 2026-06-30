@@ -334,15 +334,26 @@
                 const snap = await getDocs(q);
                 let targetDoc = null;
                 snap.forEach(d => { if (dateToNum(d.data().visitDate || d.data().appointDate) === targetNum) targetDoc = d; });
-                if (targetDoc) {
+                               if (targetDoc) {
                     const nextStatus = !targetDoc.data().isRead;
                     await updateDoc(targetDoc.ref, { isRead: nextStatus });
-                    if (nextStatus) { btn.className = "px-6 py-2 rounded-xl font-black text-[11px] bg-slate-100 text-slate-400"; btn.innerHTML = '<i class="fa-solid fa-envelope mr-2"></i>未読に戻す'; badge.style.display = 'none'; }
-                    else { btn.className = "px-6 py-2 rounded-xl font-black text-[11px] bg-emerald-500 text-white"; btn.innerHTML = '<i class="fa-solid fa-check-double mr-2"></i>既読にする'; badge.style.display = 'inline'; }
+                    
+                    // 🌟 カレンダーのキャッシュをクリアして戻りフラグを立てる
+                    Object.keys(sessionStorage).forEach(k => { if (k.startsWith('cp_cal_cache')) sessionStorage.removeItem(k); });
+                    sessionStorage.setItem('cp_return_from_usage', 'true');
+                    
+                    if (nextStatus) {
+                        btn.className = "px-6 py-2 rounded-xl font-black text-[11px] bg-slate-100 text-slate-400";
+                        btn.innerHTML = '<i class="fa-solid fa-envelope mr-2"></i>未読に戻す';
+                        badge.style.display = 'none';
+                    } else {
+                        btn.className = "px-6 py-2 rounded-xl font-black text-[11px] bg-emerald-500 text-white";
+                        btn.innerHTML = '<i class="fa-solid fa-check-double mr-2"></i>既読にする';
+                        badge.style.display = 'inline';
+                    }
                     await fetchMyNotifications();
                     window.dispatchEvent(new CustomEvent('notificationUpdated'));
                 }
-            } catch (e) { console.error(e); }
         };
 
         window.toggleAcc = (id) => {
