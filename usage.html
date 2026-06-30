@@ -114,7 +114,7 @@
         </div>
     </div>
 
-    <script type="module" src="common.js"></script>
+       <script type="module" src="common.js"></script>
     <script type="module">
         import { db, TARGET_DEPTS } from "./common.js";
         import { collection, getDocs, query, where, orderBy, limit, writeBatch }
@@ -454,6 +454,8 @@
         window.markAsReadOnOpen = async (visitor, date) => {
             const myName    = sessionStorage.getItem('userName') || "";
             const targetNum = dateToNum(date);
+            if (!myName || !visitor || !targetNum) return;
+
             try {
                 const q = query(
                     collection(db, "notifications"),
@@ -462,6 +464,8 @@
                     where("visitorName","==", visitor)
                 );
                 const snap  = await getDocs(q);
+                if (snap.empty) return;
+
                 const batch = writeBatch(db);
                 let count   = 0;
                 snap.forEach(d => {
@@ -473,6 +477,8 @@
                 });
                 if (count > 0) {
                     await batch.commit();
+                    // 他のページ（カレンダー等）へ同期を促す
+                    window.dispatchEvent(new CustomEvent('notificationUpdated'));
                 }
             } catch (e) { console.error("AutoRead Error:", e); }
         };
@@ -499,17 +505,13 @@
             }
         };
 
-        // ▼ 【最重要】カレンダーへ戻る（notifications更新なし・キャッシュクリアのみ）
         window.returnToCalendar = () => {
             Object.keys(sessionStorage).forEach(k => {
                 if (k.startsWith('cp_cal_cache')) sessionStorage.removeItem(k);
             });
-            
             sessionStorage.setItem('cp_return_from_usage', 'true');
             location.href = 'calendar.html';
         };
 
         init();
     </script>
-</body>
-</html>
