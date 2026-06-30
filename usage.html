@@ -564,7 +564,6 @@
 
         // ▼ 新規追加（カレンダーへ戻る処理）
 window.returnToCalendar = async () => {
-    // ▼ 現在のユーザーと選択中の社員の全未読 notifications を既読に
     const myName = sessionStorage.getItem('userName') || "";
     const visitor = selectedName;
     
@@ -583,12 +582,12 @@ window.returnToCalendar = async () => {
         } catch (e) { console.error(e); }
     }
     
-    // カレンダーのキャッシュをクリア
-    const y = new Date().getFullYear();
-    const m = (new Date().getMonth() + 1).toString().padStart(2, '0');
-    sessionStorage.removeItem(`cp_cal_cache_v_ultimate_${y}_${m}`);
-    sessionStorage.setItem('cp_return_from_usage', 'true');
+    // ▼ 修正：全てのカレンダーキャッシュをクリア
+    Object.keys(sessionStorage).forEach(k => {
+        if (k.startsWith('cp_cal_cache')) sessionStorage.removeItem(k);
+    });
     
+    sessionStorage.setItem('cp_return_from_usage', 'true');
     location.href = 'calendar.html';
 };
         init();
