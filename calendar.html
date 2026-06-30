@@ -107,12 +107,13 @@
                 }
                 window.updateSelectedDisplay();
                 
-                // 🌟 【省エネ・爆速】通知の変更をリアルタイム監視
-                watchNotifications(async (count) => {
+                // 🌟 【爆速同期の心臓】
+                watchNotifications(async () => {
+                    // 通知の状態がFirestore側で変わったら、即座に通知リストだけを取り直して再描画
                     const qN = query(collection(db, "notifications"), where("recipient", "==", myName), where("isRead", "==", false));
                     const snapN = await getDocs(qN);
                     loadedData.notifications = snapN.docs.map(d => d.data());
-                    window.renderCalendar(); // 通知リストだけ入れ替えてバッチを即座に再描画
+                    window.renderCalendar(); // バッチ描画のみ実行
                 });
 
                 await window.fetchMonthData();
@@ -158,8 +159,10 @@
             const showUnread = document.getElementById('showUnreadOnly').checked;
             const recMap = {}, appMap = {}, notiMap = {};
             
+            // マップ作成
             loadedData.records.forEach(r => { const d = dateToNum(r.visitDate); if(!recMap[d]) recMap[d]=[]; recMap[d].push(r); });
             loadedData.appoints.forEach(a => { const d = dateToNum(a.appointDate); if(!appMap[d]) appMap[d]=[]; appMap[d].push(a); });
+            // 🌟 通知マップ (isRead: false のものだけが入っている)
             loadedData.notifications.forEach(n => { const d = dateToNum(n.visitDate || n.appointDate); if(!notiMap[d]) notiMap[d]=[]; notiMap[d].push(n); });
 
             for(let d=1; d<=daysInMonth; d++) {
@@ -172,19 +175,26 @@
                         if (selCleans.length > 0 && !selCleans.includes(clean(r.visitorName))) return;
                         const uKey = `res-${clean(r.visitorName)}-${clean(r.customerName)}`;
                         if (processedKeys.has(uKey)) return;
-                        const hasNoti = notiMap[targetNum]?.some(n => clean(n.visitorName) === clean(r.visitorName) && n.type.includes("実績"));
+
+                        // 🌟 【修正】バッジ判定：通知リスト(isRead:false)の中に、この「日付」と「訪問者名」が一致するものがあるか？
+                        const hasNoti = notiMap[targetNum]?.some(n => 
+                            clean(n.visitorName) === clean(r.visitorName) && n.type.includes("実績")
+                        );
+
                         if (showUnread && !hasNoti) return;
                         const badge = hasNoti ? `<span class="inline-block w-2 h-2 rounded-full bg-rose-500 mr-1 animate-pulse"></span>` : "";
                         evHtml += `<div class="event-item"><div class="event-label label-result" onclick="window.goUsage('${r.visitorName}', ${month+1}, '${r.customerName}', '${targetKey}')">${badge}${r.visitorName}: ${r.customerName}</div></div>`;
                         processedKeys.add(uKey);
                     });
                 }
+                // 次回予定 (バッジなし)
                 if (document.getElementById('showNext').checked && !showUnread) {
                     loadedData.records.filter(r => dateToNum(r.nextVisitDate) === targetNum).forEach(r => {
                         if (selCleans.length > 0 && !selCleans.includes(clean(r.visitorName))) return;
                         evHtml += `<div class="event-item"><div class="event-label label-next" onclick="window.goUsage('${r.visitorName}', ${month+1}, '${r.customerName}', '${targetKey}')">${r.visitorName}: ${r.customerName}</div></div>`;
                     });
                 }
+                // アポイント (バッジあり)
                 if (document.getElementById('showApp').checked && appMap[targetNum]) {
                     appMap[targetNum].forEach(a => {
                         if (selCleans.length > 0 && !selCleans.includes(clean(a.visitorName))) return;
@@ -198,6 +208,7 @@
             }
         };
 
+        // --- 以下、モーダル・ジャンプ等は変更なし ---
         window.openStaffModal = () => { document.getElementById('staffModal').style.display = 'flex'; window.renderModalList(); };
         window.closeModal = () => { document.getElementById('staffModal').style.display = 'none'; };
         window.renderModalList = () => {
