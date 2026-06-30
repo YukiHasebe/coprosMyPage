@@ -569,65 +569,69 @@
             btns.forEach(b => { b.disabled = true; b.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>保存中...'; });
 
             try {
-                const customer     = document.getElementById('customerSearch').value;
-               
-                const vDate        = document.getElementById('visitDate').value;
-                const customerRank = document.getElementById('autoRank').value || '';
-                const customerAttr = document.getElementById('autoType').value  || '';
-                const staffEntry   = allStaffs.find(s => clean(s.name) === clean(visitor));
-                const vDept        = staffEntry ? staffEntry.dept : (sessionStorage.getItem('userDept') || "ケコム部");
+    const customer     = document.getElementById('customerSearch').value;
+    const visitor      = document.getElementById('visitorName').value;  // ← 追加
+    const vDate        = document.getElementById('visitDate').value;
+    const customerRank = document.getElementById('autoRank').value || '';
+    const customerAttr = document.getElementById('autoType').value  || '';
+    const staffEntry   = allStaffs.find(s => clean(s.name) === clean(visitor));
+    const vDept        = staffEntry ? staffEntry.dept : (sessionStorage.getItem('userDept') || "ケコム部");
 
-                const attachments = selectedFiles.map(f => ({
-                    name:   f.name,
-                    base64: f.base64,
-                    type:   'image/jpeg'
-                }));
+    const attachments = selectedFiles.map(f => ({
+        name:   f.name,
+        base64: f.base64,
+        type:   'image/jpeg'
+    }));
 
-                const blocks = document.querySelectorAll('.report-block');
-                await Promise.all([...blocks].map(b =>
-                    addDoc(collection(db, "activity_records"), {
-                        customerName:  customer,
-                        customerRank:  customerRank,
-                        customerAttr:  customerAttr,
-                        attachments:   attachments,
-                        visitDate:     vDate.replace(/-/g, '/'),
-                        visitorName:   visitor,
-                        visitorDept:   vDept,
-                        startTime:     document.getElementById('startTime').value  || "00:00",
-                        endTime:       document.getElementById('endTime').value    || "00:00",
-                        content:       b.querySelector('.customer-report').value,
-                        nextVisitDate: (document.getElementById('nextVisitDate').value || "").replace(/-/g, '/'),
-                        staffThoughts: b.querySelector('.staff-thoughts').value,
-                        createdAt:     serverTimestamp()
-                    })
-                ));
+    const blocks = document.querySelectorAll('.report-block');
+    await Promise.all([...blocks].map(b =>
+        addDoc(collection(db, "activity_records"), {
+            customerName:  customer,
+            customerRank:  customerRank,
+            customerAttr:  customerAttr,
+            attachments:   attachments,
+            visitDate:     vDate.replace(/-/g, '/'),
+            visitorName:   visitor,
+            visitorDept:   vDept,
+            startTime:     document.getElementById('startTime').value  || "00:00",
+            endTime:       document.getElementById('endTime').value    || "00:00",
+            content:       b.querySelector('.customer-report').value,
+            nextVisitDate: (document.getElementById('nextVisitDate').value || "").replace(/-/g, '/'),
+            staffThoughts: b.querySelector('.staff-thoughts').value,
+            createdAt:     serverTimestamp()
+        })
+    ));
 
-                const cDisp  = document.getElementById('circularDisplay').innerText;
-                const cNames = (cDisp !== '未選択' && cDisp !== '') ? cDisp.split(/[,、\s]+/).filter(n => n.trim() !== '') : [];
-                const visitor = document.getElementById('visitorName').value;
-　　　　　　　　　if (!cNames.includes(visitor)) cNames.push(visitor);
-                               await Promise.all(cNames.map(name =>
-                    addDoc(collection(db, "notifications"), {
-                        recipient: name,
-                        visitorName: visitor,
-                        customerName: customer,
-                        visitDate: vDate.replace(/-/g, '/'),
-                        isRead: false,
-                        createdAt: serverTimestamp(),
-                        type: "実績回覧"
-                    })
-                ));
+    const cDisp  = document.getElementById('circularDisplay').innerText;
+    let cNames = (cDisp !== '未選択' && cDisp !== '') 
+        ? cDisp.split(/[,、\s]+/).filter(n => n.trim() !== '') 
+        : [];
+    
+    // 登録者を回覧者に追加
+    if (!cNames.includes(visitor)) cNames.push(visitor);
+    
+    await Promise.all(cNames.map(name =>
+        addDoc(collection(db, "notifications"), {
+            recipient: name,
+            visitorName: visitor,
+            customerName: customer,
+            visitDate: vDate.replace(/-/g, '/'),
+            isRead: false,
+            createdAt: serverTimestamp(),
+            type: "実績回覧"
+        })
+    ));
 
-                const [y, m] = vDate.split('-');
-                sessionStorage.removeItem(`cp_cal_cache_v_ultimate_${y}_${m.padStart(2, '0')}`);
-                Object.keys(sessionStorage).filter(k => k.startsWith('cp_records_')).forEach(k => sessionStorage.removeItem(k));
+    const [y, m] = vDate.split('-');
+    sessionStorage.removeItem(`cp_cal_cache_v_ultimate_${y}_${m.padStart(2, '0')}`);
+    Object.keys(sessionStorage).filter(k => k.startsWith('cp_records_')).forEach(k => sessionStorage.removeItem(k));
 
-                alert("登録完了！");
-                location.href = 'list_records.html';
-            } catch (e) {
-                alert("保存エラー: " + e.message);
-                btns.forEach(b => { b.disabled = false; b.innerHTML = '登録を実行'; });
-            }
+    alert("登録完了！");
+    location.href = 'calendar.html';
+} catch (e) {
+    alert("保存エラー: " + e.message);
+    btns.forEach(b => { b.disabled = false; b.innerHTML = '登録を実行'; });
+}
         };
 
         init();
