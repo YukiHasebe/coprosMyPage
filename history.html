@@ -607,9 +607,6 @@
         ? cDisp.split(/[,、\s]+/).filter(n => n.trim() !== '') 
         : [];
     
-    // 登録者を回覧者に追加
-    if (!cNames.includes(visitor)) cNames.push(visitor);
-    
     await Promise.all(cNames.map(name =>
         addDoc(collection(db, "notifications"), {
             recipient: name,
