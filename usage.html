@@ -420,10 +420,10 @@
                 }).length;
             };
 
-            container.innerHTML = filtered.map((r, i) => {
-                const imgCount = getImageCount(r.attachments);
-                return `
-                <div class="accordion-item" id="acc-${i}">
+           container.innerHTML = filtered.map((r, i) => {
+    const imgCount = getImageCount(r.attachments);
+    return `
+    <div class="accordion-item" id="acc-${i}" data-visit-date="${r.visitDate}">
                     <div class="accordion-header" onclick="window.toggleAcc('acc-${i}')">
                         <div class="flex items-center gap-4 flex-wrap">
                             <span class="text-xs font-black opacity-60 bg-white/10 px-3 py-1 rounded-full">
