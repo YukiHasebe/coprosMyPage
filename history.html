@@ -604,6 +604,8 @@
 
                 const cDisp  = document.getElementById('circularDisplay').innerText;
                 const cNames = (cDisp !== '未選択' && cDisp !== '') ? cDisp.split(/[,、\s]+/).filter(n => n.trim() !== '') : [];
+                const visitor = document.getElementById('visitorName').value;
+　　　　　　　　　if (!cNames.includes(visitor)) cNames.push(visitor);
                 await Promise.all(cNames.map(name =>
                     addDoc(collection(db, "notifications"), {
                         recipient: name, visitorName: visitor, customerName: customer,
