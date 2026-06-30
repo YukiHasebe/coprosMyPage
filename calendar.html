@@ -82,9 +82,6 @@
         import { db, TARGET_DEPTS } from "./common.js";
         import { collection, getDocs, query, where, doc, updateDoc, writeBatch, deleteDoc, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // =========================================================
-        // 定数・状態管理
-        // =========================================================
         let allStaffs = [], selectedStaffs = JSON.parse(localStorage.getItem('cp_cal_selected_staffs') || "[]");
         let loadedData = { records: [], appoints: [], notifications: [] };
         let currentDate = new Date();
@@ -104,9 +101,6 @@
             return d.length < 3 ? s : `${d[0]}-${d[1].padStart(2, '0')}-${d[2].padStart(2, '0')}`;
         };
 
-        // =========================================================
-        // init
-        // =========================================================
         async function init() {
             try {
                 window.renderCalendar();
@@ -118,26 +112,33 @@
                     sessionStorage.setItem('cp_cache_staffs', JSON.stringify(allStaffs));
                 }
                 window.updateSelectedDisplay();
+                
+                // ▼ usage から戻ってきた場合を優先処理
+                if (sessionStorage.getItem('cp_return_from_usage') === 'true') {
+                    sessionStorage.removeItem('cp_return_from_usage');
+                    await window.fetchMonthData(true);
+                    return;
+                }
+                
                 await window.fetchMonthData();
             } catch (e) { console.error(e); }
         }
 
-        // =========================================================
-        // fetchMonthData（省エネキャッシュ対応）
-        // =========================================================
         window.fetchMonthData = async (force = false) => {
             const y = currentDate.getFullYear(), m = currentDate.getMonth() + 1, mStr = m.toString().padStart(2, '0');
             const cacheKey = `cp_cal_cache_v_ultimate_${y}_${mStr}`;
             document.getElementById('displayMonthCenter').innerText = `${y}年 ${m}月`;
             document.querySelectorAll('.month-btn').forEach(b => b.classList.toggle('active', b.id === `m-btn-${m}`));
 
-            const cached = sessionStorage.getItem(cacheKey);
-            if (cached && !force) { loadedData = JSON.parse(cached); window.renderCalendar(); return; }
+            // ▼ force = true の時は絶対にキャッシュを使わない
+            if (!force) {
+                const cached = sessionStorage.getItem(cacheKey);
+                if (cached) { loadedData = JSON.parse(cached); window.renderCalendar(); return; }
+            }
 
             const loader = document.getElementById('local-loader');
             if(loader) loader.style.display = 'flex';
             try {
-                // ▼ 複数クエリを並列実行（爆速）
                 const qR = query(collection(db, "activity_records"), where("visitDate", ">=", `${y}/${mStr}/01`), where("visitDate", "<=", `${y}/${mStr}/31`), limit(800));
                 const qA = query(collection(db, "appointments"), where("appointDate", ">=", `${y}-${mStr}-01`), where("appointDate", "<=", `${y}-${mStr}-31`), limit(500));
                 const qN = query(collection(db, "notifications"), where("recipient", "==", myName), where("isRead", "==", false));
@@ -149,7 +150,7 @@
                 loadedData = { 
                     records: snapR.docs.map(d => d.data()),
                     appoints: snapA.docs.map(d => ({id: d.id, ...d.data()})),
-                    notifications: snapN.docs.map(d => d.data()) 
+                    notifications: snapN.docs.map(d => d.data())
                 };
                 sessionStorage.setItem(cacheKey, JSON.stringify(loadedData));
                 if(loader) loader.style.display = 'none';
@@ -157,9 +158,6 @@
             } catch (e) { console.error(e); if(loader) loader.style.display = 'none'; }
         };
 
-        // =========================================================
-        // renderCalendar（既読・未読完全同期版）
-        // =========================================================
         window.renderCalendar = () => {
             const grid = document.getElementById('calendarGrid'); grid.innerHTML = "";
             const year = currentDate.getFullYear(), month = currentDate.getMonth();
@@ -182,14 +180,13 @@
                 let evHtml = "";
                 let processedKeys = new Set(); 
 
-                // ▼ 実績表示（既読・未読完全同期）
                 if (document.getElementById('showRes').checked && recMap[targetNum]) {
                     recMap[targetNum].forEach(r => {
                         if (selCleans.length > 0 && !selCleans.includes(clean(r.visitorName))) return;
                         const uKey = `res-${clean(r.visitorName)}-${clean(r.customerName)}`;
                         if (processedKeys.has(uKey)) return;
                         
-                        // ▼ 未読判定：notifications にあるか、または自分が登録者か
+                        // ▼ 【最重要】notifications OR 自分が登録者
                         const hasNoti = notiMap[targetNum]?.some(n => 
                             clean(n.visitorName) === clean(r.visitorName) && 
                             n.type.includes("実績")
@@ -202,7 +199,6 @@
                     });
                 }
                 
-                // ▼ 次回訪問予定表示
                 if (document.getElementById('showNext').checked && !showUnread) {
                     loadedData.records.filter(r => dateToNum(r.nextVisitDate) === targetNum).forEach(r => {
                         if (selCleans.length > 0 && !selCleans.includes(clean(r.visitorName))) return;
@@ -210,7 +206,6 @@
                     });
                 }
                 
-                // ▼ アポイント表示（既読・未読完全同期）
                 if (document.getElementById('showApp').checked && appMap[targetNum]) {
                     appMap[targetNum].forEach(a => {
                         if (selCleans.length > 0 && !selCleans.includes(clean(a.visitorName))) return;
@@ -225,9 +220,6 @@
             }
         };
 
-        // =========================================================
-        // モーダル処理
-        // =========================================================
         window.openStaffModal = () => { document.getElementById('staffModal').style.display = 'flex'; window.renderModalList(); };
         window.closeModal = () => { document.getElementById('staffModal').style.display = 'none'; };
         window.renderModalList = () => {
@@ -243,16 +235,8 @@
             if (!selectedStaffs.length) { container.innerHTML = '<span class="text-slate-300 italic text-xs font-black uppercase">表示する社員を選択してください</span>'; return; }
             container.innerHTML = selectedStaffs.map(name => `<div class="staff-tag"><span>${name}</span><i class="fa-solid fa-circle-xmark remove-staff-x" onclick="window.removeStaff('${name}')"></i></div>`).join('');
         };
-        window.removeStaff = (name) => { 
-            selectedStaffs = selectedStaffs.filter(n => n !== name); 
-            localStorage.setItem('cp_cal_selected_staffs', JSON.stringify(selectedStaffs)); 
-            window.updateSelectedDisplay(); 
-            window.renderCalendar(); 
-        };
+        window.removeStaff = (name) => { selectedStaffs = selectedStaffs.filter(n => n !== name); localStorage.setItem('cp_cal_selected_staffs', JSON.stringify(selectedStaffs)); window.updateSelectedDisplay(); window.renderCalendar(); };
 
-        // =========================================================
-        // ページ遷移
-        // =========================================================
         window.goUsage = (name, month, customer, date) => { sessionStorage.setItem('cp_usage_jump_name', name); sessionStorage.setItem('cp_usage_jump_month', month); sessionStorage.setItem('cp_usage_jump_customer', customer); sessionStorage.setItem('cp_usage_jump_date', date); location.href = 'usage.html'; };
         window.goDailyReport = (date) => { sessionStorage.setItem('cp_daily_date', date); location.href = 'daily_report.html'; };
         window.goAddHistory = (date) => { sessionStorage.setItem('cp_add_date', date); location.href = 'history.html'; };
@@ -264,22 +248,7 @@
         window.changeMonth = (v) => { currentDate.setMonth(currentDate.getMonth() + v); window.fetchMonthData(); };
         window.jumpMonth = (m) => { currentDate.setMonth(m - 1); window.fetchMonthData(); };
 
-        // =========================================================
-        // usage から戻ってきた時の処理（省エネ＋既読同期）
-        // =========================================================
-        async function handleReturnFromUsage() {
-            if (sessionStorage.getItem('cp_return_from_usage') === 'true') {
-                sessionStorage.removeItem('cp_return_from_usage');
-                // ▼ キャッシュは usage.html で既に削除済み
-                // ▼ 最新データを取得（既読状態が反映される）
-                await window.fetchMonthData(true);
-            }
-        }
-
         init();
-
-        // ▼ ページ表示時に戻り処理を実行
-        window.addEventListener('pageshow', handleReturnFromUsage);
     </script>
 </body>
 </html>
