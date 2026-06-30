@@ -602,11 +602,13 @@
         })
     ));
 
-    const cDisp  = document.getElementById('circularDisplay').innerText;
-    let cNames = (cDisp !== '未選択' && cDisp !== '') 
-        ? cDisp.split(/[,、\s]+/).filter(n => n.trim() !== '') 
-        : [];
-    
+   const cDisp  = document.getElementById('circularDisplay').innerText;
+let cNames = (cDisp !== '未選択' && cDisp !== '') 
+    ? cDisp.split(/[,、\s]+/).filter(n => n.trim() !== '') 
+    : [];
+
+// ▼ 回覧者がいる場合のみ notifications を作成
+if (cNames.length > 0) {
     await Promise.all(cNames.map(name =>
         addDoc(collection(db, "notifications"), {
             recipient: name,
@@ -618,7 +620,7 @@
             type: "実績回覧"
         })
     ));
-
+　　}
     const [y, m] = vDate.split('-');
     sessionStorage.removeItem(`cp_cal_cache_v_ultimate_${y}_${m.padStart(2, '0')}`);
     Object.keys(sessionStorage).filter(k => k.startsWith('cp_records_')).forEach(k => sessionStorage.removeItem(k));
