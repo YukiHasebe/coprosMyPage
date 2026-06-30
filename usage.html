@@ -59,7 +59,7 @@
                         <h1 class="text-4xl font-black text-slate-800 tracking-tighter">組織員利用状況</h1>
                         <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic mt-1">Staff Activity Dashboard</nav>
                     </div>
-                    <button onclick="location.href='calendar.html'" class="px-6 py-2 bg-white border rounded-xl font-bold text-xs shadow-sm hover:bg-slate-50 transition-all">カレンダーへ戻る</button>
+                    <button onclick="window.returnToCalendar()" class="px-6 py-2 bg-white border rounded-xl font-bold text-xs shadow-sm hover:bg-slate-50 transition-all">カレンダーへ戻る</button>
                 </div>
 
                 <!-- 社員選択カード -->
@@ -548,6 +548,19 @@
             const isOpen  = content.style.display === 'block';
             content.style.display = isOpen ? 'none' : 'block';
             if (icon) icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+        };
+
+        // ▼ 新規追加（カレンダーへ戻る処理）
+        window.returnToCalendar = () => {
+            // ▼ 既読処理完了後、カレンダーのキャッシュをクリア
+            const y = new Date().getFullYear();
+            const m = (new Date().getMonth() + 1).toString().padStart(2, '0');
+            sessionStorage.removeItem(`cp_cal_cache_v_ultimate_${y}_${m}`);
+            
+            // ▼ flagをセット（calendar.html で検出）
+            sessionStorage.setItem('cp_return_from_usage', 'true');
+            
+            location.href = 'calendar.html';
         };
 
         init();
