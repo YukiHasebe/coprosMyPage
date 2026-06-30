@@ -107,13 +107,12 @@
                 }
                 window.updateSelectedDisplay();
                 
-                // 🌟 【爆速同期の心臓】
-                watchNotifications(async () => {
-                    // 通知の状態がFirestore側で変わったら、即座に通知リストだけを取り直して再描画
-                    const qN = query(collection(db, "notifications"), where("recipient", "==", myName), where("isRead", "==", false));
-                    const snapN = await getDocs(qN);
-                    loadedData.notifications = snapN.docs.map(d => d.data());
-                    window.renderCalendar(); // バッチ描画のみ実行
+                               // 🌟 【爆速同期の心臓】
+                watchNotifications((allUnreadList) => {
+                    // common.js側で取得済みの「全未読データ」をそのままセット
+                    loadedData.notifications = allUnreadList;
+                    // カレンダーの赤い点（バッジ）のみを再描画
+                    window.renderCalendar();
                 });
 
                 await window.fetchMonthData();
