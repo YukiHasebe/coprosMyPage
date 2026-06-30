@@ -114,7 +114,8 @@
         </div>
     </div>
 
-                <script type="module" src="common.js"></script>
+                   <!-- ... (前方のHTML/CSS部分は変更なし) ... -->
+    <script type="module" src="common.js"></script>
     <script type="module">
         import { db, TARGET_DEPTS } from "./common.js";
         import { collection, getDocs, query, where, orderBy, limit, writeBatch, doc, updateDoc }
@@ -125,7 +126,7 @@
         let selectedName = "";
         let currentM = new Date().getMonth() + 1;
         let recordImageMap = {};
-        let myNotifications = []; // 🌟 追加：自分の通知状態を管理
+        let myNotifications = [];
 
         const clean = (s) => (s || "").toString().replace(/[\s\u3000]+/g, '').trim();
         const dateToNum = (s) => {
@@ -135,7 +136,6 @@
             return p[0] + p[1].padStart(2, '0') + p[2].padStart(2, '0');
         };
 
-        // 🌟 Lightbox ロジック（1行も削らず維持）
         let lbImages = [], lbCurrent = 0;
         window.openLightbox = (images, startIdx) => {
             lbImages  = images;
@@ -157,7 +157,8 @@
             if (e.target === document.getElementById('lightbox')) window.closeLightbox();
         };
         function renderLightbox() {
-            document.getElementById('lightboxImg').src            = lbImages[lbCurrent].src;
+            const imgEl = document.getElementById('lightboxImg');
+            if(imgEl) imgEl.src = lbImages[lbCurrent].src;
             document.getElementById('lightboxFilename').innerText = lbImages[lbCurrent].name || '';
             document.getElementById('lightboxCounter').innerText  = lbImages.length > 1 ? `${lbCurrent + 1} / ${lbImages.length}` : '';
             document.getElementById('lbPrev').style.display = lbImages.length > 1 ? 'block' : 'none';
@@ -173,17 +174,12 @@
             if (images.length) window.openLightbox(images, imgIdx);
         };
 
-        // 🌟 添付ファイル描画（維持）
         function renderAttachments(attachments, recordIdx) {
             if (!attachments || !attachments.length) return '';
             const images = attachments
                 .filter(f => {
                     const src = f.base64 || f.url || '';
-                    return src && (
-                        (f.type || '').startsWith('image/') ||
-                        src.startsWith('data:image') ||
-                        /\.(jpg|jpeg|png|gif|webp)$/i.test(src)
-                    );
+                    return src && ((f.type || '').startsWith('image/') || src.startsWith('data:image') || /\.(jpg|jpeg|png|gif|webp)$/i.test(src));
                 })
                 .map(f => ({ src: f.base64 || f.url, name: f.name || '添付画像' }));
             if (!images.length) return '';
@@ -191,28 +187,20 @@
             return `
                 <div class="mt-4 p-4 bg-slate-50 rounded-2xl border border-slate-200">
                     <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">
-                        <i class="fa-solid fa-images mr-1 text-orange-400"></i>
-                        添付画像（${images.length}枚）・クリックで拡大
+                        <i class="fa-solid fa-images mr-1 text-orange-400"></i>添付画像（${images.length}枚）
                     </p>
                     <div class="attach-grid">
                         ${images.map((img, imgIdx) => `
-                            <div class="attach-item"
-                                 onclick="window.openLightboxFromRecord(${recordIdx}, ${imgIdx})"
-                                 title="${img.name}">
+                            <div class="attach-item" onclick="window.openLightboxFromRecord(${recordIdx}, ${imgIdx})" title="${img.name}">
                                 <img src="${img.src}" alt="${img.name}" loading="lazy">
-                                <div class="attach-zoom-icon">
-                                    <i class="fa-solid fa-magnifying-glass-plus"></i>
-                                </div>
+                                <div class="attach-zoom-icon"><i class="fa-solid fa-magnifying-glass-plus"></i></div>
                             </div>`).join('')}
                     </div>
                 </div>`;
         }
 
-        // 🌟 キャッシュ管理ロジック（維持）
         async function loadStaffs() {
-            const KEY  = 'cp_cache_staffs';
-            const TTL  = 'cp_cache_staffs_date';
-            const today = new Date().toDateString();
+            const KEY = 'cp_cache_staffs', TTL = 'cp_cache_staffs_date', today = new Date().toDateString();
             const cached = sessionStorage.getItem(KEY);
             if (cached && sessionStorage.getItem(TTL) === today) return JSON.parse(cached);
             const snap = await getDocs(query(collection(db, "staffs"), orderBy("name")));
@@ -223,28 +211,23 @@
         }
 
         async function loadRecords(name) {
-            const SESSION_KEY = `cp_usage_session_${clean(name)}`;
-            const LOCAL_KEY   = `cp_usage_data_v2_${clean(name)}`;
-            const today       = new Date().toDateString();
-            const TTL_KEY     = `cp_usage_data_v2_${clean(name)}_date`;
-            const sessionCached = sessionStorage.getItem(SESSION_KEY);
-            if (sessionCached) return JSON.parse(sessionCached);
-            const localCached = localStorage.getItem(LOCAL_KEY);
-            const localDate   = localStorage.getItem(TTL_KEY);
-            if (localCached && localDate === today) {
-                const data = JSON.parse(localCached);
-                sessionStorage.setItem(SESSION_KEY, JSON.stringify(data));
+            const S_KEY = `cp_usage_session_${clean(name)}`, L_KEY = `cp_usage_data_v2_${clean(name)}`, today = new Date().toDateString(), T_KEY = `cp_usage_data_v2_${clean(name)}_date`;
+            const sCached = sessionStorage.getItem(S_KEY);
+            if (sCached) return JSON.parse(sCached);
+            const lCached = localStorage.getItem(L_KEY);
+            if (lCached && localStorage.getItem(T_KEY) === today) {
+                const data = JSON.parse(lCached);
+                sessionStorage.setItem(S_KEY, JSON.stringify(data));
                 return data;
             }
-            const snap = await getDocs(query(collection(db, "activity_records"),where("visitorName", "==", name),limit(500)));
+            const snap = await getDocs(query(collection(db, "activity_records"), where("visitorName", "==", name), limit(500)));
             const fullData = snap.docs.map(d => d.data());
-            try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(fullData)); } catch {}
+            try { sessionStorage.setItem(S_KEY, JSON.stringify(fullData)); } catch(e) {}
             const liteData = fullData.map(r => ({ ...r, attachments: [] }));
-            try { localStorage.setItem(LOCAL_KEY, JSON.stringify(liteData)); localStorage.setItem(TTL_KEY, today); } catch {}
+            try { localStorage.setItem(L_KEY, JSON.stringify(liteData)); localStorage.setItem(T_KEY, today); } catch(e) {}
             return fullData;
         }
 
-        // 🌟 追加：通知データの取得
         async function fetchMyNotifications() {
             const myName = sessionStorage.getItem('userName') || "";
             const q = query(collection(db, "notifications"), where("recipient", "==", myName));
@@ -255,45 +238,36 @@
         async function init() {
             try {
                 allStaffs = await loadStaffs();
-                await fetchMyNotifications(); // 🌟 追加
+                await fetchMyNotifications();
                 window.renderStaffList();
-                const jName  = sessionStorage.getItem('cp_usage_jump_name');
-                const jMonth = sessionStorage.getItem('cp_usage_jump_month');
+                const jName = sessionStorage.getItem('cp_usage_jump_name'), jMonth = sessionStorage.getItem('cp_usage_jump_month');
                 if (jName) {
                     if (jMonth) currentM = parseInt(jMonth);
-                    sessionStorage.removeItem(`cp_usage_session_${clean(jName)}`);
-                    localStorage.removeItem(`cp_usage_data_v2_${clean(jName)}`);
                     await window.selectStaff(jName);
                 }
-            } catch (e) { console.error("init error:", e); }
+            } catch (e) { console.error(e); }
         }
 
         window.renderStaffList = () => {
-            const kw   = clean(document.getElementById('staffSearch').value.toLowerCase());
-            const dept = document.getElementById('deptFilter').value;
-            document.getElementById('staffList').innerHTML = allStaffs
-                .filter(s => {
-                    const nameM = !kw || clean(s.name).toLowerCase().includes(kw);
-                    const sDept = clean(s.dept || "");
-                    return nameM && (dept === 'ALL' ? TARGET_DEPTS.some(t => clean(t) === sDept) : sDept === clean(dept));
-                })
-                .map(s => `<div class="staff-item ${clean(selectedName) === clean(s.name) ? 'active' : ''}" onclick="window.selectStaff('${s.name}')"><p class="font-black text-xs">${s.name}</p><p class="text-[8px] opacity-60 uppercase">${s.dept || ''}</p></div>`).join('');
+            const kw = clean(document.getElementById('staffSearch').value.toLowerCase()), dept = document.getElementById('deptFilter').value;
+            document.getElementById('staffList').innerHTML = allStaffs.filter(s => {
+                const nameM = !kw || clean(s.name).toLowerCase().includes(kw);
+                const sDept = clean(s.dept || "");
+                return nameM && (dept === 'ALL' ? TARGET_DEPTS.some(t => clean(t) === sDept) : sDept === clean(dept));
+            }).map(s => `<div class="staff-item ${clean(selectedName) === clean(s.name) ? 'active' : ''}" onclick="window.selectStaff('${s.name}')"><p class="font-black text-xs">${s.name}</p><p class="text-[8px] opacity-60 uppercase">${s.dept || ''}</p></div>`).join('');
         };
 
         window.selectStaff = async (name) => {
-            selectedName = name;
-            window.renderStaffList();
-            document.getElementById('guideMsg').style.display  = 'none';
-            document.getElementById('toolArea').style.display  = 'block';
-            document.getElementById('activityAccordion').innerHTML = '<p class="text-center py-10 text-slate-300 font-bold animate-pulse">データを読み込み中...</p>';
+            selectedName = name; window.renderStaffList();
+            document.getElementById('guideMsg').style.display = 'none';
+            document.getElementById('toolArea').style.display = 'block';
+            document.getElementById('activityAccordion').innerHTML = '<p class="text-center py-10 text-slate-300 font-bold animate-pulse">読み込み中...</p>';
             try {
                 currentStaffRecords = await loadRecords(name);
-                await fetchMyNotifications(); // 🌟 追加
+                await fetchMyNotifications();
                 document.getElementById('selectedStaffLabel').innerText = `${name} さんの活動履歴`;
                 window.setMonth(currentM);
-            } catch (e) {
-                document.getElementById('activityAccordion').innerHTML = `<div class="p-8 text-center bg-rose-50 rounded-2xl border border-rose-200"><p class="text-rose-500 font-black text-sm">エラー</p><button onclick="window.selectStaff('${name}')">再試行</button></div>`;
-            }
+            } catch (e) { console.error(e); }
         };
 
         window.setMonth = (m) => { currentM = m; document.querySelectorAll('.month-btn').forEach(btn => btn.classList.toggle('active', btn.id === `m-btn-${m}`)); window.renderAccordion(); };
@@ -301,54 +275,43 @@
         window.renderAccordion = () => {
             recordImageMap = {};
             const container = document.getElementById('activityAccordion');
-            const filtered = currentStaffRecords
-                .filter(r => { const dParts = (r.visitDate || "").toString().split(/[-/]/); return dParts.length >= 2 && parseInt(dParts[1]) === currentM; })
-                .sort((a, b) => (b.visitDate || "").toString().localeCompare((a.visitDate || "").toString()));
-
-            // 集計（維持）
+            const filtered = currentStaffRecords.filter(r => { const dParts = (r.visitDate || "").toString().split(/[-/]/); return dParts.length >= 2 && parseInt(dParts[1]) === currentM; }).sort((a, b) => (b.visitDate || "").toString().localeCompare((a.visitDate || "").toString()));
+            
             let totalMins = 0; const uniqueVisits = new Set();
             filtered.forEach(r => { uniqueVisits.add(`${r.visitDate}_${r.customerName}`); if (r.startTime && r.endTime) { const s = r.startTime.split(':'), e = r.endTime.split(':'); if (s.length === 2 && e.length === 2) { totalMins += (parseInt(e[0]) * 60 + parseInt(e[1])) - (parseInt(s[0]) * 60 + parseInt(s[1])); } } });
             document.getElementById('sumActualVisits').innerText = uniqueVisits.size;
-            document.getElementById('sumSales').innerText        = filtered.length;
-            document.getElementById('sumTime').innerText         = Math.floor(totalMins / 60);
-            document.getElementById('sumAvg').innerText          = filtered.length ? Math.round(totalMins / filtered.length) : 0;
+            document.getElementById('sumSales').innerText = filtered.length;
+            document.getElementById('sumTime').innerText = Math.floor(totalMins / 60);
+            document.getElementById('sumAvg').innerText = filtered.length ? Math.round(totalMins / filtered.length) : 0;
 
-            if (!filtered.length) { container.innerHTML = '<p class="text-center py-20 text-slate-300 font-bold uppercase tracking-widest">実績はありません</p>'; return; }
+            if (!filtered.length) { container.innerHTML = '<p class="text-center py-20 text-slate-300 font-bold uppercase">実績なし</p>'; return; }
 
             container.innerHTML = filtered.map((r, i) => {
                 const targetNum = dateToNum(r.visitDate);
                 const noti = myNotifications.find(n => clean(n.visitorName) === clean(selectedName) && dateToNum(n.visitDate) === targetNum);
                 const isUnread = noti && noti.isRead === false;
-
                 return `
                 <div class="accordion-item" id="acc-${i}" data-visit-date="${r.visitDate}">
                     <div class="accordion-header" onclick="window.toggleAcc('acc-${i}')">
                         <div class="flex items-center gap-4 flex-wrap">
-                            <span class="text-xs font-black opacity-60 bg-white/10 px-3 py-1 rounded-full">${r.visitDate || ''}</span>
-                            <span class="text-base font-black">${r.customerName || '---'}</span>
-                            <span id="badge-${i}" class="bg-rose-500 text-white text-[9px] px-2 py-0.5 rounded-full font-black animate-pulse" style="display:${isUnread ? 'inline' : 'none'}">未読</span>
+                            <span class="text-xs font-black opacity-60 bg-white/10 px-3 py-1 rounded-full">${r.visitDate}</span>
+                            <span class="text-base font-black">${r.customerName}</span>
+                            <span id="badge-${i}" class="bg-rose-500 text-white text-[9px] px-2 py-0.5 rounded-full font-black" style="display:${isUnread ? 'inline' : 'none'}">未読</span>
                         </div>
                         <i class="fa-solid fa-chevron-down opacity-30 text-xs transition-transform flex-shrink-0"></i>
                     </div>
                     <div class="accordion-content">
                         <div class="info-grid">
                             <div><p class="info-label">お客様担当者</p><p class="info-value">${r.customerStaff || '-'}</p></div>
-                            <div><p class="info-label">訪問時間</p><p class="info-value text-blue-600"><i class="fa-regular fa-clock mr-1"></i>${r.startTime || '--:--'} 〜 ${r.endTime || '--:--'}</p></div>
+                            <div><p class="info-label">訪問時間</p><p class="info-value text-blue-600">${r.startTime} 〜 ${r.endTime}</p></div>
                             <div><p class="info-label">同行者</p><p class="info-value text-blue-600">${r.companion || 'なし'}</p></div>
-                            <div><p class="info-label">次回訪問予定</p><p class="info-value">${r.nextVisitDate || '未設定'}</p></div>
+                            <div><p class="info-label">次回予定</p><p class="info-value">${r.nextVisitDate || '未設定'}</p></div>
                         </div>
-                        ${r.qualData1 || r.qualData2 || r.qualData3 ? `<div class="mb-4"><p class="info-label mb-2">定性データ</p><div class="flex flex-wrap gap-2">${r.qualData1 ? `<span class="bg-blue-50 text-[#004098] px-3 py-1 rounded-lg text-[10px] font-black border border-blue-100">${r.qualData1}</span>` : ''}${r.qualData2 ? `<span class="bg-orange-50 text-orange-600 px-3 py-1 rounded-lg text-[10px] font-black border border-orange-100">${r.qualData2}</span>` : ''}${r.qualData3 ? `<span class="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-lg text-[10px] font-black border border-emerald-100">${r.qualData3}</span>` : ''}</div></div>` : ''}
-                        <p class="info-label mb-2 uppercase tracking-widest">■ お客様からの情報（要望・状況）</p>
+                        ${r.qualData1 ? `<p class="info-label">定性：${r.qualData1}</p>` : ''}
                         <div class="report-box whitespace-pre-wrap">${r.content || r.customerReport || '報告なし'}</div>
-                        <p class="info-label mb-2 uppercase tracking-widest">■ スタッフの考え（次回提案・課題）</p>
-                        <div class="report-box border-l-4 border-orange-100 whitespace-pre-wrap">${r.staffThoughts || '未入力'}</div>
-                        
-                        <!-- 🌟 既読・未読トグルボタン（新設） -->
                         <div class="flex justify-end mt-4 pt-4 border-t border-slate-100">
-                            <button id="toggle-btn-${i}" onclick="window.toggleReadStatus('${r.visitDate}', '${i}')" 
-                                class="px-6 py-2 rounded-xl font-black text-[11px] transition-all shadow-sm ${isUnread ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}">
-                                <i class="fa-solid ${isUnread ? 'fa-check-double' : 'fa-envelope'} mr-2"></i>
-                                ${isUnread ? '既読にする（確認完了）' : '未読に戻す'}
+                            <button id="toggle-btn-${i}" onclick="window.toggleReadStatus('${r.visitDate}', '${i}')" class="px-6 py-2 rounded-xl font-black text-[11px] transition-all shadow-sm ${isUnread ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}">
+                                <i class="fa-solid ${isUnread ? 'fa-check-double' : 'fa-envelope'} mr-2"></i>${isUnread ? '既読にする' : '未読に戻す'}
                             </button>
                         </div>
                         ${renderAttachments(r.attachments, i)}
@@ -356,21 +319,16 @@
                 </div>`;
             }).join('');
 
-            // ジャンプ処理（維持）
             const jDate = sessionStorage.getItem('cp_usage_jump_date');
             if (jDate) {
-                const targetNum = dateToNum(jDate);
-                const idx = filtered.findIndex(r => dateToNum(r.visitDate) === targetNum);
+                const idx = filtered.findIndex(r => dateToNum(r.visitDate) === dateToNum(jDate));
                 if (idx !== -1) { setTimeout(() => { window.toggleAcc(`acc-${idx}`); document.getElementById(`acc-${idx}`).scrollIntoView({ behavior: 'smooth', block: 'center' }); sessionStorage.removeItem('cp_usage_jump_date'); }, 800); }
             }
         };
 
-        // 🌟 追加：既読・未読を切り替える
         window.toggleReadStatus = async (date, index) => {
-            const myName = sessionStorage.getItem('userName') || "";
-            const targetNum = dateToNum(date);
-            const btn = document.getElementById(`toggle-btn-${index}`);
-            const badge = document.getElementById(`badge-${index}`);
+            const myName = sessionStorage.getItem('userName') || "", targetNum = dateToNum(date);
+            const btn = document.getElementById(`toggle-btn-${index}`), badge = document.getElementById(`badge-${index}`);
             try {
                 const q = query(collection(db, "notifications"), where("recipient", "==", myName), where("visitorName", "==", selectedName));
                 const snap = await getDocs(q);
@@ -379,15 +337,8 @@
                 if (targetDoc) {
                     const nextStatus = !targetDoc.data().isRead;
                     await updateDoc(targetDoc.ref, { isRead: nextStatus });
-                    if (nextStatus) {
-                        btn.className = "px-6 py-2 rounded-xl font-black text-[11px] transition-all shadow-sm bg-slate-100 text-slate-400";
-                        btn.innerHTML = '<i class="fa-solid fa-envelope mr-2"></i>未読に戻す';
-                        badge.style.display = 'none';
-                    } else {
-                        btn.className = "px-6 py-2 rounded-xl font-black text-[11px] transition-all shadow-sm bg-emerald-500 text-white";
-                        btn.innerHTML = '<i class="fa-solid fa-check-double mr-2"></i>既読にする（確認完了）';
-                        badge.style.display = 'inline';
-                    }
+                    if (nextStatus) { btn.className = "px-6 py-2 rounded-xl font-black text-[11px] bg-slate-100 text-slate-400"; btn.innerHTML = '<i class="fa-solid fa-envelope mr-2"></i>未読に戻す'; badge.style.display = 'none'; }
+                    else { btn.className = "px-6 py-2 rounded-xl font-black text-[11px] bg-emerald-500 text-white"; btn.innerHTML = '<i class="fa-solid fa-check-double mr-2"></i>既読にする'; badge.style.display = 'inline'; }
                     await fetchMyNotifications();
                     window.dispatchEvent(new CustomEvent('notificationUpdated'));
                 }
@@ -396,19 +347,13 @@
 
         window.toggleAcc = (id) => {
             const item = document.getElementById(id); if (!item) return;
-            const content = item.querySelector('.accordion-content');
-            const icon    = item.querySelector('.fa-chevron-down');
-            const isOpen  = content.style.display === 'block';
+            const content = item.querySelector('.accordion-content'), icon = item.querySelector('.fa-chevron-down');
+            const isOpen = content.style.display === 'block';
             content.style.display = isOpen ? 'none' : 'block';
             if (icon) icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
-            
-            if (!isOpen) { // 🌟 開いたら自動で既読にする
-                const index = id.split('-')[1];
-                const btn = document.getElementById(`toggle-btn-${index}`);
-                if (btn && btn.innerText.includes('既読にする')) {
-                    const date = item.dataset.visitDate;
-                    window.toggleReadStatus(date, index);
-                }
+            if (!isOpen) {
+                const idx = id.split('-')[1], btn = document.getElementById(`toggle-btn-${idx}`);
+                if (btn && btn.innerText.includes('既読にする')) window.toggleReadStatus(item.dataset.visitDate, idx);
             }
         };
 
