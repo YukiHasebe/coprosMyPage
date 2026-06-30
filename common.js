@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // 🌟 V2プロジェクト設定
 export const firebaseConfig = {
-    apiKey: "AIzaSyC5L1V6jn3Q8i1bWFWO3Gd25w_If6dklmY", 
+    apiKey: "AIzaSyC5L1V6jn3Q8i1bWFW03Gd25w_If6dklmY", 
     authDomain: "copros-my-page-v2.firebaseapp.com",
     projectId: "copros-my-page-v2",
     storageBucket: "copros-my-page-v2.firebasestorage.app",
@@ -14,10 +14,48 @@ export const firebaseConfig = {
 export const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
-// 🌟 ケコム関連部署の定義（プロジェクトの心臓部）
+// 🌟 ケコム関連部署の定義
 export const TARGET_DEPTS = ["ケコム部", "関西支店", "関東支店", "中部営業所"];
 
-// 🌟 ローディング演出の統一（オレンジのぐるぐる）
+// --- 省エネ・爆速同期ロジック (追加) ---
+let unsubscribeStore = null;
+/**
+ * 通知のリアルタイム監視を開始する
+ * 無料枠節約のため、onSnapshotを使用し、変更時のみUIを更新する
+ */
+export function watchNotifications(callback) {
+    const rawName = sessionStorage.getItem('userName') || "";
+    if (!rawName) return;
+
+    if (unsubscribeStore) unsubscribeStore();
+
+    const q = query(
+        collection(db, "notifications"), 
+        where("recipient", "==", rawName), 
+        where("isRead", "==", false)
+    );
+
+    unsubscribeStore = onSnapshot(q, (snap) => {
+        const count = snap.size;
+        const badge = document.getElementById('unreadBadge');
+        if (badge) {
+            if (count > 0) {
+                badge.innerText = count;
+                badge.style.display = 'flex';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+        // カレンダー等の個別ページ側に通知件数を伝える
+        if (callback) callback(count);
+        // グローバルイベントを発行（ページを跨いだ同期用）
+        window.dispatchEvent(new CustomEvent('notificationUpdated', { detail: { count } }));
+    }, (error) => {
+        console.error("Snapshot error:", error);
+    });
+}
+
+// 🌟 ローディング演出の統一
 function unifyLoaders() {
     const oldLoader = document.getElementById('loading');
     if (oldLoader) {
@@ -45,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    // ヘッダー注入
+    // ヘッダー注入 (変更なし)
     hp.innerHTML = `
         <header class="h-16 bg-[#3c4b5a] flex items-center justify-between px-4 lg:px-6 text-white shadow-lg shrink-0 z-50 sticky top-0">
             <div class="flex items-center gap-4">
@@ -67,7 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </header>
     `;
 
-    // サイドバー注入
+    // サイドバー注入 (変更なし)
     sp.innerHTML = `
         <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 z-40 hidden lg:hidden"></div>
         <aside id="main-sidebar" class="sidebar flex flex-col shrink-0 fixed lg:static inset-y-0 left-0 z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-300" style="width: 220px; background-color: #1a1a1a; color: white; height: 100vh; overflow-y: auto;">
@@ -127,7 +165,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="submenu hidden bg-black/40">
                         <div class="sub-item py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer transition-all border-l-4 border-transparent" data-page="notice_list.html" onclick="location.href='notice_list.html'">お知らせ管理</div>
                         <div class="sub-item py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer transition-all border-l-4 border-transparent" data-page="staff_list.html" onclick="location.href='staff_list.html'">組織員情報登録</div>
-                        <!-- 🌟 定性データ項目設定をここに追加しました -->
                         <div class="sub-item py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer transition-all border-l-4 border-transparent" data-page="master_qual.html" onclick="location.href='master_qual.html'">定性データ項目設定</div>
                         <div class="sub-item py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer transition-all border-l-4 border-transparent" data-page="import.html" onclick="location.href='import.html'">インポート</div>
                     </div>
@@ -141,16 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </aside>
     `;
 
-    // 部署フィルターの制御
-    const deptSelect = document.getElementById('deptFilter');
-    if (deptSelect) {
-        Array.from(deptSelect.options).forEach(opt => {
-            if (opt.value !== "ALL" && !TARGET_DEPTS.includes(opt.value)) { opt.remove(); }
-        });
-        if (TARGET_DEPTS.includes(userDept)) { deptSelect.value = userDept; }
-    }
-
-    // UIロジック
+    // --- 既存のUIロジック (維持) ---
     const ms = document.getElementById('main-sidebar'), so = document.getElementById('sidebar-overlay'), mt = document.getElementById('mobile-toggle');
     const ts = (o) => { if(ms) ms.classList.toggle('-translate-x-full', !o); if(so) so.classList.toggle('hidden', !o); };
     if (mt) mt.onclick = () => ts(true); if (so) so.onclick = () => ts(false);
@@ -185,15 +213,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const lo = document.getElementById('logout-btn');
     if(lo) lo.onclick = () => { if(confirm("ログアウトしますか？")){ sessionStorage.clear(); location.href = 'index.html'; } };
 
-    async function refreshBadge() {
-        if(!rawName) return;
-        try { 
-            const q = query(collection(db, "notifications"), where("recipient", "==", rawName), where("isRead", "==", false)); 
-            const snap = await getDocs(q); 
-            const badge = document.getElementById('unreadBadge');
-            if(!snap.empty && badge) { badge.innerText = snap.size; badge.style.display = 'flex'; }
-            else if(badge) { badge.style.display = 'none'; }
-        } catch(e){}
-    }
-    refreshBadge();
+    // --- 監視開始 ---
+    watchNotifications();
+});
+
+// ブラウザの「戻る」で戻ってきたときにリアルタイム監視を再起動
+window.addEventListener('pageshow', (event) => {
+    watchNotifications();
 });
