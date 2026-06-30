@@ -77,9 +77,8 @@
 
     <div id="staffModal" class="modal-overlay"><div class="modal-content"><div class="bg-slate-900 p-4 text-white flex justify-between items-center"><span class="font-black text-xs uppercase">Select Member</span><i class="fa-solid fa-xmark cursor-pointer" onclick="window.closeModal()"></i></div><div class="p-4 bg-slate-50 border-b border-slate-100"><div class="grid grid-cols-2 gap-2"><input type="text" id="modalSearch" oninput="window.renderModalList()" placeholder="氏名検索..." class="p-2.5 rounded-lg border border-slate-200 text-xs font-bold outline-none"><select id="modalDept" onchange="window.renderModalList()" class="p-2.5 rounded-lg border border-slate-200 text-xs font-bold outline-none"><option value="ALL">全ケコム関連</option><option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option></select></div></div><div id="modalStaffList" class="max-h-[350px] overflow-y-auto custom-scrollbar"></div><div class="p-4 bg-slate-50 grid grid-cols-2 gap-3"><button onclick="window.applyModal()" class="py-3 bg-[#004098] text-white rounded-xl font-black">決定</button><button onclick="window.clearModal()" class="py-3 bg-white border border-slate-200 rounded-xl font-bold">クリア</button></div></div></div>
 
-           <script type="module" src="common.js"></script>
+    <script type="module" src="common.js"></script>
     <script type="module">
-        // 🌟 watchNotifications をインポート
         import { db, TARGET_DEPTS, watchNotifications } from "./common.js";
         import { collection, getDocs, query, where, doc, updateDoc, writeBatch, deleteDoc, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
@@ -96,12 +95,6 @@
             return p[0] + p[1].padStart(2, '0') + p[2].padStart(2, '0');
         };
 
-        window.standardizeDate = (s) => {
-            if(!s) return "";
-            const d = s.toString().replace(/\//g, '-').split('-');
-            return d.length < 3 ? s : `${d[0]}-${d[1].padStart(2, '0')}-${d[2].padStart(2, '0')}`;
-        };
-
         async function init() {
             try {
                 window.renderCalendar();
@@ -114,19 +107,14 @@
                 }
                 window.updateSelectedDisplay();
                 
-                // 🌟 【省エネ・爆速】通知の変更をリアルタイム監視
+                // 🌟 watchNotifications で通知リストだけを常に最新に保つ
                 watchNotifications(async (count) => {
-                    // 通知に変更があった際、実績データ(records)などは再取得せず、
-                    // 通知リスト(notifications)だけをFirestoreから最新化してカレンダーを再描画
                     const qN = query(collection(db, "notifications"), where("recipient", "==", myName), where("isRead", "==", false));
                     const snapN = await getDocs(qN);
                     loadedData.notifications = snapN.docs.map(d => d.data());
-                    
-                    // カレンダーの表示（バッチ）を更新
-                    window.renderCalendar();
+                    window.renderCalendar(); // バッチだけを再描画
                 });
 
-                // 初期データ取得
                 await window.fetchMonthData();
             } catch (e) { console.error(e); }
         }
@@ -137,7 +125,6 @@
             document.getElementById('displayMonthCenter').innerText = `${y}年 ${m}月`;
             document.querySelectorAll('.month-btn').forEach(b => b.classList.toggle('active', b.id === `m-btn-${m}`));
 
-            // 🌟 force もしくは usageからの戻り時以外はキャッシュを使用
             if (!force && sessionStorage.getItem('cp_return_from_usage') !== 'true') {
                 const cached = sessionStorage.getItem(cacheKey);
                 if (cached) { loadedData = JSON.parse(cached); window.renderCalendar(); return; }
@@ -151,15 +138,8 @@
                 const qA = query(collection(db, "appointments"), where("appointDate", ">=", `${y}-${mStr}-01`), where("appointDate", "<=", `${y}-${mStr}-31`), limit(500));
                 const qN = query(collection(db, "notifications"), where("recipient", "==", myName), where("isRead", "==", false));
                 
-                const [snapR, snapA, snapN] = await Promise.all([
-                    getDocs(qR), getDocs(qA), getDocs(qN)
-                ]);
-
-                loadedData = { 
-                    records: snapR.docs.map(d => d.data()),
-                    appoints: snapA.docs.map(d => ({id: d.id, ...d.data()})),
-                    notifications: snapN.docs.map(d => d.data())
-                };
+                const [snapR, snapA, snapN] = await Promise.all([ getDocs(qR), getDocs(qA), getDocs(qN) ]);
+                loadedData = { records: snapR.docs.map(d => d.data()), appoints: snapA.docs.map(d => ({id: d.id, ...d.data()})), notifications: snapN.docs.map(d => d.data()) };
                 sessionStorage.setItem(cacheKey, JSON.stringify(loadedData));
                 if(loader) loader.style.display = 'none';
                 window.renderCalendar();
@@ -167,61 +147,44 @@
         };
 
         window.renderCalendar = () => {
-            const grid = document.getElementById('calendarGrid'); 
-            if(!grid) return;
+            const grid = document.getElementById('calendarGrid'); if(!grid) return;
             grid.innerHTML = "";
             const year = currentDate.getFullYear(), month = currentDate.getMonth();
             const daysInMonth = new Date(year, month + 1, 0).getDate();
             const startOffset = (new Date(year, month, 1).getDay() + 6) % 7;
-            
             for(let i=0; i<startOffset; i++) grid.insertAdjacentHTML('beforeend', '<div class="calendar-day other-month bg-slate-50/50"></div>');
             
             const selCleans = selectedStaffs.map(n => clean(n));
             const showUnread = document.getElementById('showUnreadOnly').checked;
-
             const recMap = {}, appMap = {}, notiMap = {};
+            
             loadedData.records.forEach(r => { const d = dateToNum(r.visitDate); if(!recMap[d]) recMap[d]=[]; recMap[d].push(r); });
             loadedData.appoints.forEach(a => { const d = dateToNum(a.appointDate); if(!appMap[d]) appMap[d]=[]; appMap[d].push(a); });
-            
-            // 🌟 通知のマップ作成（isRead:false のものだけが入っている）
-            loadedData.notifications.forEach(n => { 
-                const d = dateToNum(n.visitDate || n.appointDate); 
-                if(!notiMap[d]) notiMap[d]=[]; 
-                notiMap[d].push(n); 
-            });
+            loadedData.notifications.forEach(n => { const d = dateToNum(n.visitDate || n.appointDate); if(!notiMap[d]) notiMap[d]=[]; notiMap[d].push(n); });
 
             for(let d=1; d<=daysInMonth; d++) {
                 const targetNum = `${year}${(month + 1).toString().padStart(2, '0')}${d.toString().padStart(2, '0')}`;
                 const targetKey = `${year}-${(month + 1).toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
-                let evHtml = "";
-                let processedKeys = new Set(); 
+                let evHtml = ""; let processedKeys = new Set();
 
                 if (document.getElementById('showRes').checked && recMap[targetNum]) {
                     recMap[targetNum].forEach(r => {
                         if (selCleans.length > 0 && !selCleans.includes(clean(r.visitorName))) return;
                         const uKey = `res-${clean(r.visitorName)}-${clean(r.customerName)}`;
                         if (processedKeys.has(uKey)) return;
-                        
-                        // 🌟 未読判定
-                        const hasNoti = notiMap[targetNum]?.some(n => 
-                            clean(n.visitorName) === clean(r.visitorName) && 
-                            n.type.includes("実績")
-                        );
-                        
+                        const hasNoti = notiMap[targetNum]?.some(n => clean(n.visitorName) === clean(r.visitorName) && n.type.includes("実績"));
                         if (showUnread && !hasNoti) return;
                         const badge = hasNoti ? `<span class="inline-block w-2 h-2 rounded-full bg-rose-500 mr-1 animate-pulse"></span>` : "";
                         evHtml += `<div class="event-item"><div class="event-label label-result" onclick="window.goUsage('${r.visitorName}', ${month+1}, '${r.customerName}', '${targetKey}')">${badge}${r.visitorName}: ${r.customerName}</div></div>`;
                         processedKeys.add(uKey);
                     });
                 }
-                
                 if (document.getElementById('showNext').checked && !showUnread) {
                     loadedData.records.filter(r => dateToNum(r.nextVisitDate) === targetNum).forEach(r => {
                         if (selCleans.length > 0 && !selCleans.includes(clean(r.visitorName))) return;
                         evHtml += `<div class="event-item"><div class="event-label label-next" onclick="window.goUsage('${r.visitorName}', ${month+1}, '${r.customerName}', '${targetKey}')">${r.visitorName}: ${r.customerName}</div></div>`;
                     });
                 }
-                
                 if (document.getElementById('showApp').checked && appMap[targetNum]) {
                     appMap[targetNum].forEach(a => {
                         if (selCleans.length > 0 && !selCleans.includes(clean(a.visitorName))) return;
@@ -231,7 +194,6 @@
                         evHtml += `<div class="event-item"><div class="event-label label-appoint" onclick="window.handleAppoint('${a.id}','${a.customerName}','${a.appointDate}','${a.subject}')">${badge}${a.visitorName}: ${a.customerName}</div></div>`;
                     });
                 }
-                
                 grid.insertAdjacentHTML('beforeend', `<div class="calendar-day"><div class="day-header"><span class="day-num" onclick="window.goDailyReport('${targetKey}')">${d}</span><div class="add-btn" onclick="window.goAddHistory('${targetKey}')"><i class="fa-solid fa-plus"></i></div></div><div class="max-h-[110px] overflow-y-auto custom-scrollbar">${evHtml}</div></div>`);
             }
         };
@@ -252,7 +214,6 @@
             container.innerHTML = selectedStaffs.map(name => `<div class="staff-tag"><span>${name}</span><i class="fa-solid fa-circle-xmark remove-staff-x" onclick="window.removeStaff('${name}')"></i></div>`).join('');
         };
         window.removeStaff = (name) => { selectedStaffs = selectedStaffs.filter(n => n !== name); localStorage.setItem('cp_cal_selected_staffs', JSON.stringify(selectedStaffs)); window.updateSelectedDisplay(); window.renderCalendar(); };
-
         window.goUsage = (name, month, customer, date) => { sessionStorage.setItem('cp_usage_jump_name', name); sessionStorage.setItem('cp_usage_jump_month', month); sessionStorage.setItem('cp_usage_jump_customer', customer); sessionStorage.setItem('cp_usage_jump_date', date); location.href = 'usage.html'; };
         window.goDailyReport = (date) => { sessionStorage.setItem('cp_daily_date', date); location.href = 'daily_report.html'; };
         window.goAddHistory = (date) => { sessionStorage.setItem('cp_add_date', date); location.href = 'history.html'; };
@@ -263,7 +224,6 @@
         };
         window.changeMonth = (v) => { currentDate.setMonth(currentDate.getMonth() + v); window.fetchMonthData(); };
         window.jumpMonth = (m) => { currentDate.setMonth(m - 1); window.fetchMonthData(); };
-
         init();
     </script>
 </body>
