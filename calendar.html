@@ -77,9 +77,10 @@
 
     <div id="staffModal" class="modal-overlay"><div class="modal-content"><div class="bg-slate-900 p-4 text-white flex justify-between items-center"><span class="font-black text-xs uppercase">Select Member</span><i class="fa-solid fa-xmark cursor-pointer" onclick="window.closeModal()"></i></div><div class="p-4 bg-slate-50 border-b border-slate-100"><div class="grid grid-cols-2 gap-2"><input type="text" id="modalSearch" oninput="window.renderModalList()" placeholder="氏名検索..." class="p-2.5 rounded-lg border border-slate-200 text-xs font-bold outline-none"><select id="modalDept" onchange="window.renderModalList()" class="p-2.5 rounded-lg border border-slate-200 text-xs font-bold outline-none"><option value="ALL">全ケコム関連</option><option>ケコム部</option><option>関西支店</option><option>関東支店</option><option>中部営業所</option></select></div></div><div id="modalStaffList" class="max-h-[350px] overflow-y-auto custom-scrollbar"></div><div class="p-4 bg-slate-50 grid grid-cols-2 gap-3"><button onclick="window.applyModal()" class="py-3 bg-[#004098] text-white rounded-xl font-black">決定</button><button onclick="window.clearModal()" class="py-3 bg-white border border-slate-200 rounded-xl font-bold">クリア</button></div></div></div>
 
-    <script type="module" src="common.js"></script>
+        <script type="module" src="common.js"></script>
     <script type="module">
-        import { db, TARGET_DEPTS } from "./common.js";
+        // 🌟 common.js から watchNotifications をインポート
+        import { db, TARGET_DEPTS, watchNotifications } from "./common.js";
         import { collection, getDocs, query, where, doc, updateDoc, writeBatch, deleteDoc, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let allStaffs = [], selectedStaffs = JSON.parse(localStorage.getItem('cp_cal_selected_staffs') || "[]");
@@ -95,12 +96,6 @@
             return p[0] + p[1].padStart(2, '0') + p[2].padStart(2, '0');
         };
 
-        window.standardizeDate = (s) => {
-            if(!s) return "";
-            const d = s.toString().replace(/\//g, '-').split('-');
-            return d.length < 3 ? s : `${d[0]}-${d[1].padStart(2, '0')}-${d[2].padStart(2, '0')}`;
-        };
-
         async function init() {
             try {
                 window.renderCalendar();
@@ -113,13 +108,16 @@
                 }
                 window.updateSelectedDisplay();
                 
-                // ▼ usage から戻ってきた場合を優先処理
-                if (sessionStorage.getItem('cp_return_from_usage') === 'true') {
-                    sessionStorage.removeItem('cp_return_from_usage');
-                    await window.fetchMonthData(true);
-                    return;
-                }
-                
+                // 🌟 【省エネ】リアルタイム監視を開始。通知に変更（既読化）があれば、loadedDataを更新して再描画
+                watchNotifications((count) => {
+                    // 通知に変更があった場合、再度Firestoreから通知リストだけを最新にする必要はない（snapから取れるが、
+                    // 読み取りを最小限にするため、ここでは「通知が更新された」というフラグを立てて再取得を促すか、
+                    // 直接 fetchMonthData(true) を呼ぶのが確実です。
+                    // usageから戻った際などの同期を「爆速」にするため、通知変化時は再取得を走らせます。
+                    window.fetchMonthData(true); 
+                });
+
+                // 初期表示
                 await window.fetchMonthData();
             } catch (e) { console.error(e); }
         }
@@ -130,17 +128,25 @@
             document.getElementById('displayMonthCenter').innerText = `${y}年 ${m}月`;
             document.querySelectorAll('.month-btn').forEach(b => b.classList.toggle('active', b.id === `m-btn-${m}`));
 
-            // ▼ force = true の時は絶対にキャッシュを使わない
-            if (!force) {
+            // ▼ force = true または usage からの戻り時はキャッシュ無視
+            if (!force && sessionStorage.getItem('cp_return_from_usage') !== 'true') {
                 const cached = sessionStorage.getItem(cacheKey);
-                if (cached) { loadedData = JSON.parse(cached); window.renderCalendar(); return; }
+                if (cached) { 
+                    loadedData = JSON.parse(cached); 
+                    window.renderCalendar(); 
+                    return; 
+                }
             }
+            sessionStorage.removeItem('cp_return_from_usage');
 
             const loader = document.getElementById('local-loader');
             if(loader) loader.style.display = 'flex';
             try {
+                // 🌟 読み取り回数節約：実績とアポは範囲を絞って取得
                 const qR = query(collection(db, "activity_records"), where("visitDate", ">=", `${y}/${mStr}/01`), where("visitDate", "<=", `${y}/${mStr}/31`), limit(800));
                 const qA = query(collection(db, "appointments"), where("appointDate", ">=", `${y}-${mStr}-01`), where("appointDate", "<=", `${y}-${mStr}-31`), limit(500));
+                
+                // 通知(isRead:false)のみを常に最新で取得
                 const qN = query(collection(db, "notifications"), where("recipient", "==", myName), where("isRead", "==", false));
                 
                 const [snapR, snapA, snapN] = await Promise.all([
@@ -152,6 +158,8 @@
                     appoints: snapA.docs.map(d => ({id: d.id, ...d.data()})),
                     notifications: snapN.docs.map(d => d.data())
                 };
+                
+                // キャッシュに保存
                 sessionStorage.setItem(cacheKey, JSON.stringify(loadedData));
                 if(loader) loader.style.display = 'none';
                 window.renderCalendar();
@@ -159,7 +167,9 @@
         };
 
         window.renderCalendar = () => {
-            const grid = document.getElementById('calendarGrid'); grid.innerHTML = "";
+            const grid = document.getElementById('calendarGrid'); 
+            if(!grid) return;
+            grid.innerHTML = "";
             const year = currentDate.getFullYear(), month = currentDate.getMonth();
             const daysInMonth = new Date(year, month + 1, 0).getDate();
             const startOffset = (new Date(year, month, 1).getDay() + 6) % 7;
@@ -172,7 +182,13 @@
             const recMap = {}, appMap = {}, notiMap = {};
             loadedData.records.forEach(r => { const d = dateToNum(r.visitDate); if(!recMap[d]) recMap[d]=[]; recMap[d].push(r); });
             loadedData.appoints.forEach(a => { const d = dateToNum(a.appointDate); if(!appMap[d]) appMap[d]=[]; appMap[d].push(a); });
-            loadedData.notifications.forEach(n => { const d = dateToNum(n.visitDate || n.appointDate); if(!notiMap[d]) notiMap[d]=[]; notiMap[d].push(n); });
+            
+            // 🌟 通知のマップ作成
+            loadedData.notifications.forEach(n => { 
+                const d = dateToNum(n.visitDate || n.appointDate); 
+                if(!notiMap[d]) notiMap[d]=[]; 
+                notiMap[d].push(n); 
+            });
 
             for(let d=1; d<=daysInMonth; d++) {
                 const targetNum = `${year}${(month + 1).toString().padStart(2, '0')}${d.toString().padStart(2, '0')}`;
@@ -186,11 +202,11 @@
                         const uKey = `res-${clean(r.visitorName)}-${clean(r.customerName)}`;
                         if (processedKeys.has(uKey)) return;
                         
-                        // ▼ 【最重要】notifications OR 自分が登録者
+                        // 🌟 未読判定（通知リストの中に該当の実績があるか）
                         const hasNoti = notiMap[targetNum]?.some(n => 
                             clean(n.visitorName) === clean(r.visitorName) && 
                             n.type.includes("実績")
-                        ) || clean(r.visitorName) === clean(myName);
+                        );
                         
                         if (showUnread && !hasNoti) return;
                         const badge = hasNoti ? `<span class="inline-block w-2 h-2 rounded-full bg-rose-500 mr-1 animate-pulse"></span>` : "";
@@ -199,6 +215,7 @@
                     });
                 }
                 
+                // 次回予定（変更なし）
                 if (document.getElementById('showNext').checked && !showUnread) {
                     loadedData.records.filter(r => dateToNum(r.nextVisitDate) === targetNum).forEach(r => {
                         if (selCleans.length > 0 && !selCleans.includes(clean(r.visitorName))) return;
@@ -206,6 +223,7 @@
                     });
                 }
                 
+                // アポイント（変更なし）
                 if (document.getElementById('showApp').checked && appMap[targetNum]) {
                     appMap[targetNum].forEach(a => {
                         if (selCleans.length > 0 && !selCleans.includes(clean(a.visitorName))) return;
@@ -220,6 +238,7 @@
             }
         };
 
+        // --- 以下、モーダル制御等は変更なし（維持） ---
         window.openStaffModal = () => { document.getElementById('staffModal').style.display = 'flex'; window.renderModalList(); };
         window.closeModal = () => { document.getElementById('staffModal').style.display = 'none'; };
         window.renderModalList = () => {
