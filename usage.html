@@ -22,7 +22,6 @@
         .info-value { font-size: 13px; font-weight: 800; color: #475569; }
         .report-box { background: #f8fafc; border-radius: 1rem; padding: 1.5rem; border: 1px solid #f1f5f9; font-size: 13px; line-height: 1.7; margin-bottom: 1rem; }
         .scope-select { background: #f8fafc; border: 1px solid #e2e8f0; padding: 0.6rem 1rem; border-radius: 0.75rem; font-size: 0.8rem; font-weight: 800; color: #475569; outline: none; }
-        /* 添付サムネイル */
         .attach-grid { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 0.75rem; }
         .attach-item { position: relative; cursor: pointer; border-radius: 0.75rem; overflow: hidden; border: 2px solid #e2e8f0; transition: all 0.2s; flex-shrink: 0; }
         .attach-item:hover { border-color: var(--copros-orange); transform: scale(1.03); box-shadow: 0 8px 20px rgba(255,126,17,0.2); }
@@ -31,7 +30,6 @@
         .attach-item:hover .attach-zoom-icon { background: rgba(0,0,0,0.35); }
         .attach-zoom-icon i { color: white; font-size: 1.2rem; opacity: 0; transition: opacity 0.2s; }
         .attach-item:hover .attach-zoom-icon i { opacity: 1; }
-        /* ライトボックス */
         .lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.93); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(8px); }
         .lightbox.active { display: flex; }
         .lightbox-img-wrap { position: relative; max-width: 94vw; max-height: 94vh; }
@@ -125,7 +123,7 @@
     <script type="module" src="common.js"></script>
     <script type="module">
         import { db, TARGET_DEPTS } from "./common.js";
-        import { collection, getDocs, query, where, orderBy, limit, writeBatch }
+        import { collection, getDocs, query, where, orderBy, limit, writeBatch, doc, updateDoc }
             from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         // =========================================================
@@ -135,9 +133,7 @@
         let currentStaffRecords = [];
         let selectedName       = "";
         let currentM           = new Date().getMonth() + 1;
-
-        // レコードごとの画像リスト（ライトボックス用）
-        let recordImageMap = {};
+        let recordImageMap     = {};
 
         const clean     = (s) => (s || "").toString().replace(/[\s\u3000]+/g, '').trim();
         const dateToNum = (s) => {
@@ -226,7 +222,7 @@
         }
 
         // =========================================================
-        // ▼ 省エネ：staffs キャッシュ（sessionStorage・当日限り）
+        // staffs キャッシュ（省エネ）
         // =========================================================
         async function loadStaffs() {
             const KEY  = 'cp_cache_staffs';
@@ -242,9 +238,7 @@
         }
 
         // =========================================================
-        // ▼ 省エネ：activity_records キャッシュ
-        //   Base64画像を含むためlocalStorageに保存すると容量超過の恐れあり
-        //   → 画像なしのliteデータをlocalStorageに、フル取得はsessionStorageに
+        // activity_records キャッシュ（省エネ・3段階）
         // =========================================================
         async function loadRecords(name) {
             const SESSION_KEY = `cp_usage_session_${clean(name)}`;
@@ -252,11 +246,9 @@
             const today       = new Date().toDateString();
             const TTL_KEY     = `cp_usage_data_v2_${clean(name)}_date`;
 
-            // ① sessionStorage（同ページセッション内、フルデータ）
             const sessionCached = sessionStorage.getItem(SESSION_KEY);
             if (sessionCached) return JSON.parse(sessionCached);
 
-            // ② localStorage（当日キャッシュ、画像なし）
             const localCached = localStorage.getItem(LOCAL_KEY);
             const localDate   = localStorage.getItem(TTL_KEY);
             if (localCached && localDate === today) {
@@ -265,7 +257,6 @@
                 return data;
             }
 
-            // ③ Firebase取得
             const snap = await getDocs(query(
                 collection(db, "activity_records"),
                 where("visitorName", "==", name),
@@ -273,10 +264,8 @@
             ));
             const fullData = snap.docs.map(d => d.data());
 
-            // sessionStorageにフルデータ（Base64含む）を保存
             try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(fullData)); } catch {}
 
-            // localStorageには画像なしのliteデータを保存（容量節約）
             const liteData = fullData.map(r => ({ ...r, attachments: [] }));
             try {
                 localStorage.setItem(LOCAL_KEY, JSON.stringify(liteData));
@@ -299,7 +288,6 @@
 
                 if (jName) {
                     if (jMonth) currentM = parseInt(jMonth);
-                    // ジャンプ時は最新データを見たいのでキャッシュをクリア
                     sessionStorage.removeItem(`cp_usage_session_${clean(jName)}`);
                     localStorage.removeItem(`cp_usage_data_v2_${clean(jName)}`);
                     await window.selectStaff(jName);
@@ -308,7 +296,7 @@
         }
 
         // =========================================================
-        // 社員リスト描画（既存まま）
+        // 社員リスト描画
         // =========================================================
         window.renderStaffList = () => {
             const kw   = clean(document.getElementById('staffSearch').value.toLowerCase());
@@ -330,7 +318,7 @@
         };
 
         // =========================================================
-        // 社員選択（省エネキャッシュ対応）
+        // 社員選択
         // =========================================================
         window.selectStaff = async (name) => {
             selectedName = name;
@@ -338,7 +326,6 @@
             document.getElementById('guideMsg').style.display  = 'none';
             document.getElementById('toolArea').style.display  = 'block';
 
-            // ローディング表示
             document.getElementById('activityAccordion').innerHTML =
                 '<p class="text-center py-10 text-slate-300 font-bold animate-pulse">データを読み込み中...</p>';
 
@@ -358,7 +345,7 @@
         };
 
         // =========================================================
-        // 月選択（既存まま）
+        // 月選択
         // =========================================================
         window.setMonth = (m) => {
             currentM = m;
@@ -369,10 +356,10 @@
         };
 
         // =========================================================
-        // アコーディオン描画（添付画像追加）
+        // アコーディオン描画
         // =========================================================
         window.renderAccordion = () => {
-            recordImageMap = {}; // リセット
+            recordImageMap = {};
             const container = document.getElementById('activityAccordion');
 
             const filtered = currentStaffRecords
@@ -384,7 +371,6 @@
                     (b.visitDate || "").toString().localeCompare((a.visitDate || "").toString())
                 );
 
-            // サマリー計算（既存まま）
             let totalMins = 0;
             const uniqueVisits = new Set();
             filtered.forEach(r => {
@@ -407,7 +393,6 @@
                 return;
             }
 
-            // ▼ 画像枚数バッジ用に事前チェック
             const getImageCount = (attachments) => {
                 if (!attachments || !attachments.length) return 0;
                 return attachments.filter(f => {
@@ -420,10 +405,10 @@
                 }).length;
             };
 
-           container.innerHTML = filtered.map((r, i) => {
-    const imgCount = getImageCount(r.attachments);
-    return `
-    <div class="accordion-item" id="acc-${i}" data-visit-date="${r.visitDate}">
+            container.innerHTML = filtered.map((r, i) => {
+                const imgCount = getImageCount(r.attachments);
+                return `
+                <div class="accordion-item" id="acc-${i}" data-visit-date="${r.visitDate}">
                     <div class="accordion-header" onclick="window.toggleAcc('acc-${i}')">
                         <div class="flex items-center gap-4 flex-wrap">
                             <span class="text-xs font-black opacity-60 bg-white/10 px-3 py-1 rounded-full">
@@ -440,25 +425,10 @@
                     </div>
                     <div class="accordion-content">
                         <div class="info-grid">
-                            <div>
-                                <p class="info-label">お客様担当者</p>
-                                <p class="info-value">${r.customerStaff || '-'}</p>
-                            </div>
-                            <div>
-                                <p class="info-label">訪問時間</p>
-                                <p class="info-value text-blue-600">
-                                    <i class="fa-regular fa-clock mr-1"></i>
-                                    ${r.startTime || '--:--'} 〜 ${r.endTime || '--:--'}
-                                </p>
-                            </div>
-                            <div>
-                                <p class="info-label">同行者</p>
-                                <p class="info-value text-blue-600">${r.companion || 'なし'}</p>
-                            </div>
-                            <div>
-                                <p class="info-label">次回訪問予定</p>
-                                <p class="info-value">${r.nextVisitDate ? r.nextVisitDate.replace(/-/g,'/') : '未設定'}</p>
-                            </div>
+                            <div><p class="info-label">お客様担当者</p><p class="info-value">${r.customerStaff || '-'}</p></div>
+                            <div><p class="info-label">訪問時間</p><p class="info-value text-blue-600"><i class="fa-regular fa-clock mr-1"></i>${r.startTime || '--:--'} 〜 ${r.endTime || '--:--'}</p></div>
+                            <div><p class="info-label">同行者</p><p class="info-value text-blue-600">${r.companion || 'なし'}</p></div>
+                            <div><p class="info-label">次回訪問予定</p><p class="info-value">${r.nextVisitDate ? r.nextVisitDate.replace(/-/g,'/') : '未設定'}</p></div>
                         </div>
 
                         ${r.qualData1 || r.qualData2 || r.qualData3 ? `
@@ -477,14 +447,11 @@
                         <p class="info-label mb-2 uppercase tracking-widest">■ スタッフの考え（次回提案・課題）</p>
                         <div class="report-box border-l-4 border-orange-100 whitespace-pre-wrap">${r.staffThoughts || '未入力'}</div>
 
-                        <!-- ▼▼▼ 添付画像（新規追加）▼▼▼ -->
                         ${renderAttachments(r.attachments, i)}
-                        <!-- ▲▲▲ 添付画像ここまで ▲▲▲ -->
                     </div>
                 </div>`;
             }).join('');
 
-            // ジャンプ処理（既存まま）
             const jDate = sessionStorage.getItem('cp_usage_jump_date');
             if (jDate) {
                 const targetNum = dateToNum(jDate);
@@ -506,7 +473,7 @@
         };
 
         // =========================================================
-        // 既読処理（既存まま）
+        // 既読処理（Firebase更新のみ）
         // =========================================================
         window.markAsReadOnOpen = async (visitor, date) => {
             const myName    = sessionStorage.getItem('userName') || "";
@@ -520,76 +487,54 @@
                 );
                 const snap  = await getDocs(q);
                 const batch = writeBatch(db);
-                let count   = 0;
                 snap.forEach(d => {
                     const nData = d.data();
                     if (dateToNum(nData.visitDate || nData.appointDate) === targetNum) {
                         batch.update(d.ref, { isRead: true });
-                        count++;
                     }
                 });
-                if (count > 0) {
-                    await batch.commit();
-                    const p   = date.split(/[-/]/);
-                    const key = `cp_cal_cache_v_ultimate_${p[0]}_${p[1].padStart(2, '0')}`;
-                    sessionStorage.removeItem(key);
-                }
+                if (snap.size > 0) await batch.commit();
             } catch (e) { console.error("AutoRead Error:", e); }
         };
 
         // =========================================================
-        // アコーディオン開閉（既存まま）
+        // アコーディオン開閉
         // =========================================================
-      window.toggleAcc = (id) => {
-    const item = document.getElementById(id);
-    if (!item) return;
-    const content = item.querySelector('.accordion-content');
-    const icon    = item.querySelector('.fa-chevron-down');
-    const isOpen  = content.style.display === 'block';
-    
-    if (!isOpen) {
-        content.style.display = 'block';
-        if (icon) icon.style.transform = 'rotate(180deg)';
-        
-        const date = item.dataset.visitDate;
-        const visitor = selectedName;
-        if (date && visitor) {
-            window.markAsReadOnOpen(visitor, date);
-        }
-    } else {
-        content.style.display = 'none';
-        if (icon) icon.style.transform = 'rotate(0deg)';
-    }
-};
+        window.toggleAcc = (id) => {
+            const item = document.getElementById(id);
+            if (!item) return;
+            const content = item.querySelector('.accordion-content');
+            const icon    = item.querySelector('.fa-chevron-down');
+            const isOpen  = content.style.display === 'block';
+            
+            if (!isOpen) {
+                content.style.display = 'block';
+                if (icon) icon.style.transform = 'rotate(180deg)';
+                
+                const date = item.dataset.visitDate;
+                const visitor = selectedName;
+                if (date && visitor) {
+                    window.markAsReadOnOpen(visitor, date);
+                }
+            } else {
+                content.style.display = 'none';
+                if (icon) icon.style.transform = 'rotate(0deg)';
+            }
+        };
 
-        // ▼ 新規追加（カレンダーへ戻る処理）
-window.returnToCalendar = async () => {
-    const myName = sessionStorage.getItem('userName') || "";
-    const visitor = selectedName;
-    
-    if (myName && visitor) {
-        try {
-            const q = query(
-                collection(db, "notifications"),
-                where("recipient", "==", myName),
-                where("isRead", "==", false),
-                where("visitorName", "==", visitor)
-            );
-            const snap = await getDocs(q);
-            const batch = writeBatch(db);
-            snap.forEach(d => batch.update(d.ref, { isRead: true }));
-            if (snap.size > 0) await batch.commit();
-        } catch (e) { console.error(e); }
-    }
-    
-    // ▼ 修正：全てのカレンダーキャッシュをクリア
-    Object.keys(sessionStorage).forEach(k => {
-        if (k.startsWith('cp_cal_cache')) sessionStorage.removeItem(k);
-    });
-    
-    sessionStorage.setItem('cp_return_from_usage', 'true');
-    location.href = 'calendar.html';
-};
+        // =========================================================
+        // カレンダーへ戻る（省エネ + 既読同期）
+        // =========================================================
+        window.returnToCalendar = () => {
+            // ▼ キャッシュクリアのみ（Firebase読み取り 0回）
+            Object.keys(sessionStorage).forEach(k => {
+                if (k.startsWith('cp_cal_cache')) sessionStorage.removeItem(k);
+            });
+            
+            sessionStorage.setItem('cp_return_from_usage', 'true');
+            location.href = 'calendar.html';
+        };
+
         init();
     </script>
 </body>
