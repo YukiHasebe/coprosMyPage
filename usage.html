@@ -24,7 +24,6 @@
         .scope-select { background: #f8fafc; border: 1px solid #e2e8f0; padding: 0.6rem 1rem; border-radius: 0.75rem; font-size: 0.8rem; font-weight: 800; color: #475569; outline: none; }
         .attach-grid { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 0.75rem; }
         .attach-item { position: relative; cursor: pointer; border-radius: 0.75rem; overflow: hidden; border: 2px solid #e2e8f0; transition: all 0.2s; flex-shrink: 0; }
-        .attach-item:hover { border-color: var(--copros-orange); transform: scale(1.03); box-shadow: 0 8px 20px rgba(255,126,17,0.2); }
         .attach-item img { width: 90px; height: 90px; object-fit: cover; display: block; }
         .attach-zoom-icon { position: absolute; inset: 0; background: rgba(0,0,0,0); display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
         .attach-item:hover .attach-zoom-icon { background: rgba(0,0,0,0.35); }
@@ -115,12 +114,7 @@
         import { collection, getDocs, query, where, orderBy, limit, writeBatch, doc, updateDoc }
             from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        let allStaffs = [];
-        let currentStaffRecords = [];
-        let selectedName = "";
-        let currentM = new Date().getMonth() + 1;
-        let recordImageMap = {};
-        let myNotifications = [];
+        let allStaffs = [], currentStaffRecords = [], selectedName = "", currentM = new Date().getMonth() + 1, recordImageMap = {}, myNotifications = [];
 
         const clean = (s) => (s || "").toString().replace(/[\s\u3000]+/g, '').trim();
         const dateToNum = (s) => {
@@ -130,96 +124,32 @@
             return p[0] + p[1].padStart(2, '0') + p[2].padStart(2, '0');
         };
 
+        // --- Lightbox Functions ---
         let lbImages = [], lbCurrent = 0;
-        window.openLightbox = (images, startIdx) => {
-            lbImages  = images;
-            lbCurrent = startIdx || 0;
-            renderLightbox();
-            document.getElementById('lightbox').classList.add('active');
-            document.addEventListener('keydown', handleLbKey);
-        };
-        window.closeLightbox = () => {
-            document.getElementById('lightbox').classList.remove('active');
-            document.getElementById('lightboxImg').src = '';
-            document.removeEventListener('keydown', handleLbKey);
-        };
-        window.lbNavigate = (dir) => {
-            lbCurrent = (lbCurrent + dir + lbImages.length) % lbImages.length;
-            renderLightbox();
-        };
-        window.handleLightboxClick = (e) => {
-            if (e.target === document.getElementById('lightbox')) window.closeLightbox();
-        };
-        function renderLightbox() {
-            const imgEl = document.getElementById('lightboxImg');
-            if(imgEl) imgEl.src = lbImages[lbCurrent].src;
-            document.getElementById('lightboxFilename').innerText = lbImages[lbCurrent].name || '';
-            document.getElementById('lightboxCounter').innerText  = lbImages.length > 1 ? `${lbCurrent + 1} / ${lbImages.length}` : '';
-            document.getElementById('lbPrev').style.display = lbImages.length > 1 ? 'block' : 'none';
-            document.getElementById('lbNext').style.display = lbImages.length > 1 ? 'block' : 'none';
-        }
-        function handleLbKey(e) {
-            if (e.key === 'ArrowLeft')  window.lbNavigate(-1);
-            if (e.key === 'ArrowRight') window.lbNavigate(1);
-            if (e.key === 'Escape')     window.closeLightbox();
-        }
-        window.openLightboxFromRecord = (recordIdx, imgIdx) => {
-            const images = recordImageMap[recordIdx] || [];
-            if (images.length) window.openLightbox(images, imgIdx);
-        };
+        window.openLightbox = (images, startIdx) => { lbImages = images; lbCurrent = startIdx || 0; renderLightbox(); document.getElementById('lightbox').classList.add('active'); document.addEventListener('keydown', handleLbKey); };
+        window.closeLightbox = () => { document.getElementById('lightbox').classList.remove('active'); document.getElementById('lightboxImg').src = ''; document.removeEventListener('keydown', handleLbKey); };
+        window.lbNavigate = (dir) => { lbCurrent = (lbCurrent + dir + lbImages.length) % lbImages.length; renderLightbox(); };
+        window.handleLightboxClick = (e) => { if (e.target === document.getElementById('lightbox')) window.closeLightbox(); };
+        function renderLightbox() { document.getElementById('lightboxImg').src = lbImages[lbCurrent].src; document.getElementById('lightboxFilename').innerText = lbImages[lbCurrent].name || ''; document.getElementById('lightboxCounter').innerText = lbImages.length > 1 ? `${lbCurrent + 1} / ${lbImages.length}` : ''; document.getElementById('lbPrev').style.display = lbImages.length > 1 ? 'block' : 'none'; document.getElementById('lbNext').style.display = lbImages.length > 1 ? 'block' : 'none'; }
+        function handleLbKey(e) { if (e.key === 'ArrowLeft') window.lbNavigate(-1); if (e.key === 'ArrowRight') window.lbNavigate(1); if (e.key === 'Escape') window.closeLightbox(); }
+        window.openLightboxFromRecord = (recordIdx, imgIdx) => { const images = recordImageMap[recordIdx] || []; if (images.length) window.openLightbox(images, imgIdx); };
 
         function renderAttachments(attachments, recordIdx) {
             if (!attachments || !attachments.length) return '';
-            const images = attachments
-                .filter(f => {
-                    const src = f.base64 || f.url || '';
-                    return src && ((f.type || '').startsWith('image/') || src.startsWith('data:image') || /\.(jpg|jpeg|png|gif|webp)$/i.test(src));
-                })
-                .map(f => ({ src: f.base64 || f.url, name: f.name || '添付画像' }));
+            const images = attachments.filter(f => { const src = f.base64 || f.url || ''; return src && ((f.type || '').startsWith('image/') || src.startsWith('data:image') || /\.(jpg|jpeg|png|gif|webp)$/i.test(src)); }).map(f => ({ src: f.base64 || f.url, name: f.name || '添付画像' }));
             if (!images.length) return '';
             recordImageMap[recordIdx] = images;
-            return `
-                <div class="mt-4 p-4 bg-slate-50 rounded-2xl border border-slate-200">
-                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">
-                        <i class="fa-solid fa-images mr-1 text-orange-400"></i>添付画像（${images.length}枚）
-                    </p>
-                    <div class="attach-grid">
-                        ${images.map((img, imgIdx) => `
-                            <div class="attach-item" onclick="window.openLightboxFromRecord(${recordIdx}, ${imgIdx})" title="${img.name}">
-                                <img src="${img.src}" alt="${img.name}" loading="lazy">
-                                <div class="attach-zoom-icon"><i class="fa-solid fa-magnifying-glass-plus"></i></div>
-                            </div>`).join('')}
-                    </div>
-                </div>`;
+            return `<div class="mt-4 p-4 bg-slate-50 rounded-2xl border border-slate-200"><p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3"><i class="fa-solid fa-images mr-1 text-orange-400"></i>添付画像（${images.length}枚）</p><div class="attach-grid">${images.map((img, imgIdx) => `<div class="attach-item" onclick="window.openLightboxFromRecord(${recordIdx}, ${imgIdx})" title="${img.name}"><img src="${img.src}" alt="${img.name}" loading="lazy"><div class="attach-zoom-icon"><i class="fa-solid fa-magnifying-glass-plus"></i></div></div>`).join('')}</div></div>`;
         }
 
         async function loadStaffs() {
-            const KEY = 'cp_cache_staffs', TTL = 'cp_cache_staffs_date', today = new Date().toDateString();
-            const cached = sessionStorage.getItem(KEY);
-            if (cached && sessionStorage.getItem(TTL) === today) return JSON.parse(cached);
             const snap = await getDocs(query(collection(db, "staffs"), orderBy("name")));
-            const data = snap.docs.map(d => d.data());
-            sessionStorage.setItem(KEY, JSON.stringify(data));
-            sessionStorage.setItem(TTL, today);
-            return data;
+            return snap.docs.map(d => d.data());
         }
 
         async function loadRecords(name) {
-            const S_KEY = `cp_usage_session_${clean(name)}`, L_KEY = `cp_usage_data_v2_${clean(name)}`, today = new Date().toDateString(), T_KEY = `cp_usage_data_v2_${clean(name)}_date`;
-            const sCached = sessionStorage.getItem(S_KEY);
-            if (sCached) return JSON.parse(sCached);
-            const lCached = localStorage.getItem(L_KEY);
-            if (lCached && localStorage.getItem(T_KEY) === today) {
-                const data = JSON.parse(lCached);
-                sessionStorage.setItem(S_KEY, JSON.stringify(data));
-                return data;
-            }
             const snap = await getDocs(query(collection(db, "activity_records"), where("visitorName", "==", name), limit(500)));
-            const fullData = snap.docs.map(d => d.data());
-            try { sessionStorage.setItem(S_KEY, JSON.stringify(fullData)); } catch(e) {}
-            const liteData = fullData.map(r => ({ ...r, attachments: [] }));
-            try { localStorage.setItem(L_KEY, JSON.stringify(liteData)); localStorage.setItem(T_KEY, today); } catch(e) {}
-            return fullData;
+            return snap.docs.map(d => d.data());
         }
 
         async function fetchMyNotifications() {
@@ -235,27 +165,19 @@
                 await fetchMyNotifications();
                 window.renderStaffList();
                 const jName = sessionStorage.getItem('cp_usage_jump_name'), jMonth = sessionStorage.getItem('cp_usage_jump_month');
-                if (jName) {
-                    if (jMonth) currentM = parseInt(jMonth);
-                    await window.selectStaff(jName);
-                }
+                if (jName) { if (jMonth) currentM = parseInt(jMonth); await window.selectStaff(jName); }
             } catch (e) { console.error(e); }
         }
 
         window.renderStaffList = () => {
             const kw = clean(document.getElementById('staffSearch').value.toLowerCase()), dept = document.getElementById('deptFilter').value;
-            document.getElementById('staffList').innerHTML = allStaffs.filter(s => {
-                const nameM = !kw || clean(s.name).toLowerCase().includes(kw);
-                const sDept = clean(s.dept || "");
-                return nameM && (dept === 'ALL' ? TARGET_DEPTS.some(t => clean(t) === sDept) : sDept === clean(dept));
-            }).map(s => `<div class="staff-item ${clean(selectedName) === clean(s.name) ? 'active' : ''}" onclick="window.selectStaff('${s.name}')"><p class="font-black text-xs">${s.name}</p><p class="text-[8px] opacity-60 uppercase">${s.dept || ''}</p></div>`).join('');
+            document.getElementById('staffList').innerHTML = allStaffs.filter(s => { const nameM = !kw || clean(s.name).toLowerCase().includes(kw); const sDept = clean(s.dept || ""); return nameM && (dept === 'ALL' ? TARGET_DEPTS.some(t => clean(t) === sDept) : sDept === clean(dept)); }).map(s => `<div class="staff-item ${clean(selectedName) === clean(s.name) ? 'active' : ''}" onclick="window.selectStaff('${s.name}')"><p class="font-black text-xs">${s.name}</p><p class="text-[8px] opacity-60 uppercase">${s.dept || ''}</p></div>`).join('');
         };
 
         window.selectStaff = async (name) => {
             selectedName = name; window.renderStaffList();
             document.getElementById('guideMsg').style.display = 'none';
             document.getElementById('toolArea').style.display = 'block';
-            document.getElementById('activityAccordion').innerHTML = '<p class="text-center py-10 text-slate-300 font-bold animate-pulse">読み込み中...</p>';
             try {
                 currentStaffRecords = await loadRecords(name);
                 await fetchMyNotifications();
@@ -282,7 +204,7 @@
 
             container.innerHTML = filtered.map((r, i) => {
                 const targetNum = dateToNum(r.visitDate);
-                const noti = myNotifications.find(n => clean(n.visitorName) === clean(selectedName) && dateToNum(n.visitDate || n.appointDate) === targetNum);
+                const noti = myNotifications.find(n => clean(n.visitorName) === clean(selectedName) && dateToNum(n.visitDate || n.appointDate) === targetNum && clean(n.customerName) === clean(r.customerName));
                 const isUnread = noti && noti.isRead === false;
                 return `
                 <div class="accordion-item" id="acc-${i}" data-visit-date="${r.visitDate}">
@@ -296,12 +218,9 @@
                     </div>
                     <div class="accordion-content">
                         <div class="info-grid">
-                            <div><p class="info-label">お客様担当者</p><p class="info-value">${r.customerStaff || '-'}</p></div>
                             <div><p class="info-label">訪問時間</p><p class="info-value text-blue-600">${r.startTime} 〜 ${r.endTime}</p></div>
-                            <div><p class="info-label">同行者</p><p class="info-value text-blue-600">${r.companion || 'なし'}</p></div>
-                            <div><p class="info-label">次回予定</p><p class="info-value">${r.nextVisitDate || '未設定'}</p></div>
+                            <div><p class="info-label">同行者</p><p class="info-value">${r.companion || 'なし'}</p></div>
                         </div>
-                        ${r.qualData1 ? `<p class="info-label">定性：${r.qualData1}</p>` : ''}
                         <div class="report-box whitespace-pre-wrap">${r.content || r.customerReport || '報告なし'}</div>
                         <div class="flex justify-end mt-4 pt-4 border-t border-slate-100">
                             <button id="toggle-btn-${i}" onclick="window.toggleReadStatus('${r.visitDate}', '${i}')" class="px-6 py-2 rounded-xl font-black text-[11px] transition-all shadow-sm ${isUnread ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}">
@@ -313,35 +232,30 @@
                 </div>`;
             }).join('');
 
-            const jDate = sessionStorage.getItem('cp_usage_jump_date');
-            if (jDate) {
-                const targetNum = dateToNum(jDate);
-                const idx = filtered.findIndex(r => dateToNum(r.visitDate) === targetNum);
-                if (idx !== -1) { setTimeout(() => { window.toggleAcc(`acc-${idx}`); document.getElementById(`acc-${idx}`).scrollIntoView({ behavior: 'smooth', block: 'center' }); sessionStorage.removeItem('cp_usage_jump_date'); }, 800); }
+            // 🌟 会社名も含めた精密なジャンプ
+            const jDate = sessionStorage.getItem('cp_usage_jump_date'), jCust = sessionStorage.getItem('cp_usage_jump_customer');
+            if (jDate && jCust) {
+                const idx = filtered.findIndex(r => dateToNum(r.visitDate) === dateToNum(jDate) && clean(r.customerName) === clean(jCust));
+                if (idx !== -1) { setTimeout(() => { window.toggleAcc(`acc-${idx}`); document.getElementById(`acc-${idx}`).scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 500); }
+                sessionStorage.removeItem('cp_usage_jump_date'); sessionStorage.removeItem('cp_usage_jump_customer');
             }
         };
 
         window.toggleReadStatus = async (date, index) => {
             const myName = sessionStorage.getItem('userName') || "", targetNum = dateToNum(date);
             const btn = document.getElementById(`toggle-btn-${index}`), badge = document.getElementById(`badge-${index}`);
+            const customerName = currentStaffRecords.filter(r => { const dParts = (r.visitDate || "").toString().split(/[-/]/); return dParts.length >= 2 && parseInt(dParts[1]) === currentM; }).sort((a, b) => (b.visitDate || "").toString().localeCompare((a.visitDate || "").toString()))[index].customerName;
+
             try {
                 const q = query(collection(db, "notifications"), where("recipient", "==", myName), where("visitorName", "==", selectedName));
                 const snap = await getDocs(q);
                 let targetDoc = null;
-                               snap.forEach(d => { 
-                    const nData = d.data();
-                    if (dateToNum(nData.visitDate || nData.appointDate) === targetNum && clean(nData.customerName) === clean(currentStaffRecords[index].customerName)) {
-                        targetDoc = d;
-                    }
-                });
+                snap.forEach(d => { if (dateToNum(d.data().visitDate || d.data().appointDate) === targetNum && clean(d.data().customerName) === clean(customerName)) targetDoc = d; });
                 if (targetDoc) {
                     const nextStatus = !targetDoc.data().isRead;
                     await updateDoc(targetDoc.ref, { isRead: nextStatus });
-                    
-                    // 🌟 同期を確実にするためのキャッシュクリア
                     Object.keys(sessionStorage).forEach(k => { if (k.startsWith('cp_cal_cache')) sessionStorage.removeItem(k); });
                     sessionStorage.setItem('cp_return_from_usage', 'true');
-
                     if (nextStatus) { btn.className = "px-6 py-2 rounded-xl font-black text-[11px] bg-slate-100 text-slate-400"; btn.innerHTML = '<i class="fa-solid fa-envelope mr-2"></i>未読に戻す'; badge.style.display = 'none'; }
                     else { btn.className = "px-6 py-2 rounded-xl font-black text-[11px] bg-emerald-500 text-white"; btn.innerHTML = '<i class="fa-solid fa-check-double mr-2"></i>既読にする'; badge.style.display = 'inline'; }
                     await fetchMyNotifications();
@@ -357,17 +271,12 @@
             content.style.display = isOpen ? 'none' : 'block';
             if (icon) icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
             if (!isOpen) {
-                const idx = id.split('-')[1], btn = document.getElementById(`toggle-btn(${idx})`);
+                const idx = id.split('-')[1], btn = document.getElementById(`toggle-btn-${idx}`);
                 if (btn && btn.innerText.includes('既読にする')) window.toggleReadStatus(item.dataset.visitDate, idx);
             }
         };
 
-        window.returnToCalendar = () => {
-            Object.keys(sessionStorage).forEach(k => { if (k.startsWith('cp_cal_cache')) sessionStorage.removeItem(k); });
-            sessionStorage.setItem('cp_return_from_usage', 'true');
-            location.href = 'calendar.html';
-        };
-
+        window.returnToCalendar = () => { Object.keys(sessionStorage).forEach(k => { if (k.startsWith('cp_cal_cache')) sessionStorage.removeItem(k); }); sessionStorage.setItem('cp_return_from_usage', 'true'); location.href = 'calendar.html'; };
         init();
     </script>
 </body>
