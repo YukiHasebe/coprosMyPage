@@ -540,15 +540,28 @@
         // =========================================================
         // アコーディオン開閉（既存まま）
         // =========================================================
-        window.toggleAcc = (id) => {
-            const item = document.getElementById(id);
-            if (!item) return;
-            const content = item.querySelector('.accordion-content');
-            const icon    = item.querySelector('.fa-chevron-down');
-            const isOpen  = content.style.display === 'block';
-            content.style.display = isOpen ? 'none' : 'block';
-            if (icon) icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
-        };
+       window.toggleAcc = (id) => {
+    const item = document.getElementById(id);
+    if (!item) return;
+    const content = item.querySelector('.accordion-content');
+    const icon    = item.querySelector('.fa-chevron-down');
+    const isOpen  = content.style.display === 'block';
+    
+    if (!isOpen) {
+        content.style.display = 'block';
+        if (icon) icon.style.transform = 'rotate(180deg)';
+        
+        const visitor = selectedName;
+        const dateEl = item.querySelector('.text-xs.font-black.opacity-60');
+        const date = dateEl ? dateEl.innerText.trim() : '';
+        if (date && visitor) {
+            window.markAsReadOnOpen(visitor, date);
+        }
+    } else {
+        content.style.display = 'none';
+        if (icon) icon.style.transform = 'rotate(0deg)';
+    }
+};
 
         // ▼ 新規追加（カレンダーへ戻る処理）
         window.returnToCalendar = () => {
