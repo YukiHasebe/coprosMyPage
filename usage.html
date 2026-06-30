@@ -563,18 +563,34 @@
 };
 
         // ▼ 新規追加（カレンダーへ戻る処理）
-        window.returnToCalendar = () => {
-            // ▼ 既読処理完了後、カレンダーのキャッシュをクリア
-            const y = new Date().getFullYear();
-            const m = (new Date().getMonth() + 1).toString().padStart(2, '0');
-            sessionStorage.removeItem(`cp_cal_cache_v_ultimate_${y}_${m}`);
-            
-            // ▼ flagをセット（calendar.html で検出）
-            sessionStorage.setItem('cp_return_from_usage', 'true');
-            
-            location.href = 'calendar.html';
-        };
-
+window.returnToCalendar = async () => {
+    // ▼ 現在のユーザーと選択中の社員の全未読 notifications を既読に
+    const myName = sessionStorage.getItem('userName') || "";
+    const visitor = selectedName;
+    
+    if (myName && visitor) {
+        try {
+            const q = query(
+                collection(db, "notifications"),
+                where("recipient", "==", myName),
+                where("isRead", "==", false),
+                where("visitorName", "==", visitor)
+            );
+            const snap = await getDocs(q);
+            const batch = writeBatch(db);
+            snap.forEach(d => batch.update(d.ref, { isRead: true }));
+            if (snap.size > 0) await batch.commit();
+        } catch (e) { console.error(e); }
+    }
+    
+    // カレンダーのキャッシュをクリア
+    const y = new Date().getFullYear();
+    const m = (new Date().getMonth() + 1).toString().padStart(2, '0');
+    sessionStorage.removeItem(`cp_cal_cache_v_ultimate_${y}_${m}`);
+    sessionStorage.setItem('cp_return_from_usage', 'true');
+    
+    location.href = 'calendar.html';
+};
         init();
     </script>
 </body>
