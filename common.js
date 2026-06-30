@@ -36,32 +36,28 @@ export function watchNotifications(callback) {
     );
 
     unsubscribeStore = onSnapshot(q, (snap) => {
+        // 🌟 サイドバー用：回覧一覧に表示されるべき未読の総数をそのままカウント
+        const unreadCount = snap.size; 
         const allUnread = snap.docs.map(d => d.data());
-        
-        // 🌟 サイドバー用：自分が「回覧者リスト(kairanNames)」に含まれている未読だけをカウント
-        const kairanCount = allUnread.filter(n => {
-            const cNames = n.kairanNames || [];
-            return cNames.includes(rawName);
-        }).length;
 
         const badge = document.getElementById('unreadBadge');
         if (badge) {
-            if (kairanCount > 0) {
-                badge.innerText = kairanCount;
+            if (unreadCount > 0) {
+                badge.innerText = unreadCount;
                 badge.style.display = 'flex';
             } else {
                 badge.style.display = 'none';
             }
         }
         
-        // 🌟 カレンダー等の個別ページ側には、全未読リスト(allUnread)をそのまま渡す
+        // カレンダー等の個別ページ側には、全未読リストを渡す
         if (callback) callback(allUnread);
         
-        // グローバルイベントも全件数で発行
-        window.dispatchEvent(new CustomEvent('notificationUpdated', { detail: { count: allUnread.length } }));
+        window.dispatchEvent(new CustomEvent('notificationUpdated', { detail: { count: unreadCount } }));
     }, (error) => {
         console.error("Snapshot error:", error);
     });
+}
 }
 // 🌟 ローディング演出の統一
 function unifyLoaders() {
