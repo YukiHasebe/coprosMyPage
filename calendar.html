@@ -213,12 +213,13 @@
         };
         window.removeStaff = (name) => { selectedStaffs = selectedStaffs.filter(n => n !== name); localStorage.setItem('cp_cal_selected_staffs', JSON.stringify(selectedStaffs)); window.updateSelectedDisplay(); window.renderCalendar(); };
        
-        window.goUsage = (name, month, customer, date) => {
-            sessionStorage.setItem('cp_usage_jump_name', name);
-            sessionStorage.setItem('cp_usage_jump_customer', customer);
-            sessionStorage.setItem('cp_daily_date', date);
-            location.href = `daily_report.html`;
-        };
+        
+window.goUsage = (name, month, customer, date) => {
+    sessionStorage.setItem('cp_usage_jump_name', name);
+    sessionStorage.setItem('cp_usage_jump_customer', customer);
+    sessionStorage.setItem('cp_daily_date', date.replace(/\//g, '-')); // 必ず 2026-09-01 にする
+    location.href = `daily_report.html`;
+};
         window.goAddHistory = (date) => { sessionStorage.setItem('cp_add_date', date); location.href = 'history.html'; };
         window.handleAppoint = (id, cust, date, subject) => {
             const act = confirm(`【アポ詳細】\n顧客: ${cust}\n内容: ${subject || 'なし'}\n\n[OK] 実績登録\n[キャンセル] 削除/戻る`);
