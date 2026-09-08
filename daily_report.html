@@ -51,8 +51,8 @@
     <script type="module" src="common.js"></script>
     <script type="module">
         import { db } from "./common.js";
-        import { collection, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
+        import { collection, getDocs, query, where, limit, doc, updateDoc, addDoc, serverTimestamp, arrayUnion } 
+            from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         const standardizeDate = (s) => {
             if(!s) return "";
             const d = s.replace(/\//g, '-').split('-');
@@ -64,8 +64,11 @@
             const rawDate = sessionStorage.getItem('cp_daily_date');
             if (!rawDate) { location.href = 'calendar.html'; return; }
             
-            const targetDate = standardizeDate(rawDate);
-            document.getElementById('displayDate').innerText = targetDate.replace(/-/g, '/');
+const targetDateRaw = sessionStorage.getItem('cp_daily_date');
+const targetDateForDisplay = targetDateRaw.replace(/-/g, '/'); // 表示用: 2026/09/01
+const targetDateForSearch = targetDateRaw.replace(/\//g, '-'); // 比較用: 2026-09-01
+
+document.getElementById('displayDate').innerText = targetDateForDisplay;
 
             // 🌟 【高速化の鍵】カレンダーが持っているキャッシュをチェック
             const [y, m] = targetDate.split('-');
@@ -91,10 +94,9 @@
                 allData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             }
 
-            // その日だけのデータを抽出して表示
-            const dailyData = allData.filter(r => standardizeDate(r.visitDate) === targetDate)
-                                     .sort((a,b) => (a.startTime || "00:00").localeCompare(b.startTime || "00:00"));
-
+const dailyData = allData.filter(r => standardizeDate(r.visitDate) === targetDateForSearch)
+                         .sort((a,b) => (a.startTime || "00:00").localeCompare(b.startTime || "00:00"));
+            
             document.getElementById('sumVisits').innerText = dailyData.length;
             document.getElementById('sumStaff').innerText = [...new Set(dailyData.map(d => d.visitorName))].length;
 
@@ -173,9 +175,7 @@
             }).join('') : '...';
 
             autoFocus();
-
-    // --- 修正箇所：コメント投稿と自動展開ロジック ---
-import { doc, updateDoc, addDoc, serverTimestamp, arrayUnion } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+}
 
 window.postComment = async (recordId, customerName, index) => {
     const text = document.getElementById(`cmt-text-${index}`).value.trim();
