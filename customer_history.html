@@ -175,6 +175,15 @@
             }
 
             document.getElementById('targetCustomerName').innerText = customerName;
+                        // --- 修正箇所：爆速キャッシュチェック ---
+            const CACHE_KEY = `cp_history_cache_${cleanName}`;
+            const cached = sessionStorage.getItem(CACHE_KEY);
+            if (cached) {
+                const records = JSON.parse(cached);
+                renderHistory(records);
+                autoOpenFirst();
+                return; 
+            }
 
             if (customerRank || customerAttr) {
                 document.getElementById('customerMetaBadges').classList.remove('hidden');
@@ -236,6 +245,8 @@
                 }
 
                 renderHistory(records);
+                // --- 修正箇所：取得したデータを保存 ---
+                sessionStorage.setItem(CACHE_KEY, JSON.stringify(records));
                 autoOpenFirst();
 
             } catch (e) {
@@ -338,7 +349,7 @@
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-16 border-b border-slate-50 mb-6">
                             <div class="detail-row">
                                 <div class="detail-label">お客様担当者</div>
-                                <div class="detail-content">${data.customerStaff || '--'}</div>
+                                <div class="detail-content">${data.customerStaffName || '--'}</div>
                             </div>
                             <div class="detail-row">
                                 <div class="detail-label">訪問時間</div>
@@ -362,14 +373,15 @@
                                 ${data.qualData1 ? `<span class="bg-blue-50 text-[#004098] px-3 py-1 rounded-lg text-[10px] font-black border border-blue-100">${data.qualData1}</span>` : ''}
                                 ${data.qualData2 ? `<span class="bg-orange-50 text-orange-600 px-3 py-1 rounded-lg text-[10px] font-black border border-orange-100">${data.qualData2}</span>` : ''}
                                 ${data.qualData3 ? `<span class="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-lg text-[10px] font-black border border-emerald-100">${data.qualData3}</span>` : ''}
-                                ${!data.qualData1 && !data.qualData2 && !data.qualData3
+                                ${data.qualFree ? `<span class="bg-slate-100 text-slate-600 px-3 py-1 rounded-lg text-[10px] font-black border border-slate-200">${data.qualFree}</span>` : ''}
+                                ${!data.qualData1 && !data.qualData2 && !data.qualData3 && !data.qualFree
                                     ? '<span class="text-slate-300 text-xs font-bold italic">（未分類）</span>' : ''}
                             </div>
                         </div>
                         <div class="space-y-6">
                             <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100">
                                 <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">■ お客様からの情報（要望・状況）</p>
-                                <div class="detail-content whitespace-pre-wrap text-slate-700">${data.content || data.customerReport || '-'}</div>
+                                <div class="detail-content whitespace-pre-wrap text-slate-700">${data.content || '-'}</div>
                             </div>
                             <div class="p-6 bg-orange-50/30 rounded-2xl border border-orange-100/50">
                                 <p class="text-[9px] font-black text-orange-400 uppercase tracking-widest mb-3">■ 自分・スタッフの考え（次回提案・課題）</p>
