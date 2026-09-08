@@ -264,14 +264,35 @@
             }
         }
 
-        function autoOpenFirst() {
-            const firstBody  = document.querySelector('.history-body');
-            const firstArrow = document.querySelector('.arrow-icon');
-            if (firstBody && firstArrow) {
-                firstBody.style.display    = 'block';
-                firstArrow.style.transform = 'rotate(180deg)';
+        // --- 修正箇所：特定の日付の実績を自動で「全開」にする ---
+function autoOpenFirst() {
+    const params = new URLSearchParams(window.location.search);
+    const targetDate = params.get('targetDate'); // カレンダー/一覧から渡される日付
+    const focusDate = params.get('focusDate');   // カレンダーの数字クリック用
+    const dateToFind = targetDate || (focusDate ? focusDate.replace(/-/g, '/') : null);
+    
+    const cards = document.querySelectorAll('.history-card');
+    let found = false;
+
+    cards.forEach(card => {
+        const dateText = card.querySelector('.history-header span').innerText.trim();
+        const body = card.querySelector('.history-body');
+        const arrow = card.querySelector('.arrow-icon');
+
+        // 指定の日付と一致する場合、または指定がなく1件目の場合、アコーディオンを開く
+        if ((dateToFind && dateText.includes(dateToFind)) || (!dateToFind && !found)) {
+            body.style.display = 'block';
+            arrow.style.transform = 'rotate(180deg)';
+            if (dateToFind && !found) {
+                card.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
+            found = true;
+        } else {
+            body.style.display = 'none';
+            arrow.style.transform = 'rotate(0deg)';
         }
+    });
+}
 
         // =========================================================
         // 添付画像レンダリング
@@ -388,6 +409,38 @@
                                 <div class="detail-content whitespace-pre-wrap text-slate-600">${data.staffThoughts || '-'}</div>
                             </div>
                         </div>
+
+                        <div class="mt-6 p-6 bg-slate-50 rounded-2xl border-2 border-blue-100/50 shadow-inner">
+                            <p class="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <i class="fa-solid fa-comment-dots text-sm"></i> 指導・確認コメント
+                            </p>
+                            <div class="space-y-3 mb-5">
+                                ${(data.comments || []).map(c => `
+                                    <div class="p-3 bg-white rounded-xl border border-blue-50 shadow-sm text-left">
+                                        <div class="flex justify-between items-center mb-1">
+                                            <span class="text-[10px] font-black px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full">${c.sender} ➔ ${c.receiver}</span>
+                                            <span class="text-[9px] font-bold text-slate-400 font-mono">${c.date}</span>
+                                        </div>
+                                        <p class="text-xs font-bold text-slate-700 leading-relaxed">${c.text}</p>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <div class="space-y-3 text-left">
+                                <textarea id="cmt-text-${data.id}" class="w-full p-3 text-xs font-bold border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-400 outline-none min-h-[80px]" placeholder="コメントを入力..."></textarea>
+                                <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+                                    <div class="flex items-center gap-2 w-full sm:flex-1">
+                                        <span class="text-[10px] font-black text-slate-400 whitespace-nowrap">宛先:</span>
+                                        <select id="cmt-to-${data.id}" class="w-full text-[10px] font-bold p-2 rounded-lg border border-slate-200 bg-white">
+                                            <option value="${data.visitorName}">${data.visitorName}（担当者）</option>
+                                            <option value="全員">関係者全員</option>
+                                        </select>
+                                    </div>
+                                    <button onclick="window.postComment('${data.id}', '${data.customerName}')" class="w-full sm:w-auto px-6 py-2 bg-[#004098] text-white rounded-xl text-[10px] font-black hover:shadow-lg active:scale-95 transition-all">
+                                        送信
+                                    </button>
+                                </div>
+                            </div>
+                        </div>                      
                         ${renderAttachments(data.attachments, recordIdx)}
                         <div class="mt-8 flex justify-end">
                             <div class="bg-[#004098] text-white px-5 py-2 rounded-xl text-xs font-black shadow-md">
@@ -399,7 +452,41 @@
                 </div>`;
             }).join('');
         }
+// --- 修正箇所：コメント投稿と通知送信のロジック ---
+import { arrayUnion, updateDoc, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+window.postComment = async (recordId, customerName) => {
+    const text = document.getElementById(`cmt-text-${recordId}`).value.trim();
+    const receiver = document.getElementById(`cmt-to-${recordId}`).value;
+    const sender = sessionStorage.getItem('userName') || "管理者";
+    if (!text) return alert("コメントを入力してください");
+
+    try {
+        const ref = doc(db, "activity_records", recordId);
+        const now = new Date();
+        const dateStr = `${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
+        
+        // 1. 実績レコードにコメントを追加
+        await updateDoc(ref, { comments: arrayUnion({ sender, receiver, text, date: dateStr }) });
+
+        // 2. 通知を作成（相手の画面に「入電」と出すため）
+        await addDoc(collection(db, "notifications"), {
+            recipient: receiver === "全員" ? "ALL" : receiver,
+            visitorName: sender,
+            customerName: customerName,
+            type: "コメント入電",
+            isRead: false,
+            createdAt: serverTimestamp()
+        });
+
+        alert("コメントを送信しました");
+        // キャッシュを破棄して画面を更新
+        sessionStorage.removeItem(`cp_history_cache_${clean(customerName)}`);
+        location.reload();
+    } catch (e) {
+        alert("送信エラー: " + e.message);
+    }
+};
         window.toggleDetail = (el) => {
             const body   = el.nextElementSibling;
             const arrow  = el.querySelector('.arrow-icon');
