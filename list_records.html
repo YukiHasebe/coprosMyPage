@@ -326,13 +326,12 @@
                         </span>
                     </td>
                     <td class="p-6 text-center">
-                        <!-- ▼ 修正①：rank・attr をURLパラメータに追加 ▼ -->
+
                         <button
-                            onclick="location.href='customer_history.html?name=${eName}&rank=${eRank}&attr=${eAttr}'"
+                            onclick="location.href='customer_history.html?name=${eName}&rank=${eRank}&attr=${eAttr}&targetDate=${encodeURIComponent((data.visitDate || '').replace(/-/g, '/'))}'"
                             class="w-9 h-9 flex items-center justify-center bg-blue-50 text-[#004098] rounded-xl hover:bg-[#004098] hover:text-white mx-auto transition-all shadow-sm">
                             <i class="fa-solid fa-chevron-right text-xs"></i>
                         </button>
-                        <!-- ▲ 修正①ここまで ▲ -->
                     </td>
                     <td class="p-6 text-center">
                         <input type="checkbox" class="record-check w-5 h-5 accent-rose-500 rounded-md cursor-pointer border-slate-200" value="${data.id}">
