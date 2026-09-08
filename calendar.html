@@ -212,8 +212,15 @@
             container.innerHTML = selectedStaffs.map(name => `<div class="staff-tag"><span>${name}</span><i class="fa-solid fa-circle-xmark remove-staff-x" onclick="window.removeStaff('${name}')"></i></div>`).join('');
         };
         window.removeStaff = (name) => { selectedStaffs = selectedStaffs.filter(n => n !== name); localStorage.setItem('cp_cal_selected_staffs', JSON.stringify(selectedStaffs)); window.updateSelectedDisplay(); window.renderCalendar(); };
-        window.goUsage = (name, month, customer, date) => { sessionStorage.setItem('cp_usage_jump_name', name); sessionStorage.setItem('cp_usage_jump_month', month); sessionStorage.setItem('cp_usage_jump_customer', customer); sessionStorage.setItem('cp_usage_jump_date', date); location.href = 'usage.html'; };
-        window.goDailyReport = (date) => { sessionStorage.setItem('cp_daily_date', date); location.href = 'daily_report.html'; };
+        // --- 修正箇所：遷移先を詳細（履歴）ページに変更し、日付を渡す ---
+window.goUsage = (name, month, customer, date) => {
+    // 組織員ページではなく、内容が充実した履歴ページへ飛ばす
+    const p = new URLSearchParams({
+        name: customer,
+        targetDate: date.replace(/-/g, '/') // 2026/09/01 の形式で渡す
+    });
+    location.href = `customer_history.html?${p.toString()}`;
+};
         window.goAddHistory = (date) => { sessionStorage.setItem('cp_add_date', date); location.href = 'history.html'; };
         window.handleAppoint = (id, cust, date, subject) => {
             const act = confirm(`【アポ詳細】\n顧客: ${cust}\n内容: ${subject || 'なし'}\n\n[OK] 実績登録\n[キャンセル] 削除/戻る`);
