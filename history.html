@@ -611,6 +611,7 @@
             content:           b.querySelector('.customer-report').value,
             nextVisitDate:     (document.getElementById('nextVisitDate').value || "").replace(/-/g, '/'),
             staffThoughts:     b.querySelector('.staff-thoughts').value,
+            circularNames:     cNames,
             createdAt:         serverTimestamp()
         });
     }));
