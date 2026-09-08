@@ -583,24 +583,37 @@
         type:   'image/jpeg'
     }));
 
+    // --- 修正箇所：各ブロックから詳細データを取得して保存 ---
     const blocks = document.querySelectorAll('.report-block');
-    await Promise.all([...blocks].map(b =>
-        addDoc(collection(db, "activity_records"), {
-            customerName:  customer,
-            customerRank:  customerRank,
-            customerAttr:  customerAttr,
-            attachments:   attachments,
-            visitDate:     vDate.replace(/-/g, '/'),
-            visitorName:   visitor,
-            visitorDept:   vDept,
-            startTime:     document.getElementById('startTime').value  || "00:00",
-            endTime:       document.getElementById('endTime').value    || "00:00",
-            content:       b.querySelector('.customer-report').value,
-            nextVisitDate: (document.getElementById('nextVisitDate').value || "").replace(/-/g, '/'),
-            staffThoughts: b.querySelector('.staff-thoughts').value,
-            createdAt:     serverTimestamp()
-        })
-    ));
+    await Promise.all([...blocks].map(b => {
+        // 各入力フィールドから値を取得
+        const staffName = b.querySelector('.customer-staff-input').value;
+        const q1 = b.querySelector('.qual-data-1').value;
+        const q2 = b.querySelector('.qual-data-2').value;
+        const q3 = b.querySelector('.qual-data-3').value;
+        const qFree = b.querySelector('.qual-free').value;
+
+        return addDoc(collection(db, "activity_records"), {
+            customerName:      customer,
+            customerRank:      customerRank,
+            customerAttr:      customerAttr,
+            customerStaffName: staffName, // 追加
+            qualData1:         q1,        // 追加
+            qualData2:         q2,        // 追加
+            qualData3:         q3,        // 追加
+            qualFree:          qFree,     // 追加
+            attachments:       attachments,
+            visitDate:         vDate.replace(/-/g, '/'),
+            visitorName:       visitor,
+            visitorDept:       vDept,
+            startTime:         document.getElementById('startTime').value  || "00:00",
+            endTime:           document.getElementById('endTime').value    || "00:00",
+            content:           b.querySelector('.customer-report').value,
+            nextVisitDate:     (document.getElementById('nextVisitDate').value || "").replace(/-/g, '/'),
+            staffThoughts:     b.querySelector('.staff-thoughts').value,
+            createdAt:         serverTimestamp()
+        });
+    }));
 
    const cDisp  = document.getElementById('circularDisplay').innerText;
 let cNames = (cDisp !== '未選択' && cDisp !== '') 
@@ -624,7 +637,8 @@ if (cNames.length > 0) {
     const [y, m] = vDate.split('-');
     sessionStorage.removeItem(`cp_cal_cache_v_ultimate_${y}_${m.padStart(2, '0')}`);
     Object.keys(sessionStorage).filter(k => k.startsWith('cp_records_')).forEach(k => sessionStorage.removeItem(k));
-
+    // --- 修正箇所：最新の履歴を表示させるためキャッシュをクリア ---
+    sessionStorage.removeItem(`cp_history_cache_${clean(customer)}`);
     alert("登録完了！");
     location.href = 'calendar.html';
 } catch (e) {
