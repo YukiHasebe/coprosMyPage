@@ -91,11 +91,14 @@ document.getElementById('displayDate').innerText = targetDateForDisplay;
                     limit(500)
                 );
                 const snap = await getDocs(q);
-                allData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                allRecords = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             }
 
-const dailyData = allData.filter(r => standardizeDate(r.visitDate) === targetDateForSearch)
-                         .sort((a,b) => (a.startTime || "00:00").localeCompare(b.startTime || "00:00"));
+// --- 97行目を以下に書き換え（表記の揺れを完全に吸収する） ---
+const dailyData = allRecords.filter(r => {
+    const d = r.visitDate ? r.visitDate.toString().replace(/\//g, '-') : "";
+    return d.includes(targetDateForSearch) || d === targetDateForSearch;
+}).sort((a,b) => (a.startTime || "00:00").localeCompare(b.startTime || "00:00"));
             
             document.getElementById('sumVisits').innerText = dailyData.length;
             document.getElementById('sumStaff').innerText = [...new Set(dailyData.map(d => d.visitorName))].length;
