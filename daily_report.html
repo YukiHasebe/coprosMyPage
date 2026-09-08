@@ -60,30 +60,26 @@
             return `${d[0]}-${d[1].padStart(2, '0')}-${d[2].padStart(2, '0')}`;
         };
 
-        async function init() {
-            const rawDate = sessionStorage.getItem('cp_daily_date');
-            if (!rawDate) { location.href = 'calendar.html'; return; }
-            
-const targetDateRaw = sessionStorage.getItem('cp_daily_date');
-const targetDateForDisplay = targetDateRaw.replace(/-/g, '/'); // 表示用: 2026/09/01
-const targetDateForSearch = targetDateRaw.replace(/\//g, '-'); // 比較用: 2026-09-01
+async function init() {
+    const rawDate = sessionStorage.getItem('cp_daily_date');
+    if (!rawDate) { location.href = 'calendar.html'; return; }
+    
+    const targetDate = standardizeDate(rawDate); 
+    document.getElementById('displayDate').innerText = targetDate.replace(/-/g, '/');
 
-document.getElementById('displayDate').innerText = targetDateForDisplay;
-
-            // 🌟 【高速化の鍵】カレンダーが持っているキャッシュをチェック
-            const [y, m] = targetDate.split('-');
-            const cacheKey = `cp_cal_cache_v_ultimate_${y}_${m.padStart(2, '0')}`;
-            const cached = sessionStorage.getItem(cacheKey);
-
-            let allData = [];
+    const [y, m] = targetDate.split('-');
+    const cacheKey = `cp_cal_cache_v_ultimate_${y}_${m.padStart(2, '0')}`;
+    const cached = sessionStorage.getItem(cacheKey);
+    
+            let allRecords = [];
             if (cached) {
                 try {
                     const parsed = JSON.parse(cached);
-                    allData = parsed.records || [];
+                    allRecords = parsed.records || [];
                 } catch(e) { console.error("Cache Parse Error", e); }
             }
             
-            if (allData.length === 0) {
+            if (allRecords.length === 0) {
                 const q = query(
                     collection(db, "activity_records"), 
                     where("visitDate", ">=", `${y}/${m.padStart(2, '0')}/01`), 
@@ -94,11 +90,10 @@ document.getElementById('displayDate').innerText = targetDateForDisplay;
                 allRecords = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             }
 
-// --- 97行目を以下に書き換え（表記の揺れを完全に吸収する） ---
-const dailyData = allRecords.filter(r => {
-    const d = r.visitDate ? r.visitDate.toString().replace(/\//g, '-') : "";
-    return d.includes(targetDateForSearch) || d === targetDateForSearch;
-}).sort((a,b) => (a.startTime || "00:00").localeCompare(b.startTime || "00:00"));
+            const dailyData = allRecords.filter(r => {
+                const d = r.visitDate ? r.visitDate.toString().replace(/\//g, '-') : "";
+                return d.includes(targetDate) || d === targetDate;
+            }).sort((a,b) => (a.startTime || "00:00").localeCompare(b.startTime || "00:00"));
             
             document.getElementById('sumVisits').innerText = dailyData.length;
             document.getElementById('sumStaff').innerText = [...new Set(dailyData.map(d => d.visitorName))].length;
