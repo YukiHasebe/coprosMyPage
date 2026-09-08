@@ -121,7 +121,9 @@ async function init() {
                             <div><p class="info-label">お客様担当者</p><p class="info-value">${r.customerStaffName || r.customerStaff || '-'}</p></div>
                             <div><p class="info-label">訪問時間</p><p class="info-value"><i class="fa-regular fa-clock mr-1"></i> ${r.startTime} 〜 ${r.endTime}</p></div>
                             <div><p class="info-label">所属部署</p><p class="info-value text-blue-600">${r.visitorDept || '-'}</p></div>
+                            <div><p class="info-label">同行者</p><p class="info-value">${r.companion || 'なし'}</p></div>
                             <div>
+                                <div><p class="info-label">顧客情報</p><p class="info-value"><span class="bg-slate-700 text-white px-2 py-0.5 rounded text-[9px] mr-1">${r.customerRank || '--'}</span><span class="text-orange-600">${r.customerAttr || '--'}</span></p></div>
                                 <p class="info-label">定性データ分析</p>
                                 <div class="flex flex-wrap gap-1 mt-1">
                                     ${r.qualData1 ? `<span class="bg-blue-50 text-blue-600 px-2 py-0.5 rounded text-[9px] font-black border border-blue-100">${r.qualData1}</span>` : ''}
@@ -135,7 +137,11 @@ async function init() {
                         <div class="report-box whitespace-pre-wrap text-slate-700">${r.content || r.customerReport || '報告なし'}</div>
                         <p class="info-label mb-2 uppercase">■ 自分・スタッフの考え（次回提案・課題）</p>
                         <div class="report-box border-l-4 border-orange-200 bg-orange-50/30 whitespace-pre-wrap text-slate-600">${r.staffThoughts || '未入力'}</div>
-                        
+                        <div class="mt-4 flex justify-end">
+                            <div class="bg-blue-600 text-white px-5 py-2 rounded-xl text-[10px] font-black shadow-md">
+                                <i class="fa-regular fa-calendar-check mr-2"></i>次回訪問予定日：${r.nextVisitDate || '--/--/--'}
+                            </div>
+                        </div>                      
                         ${thumbs ? `<div class="mt-4 flex flex-wrap gap-2 mb-6">${thumbs}</div>` : ''}
 
                         <!-- コメントエリア -->
@@ -187,14 +193,35 @@ window.postComment = async (recordId, customerName, index) => {
         const dateStr = `${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
         
         await updateDoc(ref, { comments: arrayUnion({ sender, receiver, text, date: dateStr }) });
-        await addDoc(collection(db, "notifications"), {
-            recipient: receiver === "全員" ? "ALL" : receiver,
-            visitorName: sender,
-            customerName: customerName,
-            type: "コメント入電",
-            isRead: false,
-            createdAt: serverTimestamp()
-        });
+        const recordData = dailyData[index];
+        if (receiver === "全員") {
+            const circularList = recordData.circularNames || [];
+            const visitorName = recordData.visitorName;
+            let targets = [...new Set([...circularList, visitorName])];
+            targets = targets.filter(name => name !== sender);
+
+            await Promise.all(targets.map(name => 
+                addDoc(collection(db, "notifications"), {
+                    recipient: name,
+                    visitorName: sender,
+                    customerName: customerName,
+                    type: "コメント入電",
+                    isRead: false,
+                    createdAt: serverTimestamp()
+                })
+            ));
+        } else {
+            if (receiver !== sender) {
+                await addDoc(collection(db, "notifications"), {
+                    recipient: receiver,
+                    visitorName: sender,
+                    customerName: customerName,
+                    type: "コメント入電",
+                    isRead: false,
+                    createdAt: serverTimestamp()
+                });
+            }
+        }
         
         alert("コメントを送信しました");
         const rawDate = sessionStorage.getItem('cp_daily_date');
