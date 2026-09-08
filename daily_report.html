@@ -69,21 +69,26 @@
 
             // 🌟 【高速化の鍵】カレンダーが持っているキャッシュをチェック
             const [y, m] = targetDate.split('-');
-            const cacheKey = `cp_cal_cache_${y}_${m}`;
+            const cacheKey = `cp_cal_cache_v_ultimate_${y}_${m.padStart(2, '0')}`;
             const cached = sessionStorage.getItem(cacheKey);
 
             let allData = [];
-
             if (cached) {
-                // 🌟 キャッシュがあれば、それを使う（一瞬で終わる）
-                console.log("Using cached data from Calendar");
-                allData = JSON.parse(cached).records;
-            } else {
-                // キャッシュがない場合のみFirebaseから取得（念のためのバックアップ）
-                console.log("No cache found. Fetching from Firestore...");
-                const q = query(collection(db, "activity_records"), where("visitDate", ">=", `${y}/${m}/01`), where("visitDate", "<=", `${y}/${m}/31`));
+                try {
+                    const parsed = JSON.parse(cached);
+                    allData = parsed.records || [];
+                } catch(e) { console.error("Cache Parse Error", e); }
+            }
+            
+            if (allData.length === 0) {
+                const q = query(
+                    collection(db, "activity_records"), 
+                    where("visitDate", ">=", `${y}/${m.padStart(2, '0')}/01`), 
+                    where("visitDate", "<=", `${y}/${m.padStart(2, '0')}/31`),
+                    limit(500)
+                );
                 const snap = await getDocs(q);
-                allData = snap.docs.map(d => d.data());
+                allData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             }
 
             // その日だけのデータを抽出して表示
@@ -101,7 +106,7 @@
                     <div class="w-20 h-20 rounded-xl overflow-hidden border border-slate-200 shadow-sm bg-slate-100">
                         <img src="${img.src}" class="w-full h-full object-cover">
                     </div>`).join('');
-
+            
                 return `
                 <div class="accordion-item" id="acc-${i}">
                     <div class="accordion-header" onclick="window.toggleAcc('acc-${i}')">
