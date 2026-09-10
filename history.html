@@ -99,6 +99,10 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="md:col-span-2">
+                                <label class="label-text">お客様先担当者を入力 <span class="text-rose-500">*</span></label>
+                                <input type="text" id="mainCustomerStaffInput" class="form-input" placeholder="例: 鈴木, 山田（カンマ区切りで複数可）" oninput="window.syncAllStaffSelects(this.value)" required>
+                            </div>
                             <div class="max-w-xs"><label class="label-text">次回訪問予定日</label><input type="date" id="nextVisitDate" class="form-input"></div>
                         </div>
                     </div>
@@ -106,7 +110,7 @@
                     <!-- 詳細報告 -->
                     <div class="section-card">
                         <div class="flex justify-between items-center border-b pb-3 mb-6">
-                            <p class="section-title border-0 mb-0">詳細報告（追加可能）</p>
+                            <p class="section-title border-0 mb-0">詳細報告</p>
                             <button type="button" onclick="window.addReportBlock()" class="bg-[#ff7e11] text-white px-5 py-2 rounded-xl text-xs font-black hover:shadow-md transition-all active:scale-95">＋ 項目を追加</button>
                         </div>
                         <div id="reportContainer" class="space-y-8"></div>
@@ -316,13 +320,13 @@
             const q1 = (masterOptions.qual1 || []).map(o => `<option>${o}</option>`).join('');
             const q2 = (masterOptions.qual2 || []).map(o => `<option>${o}</option>`).join('');
             const q3 = (masterOptions.qual3 || []).map(o => `<option>${o}</option>`).join('');
+
             container.insertAdjacentHTML('beforeend', `
                 <div class="report-block" id="block-${blockId}">
                     ${container.children.length > 0 ? `<div class="remove-block-btn" onclick="document.getElementById('block-${blockId}').remove()"><i class="fa-solid fa-xmark"></i></div>` : ''}
                     <div class="mb-4">
-                        <label class="label-text">お客様先担当者を入力</label>
+                        <label class="label-text text-slate-400 font-black italic">担当者を選択（基本情報から自動反映）</label>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <input type="text" class="customer-staff-input form-input" placeholder="例: 鈴木, 山田" oninput="window.syncStaffSelect(${blockId}, this.value)">
                             <select class="customer-staff-dropdown form-input text-xs font-bold" onchange="window.insertStaffLabel(${blockId}, this.value)">
                                 <option value="">担当者を選択してください</option>
                             </select>
@@ -343,13 +347,20 @@
                         <textarea class="staff-thoughts form-input h-24 resize-none" placeholder="次回の提案予定や課題"></textarea>
                     </div>
                 </div>`);
-        };
+            
+            // 重要：追加された直後にメイン入力欄の内容を反映させる
+            window.syncAllStaffSelects(document.getElementById('mainCustomerStaffInput').value);
 
-        window.syncStaffSelect = (id, val) => {
-            const select = document.getElementById(`block-${id}`).querySelector('.customer-staff-dropdown');
-            const names  = val.split(/[,、\s]+/).filter(n => n.trim() !== "");
-            select.innerHTML = '<option value="">担当者を選択してください</option>' + names.map(n => `<option value="${n}">${n}</option>`).join('');
+        window.syncAllStaffSelects = (val) => {
+            const names = val.split(/[,、\s\u3000]+/).filter(n => n.trim() !== "");
+            const selects = document.querySelectorAll('.customer-staff-dropdown');
+            selects.forEach(select => {
+                const currentVal = select.value;
+                select.innerHTML = '<option value="">担当者を選択してください</option>' + 
+                                   names.map(n => `<option value="${n}" ${n === currentVal ? 'selected' : ''}>${n}</option>`).join('');
+            });
         };
+            
         window.insertStaffLabel = (id, val) => {
             if (!val) return;
             const area = document.getElementById(`block-${id}`).querySelector('.customer-report');
@@ -587,7 +598,7 @@
     const blocks = document.querySelectorAll('.report-block');
     await Promise.all([...blocks].map(b => {
         // 各入力フィールドから値を取得
-        const staffName = b.querySelector('.customer-staff-input').value;
+        const staffName = b.querySelector('.customer-staff-dropdown').value;
         const q1 = b.querySelector('.qual-data-1').value;
         const q2 = b.querySelector('.qual-data-2').value;
         const q3 = b.querySelector('.qual-data-3').value;
