@@ -314,6 +314,16 @@
         // =========================================================
         // addReportBlock
         // =========================================================
+        
+        window.syncAllStaffSelects = (val) => {
+            const names = val.split(/[,、\s\u3000]+/).filter(n => n.trim() !== "");
+            const selects = document.querySelectorAll('.customer-staff-dropdown');
+            selects.forEach(select => {
+                const currentVal = select.value;
+                select.innerHTML = '<option value="">担当者を選択してください</option>' + 
+                                   names.map(n => `<option value="${n}" ${n === currentVal ? 'selected' : ''}>${n}</option>`).join('');
+            });
+        };
         window.addReportBlock = () => {
             const container = document.getElementById('reportContainer');
             const blockId   = Date.now();
@@ -348,18 +358,8 @@
                     </div>
                 </div>`);
             
-            // 重要：追加された直後にメイン入力欄の内容を反映させる
             window.syncAllStaffSelects(document.getElementById('mainCustomerStaffInput').value);
-
-        window.syncAllStaffSelects = (val) => {
-            const names = val.split(/[,、\s\u3000]+/).filter(n => n.trim() !== "");
-            const selects = document.querySelectorAll('.customer-staff-dropdown');
-            selects.forEach(select => {
-                const currentVal = select.value;
-                select.innerHTML = '<option value="">担当者を選択してください</option>' + 
-                                   names.map(n => `<option value="${n}" ${n === currentVal ? 'selected' : ''}>${n}</option>`).join('');
-            });
-        };
+          };
             
         window.insertStaffLabel = (id, val) => {
             if (!val) return;
