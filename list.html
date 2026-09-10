@@ -32,7 +32,9 @@
                         <div class="w-px h-6 bg-slate-100 mx-1"></div>
                         <button onclick="location.href='add.html'" class="px-8 py-2.5 bg-[#004098] text-white rounded-xl font-bold text-xs hover:shadow-lg flex items-center gap-2 active:scale-95"><i class="fa-solid fa-plus-circle"></i>新規登録</button>
                         <div class="w-px h-6 bg-slate-100 mx-1"></div>
-                        <button onclick="window.bulkDelete()" class="px-6 py-2.5 text-rose-400 rounded-xl font-bold text-xs hover:bg-rose-50 flex items-center gap-2"><i class="fa-solid fa-trash-can"></i>一括削除</button>
+                        <button onclick="window.startEdit()" class="px-6 py-2.5 text-blue-500 rounded-xl font-bold text-xs hover:bg-blue-50 flex items-center gap-2 transition-all">
+                            <i class="fa-solid fa-pen-to-square"></i> 編集 / 削除
+                        </button>
                     </div>
                 </div>
 
@@ -65,10 +67,12 @@
                         <thead>
                             <tr class="text-white text-[10px] font-black uppercase text-center tracking-widest">
                                 <th class="p-6 w-16 opacity-50">No</th>
+                                <th class="p-6 w-20">ランク</th> <!-- 追加 -->
+                                <th class="p-6 w-24">属性</th> <!-- 追加 -->
                                 <th class="p-6 text-left">お客様名</th>
                                 <th class="p-6 w-48">実績/履歴</th>
                                 <th class="p-6">電話番号</th>
-                                <th class="p-6 text-left">住所</th>
+                               <th class="p-6 text-left w-32">住所</th> <!-- w-32等に少し絞る -->
                                 <th class="p-6 w-24">訪問数</th>
                                 <th class="p-6 w-32">最終訪問日</th>
                                 <th class="p-6 w-16 opacity-30"><i class="fa-solid fa-check-double"></i></th>
@@ -204,10 +208,7 @@
                 return;
             }
 
-            // =========================================================
-            // ▼▼▼ 修正①②：実績・履歴ボタンに rank と attr を追加 ▼▼▼
-            // =========================================================
-            tbody.innerHTML = dataList.map((data, i) => {
+                tbody.innerHTML = dataList.map((data, i) => {
                 // URLパラメータ用にエンコード
                 const eName = encodeURIComponent(data.name   || '');
                 const eRank = encodeURIComponent(data.rank   || '');
@@ -216,57 +217,41 @@
                 return `
                 <tr class="hover:bg-blue-50/50 border-b border-slate-50 transition-colors">
                     <td class="p-6 text-slate-300 font-mono text-xs border-r border-slate-50">${i + 1}</td>
+                    <td class="p-6 text-center">
+                        <span class="bg-slate-700 text-white px-2 py-0.5 rounded text-[10px] font-black">${data.rank || '--'}</span>
+                    </td>
+                    <td class="p-6 text-center">
+                        <span class="text-orange-600 text-[10px] font-black">${data.type || '--'}</span>
+                    </td>
                     <td class="p-6 text-left font-black text-slate-800">${data.name || '不明'}</td>
                     <td class="p-6 text-center">
                         <div class="flex gap-1 justify-center">
-                            <!-- ▼ 修正②：履歴ボタンに rank・attr を追加 ▼ -->
-                            <button
-                                onclick="location.href='customer_history.html?name=${eName}&rank=${eRank}&attr=${eAttr}'"
-                                class="bg-slate-100 text-slate-500 px-3 py-1.5 rounded-lg text-[10px] font-black hover:bg-[#004098] hover:text-white transition-all">
-                                履歴
-                            </button>
-                            <!-- ▼ 修正①：実績ボタンに rank・attr を追加 ▼ -->
-                            <button
-                                onclick="location.href='history.html?name=${eName}&rank=${eRank}&attr=${eAttr}'"
-                                class="bg-[#004098] text-white px-3 py-1.5 rounded-lg text-[10px] font-black hover:bg-[#ff7e11] transition-all">
-                                実績
-                            </button>
+                            <button onclick="location.href='customer_history.html?name=${eName}&rank=${eRank}&attr=${eAttr}'" class="bg-slate-100 text-slate-500 px-3 py-1.5 rounded-lg text-[10px] font-black hover:bg-[#004098] hover:text-white transition-all">履歴</button>
+                            <button onclick="location.href='history.html?name=${eName}&rank=${eRank}&attr=${eAttr}'" class="bg-[#004098] text-white px-3 py-1.5 rounded-lg text-[10px] font-black hover:bg-[#ff7e11] transition-all">実績</button>
                         </div>
                     </td>
                     <td class="p-6 text-slate-500 font-mono text-xs text-center">${data.tel || '-'}</td>
-                    <td class="p-6 text-left text-xs text-slate-400 truncate max-w-[250px] font-medium">${data.address || '-'}</td>
+                    <td class="p-6 text-left text-[10px] text-slate-400 truncate max-w-[200px] font-medium">${data.address || '-'}</td>
                     <td class="p-6 text-center"><span class="visit-badge">${data.visitCount || 0}回</span></td>
                     <td class="p-6 text-center text-slate-400 text-[10px] font-black uppercase">${data.lastVisit || '未訪問'}</td>
                     <td class="p-6 text-center">
-                        <input type="checkbox" class="customer-check w-5 h-5 accent-rose-500 rounded-md cursor-pointer" data-id="${data.id}">
+                        <input type="checkbox" class="customer-check w-5 h-5 accent-[#004098] rounded-md cursor-pointer" data-id="${data.id}">
                     </td>
                 </tr>`;
             }).join('');
-            // =========================================================
-            // ▲▲▲ 修正①②ここまで ▲▲▲
-            // =========================================================
-
+            
             document.getElementById('totalDisplay').innerText = dataList.length;
         }
 
-        window.bulkDelete = async () => {
+        window.startEdit = () => {
             const checks = document.querySelectorAll('.customer-check:checked');
-            if (!checks.length) return alert("削除したいお客様の右端にチェックを入れてください");
-            if (!confirm(`${checks.length}件のデータを削除しますか？\n（この操作は取り消せません）`)) return;
-
-            try {
-                const batch = writeBatch(db);
-                checks.forEach(cb => { batch.delete(doc(db, "customers", cb.dataset.id)); });
-                await batch.commit();
-
-                // ▼ 追加：削除後はキャッシュをクリアして再取得 ▼
-                Object.keys(sessionStorage)
-                    .filter(k => k.startsWith('cp_customers_'))
-                    .forEach(k => sessionStorage.removeItem(k));
-
-                alert("削除が完了しました");
-                window.executeSearch();
-            } catch (e) { alert("削除に失敗しました"); }
+            if (checks.length !== 1) {
+                alert("編集（または削除）したいお客様を1人だけチェックしてください");
+                return;
+            }
+            const id = checks[0].dataset.id;
+            sessionStorage.setItem('cp_edit_customer_id', id); // IDを一時保存
+            location.href = 'add.html'; // 登録・編集ページへ
         };
 
         window.clearSearch = () => {
