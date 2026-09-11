@@ -137,7 +137,7 @@
                 const qN = query(collection(db, "notifications"), where("recipient", "==", myName), where("isRead", "==", false));
                 
                 const [snapR, snapA, snapN] = await Promise.all([ getDocs(qR), getDocs(qA), getDocs(qN) ]);
-                loadedData = { records: snapR.docs.map(d => d.data()), appoints: snapA.docs.map(d => ({id: d.id, ...d.data()})), notifications: snapN.docs.map(d => d.data()) };
+                loadedData = { records: snapR.docs.map(d => ({id: d.id, ...d.data()})), appoints: snapA.docs.map(d => ({id: d.id, ...d.data()})), notifications: snapN.docs.map(d => d.data()) };
                 sessionStorage.setItem(cacheKey, JSON.stringify(loadedData));
                 if(loader) loader.style.display = 'none';
                 window.renderCalendar();
