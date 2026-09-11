@@ -60,6 +60,8 @@
             return `${d[0]}-${d[1].padStart(2, '0')}-${d[2].padStart(2, '0')}`;
         };
 
+        let allRecords = [], dailyData = []; 
+
 async function init() {
     const rawDate = sessionStorage.getItem('cp_daily_date');
     if (!rawDate) { location.href = 'calendar.html'; return; }
@@ -71,7 +73,7 @@ async function init() {
     const cacheKey = `cp_cal_cache_v_ultimate_${y}_${m.padStart(2, '0')}`;
     const cached = sessionStorage.getItem(cacheKey);
     
-            let allRecords = [];
+        allRecords = [];
             if (cached) {
                 try {
                     const parsed = JSON.parse(cached);
@@ -90,7 +92,7 @@ async function init() {
                 allRecords = snap.docs.map(d => ({ id: d.id, ...d.data() }));
             }
 
-            const dailyData = allRecords.filter(r => {
+            dailyData = allRecords.filter(r => {
                 const d = r.visitDate ? r.visitDate.toString().replace(/\//g, '-') : "";
                 return d.includes(targetDate) || d === targetDate;
             }).sort((a,b) => (a.startTime || "00:00").localeCompare(b.startTime || "00:00"));
