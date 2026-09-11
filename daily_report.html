@@ -205,8 +205,9 @@ window.postComment = async (recordId, customerName, index) => {
             await Promise.all(targets.map(name => 
                 addDoc(collection(db, "notifications"), {
                     recipient: name,
-                    visitorName: sender,
+                    visitorName: recordData.visitorName, // 🌟 sender ではなく、元々の訪問者名にする
                     customerName: customerName,
+                    visitDate: standardizeDate(rawDate).replace(/-/g, '/'), // 🌟 実績の日付に合わせる
                     type: "コメント入電",
                     isRead: false,
                     createdAt: serverTimestamp()
