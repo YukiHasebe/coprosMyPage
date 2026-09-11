@@ -176,7 +176,7 @@
 
             document.getElementById('targetCustomerName').innerText = customerName;
                         // --- 修正箇所：爆速キャッシュチェック ---
-            const CACHE_KEY = `cp_history_cache_${cleanName}`;
+            const CACHE_KEY = `cp_history_cache_v2_${cleanName}`;
             const cached = sessionStorage.getItem(CACHE_KEY);
             if (cached) {
                 const records = JSON.parse(cached);
