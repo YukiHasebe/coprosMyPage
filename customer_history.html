@@ -179,11 +179,13 @@
             const CACHE_KEY = `cp_history_cache_v2_${cleanName}`;
             const cached = sessionStorage.getItem(CACHE_KEY);
             if (cached) {
-                const records = JSON.parse(cached);
+            const records = JSON.parse(cached).filter(r => r.id); // 🌟 IDがあるものだけ残す
+            if (records.length > 0) {
                 renderHistory(records);
                 autoOpenFirst();
-                return; 
+                return;
             }
+       }
 
             if (customerRank || customerAttr) {
                 document.getElementById('customerMetaBadges').classList.remove('hidden');
@@ -452,8 +454,8 @@ function autoOpenFirst() {
                 </div>`;
             }).join('');
         }
-// --- 修正箇所：コメント投稿と通知送信のロジック ---
-import { arrayUnion, updateDoc, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+import { arrayUnion, updateDoc, addDoc, serverTimestamp, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 window.postComment = async (recordId, customerName) => {
     const text = document.getElementById(`cmt-text-${recordId}`).value.trim();
@@ -470,14 +472,26 @@ window.postComment = async (recordId, customerName) => {
         await updateDoc(ref, { comments: arrayUnion({ sender, receiver, text, date: dateStr }) });
 
         // 2. 通知を作成（相手の画面に「入電」と出すため）
-        await addDoc(collection(db, "notifications"), {
-            recipient: receiver === "全員" ? "ALL" : receiver,
-            visitorName: sender,
-            customerName: customerName,
-            type: "コメント入電",
-            isRead: false,
-            createdAt: serverTimestamp()
-        });
+if (receiver === "全員") {
+    // ※今回は簡易的に一括送信とするか、将来的にバッジ対応する際に見直します
+    await addDoc(collection(db, "notifications"), {
+        recipient: "全員",
+        visitorName: sender,
+        customerName: customerName,
+        type: "コメント入電",
+        isRead: false,
+        createdAt: serverTimestamp()
+    });
+} else if (receiver !== sender) {
+    await addDoc(collection(db, "notifications"), {
+        recipient: receiver,
+        visitorName: sender,
+        customerName: customerName,
+        type: "コメント入電",
+        isRead: false,
+        createdAt: serverTimestamp()
+    });
+}
 
         alert("コメントを送信しました");
         // キャッシュを破棄して画面を更新
