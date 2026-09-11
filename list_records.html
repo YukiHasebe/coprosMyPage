@@ -302,8 +302,8 @@
                 //    保存されていない場合があるため、存在すれば渡す設計にする
                 // =========================================================
                 const eName = encodeURIComponent(data.customerName || '');
-                const eRank = encodeURIComponent(data.customerRank || '');
-                const eAttr = encodeURIComponent(data.customerAttr || data.customerType || '');
+                const eRank = encodeURIComponent(data.customerRank || data.rank || ''); // rankでも拾えるように
+　　　　　　     const eAttr = encodeURIComponent(data.customerAttr || data.customerType || data.type || ''); // typeでも拾えるように
 
                 return `
                 <tr class="hover:bg-sky-50/50 transition-colors">
