@@ -77,7 +77,7 @@ async function init() {
             if (cached) {
                 try {
                     const parsed = JSON.parse(cached);
-                    allRecords = parsed.records || [];
+                    allRecords = (parsed.records || []).filter(r => r.id);
                 } catch(e) { console.error("Cache Parse Error", e); }
             }
             
@@ -172,7 +172,8 @@ async function init() {
                                             <option value="全員">関係者全員</option>
                                         </select>
                                     </div>
-                                    <button onclick="window.postComment('${r.id}', '${r.customerName}', ${i})" class="px-6 py-2 bg-[#004098] text-white rounded-xl text-[10px] font-black shadow-md active:scale-95 transition-all">送信</button>
+                                    <button onclick="if('${r.id}' === 'undefined'){ alert('データID異常です。一度カレンダーに戻り再読み込みしてください。'); return; } window.postComment('${r.id}', '${r.customerName}', ${i})"
+                                    class="px-6 py-2 bg-[#004098] text-white rounded-xl text-[10px] font-black shadow-md active:scale-95 transition-all">送信</button>
                                 </div>
                             </div>
                         </div>
@@ -187,6 +188,11 @@ window.postComment = async (recordId, customerName, index) => {
     const text = document.getElementById(`cmt-text-${index}`).value.trim();
     const receiver = document.getElementById(`cmt-to-${index}`).value;
     const sender = sessionStorage.getItem('userName') || "管理者";
+    
+    // 🌟 追加：カレンダーとの連動に必要な日付を取得
+    const rawDate = sessionStorage.getItem('cp_daily_date');
+    const formattedDate = standardizeDate(rawDate).replace(/-/g, '/');
+
     if (!text) return alert("コメントを入力してください");
 
     try {
@@ -205,9 +211,9 @@ window.postComment = async (recordId, customerName, index) => {
             await Promise.all(targets.map(name => 
                 addDoc(collection(db, "notifications"), {
                     recipient: name,
-                    visitorName: recordData.visitorName, // 🌟 sender ではなく、元々の訪問者名にする
+                    visitorName: recordData.visitorName,
                     customerName: customerName,
-                    visitDate: standardizeDate(rawDate).replace(/-/g, '/'), // 🌟 実績の日付に合わせる
+                    visitDate: formattedDate, // 🌟 変数名を合わせる
                     type: "コメント入電",
                     isRead: false,
                     createdAt: serverTimestamp()
@@ -217,8 +223,9 @@ window.postComment = async (recordId, customerName, index) => {
             if (receiver !== sender) {
                 await addDoc(collection(db, "notifications"), {
                     recipient: receiver,
-                    visitorName: sender,
+                    visitorName: recordData.visitorName, // 送信者ではなく「誰の訪問か」を入れる
                     customerName: customerName,
+                    visitDate: formattedDate, // 🌟 これがバッジ点灯に必須
                     type: "コメント入電",
                     isRead: false,
                     createdAt: serverTimestamp()
