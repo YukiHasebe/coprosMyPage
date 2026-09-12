@@ -125,17 +125,33 @@
                         </div>
                         <i class="fa-solid fa-chevron-down opacity-20 text-xs transition-transform"></i>
                     </div>
-                    <div class="accordion-content">
-                        <div class="info-grid">
-                            <div><p class="info-label">お客様担当者</p><p class="info-value">${r.customerStaffName || '--'}</p></div>
-                            <div><p class="info-label">訪問時間</p><p class="info-value text-blue-600">${r.startTime || '--:--'} 〜 ${r.endTime || '--:--'}</p></div>
-                            <div><p class="info-label">顧客ランク / 属性</p><p class="info-value"><span class="bg-slate-700 text-white px-2 py-0.5 rounded text-[9px] mr-1">${r.customerRank || '--'}</span><span class="text-orange-600">${r.customerAttr || '--'}</span></p></div>
-                            <div><p class="info-label">同行者</p><p class="info-value">${r.companion || 'なし'}</p></div>
+                <div class="accordion-content">
+                    <div class="info-grid">
+                        <div><p class="info-label">お客様担当者</p><p class="info-value">${r.customerStaffName || '--'}</p></div>
+                        <div><p class="info-label">訪問時間</p><p class="info-value text-blue-600">${r.startTime || '--:--'} 〜 ${r.endTime || '--:--'}</p></div>
+                        <div>
+                            <p class="info-label">顧客ランク / 属性</p>
+                            <p class="info-value"><span class="bg-slate-700 text-white px-2 py-0.5 rounded text-[9px] mr-1">${r.customerRank || '--'}</span><span class="text-orange-600">${r.customerAttr || '--'}</span></p>
                         </div>
-                        <p class="info-label mb-2 tracking-widest">■ お客様からの情報（要望・状況）</p>
-                        <div class="report-box mb-6">${r.content || '報告内容なし'}</div>
-                        <p class="info-label mb-2 tracking-widest">■ 自分・スタッフの考え（次回提案・課題）</p>
-                        <div class="report-box border-l-4 border-orange-200 bg-orange-50/30 text-slate-600 mb-6">${r.staffThoughts || '未入力'}</div>
+                        <div><p class="info-label">同行者</p><p class="info-value">${r.companion || 'なし'}</p></div>
+                    </div>
+
+                    <!-- 🌟 追記：定性データ分析エリア -->
+                    <div class="mb-6">
+                        <p class="info-label mb-2">定性データ分析</p>
+                        <div class="flex flex-wrap gap-2">
+                            ${r.qualData1 ? `<span class="bg-blue-50 text-blue-600 px-2 py-1 rounded text-[10px] font-black border border-blue-100">${r.qualData1}</span>` : ''}
+                            ${r.qualData2 ? `<span class="bg-orange-50 text-orange-600 px-2 py-1 rounded text-[10px] font-black border border-orange-100">${r.qualData2}</span>` : ''}
+                            ${r.qualData3 ? `<span class="bg-emerald-50 text-emerald-600 px-2 py-1 rounded text-[10px] font-black border border-emerald-100">${r.qualData3}</span>` : ''}
+                            ${r.qualFree ? `<span class="bg-slate-100 text-slate-600 px-2 py-1 rounded text-[10px] font-black border border-slate-200">${r.qualFree}</span>` : ''}
+                        </div>
+                    </div>
+
+                    <p class="info-label mb-2 tracking-widest">■ お客様からの情報（要望・状況）</p>
+                    <div class="report-box mb-6 whitespace-pre-wrap">${r.content || '報告内容なし'}</div>
+                    
+                    <p class="info-label mb-2 tracking-widest">■ 自分・スタッフの考え（次回提案・課題）</p>
+                    <div class="report-box border-l-4 border-orange-200 bg-orange-50/30 text-slate-600 mb-6 whitespace-pre-wrap">${r.staffThoughts || '未入力'}</div>
                         ${images.length ? `<div class="flex flex-wrap gap-2 mb-8">${images.map(src => `<img src="${src}" class="w-20 h-20 object-cover rounded-xl border">`).join('')}</div>` : ''}
 
                         <!-- コメントエリア -->
@@ -231,19 +247,38 @@
             location.href = 'usage.html';
         };
 
-        // ▼ usage から戻ってきた時の処理
-        async function handleReturnFromUsage() {
-            if (sessionStorage.getItem('cp_return_from_kairan') === 'true') {
-                sessionStorage.removeItem('cp_return_from_kairan');
-                // ▼ 最新データを再取得（既読状態が反映される）
-                await init();
-            }
-        }
+        window.postComment = async (recordId, customerName, index, noticeId) => {
+            const text = document.getElementById(`cmt-text-${index}`).value.trim();
+            const receiver = document.getElementById(`cmt-to-${index}`).value;
+            const sender = sessionStorage.getItem('userName') || "管理者";
+            if (!text) return alert("コメントを入力してください");
 
-        init();
+            try {
+                const ref = doc(db, "activity_records", recordId);
+                const now = new Date();
+                const dateStr = `${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
+                
+                await updateDoc(ref, { comments: arrayUnion({ sender, receiver, text, date: dateStr }) });
+                
+                const item = document.getElementById(`item-${noticeId}`);
+                const vDate = item.querySelector('.font-mono').innerText.trim();
 
-        // ▼ ページ表示時に戻り処理を実行
-        window.addEventListener('pageshow', handleReturnFromUsage);
+                await addDoc(collection(db, "notifications"), {
+                    recipient: receiver,
+                    visitorName: sender,
+                    customerName: customerName,
+                    visitDate: vDate,
+                    type: "コメント入電",
+                    isRead: false,
+                    createdAt: serverTimestamp()
+                });
+                
+                alert("コメントを送信しました");
+                init(); // 再描画してコメントを表示
+            } catch (e) { alert("送信エラー: " + e.message); }
+        };
+
+        init(); 
     </script>
 </body>
 </html>
