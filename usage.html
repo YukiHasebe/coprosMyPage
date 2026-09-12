@@ -317,10 +317,14 @@ window.postComment = async (recordId, customerName, index) => {
         alert("コメントを送信しました");
         // 最新の状態を再取得して表示を更新
         await window.selectStaff(selectedName); 
-setTimeout(() => {
-    window.toggleAcc(`acc-${index}`);
-    document.getElementById(`acc-${index}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-}, 300); // 描画完了を少し待ってから開く
+        setTimeout(() => {
+            window.toggleAcc(`acc-${index}`);
+            document.getElementById(`acc-${index}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 300);
+    } catch (e) { 
+        alert("送信エラー: " + e.message); 
+    }
+};
         
         window.toggleReadStatus = async (date, index) => {
             const myName = sessionStorage.getItem('userName') || "", targetNum = dateToNum(date);
