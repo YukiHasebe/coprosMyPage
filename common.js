@@ -34,21 +34,30 @@ export function watchNotifications(callback) {
     );
 
     unsubscribeStore = onSnapshot(q, (snap) => {
-        const unreadCount = snap.size; 
         const allUnread = snap.docs.map(d => d.data());
+        
+        // 🌟 通知の仕分けカウント
+        const kairanCount = allUnread.filter(n => n.type !== "コメント入電").length;
+        const commentCount = allUnread.filter(n => n.type === "コメント入電").length;
 
         const badge = document.getElementById('unreadBadge');
         if (badge) {
-            if (unreadCount > 0) {
-                badge.innerText = unreadCount;
+            if (allUnread.length > 0) {
+                // 🌟 表示形式を "(回覧) 💬(コメント)" に変更
+                let badgeHtml = "";
+                if (kairanCount > 0) badgeHtml += `(${kairanCount})`;
+                if (commentCount > 0) badgeHtml += `<span class="ml-1 text-[12px]">💬</span>(${commentCount})`;
+                
+                badge.innerHTML = badgeHtml;
                 badge.style.display = 'flex';
+                badge.classList.toggle('animate-bounce', true);
             } else {
                 badge.style.display = 'none';
             }
         }
         
         if (callback) callback(allUnread);
-        window.dispatchEvent(new CustomEvent('notificationUpdated', { detail: { count: unreadCount } }));
+        window.dispatchEvent(new CustomEvent('notificationUpdated', { detail: { count: allUnread.length } }));
     }, (error) => {
         console.error("Snapshot error:", error);
     });
@@ -148,7 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <i class="fa-solid fa-chevron-down text-[10px] opacity-30 arrow transition-transform duration-300"></i>
                     </div>
                     <div class="submenu hidden bg-black/40">
-                        <div class="sub-item py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer transition-all border-l-4 border-transparent" data-page="usage.html" onclick="location.href='usage.html'">組織員利用状況</div>
+                        <div class="sub-item py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer transition-all border-l-4 border-transparent" data-page="usage.html" onclick="location.href='usage.html'">社員利用状況</div>
                         <div class="sub-item py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer transition-all border-l-4 border-transparent" data-page="monthly_list.html" onclick="location.href='monthly_list.html'">月別一覧</div>
                         <div class="sub-item py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer transition-all border-l-4 border-transparent" data-page="customer_stay_time.html" onclick="location.href='customer_stay_time.html'">お客様別滞在時間</div>
                         <div class="sub-item py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer transition-all border-l-4 border-transparent" data-page="monthly_stay_time.html" onclick="location.href='monthly_stay_time.html'">月別滞在時間一覧</div>
@@ -162,7 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                     <div class="submenu hidden bg-black/40">
                         <div class="sub-item py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer transition-all border-l-4 border-transparent" data-page="notice_list.html" onclick="location.href='notice_list.html'">お知らせ管理</div>
-                        <div class="sub-item py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer transition-all border-l-4 border-transparent" data-page="staff_list.html" onclick="location.href='staff_list.html'">組織員情報登録</div>
+                        <div class="sub-item py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer transition-all border-l-4 border-transparent" data-page="staff_list.html" onclick="location.href='staff_list.html'">社員情報登録</div>
                         <div class="sub-item py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer transition-all border-l-4 border-transparent" data-page="master_qual.html" onclick="location.href='master_qual.html'">定性データ項目設定</div>
                         <div class="sub-item py-2.5 pl-14 pr-4 opacity-70 hover:opacity-100 hover:text-[#87ceeb] cursor-pointer transition-all border-l-4 border-transparent" data-page="import.html" onclick="location.href='import.html'">インポート</div>
                     </div>
