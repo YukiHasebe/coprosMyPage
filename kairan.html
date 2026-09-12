@@ -99,7 +99,22 @@
                 }));
 
                 renderList(notices, recordDataMap);
-            } catch (e) { 
+                const lastOpenedId = sessionStorage.getItem('cp_last_opened_kairan');
+    if (lastOpenedId) {
+        setTimeout(() => {
+            const item = document.getElementById(`item-${lastOpenedId}`);
+            if (item) {
+                const content = item.querySelector('.accordion-content');
+                if (content) {
+                    content.style.display = 'block';
+                    item.querySelector('.fa-chevron-down').style.transform = 'rotate(180deg)';
+                    item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+            sessionStorage.removeItem('cp_last_opened_kairan');
+        }, 300);
+    }
+ } catch (e) { 
                 console.error("回覧取得エラー:", e); 
                 container.innerHTML = '<p class="text-center py-20 text-rose-400 font-bold uppercase text-xs font-black">データの同期に失敗しました</p>';
             }
@@ -274,6 +289,7 @@
                 });
                 
                 alert("コメントを送信しました");
+                sessionStorage.setItem('cp_last_opened_kairan', noticeId);
                 init(); // 再描画してコメントを表示
             } catch (e) { alert("送信エラー: " + e.message); }
         };
