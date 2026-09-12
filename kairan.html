@@ -54,17 +54,15 @@
     <script type="module" src="common.js"></script>
     <script type="module">
         import { db } from "./common.js";
-        import { collection, getDocs, updateDoc, doc, writeBatch, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
+        import { collection, getDocs, updateDoc, doc, writeBatch, query, where, orderBy, limit, arrayUnion, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         let myName = sessionStorage.getItem('userName');
+       
         const clean = (s) => (s||"").toString().replace(/\s+/g, '');
 
         // ▼ カレンダーのキャッシュを消す共通関数（0埋め対応）
         const clearCalCache = (dateStr) => {
             if(!dateStr) { 
-                Object.keys(sessionStorage).forEach(k => {
-                    if (k.startsWith('cp_cal_cache')) sessionStorage.removeItem(k);
-                });
+                Object.keys(sessionStorage).forEach(k => { if (k.startsWith('cp_cal_cache')) sessionStorage.removeItem(k); });
                 return; 
             }
             const parts = dateStr.split(/[-/]/);
@@ -77,53 +75,96 @@
             if(!myName) { container.innerHTML = '<p class="text-center py-20 text-rose-400 font-bold">ログイン情報がありません</p>'; return; }
 
             try {
-                // ▼ 最新を常に反映させるため、あえてキャッシュを使わずに取得（limit 100で省エネ）
                 const q = query(collection(db, "notifications"), where("recipient", "==", myName), limit(100));
                 const snap = await getDocs(q);
-                let data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                let notices = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-                data.sort((a, b) => {
-                    const timeA = a.createdAt?.seconds || 0;
-                    const timeB = b.createdAt?.seconds || 0;
-                    return timeB - timeA;
-                });
+                notices.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
 
-                renderList(data);
+                const recordDataMap = {};
+                await Promise.all(notices.map(async (n) => {
+                    if (n.type.includes("アポ")) return;
+                    const qr = query(
+                        collection(db, "activity_records"), 
+                        where("visitorName", "==", n.visitorName),
+                        where("customerName", "==", n.customerName),
+                        where("visitDate", "==", n.visitDate),
+                        limit(1)
+                    );
+                    const rSnap = await getDocs(qr);
+                    if (!rSnap.empty) {
+                        const rDoc = rSnap.docs[0];
+                        recordDataMap[n.id] = { recordId: rDoc.id, ...rDoc.data() };
+                    }
+                }));
+
+                renderList(notices, recordDataMap);
             } catch (e) { 
                 console.error("回覧取得エラー:", e); 
-                container.innerHTML = '<p class="text-center py-20 text-rose-400 font-bold uppercase text-xs font-black">データの取得に失敗しました</p>';
+                container.innerHTML = '<p class="text-center py-20 text-rose-400 font-bold uppercase text-xs font-black">データの同期に失敗しました</p>';
             }
         }
-
-        function renderList(data) {
+        
+        function renderList(notices, recordDataMap) {
             const container = document.getElementById('kairanList');
-            container.innerHTML = data.length ? data.map(n => {
+            container.innerHTML = notices.length ? notices.map((n, idx) => {
+                const r = recordDataMap[n.id] || {}; 
                 const displayDate = n.visitDate || n.appointDate || "";
                 const dateFmt = displayDate ? String(displayDate).replace(/-/g,'/') : '日付不明';
+                const images = (r.attachments || []).map(f => f.base64 || f.url);
 
                 return `
                 <div class="accordion-item ${n.isRead ? '' : 'unread'}" id="item-${n.id}">
                     <div class="accordion-header" onclick="window.toggleKairan('${n.id}', ${n.isRead}, '${displayDate}')">
                         <div class="flex items-center gap-4">
-                            <input type="checkbox" class="bulk-check w-5 h-5 accent-[#004098] rounded-md" onclick="event.stopPropagation()" value="${n.id}" data-date="${displayDate}">
+                            <input type="checkbox" class="bulk-check w-5 h-5 accent-[#004098] rounded-md" onclick="event.stopPropagation()" value="${n.id}">
                             <span class="status-txt ${n.isRead ? 'status-read' : 'status-unread'}">${n.isRead ? '既読' : '未読'}</span>
-                            <span class="badge ${n.type === 'アポ回覧' ? 'badge-apo' : 'badge-rec'}">${n.type === 'アポ回覧' ? 'アポ' : '実績'}</span>
+                            <span class="badge ${n.type.includes('アポ') ? 'badge-apo' : 'badge-rec'}">${n.type.includes('アポ') ? 'アポ' : '実績'}</span>
                             <span class="text-sm font-mono font-black ${n.isRead ? 'text-slate-400' : 'text-orange-600'}">${dateFmt}</span>
-                            <span class="text-sm font-black text-slate-700 tracking-tight">${n.visitorName} <i class="fa-solid fa-caret-right mx-1 opacity-30"></i> ${n.customerName}</span>
+                            <span class="text-sm font-black text-slate-700 tracking-tight">${n.visitorName} ➔ ${n.customerName}</span>
                         </div>
                         <i class="fa-solid fa-chevron-down opacity-20 text-xs transition-transform"></i>
                     </div>
                     <div class="accordion-content">
                         <div class="info-grid">
-                            <div><p class="info-label">お客様名</p><p class="info-value text-blue-600">${n.customerName}</p></div>
-                            <div><p class="info-label">報告者</p><p class="info-value">${n.visitorName}</p></div>
+                            <div><p class="info-label">お客様担当者</p><p class="info-value">${r.customerStaffName || '--'}</p></div>
+                            <div><p class="info-label">訪問時間</p><p class="info-value text-blue-600">${r.startTime || '--:--'} 〜 ${r.endTime || '--:--'}</p></div>
+                            <div><p class="info-label">顧客ランク / 属性</p><p class="info-value"><span class="bg-slate-700 text-white px-2 py-0.5 rounded text-[9px] mr-1">${r.customerRank || '--'}</span><span class="text-orange-600">${r.customerAttr || '--'}</span></p></div>
+                            <div><p class="info-label">同行者</p><p class="info-value">${r.companion || 'なし'}</p></div>
                         </div>
-                        <p class="info-label mb-2 tracking-widest">■ 報告の抜粋</p>
-                        <div class="report-box">${n.content || '詳細内容は個人履歴画面で確認してください'}</div>
-                        <div class="mt-8 flex justify-end">
-                            <button onclick="window.goUsage('${n.visitorName}', '${displayDate}', '${n.customerName}')" class="px-6 py-2.5 bg-slate-100 text-[#004098] rounded-xl text-xs font-black hover:bg-[#004098] hover:text-white transition-all shadow-sm">
-                                個人履歴を確認する <i class="fa-solid fa-arrow-right ml-2"></i>
-                            </button>
+                        <p class="info-label mb-2 tracking-widest">■ お客様からの情報（要望・状況）</p>
+                        <div class="report-box mb-6">${r.content || '報告内容なし'}</div>
+                        <p class="info-label mb-2 tracking-widest">■ 自分・スタッフの考え（次回提案・課題）</p>
+                        <div class="report-box border-l-4 border-orange-200 bg-orange-50/30 text-slate-600 mb-6">${r.staffThoughts || '未入力'}</div>
+                        ${images.length ? `<div class="flex flex-wrap gap-2 mb-8">${images.map(src => `<img src="${src}" class="w-20 h-20 object-cover rounded-xl border">`).join('')}</div>` : ''}
+
+                        <!-- コメントエリア -->
+                        <div class="mt-8 p-6 bg-blue-50/50 rounded-2xl border border-blue-100">
+                            <p class="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <i class="fa-solid fa-comment-dots text-sm"></i> 指導・確認コメント
+                            </p>
+                            <div class="space-y-3 mb-5">
+                                ${(r.comments || []).map(c => `
+                                    <div class="p-3 bg-white rounded-xl shadow-sm border border-blue-50 text-left">
+                                        <div class="flex justify-between items-center mb-1 text-[9px]">
+                                            <span class="font-black text-blue-600 px-2 py-0.5 bg-blue-50 rounded-full">${c.sender} ➔ ${c.receiver}</span>
+                                            <span class="text-slate-400 font-mono">${c.date}</span>
+                                        </div>
+                                        <p class="text-xs font-bold text-slate-700">${c.text}</p>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            ${r.recordId ? `
+                            <div class="space-y-3 text-left">
+                                <textarea id="cmt-text-${idx}" class="w-full p-3 text-xs font-bold rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-400 min-h-[80px]" placeholder="指導コメントを入力..."></textarea>
+                                <div class="flex justify-between items-center gap-4">
+                                    <select id="cmt-to-${idx}" class="flex-1 text-[10px] font-bold p-2 rounded-lg border border-slate-200 bg-white">
+                                        <option value="${n.visitorName}">${n.visitorName}</option>
+                                        <option value="全員">関係者全員</option>
+                                    </select>
+                                    <button onclick="window.postComment('${r.recordId}', '${n.customerName}', ${idx}, '${n.id}')" class="px-6 py-2 bg-[#004098] text-white rounded-xl text-[10px] font-black shadow-md active:scale-95 transition-all">送信</button>
+                                </div>
+                            </div>` : '<p class="text-[10px] text-slate-400 italic font-bold">※アポ情報にはコメントできません</p>'}
                         </div>
                     </div>
                 </div>`;
