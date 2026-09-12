@@ -495,7 +495,7 @@ if (receiver === "全員") {
 
         alert("コメントを送信しました");
         // キャッシュを破棄して画面を更新
-        sessionStorage.removeItem(`cp_history_cache_${clean(customerName)}`);
+        sessionStorage.removeItem(`cp_history_cache_v2_${clean(customerName)}`); // 🌟 "_v2_" を追加
         location.reload();
     } catch (e) {
         alert("送信エラー: " + e.message);
