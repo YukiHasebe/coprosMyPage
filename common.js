@@ -25,7 +25,11 @@ export function watchNotifications(callback) {
     const rawName = sessionStorage.getItem('userName') || "";
     if (!rawName) return;
 
-    if (unsubscribeStore) unsubscribeStore();
+    // 🌟 既存の監視があれば一度止めて、二重起動を防ぐ
+    if (unsubscribeStore) {
+        unsubscribeStore();
+        unsubscribeStore = null;
+    }
 
     const q = query(
         collection(db, "notifications"), 
@@ -34,29 +38,31 @@ export function watchNotifications(callback) {
     );
 
     unsubscribeStore = onSnapshot(q, (snap) => {
-        const allUnread = snap.docs.map(d => d.data());
+        // 🌟 常に最新のデータを取得
+        const allUnread = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         
-        // 🌟 通知の仕分けカウント
-        const kairanCount = allUnread.filter(n => n.type !== "コメント入電").length;
+        const kairanCount = allUnread.filter(n => n.type === "実績回覧" || n.type === "回覧").length;
         const commentCount = allUnread.filter(n => n.type === "コメント入電").length;
 
         const badge = document.getElementById('unreadBadge');
         if (badge) {
             if (allUnread.length > 0) {
-                // 🌟 表示形式を "(回覧) 💬(コメント)" に変更
                 let badgeHtml = "";
                 if (kairanCount > 0) badgeHtml += `(${kairanCount})`;
+                // 🌟 コメントがある場合は 💬 アイコンを付与
                 if (commentCount > 0) badgeHtml += `<span class="ml-1 text-[12px]">💬</span>(${commentCount})`;
                 
                 badge.innerHTML = badgeHtml;
                 badge.style.display = 'flex';
-                badge.classList.toggle('animate-bounce', true);
+                // 🌟 新着がある場合はアニメーションさせる
+                badge.classList.add('animate-bounce');
             } else {
                 badge.style.display = 'none';
             }
         }
         
         if (callback) callback(allUnread);
+        // 他のページにも通知
         window.dispatchEvent(new CustomEvent('notificationUpdated', { detail: { count: allUnread.length } }));
     }, (error) => {
         console.error("Snapshot error:", error);
@@ -143,7 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div class="px-6 py-3 flex items-center justify-between hover:bg-white/5 cursor-pointer item-link transition-colors border-l-4 border-transparent" data-page="kairan.html" onclick="location.href='kairan.html'">
                     <div class="flex items-center gap-3"><i class="fa-solid fa-envelope-open-text w-5 icon-to-color"></i><span>回覧一覧</span></div>
-                    <span id="unreadBadge" class="bg-rose-500 text-white text-[10px] px-2 py-0.5 rounded-full font-black animate-bounce" style="display:none;">0</span>
+                    <span id="unreadBadge" class="bg-rose-500 text-white text-[9px] px-2 py-0.5 rounded-full font-black flex items-center justify-center shadow-sm" style="display:none;"></span>
                 </div>
                 <div class="px-6 py-3 flex items-center gap-3 hover:bg-white/5 cursor-pointer item-link transition-colors border-l-4 border-transparent" data-page="map.html" onclick="location.href='map.html'">
                     <i class="fa-solid fa-map-location-dot w-5 icon-to-color"></i><span>地図</span>
