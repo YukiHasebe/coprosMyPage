@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8"><title>組織員利用状況 | CP My Page</title>
+    <meta charset="UTF-8"><title>社員利用状況 | CP My Page</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -53,7 +53,7 @@
             <div class="max-w-[1200px] mx-auto">
                 <div class="flex justify-between items-end mb-8">
                     <div>
-                        <h1 class="text-4xl font-black text-slate-800 tracking-tighter">組織員利用状況</h1>
+                        <h1 class="text-4xl font-black text-slate-800 tracking-tighter">社員利用状況</h1>
                         <nav class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic mt-1">Staff Activity Dashboard</nav>
                     </div>
                     <button onclick="window.returnToCalendar()" class="px-6 py-2 bg-white border rounded-xl font-bold text-xs shadow-sm hover:bg-slate-50 transition-all">カレンダーへ戻る</button>
@@ -317,10 +317,10 @@ window.postComment = async (recordId, customerName, index) => {
         alert("コメントを送信しました");
         // 最新の状態を再取得して表示を更新
         await window.selectStaff(selectedName); 
-    } catch (e) { 
-        alert("送信エラー: " + e.message); 
-    }
-};
+setTimeout(() => {
+    window.toggleAcc(`acc-${index}`);
+    document.getElementById(`acc-${index}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}, 300); // 描画完了を少し待ってから開く
         
         window.toggleReadStatus = async (date, index) => {
             const myName = sessionStorage.getItem('userName') || "", targetNum = dateToNum(date);
