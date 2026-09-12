@@ -562,103 +562,96 @@
             document.getElementById('lightbox').classList.remove('active');
         };
 
-        // =========================================================
-        // 登録処理
-        // =========================================================
-        document.getElementById('submitBtnTop').onclick = async () => {
-            const form = document.getElementById('historyForm');
-            if (!form.checkValidity()) { form.reportValidity(); return; }
+document.getElementById('submitBtnTop').onclick = async () => {
+    const form = document.getElementById('historyForm');
+    if (!form.checkValidity()) { form.reportValidity(); return; }
 
-            // 合計サイズチェック
-            const totalKB = selectedFiles.reduce((s, f) => s + f.sizeKB, 0);
-            if (totalKB > COMPRESS_CONFIG.maxTotalKB) {
-                alert(`添付画像の合計が${totalKB}KBです。\n枚数を減らしてください。`);
-                return;
-            }
+    const totalKB = selectedFiles.reduce((s, f) => s + f.sizeKB, 0);
+    if (totalKB > COMPRESS_CONFIG.maxTotalKB) {
+        alert(`添付画像の合計が${totalKB}KBです。\n枚数を減らしてください。`);
+        return;
+    }
 
-            const btns = [document.getElementById('submitBtnTop'), document.getElementById('submitBtnBottom')];
-            btns.forEach(b => { b.disabled = true; b.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>保存中...'; });
+    const btns = [document.getElementById('submitBtnTop'), document.getElementById('submitBtnBottom')];
+    btns.forEach(b => { b.disabled = true; b.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>保存中...'; });
 
-            try {
-    const customer     = document.getElementById('customerSearch').value;
-    const visitor      = document.getElementById('visitorName').value;  // ← 追加
-    const vDate        = document.getElementById('visitDate').value;
-    const customerRank = document.getElementById('autoRank').value || '';
-    const customerAttr = document.getElementById('autoType').value  || '';
-    const staffEntry   = allStaffs.find(s => clean(s.name) === clean(visitor));
-    const vDept        = staffEntry ? staffEntry.dept : (sessionStorage.getItem('userDept') || "ケコム部");
+    try {
+        const customer     = document.getElementById('customerSearch').value;
+        const visitor      = document.getElementById('visitorName').value;
+        const vDate        = document.getElementById('visitDate').value;
+        const customerRank = document.getElementById('autoRank').value || '';
+        const customerAttr = document.getElementById('autoType').value  || '';
+        const staffEntry   = allStaffs.find(s => clean(s.name) === clean(visitor));
+        const vDept        = staffEntry ? staffEntry.dept : (sessionStorage.getItem('userDept') || "ケコム部");
 
-    const attachments = selectedFiles.map(f => ({
-        name:   f.name,
-        base64: f.base64,
-        type:   'image/jpeg'
-    }));
+        // 🌟 ここで cNames を定義（順序エラーを根絶）
+        const cDisp  = document.getElementById('circularDisplay').innerText;
+        let cNames = (cDisp !== '未選択' && cDisp !== '') 
+            ? cDisp.split(/[,、\s]+/).filter(n => n.trim() !== '') 
+            : [];
 
-    // --- 修正箇所：各ブロックから詳細データを取得して保存 ---
-    const blocks = document.querySelectorAll('.report-block');
-    await Promise.all([...blocks].map(b => {
-        // 各入力フィールドから値を取得
-        const staffName = b.querySelector('.customer-staff-dropdown').value;
-        const q1 = b.querySelector('.qual-data-1').value;
-        const q2 = b.querySelector('.qual-data-2').value;
-        const q3 = b.querySelector('.qual-data-3').value;
-        const qFree = b.querySelector('.qual-free').value;
+        const attachments = selectedFiles.map(f => ({
+            name:   f.name,
+            base64: f.base64,
+            type:   'image/jpeg'
+        }));
 
-        return addDoc(collection(db, "activity_records"), {
-            customerName:      customer,
-            customerRank:      customerRank,
-            customerAttr:      customerAttr,
-            customerStaffName: staffName, // 追加
-            qualData1:         q1,        // 追加
-            qualData2:         q2,        // 追加
-            qualData3:         q3,        // 追加
-            qualFree:          qFree,     // 追加
-            attachments:       attachments,
-            visitDate:         vDate.replace(/-/g, '/'),
-            visitorName:       visitor,
-            visitorDept:       vDept,
-            startTime:         document.getElementById('startTime').value  || "00:00",
-            endTime:           document.getElementById('endTime').value    || "00:00",
-            content:           b.querySelector('.customer-report').value,
-            nextVisitDate:     (document.getElementById('nextVisitDate').value || "").replace(/-/g, '/'),
-            staffThoughts:     b.querySelector('.staff-thoughts').value,
-            circularNames:     cNames,
-            createdAt:         serverTimestamp()
-        });
-    }));
+        const blocks = document.querySelectorAll('.report-block');
+        
+        // 1. 各報告ブロックを保存
+        await Promise.all([...blocks].map(b => {
+            const staffName = b.querySelector('.customer-staff-dropdown').value;
+            return addDoc(collection(db, "activity_records"), {
+                customerName:      customer,
+                customerRank:      customerRank,
+                customerAttr:      customerAttr,
+                customerStaffName: staffName,
+                qualData1:         b.querySelector('.qual-data-1').value,
+                qualData2:         b.querySelector('.qual-data-2').value,
+                qualData3:         b.querySelector('.qual-data-3').value,
+                qualFree:          b.querySelector('.qual-free').value,
+                attachments:       attachments,
+                visitDate:         vDate.replace(/-/g, '/'),
+                visitorName:       visitor,
+                visitorDept:       vDept,
+                startTime:         document.getElementById('startTime').value  || "00:00",
+                endTime:           document.getElementById('endTime').value    || "00:00",
+                content:           b.querySelector('.customer-report').value,
+                nextVisitDate:     (document.getElementById('nextVisitDate').value || "").replace(/-/g, '/'),
+                staffThoughts:     b.querySelector('.staff-thoughts').value,
+                circularNames:     cNames,
+                createdAt:         serverTimestamp()
+            });
+        }));
 
-   const cDisp  = document.getElementById('circularDisplay').innerText;
-let cNames = (cDisp !== '未選択' && cDisp !== '') 
-    ? cDisp.split(/[,、\s]+/).filter(n => n.trim() !== '') 
-    : [];
+        // 2. 回覧通知の作成（自分も含めて全員に送る）
+        if (cNames.length > 0) {
+            await Promise.all(cNames.map(name =>
+                addDoc(collection(db, "notifications"), {
+                    recipient: name,
+                    visitorName: visitor,
+                    customerName: customer,
+                    visitDate: vDate.replace(/-/g, '/'),
+                    isRead: false,
+                    createdAt: serverTimestamp(),
+                    type: "実績回覧"
+                })
+            ));
+        }
 
-// ▼ 回覧者がいる場合のみ notifications を作成
-if (cNames.length > 0) {
-    await Promise.all(cNames.map(name =>
-        addDoc(collection(db, "notifications"), {
-            recipient: name,
-            visitorName: visitor,
-            customerName: customer,
-            visitDate: vDate.replace(/-/g, '/'),
-            isRead: false,
-            createdAt: serverTimestamp(),
-            type: "実績回覧"
-        })
-    ));
-　　}
-    const [y, m] = vDate.split('-');
-    sessionStorage.removeItem(`cp_cal_cache_v_ultimate_${y}_${m.padStart(2, '0')}`);
-    Object.keys(sessionStorage).filter(k => k.startsWith('cp_records_')).forEach(k => sessionStorage.removeItem(k));
-    // --- 修正箇所：最新の履歴を表示させるためキャッシュをクリア ---
-    sessionStorage.removeItem(`cp_history_cache_${clean(customer)}`);
-    alert("登録完了！");
-    location.href = 'calendar.html';
-} catch (e) {
-    alert("保存エラー: " + e.message);
-    btns.forEach(b => { b.disabled = false; b.innerHTML = '登録を実行'; });
-}
-        };
+        // キャッシュクリア
+        const [y, m] = vDate.split('-');
+        sessionStorage.removeItem(`cp_cal_cache_v_ultimate_${y}_${m.padStart(2, '0')}`);
+        Object.keys(sessionStorage).filter(k => k.startsWith('cp_records_')).forEach(k => sessionStorage.removeItem(k));
+        sessionStorage.removeItem(`cp_history_cache_v2_${clean(customer)}`);
 
+        alert("登録完了！");
+        location.href = 'calendar.html';
+    } catch (e) {
+        alert("保存エラー: " + e.message);
+        btns.forEach(b => { b.disabled = false; b.innerHTML = '登録を実行'; });
+    }
+};
         init();
     </script>
 </body>
