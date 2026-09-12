@@ -598,14 +598,18 @@ document.getElementById('submitBtnTop').onclick = async () => {
 
         const blocks = document.querySelectorAll('.report-block');
         
-        // 1. 各報告ブロックを保存
+          // 1. 各報告ブロックを保存
         await Promise.all([...blocks].map(b => {
             const staffName = b.querySelector('.customer-staff-dropdown').value;
+            // 🌟 追加：画面から同行者の値を取得
+            const companion = document.getElementById('companionDisplay').value;
+
             return addDoc(collection(db, "activity_records"), {
                 customerName:      customer,
                 customerRank:      customerRank,
                 customerAttr:      customerAttr,
                 customerStaffName: staffName,
+                companion:         companion, // 🌟 これを追加！
                 qualData1:         b.querySelector('.qual-data-1').value,
                 qualData2:         b.querySelector('.qual-data-2').value,
                 qualData3:         b.querySelector('.qual-data-3').value,
