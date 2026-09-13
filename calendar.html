@@ -112,11 +112,12 @@
                 }
                 window.updateSelectedDisplay();
                 
-                // 🌟 【省エネ同期の核心】
-                watchNotifications((allUnreadList) => {
-                    loadedData.notifications = allUnreadList;
-                    window.renderCalendar(); 
-                });
+               // 🌟 修正：通知が届いた時に loadedData を確実に更新して再描画
+watchNotifications((allUnreadList) => {
+    // console.log("New notifications received:", allUnreadList); // デバッグ用
+    loadedData.notifications = allUnreadList;
+    window.renderCalendar(); 
+});
 
                 await window.fetchMonthData();
             } catch (e) { console.error(e); }
