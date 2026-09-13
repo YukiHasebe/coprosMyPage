@@ -200,7 +200,7 @@
                         evHtml += `<div class="event-item"><div class="event-label label-next" onclick="window.goUsage('${r.visitorName}', ${month+1}, '${r.customerName}', '${targetKey}')">${r.visitorName}: ${r.customerName}</div></div>`;
                     });
                 }
-                }
+                
                 if (document.getElementById('showApp').checked && appMap[targetNum]) {
                     appMap[targetNum].forEach(a => {
                         if (selCleans.length > 0 && !selCleans.includes(clean(a.visitorName))) return;
