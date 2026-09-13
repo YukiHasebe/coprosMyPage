@@ -25,36 +25,34 @@ export function watchNotifications(callback) {
     const rawName = sessionStorage.getItem('userName') || "";
     if (!rawName) return;
 
-    // 🌟 既存の監視があれば一度止めて、二重起動を防ぐ
-    if (unsubscribeStore) {
-        unsubscribeStore();
-        unsubscribeStore = null;
-    }
+    if (unsubscribeStore) { unsubscribeStore(); unsubscribeStore = null; }
 
-    const q = query(
-        collection(db, "notifications"), 
-        where("recipient", "==", rawName), 
-        where("isRead", "==", false)
-    );
+    // 🌟 数字を丸数字に変換する親切関数
+    const toCircleNum = (n) => {
+        const circles = ["⓪","①","②","③","④","⑤","⑥","⑦","⑧","⑨","⑩","⑪","⑫","⑬","⑭","⑮","⑯","⑰","⑱","⑲","⑳"];
+        return circles[n] || `(${n})`;
+    };
+
+    const q = query(collection(db, "notifications"), where("recipient", "==", rawName), where("isRead", "==", false));
 
     unsubscribeStore = onSnapshot(q, (snap) => {
-        // 🌟 常に最新のデータを取得
         const allUnread = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         
-        const kairanCount = allUnread.filter(n => n.type === "実績回覧" || n.type === "回覧").length;
+        // 🌟 通知の仕分け（コメント以外はすべて回覧としてカウント）
+        const kairanCount = allUnread.filter(n => n.type !== "コメント入電").length;
         const commentCount = allUnread.filter(n => n.type === "コメント入電").length;
 
         const badge = document.getElementById('unreadBadge');
         if (badge) {
             if (allUnread.length > 0) {
                 let badgeHtml = "";
-                if (kairanCount > 0) badgeHtml += `(${kairanCount})`;
-                // 🌟 コメントがある場合は 💬 アイコンを付与
-                if (commentCount > 0) badgeHtml += `<span class="ml-1 text-[12px]">💬</span>(${commentCount})`;
+                // 🌟 回覧数を丸数字で表示
+                if (kairanCount > 0) badgeHtml += `<span class="text-[11px]">${toCircleNum(kairanCount)}</span>`;
+                // 🌟 コメント数を 💬(n) で表示
+                if (commentCount > 0) badgeHtml += `<span class="ml-1 text-[12px]">💬</span><span class="text-[10px]">(${commentCount})</span>`;
                 
                 badge.innerHTML = badgeHtml;
                 badge.style.display = 'flex';
-                // 🌟 新着がある場合はアニメーションさせる
                 badge.classList.add('animate-bounce');
             } else {
                 badge.style.display = 'none';
@@ -62,11 +60,8 @@ export function watchNotifications(callback) {
         }
         
         if (callback) callback(allUnread);
-        // 他のページにも通知
         window.dispatchEvent(new CustomEvent('notificationUpdated', { detail: { count: allUnread.length } }));
-    }, (error) => {
-        console.error("Snapshot error:", error);
-    });
+    }, (error) => { console.error("Snapshot error:", error); });
 }
 
 // 🌟 ローディング演出の統一
