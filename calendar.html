@@ -29,6 +29,10 @@
         .staff-item.selected { background: #eff6ff; color: var(--copros-navy); border-left: 4px solid var(--copros-navy); }
         .month-btn { padding: 0.6rem 0.2rem; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 900; flex: 1; text-align: center; cursor: pointer; }
         .month-btn.active { background: var(--copros-navy); color: white; }
+        /* 親切演出：ラベルホバーで少し浮かす */
+        .event-label:hover { transform: translateY(-1px); filter: brightness(0.95); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        /* 今日の日付を強調 */
+        .is-today .day-num { transform: scale(1.1); box-shadow: 0 2px 8px rgba(255,126,17,0.4); }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden text-slate-700">
@@ -53,6 +57,7 @@
                 <div class="flex flex-col md:flex-row items-center justify-center w-full relative mb-6 gap-6">
                     <div class="flex items-center gap-10 bg-white py-2 px-10 rounded-2xl shadow-sm border border-slate-200">
                         <button onclick="window.changeMonth(-1)" class="text-slate-300 hover:text-slate-600 transition-colors"><i class="fa-solid fa-chevron-left fa-xl"></i></button>
+                        <button onclick="window.goToday()" class="text-[10px] font-black bg-slate-100 px-3 py-1 rounded-lg hover:bg-slate-200 transition-all text-slate-500">今日</button>
                         <span id="displayMonthCenter" class="text-xl font-black text-slate-700 min-w-[180px] text-center tracking-tighter">----年 --月</span>
                         <button onclick="window.changeMonth(1)" class="text-slate-300 hover:text-slate-600 transition-colors"><i class="fa-solid fa-chevron-right fa-xl"></i></button>
                     </div>
@@ -170,17 +175,24 @@
                         if (selCleans.length > 0 && !selCleans.includes(clean(r.visitorName))) return;
                         const uKey = `res-${clean(r.visitorName)}-${clean(r.customerName)}`;
                         if (processedKeys.has(uKey)) return;
-                        const hasNoti = notiMap[targetNum]?.some(n => 
+
+                        // 🌟 親切バッジ判定
+                        const noticesForThisEvent = notiMap[targetNum]?.filter(n => 
                            clean(n.visitorName) === clean(r.visitorName) && 
-                           clean(n.customerName) === clean(r.customerName) && 
-                           (n.type.includes("実績") || n.type.includes("コメント")) // 🌟 コメント関連も対象にする
+                           clean(n.customerName) === clean(r.customerName)
                         );
-                        if (showUnread && !hasNoti) return;
-                        const badge = hasNoti ? `<span class="inline-block w-2 h-2 rounded-full bg-rose-500 mr-1 animate-pulse"></span>` : "";
+                        const hasKairan = noticesForThisEvent?.some(n => n.type.includes("実績"));
+                        const hasComment = noticesForThisEvent?.some(n => n.type.includes("コメント"));
+
+                        if (showUnread && !hasKairan && !hasComment) return;
+
+                        let badge = "";
+                        if (hasComment) badge += `<span class="inline-block mr-1 animate-bounce text-[10px]">💬</span>`;
+                        else if (hasKairan) badge += `<span class="inline-block w-2 h-2 rounded-full bg-rose-500 mr-1 animate-pulse"></span>`;
+
                         evHtml += `<div class="event-item"><div class="event-label label-result" onclick="window.goUsage('${r.visitorName}', ${month+1}, '${r.customerName}', '${targetKey}')">${badge}${r.visitorName}: ${r.customerName}</div></div>`;
                         processedKeys.add(uKey);
                     });
-                }
                 if (document.getElementById('showNext').checked && !showUnread) {
                     loadedData.records.filter(r => dateToNum(r.nextVisitDate) === targetNum).forEach(r => {
                         if (selCleans.length > 0 && !selCleans.includes(clean(r.visitorName))) return;
@@ -232,6 +244,7 @@ window.goUsage = (name, month, customer, date) => {
         };
         window.changeMonth = (v) => { currentDate.setMonth(currentDate.getMonth() + v); window.fetchMonthData(); };
         window.jumpMonth = (m) => { currentDate.setMonth(m - 1); window.fetchMonthData(); };
+        window.goToday = () => { currentDate = new Date(); window.fetchMonthData(true); };
         init();
     </script>
 </body>
