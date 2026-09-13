@@ -193,11 +193,13 @@
                         evHtml += `<div class="event-item"><div class="event-label label-result" onclick="window.goUsage('${r.visitorName}', ${month+1}, '${r.customerName}', '${targetKey}')">${badge}${r.visitorName}: ${r.customerName}</div></div>`;
                         processedKeys.add(uKey);
                     });
+                }
                 if (document.getElementById('showNext').checked && !showUnread) {
                     loadedData.records.filter(r => dateToNum(r.nextVisitDate) === targetNum).forEach(r => {
                         if (selCleans.length > 0 && !selCleans.includes(clean(r.visitorName))) return;
                         evHtml += `<div class="event-item"><div class="event-label label-next" onclick="window.goUsage('${r.visitorName}', ${month+1}, '${r.customerName}', '${targetKey}')">${r.visitorName}: ${r.customerName}</div></div>`;
                     });
+                }
                 }
                 if (document.getElementById('showApp').checked && appMap[targetNum]) {
                     appMap[targetNum].forEach(a => {
