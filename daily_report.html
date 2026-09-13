@@ -210,10 +210,10 @@ window.postComment = async (recordId, customerName, index) => {
 
             await Promise.all(targets.map(name => 
                 addDoc(collection(db, "notifications"), {
-                    recipient: name,
+                    recipient: name, // 🌟 ループ内の name を指定！
                     visitorName: recordData.visitorName,
                     customerName: customerName,
-                    visitDate: formattedDate, // 🌟 変数名を合わせる
+                    visitDate: formattedDate,
                     type: "コメント入電",
                     isRead: false,
                     createdAt: serverTimestamp()
@@ -234,15 +234,25 @@ window.postComment = async (recordId, customerName, index) => {
         }
         
         alert("コメントを送信しました");
+        // 🌟 親切設計：今送信したアコーディオンのIDを一時保存
+        sessionStorage.setItem('cp_auto_open_id', `acc-${index}`);
+
         const rawDate = sessionStorage.getItem('cp_daily_date');
         const [y, m] = rawDate.split(/[-/]/);
         sessionStorage.removeItem(`cp_cal_cache_v_ultimate_${y}_${m.padStart(2, '0')}`);
-        location.reload();
+        location.reload(); // リロード
     } catch (e) { alert("送信エラー: " + e.message); }
 };
 
-// 特定の会社を自動で開く
 function autoFocus() {
+    // 🌟 追加：コメント送信直後の自動展開
+    const autoOpenId = sessionStorage.getItem('cp_auto_open_id');
+    if (autoOpenId) {
+        window.toggleAcc(autoOpenId);
+        document.getElementById(autoOpenId)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        sessionStorage.removeItem('cp_auto_open_id');
+        return; // 他のジャンプ処理と競合しないよう終了
+    }
     const targetName = sessionStorage.getItem('cp_usage_jump_name');
     const targetCust = sessionStorage.getItem('cp_usage_jump_customer');
     if (!targetName || !targetCust) return;
